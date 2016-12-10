@@ -3,7 +3,7 @@ package torrent;
 import java.util.Date;
 
 /**
- * Created by deha on 02/10/2016.
+ * Created by denis on 02/10/2016.
  */
 public class Torrent {
 

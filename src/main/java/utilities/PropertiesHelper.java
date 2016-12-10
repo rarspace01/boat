@@ -7,7 +7,7 @@ import java.io.InputStream;
 import java.util.Properties;
 
 /**
- * Created by deha on 24/11/2016.
+ * Created by denis on 24/11/2016.
  */
 public class PropertiesHelper {
 
