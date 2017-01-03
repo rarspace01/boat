@@ -35,6 +35,8 @@ public class PirateBay implements TorrentSearchEngine {
 
         new PirateBay().printResults(resultList);
 
+        new Premiumize().getRemoteTorrents();
+
     }
 
     @Override

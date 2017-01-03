@@ -25,9 +25,23 @@ public class Premiumize {
 
         ArrayList<Torrent> remoteTorrentList = new ArrayList<Torrent>();
 
-        //https://www.premiumize.me/api/transfer/list
+        String responseTorrents = "";
+        responseTorrents = HttpHelper.getPage("https://www.premiumize.me/api/transfer/list?customer_id=" +
+                PropertiesHelper.getProperty("customer_id") + "&pin=" + PropertiesHelper.getProperty("pin"));
+
+
+
+        System.out.println("getRemoteTorrents URL: " + "https://www.premiumize.me/api/transfer/list?customer_id=" +
+                PropertiesHelper.getProperty("customer_id") + "&pin=" + PropertiesHelper.getProperty("pin"));
+        System.out.println("getRemoteTorrents: " + responseTorrents);
 
         return remoteTorrentList;
+    }
+
+    private void parseRemoteTorrents(String pageContent){
+
+        /// use jackson here
+
     }
 
 }

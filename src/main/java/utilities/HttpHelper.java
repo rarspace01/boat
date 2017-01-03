@@ -55,6 +55,11 @@ public class HttpHelper {
                 }
             }
 
+            if(contentType != null && charset == null)
+            {
+                charset = "UTF-8";
+            }
+
             if (charset != null) {
                 returnString = "";
                 try (BufferedReader reader = new BufferedReader(new InputStreamReader(response, charset))) {
