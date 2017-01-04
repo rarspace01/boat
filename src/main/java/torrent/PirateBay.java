@@ -35,7 +35,11 @@ public class PirateBay implements TorrentSearchEngine {
 
         new PirateBay().printResults(resultList);
 
-        new Premiumize().getRemoteTorrents();
+        System.out.println("Remote Torrents:");
+
+        List<Torrent> remoteList = new Premiumize().getRemoteTorrents();
+
+        new PirateBay().printResults(remoteList);
 
     }
 
@@ -169,7 +173,7 @@ public class PirateBay implements TorrentSearchEngine {
                 seedRatio = t.seeder;
             }
 
-            System.out.println("[" + t.name + "][" + t.size + "][" + t.leecher + "/" + t.seeder + "@" + df.format(seedRatio) + "] R:" + t.searchRating + " magnet-uri: "+t.magnetUri); //["+t.date+"]");
+            System.out.println("[" + t.name + "][" + t.size + "][" + t.leecher + "/" + t.seeder + "@" + df.format(seedRatio) + "] R:" + t.searchRating + " magnet-uri: "+t.magnetUri + " RID: " + t.remoteId + " S/P:" + t.status + "/" + t.progress); //["+t.date+"]");
         }
 
     }

@@ -38,13 +38,15 @@ public class Premiumize {
                 PropertiesHelper.getProperty("customer_id") + "&pin=" + PropertiesHelper.getProperty("pin"));
         System.out.println("getRemoteTorrents: " + responseTorrents);
 
-        parseRemoteTorrents(responseTorrents);
+        remoteTorrentList = parseRemoteTorrents(responseTorrents);
 
 
         return remoteTorrentList;
     }
 
-    private void parseRemoteTorrents(String pageContent){
+    private ArrayList<Torrent> parseRemoteTorrents(String pageContent){
+
+        ArrayList<Torrent> remoteTorrentList = new ArrayList<Torrent>();
 
         ObjectMapper m = new ObjectMapper();
         try {
@@ -53,12 +55,24 @@ public class Premiumize {
             JsonNode localNodes = rootNode.path("transfers");
 
             for(JsonNode localNode:localNodes){
-                System.out.println(localNode.get("name") + "["+ localNode.get("hash") +"]" + "Status" + localNode.get("status") + localNode.get("progress")+"/100 " + Long.parseLong(localNode.get("size").toString())/(1024L*1024L) + "MB");
+
+                Torrent tempTorrent = new Torrent();
+
+                tempTorrent.name = localNode.get("name").toString();
+                tempTorrent.remoteId = localNode.get("id").toString();
+                tempTorrent.lsize = Long.parseLong(localNode.get("size").toString());
+                tempTorrent.status = localNode.get("status").toString();
+                tempTorrent.progress = localNode.get("progress").toString();
+                //System.out.println(localNode.get("name") + "["+ localNode.get("hash") +"]" + "Status" + localNode.get("status") + localNode.get("progress")+"/100 " + Long.parseLong(localNode.get("size").toString())/(1024L*1024L) + "MB");
+
+                remoteTorrentList.add(tempTorrent);
             }
 
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+        return remoteTorrentList;
 
     }
 

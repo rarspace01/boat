@@ -21,5 +21,11 @@ public class Torrent {
 
     public int searchRating = 0;
 
+    public String status;
+
+    public String progress;
+
+    public String remoteId;
+
 
 }
