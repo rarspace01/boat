@@ -44,6 +44,15 @@ public class Premiumize {
         return remoteTorrentList;
     }
 
+    public void getFilesFromTorrent(Torrent torrent) {
+
+        // https://www.premiumize.me/api/torrent/browse?hash=HASHID
+        String responseFiles =HttpHelper.getPage("https://www.premiumize.me/api/torrent/browse?hash=" +torrent.remoteId +
+                        "&customer_id=" +
+                PropertiesHelper.getProperty("customer_id") + "&pin=" + PropertiesHelper.getProperty("pin"));
+        System.out.println(responseFiles);
+    }
+
     private ArrayList<Torrent> parseRemoteTorrents(String pageContent){
 
         ArrayList<Torrent> remoteTorrentList = new ArrayList<Torrent>();
@@ -59,7 +68,7 @@ public class Premiumize {
                 Torrent tempTorrent = new Torrent();
 
                 tempTorrent.name = localNode.get("name").toString();
-                tempTorrent.remoteId = localNode.get("id").toString();
+                tempTorrent.remoteId = localNode.get("id").toString().replace("\"","");
                 tempTorrent.lsize = Long.parseLong(localNode.get("size").toString());
                 tempTorrent.status = localNode.get("status").toString();
                 tempTorrent.progress = localNode.get("progress").toString();

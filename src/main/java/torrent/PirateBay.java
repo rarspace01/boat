@@ -39,6 +39,12 @@ public class PirateBay implements TorrentSearchEngine {
 
         List<Torrent> remoteList = new Premiumize().getRemoteTorrents();
 
+        if(remoteList.size()>0) {
+            // get files from the first torrent
+            new Premiumize().getFilesFromTorrent(remoteList.get(0));
+        }
+
+
         new PirateBay().printResults(remoteList);
 
     }
