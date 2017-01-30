@@ -1,7 +1,11 @@
 package torrent;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.select.Elements;
 import utilities.HttpHelper;
 import utilities.PropertiesHelper;
 
@@ -44,13 +48,46 @@ public class Premiumize {
         return remoteTorrentList;
     }
 
-    public void getFilesFromTorrent(Torrent torrent) {
+    public List<TorrentFile> getFilesFromTorrent(Torrent torrent) {
+        List<TorrentFile> returnList = new ArrayList<TorrentFile>();
 
         // https://www.premiumize.me/api/torrent/browse?hash=HASHID
         String responseFiles =HttpHelper.getPage("https://www.premiumize.me/api/torrent/browse?hash=" +torrent.remoteId +
                         "&customer_id=" +
                 PropertiesHelper.getProperty("customer_id") + "&pin=" + PropertiesHelper.getProperty("pin"));
+
         System.out.println(responseFiles);
+
+        ObjectMapper m = new ObjectMapper();
+        try {
+            JsonNode rootNode = m.readTree(responseFiles);
+
+            JsonNode localNodes = rootNode.path("content");
+
+            List<JsonNode> fileList = localNodes.findParents("type");
+
+            for(JsonNode jsonFile:fileList) {
+
+                if(jsonFile.get("type").asText().equals("file")){
+
+                    TorrentFile tf = new TorrentFile();
+
+                    tf.name = jsonFile.get("name").asText();
+                    tf.filesize = jsonFile.get("size").asLong();
+                    tf.url = jsonFile.get("url").asText();
+
+                    returnList.add(tf);
+                }
+            }
+
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+
+        return returnList;
     }
 
     private ArrayList<Torrent> parseRemoteTorrents(String pageContent){

@@ -39,13 +39,23 @@ public class PirateBay implements TorrentSearchEngine {
 
         List<Torrent> remoteList = new Premiumize().getRemoteTorrents();
 
-        if(remoteList.size()>0) {
-            // get files from the first torrent
-            new Premiumize().getFilesFromTorrent(remoteList.get(0));
+
+        for(Torrent torrent:remoteList) {
+            List<TorrentFile> tfList = new Premiumize().getFilesFromTorrent(torrent);
+
+            // iterate over and check for One File Torrent
+            for (TorrentFile tf:tfList) {
+                if((double)tf.filesize>(torrent.lsize*0.8)){
+                    System.out.println("SBF Torrent: " + tf.name + " -> " + tf.url);
+
+                    // start wget thread systemexec with callback on finished for upload queue
+
+                }
+            }
+
         }
 
-
-        new PirateBay().printResults(remoteList);
+        //new PirateBay().printResults(remoteList);
 
     }
 
