@@ -1,5 +1,6 @@
 package torrent;
 
+import org.apache.commons.io.FileUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -7,7 +8,9 @@ import org.jsoup.select.Elements;
 import utilities.HttpHelper;
 import utilities.PropertiesHelper;
 
+import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -46,9 +49,17 @@ public class PirateBay implements TorrentSearchEngine {
             // iterate over and check for One File Torrent
             for (TorrentFile tf:tfList) {
                 if((double)tf.filesize>(torrent.lsize*0.8)){
-                    System.out.println("SBF Torrent: " + tf.name + " -> " + tf.url);
+                    System.out.println("SBF Torrent: " + tf.name + " -> " + tf.url + " Size: " +(tf.filesize/(1024L*1024L))+" MB" );
 
-                    // start wget thread systemexec with callback on finished for upload queue
+                    // start the download
+
+                    try {
+                        FileUtils.copyURLToFile(new URL(tf.url), new File("./"+tf.name));
+                        System.out.println("Downloaded SBF Torrent: " + tf.name + " -> " + tf.url + " Size: " +(tf.filesize/(1024L*1024L))+" MB" );
+
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
 
                 }
             }
