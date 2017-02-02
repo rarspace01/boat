@@ -1,6 +1,5 @@
 package torrent;
 
-import org.apache.commons.io.FileUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -8,16 +7,12 @@ import org.jsoup.select.Elements;
 import utilities.HttpHelper;
 import utilities.PropertiesHelper;
 
-import java.io.File;
-import java.io.IOException;
-import java.net.URL;
 import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Properties;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
@@ -43,23 +38,19 @@ public class PirateBay implements TorrentSearchEngine {
         List<Torrent> remoteList = new Premiumize().getRemoteTorrents();
 
 
-        for(Torrent torrent:remoteList) {
+        for (Torrent torrent : remoteList) {
+            PropertiesHelper.writeState(torrent);
             List<TorrentFile> tfList = new Premiumize().getFilesFromTorrent(torrent);
 
             // iterate over and check for One File Torrent
-            for (TorrentFile tf:tfList) {
-                if((double)tf.filesize>(torrent.lsize*0.8)){
-                    System.out.println("SBF Torrent: " + tf.name + " -> " + tf.url + " Size: " +(tf.filesize/(1024L*1024L))+" MB" );
+            for (TorrentFile tf : tfList) {
+                if ((double) tf.filesize > (torrent.lsize * 0.8)) {
+                    System.out.println("SBF Torrent: " + tf.name + " -> " + tf.url + " Size: " + (tf.filesize / (1024L * 1024L)) + " MB");
 
                     // start the download
 
-                    try {
-                        FileUtils.copyURLToFile(new URL(tf.url), new File("./"+tf.name));
-                        System.out.println("Downloaded SBF Torrent: " + tf.name + " -> " + tf.url + " Size: " +(tf.filesize/(1024L*1024L))+" MB" );
-
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
+                    //FileUtils.copyURLToFile(new URL(tf.url), new File("./"+tf.name));
+                    System.out.println("Downloaded SBF Torrent: " + tf.name + " -> " + tf.url + " Size: " + (tf.filesize / (1024L * 1024L)) + " MB");
 
                 }
             }
@@ -200,7 +191,7 @@ public class PirateBay implements TorrentSearchEngine {
                 seedRatio = t.seeder;
             }
 
-            System.out.println("[" + t.name + "][" + t.size + "][" + t.leecher + "/" + t.seeder + "@" + df.format(seedRatio) + "] R:" + t.searchRating + " magnet-uri: "+t.magnetUri + " RID: " + t.remoteId + " S/P:" + t.status + "/" + t.progress); //["+t.date+"]");
+            System.out.println("[" + t.name + "][" + t.size + "][" + t.leecher + "/" + t.seeder + "@" + df.format(seedRatio) + "] R:" + t.searchRating + " magnet-uri: " + t.magnetUri + " RID: " + t.remoteId + " S/P:" + t.status + "/" + t.progress); //["+t.date+"]");
         }
 
     }

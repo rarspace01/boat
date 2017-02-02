@@ -1,9 +1,9 @@
 package utilities;
 
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
+import torrent.Torrent;
+
+import java.io.*;
+import java.util.HashMap;
 import java.util.Properties;
 
 /**
@@ -12,6 +12,10 @@ import java.util.Properties;
 public class PropertiesHelper {
 
 
+    public static final String TORRENTCACHE = "torrentboat.torrents";
+    public static final String PROPERTIY_FILE = "torrentboat.cfg";
+    private HashMap<String, String> torrentStates = new HashMap<>();
+
     public static String getProperty(String propname) {
         InputStream inputStream = null;
 
@@ -19,26 +23,75 @@ public class PropertiesHelper {
 
         try {
 
-        Properties prop = new Properties();
-        String propFileName = "torrentboat.cfg";
-        inputStream = new FileInputStream(propFileName);
+            Properties prop = new Properties();
+            inputStream = new FileInputStream(PROPERTIY_FILE);
 
-        //inputStream = getClass().getClassLoader().getResourceAsStream(propFileName);
+            if (inputStream != null) {
+                prop.load(inputStream);
+            } else {
+                throw new FileNotFoundException("property file '" + PROPERTIY_FILE + "' not found in the classpath");
+            }
 
-        if (inputStream != null) {
-            prop.load(inputStream);
-        } else {
-            throw new FileNotFoundException("property file '" + propFileName + "' not found in the classpath");
-        }
-
-        result = prop.getProperty(propname);
-        inputStream.close();
+            result = prop.getProperty(propname);
+            inputStream.close();
 
         } catch (Exception e) {
             System.out.println("Exception: " + e);
         }
 
         return result;
+    }
+
+    public String getState(Torrent torrent) {
+        String result = null;
+
+        try {
+            InputStream inputStream = null;
+            Properties prop = new Properties();
+            inputStream = new FileInputStream(TORRENTCACHE);
+
+            if (inputStream != null) {
+                prop.load(inputStream);
+            }
+
+            result = prop.getProperty(torrent.remoteId);
+            inputStream.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return result;
+
+    }
+
+    public static void writeState(Torrent torrent) {
+        try {
+            InputStream inputStream = null;
+
+            Properties properties = new Properties();
+
+            inputStream = new FileInputStream(TORRENTCACHE);
+
+            if (inputStream != null) {
+                properties.load(inputStream);
+            } else {
+                throw new FileNotFoundException("property file '" + TORRENTCACHE + "' not found in the classpath");
+            }
+
+            inputStream.close();
+
+            properties.setProperty(torrent.remoteId, torrent.status);
+
+            File file = new File(TORRENTCACHE);
+            FileOutputStream fileOut = new FileOutputStream(file);
+            properties.store(fileOut, "Favorite Things");
+            fileOut.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
     }
 
 }
