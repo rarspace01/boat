@@ -7,7 +7,6 @@ import org.jsoup.select.Elements;
 import utilities.HttpHelper;
 import utilities.PropertiesHelper;
 
-import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -27,11 +26,18 @@ public class PirateBay implements TorrentSearchEngine {
 
         System.out.println(PropertiesHelper.getProperty("customer_id"));
 
-        List<Torrent> resultList = new PirateBay().searchTorrents("iron man 3");
+        List<Torrent> resultList = new PirateBay().searchTorrents("trainspotting");
 
         System.out.println("G: " + resultList.size());
 
-        new PirateBay().printResults(resultList);
+
+        //new PirateBay().printResults(resultList);
+        Torrent bestTorrent = new PirateBay().suggestATorrent(resultList);
+        System.out.println("We should get:");
+        System.out.println(bestTorrent);
+
+        // add the torrent to premiumize
+        new Premiumize().addTorrentToQueue(bestTorrent);
 
         System.out.println("Remote Torrents:");
 
@@ -40,21 +46,28 @@ public class PirateBay implements TorrentSearchEngine {
 
         for (Torrent torrent : remoteList) {
             PropertiesHelper.writeState(torrent);
-            List<TorrentFile> tfList = new Premiumize().getFilesFromTorrent(torrent);
 
-            // iterate over and check for One File Torrent
-            for (TorrentFile tf : tfList) {
-                if ((double) tf.filesize > (torrent.lsize * 0.8)) {
-                    System.out.println("SBF Torrent: " + tf.name + " -> " + tf.url + " Size: " + (tf.filesize / (1024L * 1024L)) + " MB");
+            // check if not already downloaded
+            if (torrent.status.equals("finished")) {
 
-                    // start the download
+                System.out.println("Potential Torrent for Downloading found: " + torrent);
 
-                    //FileUtils.copyURLToFile(new URL(tf.url), new File("./"+tf.name));
-                    System.out.println("Downloaded SBF Torrent: " + tf.name + " -> " + tf.url + " Size: " + (tf.filesize / (1024L * 1024L)) + " MB");
+                List<TorrentFile> tfList = new Premiumize().getFilesFromTorrent(torrent);
 
+                // iterate over and check for One File Torrent
+                for (TorrentFile tf : tfList) {
+                    if ((double) tf.filesize > (torrent.lsize * 0.8)) {
+                        System.out.println("SBF Torrent: " + tf.name + " -> " + tf.url + " Size: " + (tf.filesize / (1024L * 1024L)) + " MB");
+
+                        // start the download
+
+                        //FileUtils.copyURLToFile(new URL(tf.url), new File("./"+tf.name));
+                        System.out.println("Downloaded SBF Torrent: " + tf.name + " -> " + tf.url + " Size: " + (tf.filesize / (1024L * 1024L)) + " MB");
+
+                    }
                 }
-            }
 
+            }
         }
 
         //new PirateBay().printResults(remoteList);
@@ -78,6 +91,58 @@ public class PirateBay implements TorrentSearchEngine {
         }
 
         return torrentList;
+    }
+
+    @Override
+    public Torrent suggestATorrent(List<Torrent> inputList) {
+        Torrent returnTorrent = null;
+
+        // sort the findings
+        inputList.sort(new Comparator<Torrent>() {
+            @Override
+            public int compare(Torrent o1, Torrent o2) {
+
+                if (o1.searchRating > o2.searchRating) {
+                    return -1;
+                } else if (o1.searchRating < o2.searchRating) {
+                    return 1;
+                } else {
+                    if (o1.lsize > o2.lsize) {
+                        return -1;
+                    } else if (o1.lsize < o2.lsize) {
+                        return 1;
+                    } else {
+                        return 0;
+                    }
+                }
+
+            }
+        });
+
+        if (inputList != null && inputList.size() > 0) {
+
+            int localMax = 0;
+            long maxSize = 0;
+            int maxSizeIndex = -1;
+            int index = 0;
+
+            // get the potentials
+            for (Torrent torrent : inputList) {
+                if ((torrent.searchRating > localMax) && (torrent.lsize > maxSize)) {
+                    localMax = torrent.searchRating;
+                    maxSize = torrent.lsize;
+                    maxSizeIndex = index;
+                } else {
+                    break;
+                }
+                index++;
+            }
+
+            if (maxSizeIndex > -1) {
+                returnTorrent = inputList.get(maxSizeIndex);
+            }
+        }
+        return returnTorrent;
     }
 
     private List<Torrent> parseTorrentsOnResultPage(String pageContent, String torrentname) {
@@ -158,42 +223,9 @@ public class PirateBay implements TorrentSearchEngine {
     }
 
     private void printResults(List<Torrent> torrents) {
-
-        DecimalFormat df = new DecimalFormat("#.###");
-
-        torrents.sort(new Comparator<Torrent>() {
-            @Override
-            public int compare(Torrent o1, Torrent o2) {
-
-                if (o1.searchRating > o2.searchRating) {
-                    return -1;
-                } else if (o1.searchRating < o2.searchRating) {
-                    return 1;
-                } else {
-                    if (o1.lsize > o2.lsize) {
-                        return -1;
-                    } else if (o1.lsize < o2.lsize) {
-                        return 1;
-                    } else {
-                        return 0;
-                    }
-                }
-
-            }
-        });
-
         for (Torrent t : torrents) {
-            double seedRatio = 0;
-
-            if (t.leecher > 0) {
-                seedRatio = (double) t.seeder / (double) t.leecher;
-            } else {
-                seedRatio = t.seeder;
-            }
-
-            System.out.println("[" + t.name + "][" + t.size + "][" + t.leecher + "/" + t.seeder + "@" + df.format(seedRatio) + "] R:" + t.searchRating + " magnet-uri: " + t.magnetUri + " RID: " + t.remoteId + " S/P:" + t.status + "/" + t.progress); //["+t.date+"]");
+            System.out.println(t);
         }
-
     }
 
 }

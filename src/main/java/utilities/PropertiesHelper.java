@@ -70,15 +70,18 @@ public class PropertiesHelper {
 
             Properties properties = new Properties();
 
-            inputStream = new FileInputStream(TORRENTCACHE);
+            File isFilecheck = new File(TORRENTCACHE);
+            if(isFilecheck.exists()) {
+                inputStream = new FileInputStream(TORRENTCACHE);
 
-            if (inputStream != null) {
-                properties.load(inputStream);
-            } else {
-                throw new FileNotFoundException("property file '" + TORRENTCACHE + "' not found in the classpath");
+                if (inputStream != null) {
+                    properties.load(inputStream);
+                } else {
+                    throw new FileNotFoundException("property file '" + TORRENTCACHE + "' not found in the classpath");
+                }
+
+                inputStream.close();
             }
-
-            inputStream.close();
 
             properties.setProperty(torrent.remoteId, torrent.status);
 

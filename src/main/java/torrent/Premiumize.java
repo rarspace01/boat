@@ -104,12 +104,11 @@ public class Premiumize {
 
                 Torrent tempTorrent = new Torrent();
 
-                tempTorrent.name = localNode.get("name").toString();
+                tempTorrent.name = localNode.get("name").toString().replace("\"","");;
                 tempTorrent.remoteId = localNode.get("id").toString().replace("\"","");
                 tempTorrent.lsize = Long.parseLong(localNode.get("size").toString());
-                tempTorrent.status = localNode.get("status").toString();
+                tempTorrent.status = localNode.get("status").toString().replace("\"","");;
                 tempTorrent.progress = localNode.get("progress").toString();
-                //System.out.println(localNode.get("name") + "["+ localNode.get("hash") +"]" + "Status" + localNode.get("status") + localNode.get("progress")+"/100 " + Long.parseLong(localNode.get("size").toString())/(1024L*1024L) + "MB");
 
                 remoteTorrentList.add(tempTorrent);
             }
