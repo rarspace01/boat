@@ -136,7 +136,7 @@ public class DriveHelper {
         fileMetadata.setOriginalFilename(localFile.getName());
 
         java.io.File filePath = localFile;
-        FileContent mediaContent = new FileContent("image/jpeg", filePath);
+        FileContent mediaContent = new FileContent("*/*", filePath);
         File file = null;
         try {
 
