@@ -4,9 +4,11 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import utilities.DriveHelper;
 import utilities.HttpHelper;
 import utilities.PropertiesHelper;
 
+import java.io.File;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -23,6 +25,8 @@ public class PirateBay implements TorrentSearchEngine {
 
     public static void main(String[] args) {
 
+        DriveHelper test = new DriveHelper();
+        test.uploadFile(new File("C:/Users/denis/.gitconfig"), "remotetest/remotetest/remotetest");
 
         System.out.println(PropertiesHelper.getProperty("customer_id"));
 
