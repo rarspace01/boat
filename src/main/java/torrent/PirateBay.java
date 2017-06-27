@@ -23,19 +23,18 @@ public class PirateBay implements TorrentSearchEngine {
 
     private static final int MAX_PAGES = 5;
 
-    public static void main(String[] args) {
+    //public static void main(String[] args) {
+    public PirateBay() {
 
-        DriveHelper test = new DriveHelper();
-        test.uploadFile(new File("C:/Users/denis/.gitconfig"), "remotetest/remotetest/remotetest");
+//        DriveHelper test = new DriveHelper();
+//        test.uploadFile(new File(System.getProperty("user.home"),".gitconfig"), "remotetest/remotetest/remotetest");
 
         System.out.println(PropertiesHelper.getProperty("customer_id"));
 
-        List<Torrent> resultList = new PirateBay().searchTorrents("trainspotting");
-
-        System.out.println("G: " + resultList.size());
 
 
-        //new PirateBay().printResults(resultList);
+
+        /*//new PirateBay().printResults(resultList);
         Torrent bestTorrent = new PirateBay().suggestATorrent(resultList);
         System.out.println("We should get:");
         System.out.println(bestTorrent);
@@ -73,7 +72,7 @@ public class PirateBay implements TorrentSearchEngine {
 
             }
         }
-
+*/
         //new PirateBay().printResults(remoteList);
 
     }
