@@ -1,10 +1,13 @@
 package hello;
 
-import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import torrent.PirateBay;
+import torrent.Torrent;
 
-@SpringBootApplication
+import java.util.List;
+import java.util.Map;
+
 @RestController
 public class HelloController {
 
@@ -13,16 +16,11 @@ public class HelloController {
         return "Greetings from Spring Boot!";
     }
 
-/*    @RequestMapping("/boat")
+    @RequestMapping("/boat")
     public String getTorrents(Map<String, Object> model) {
         PirateBay pirateBay = new PirateBay();
-
-
         List<Torrent> resultList = pirateBay.searchTorrents("trainspotting");
-
-        System.out.println("G: " + resultList.size());
-
-        return "";
-    }*/
+        return "G: " + resultList;
+    }
 
 }
