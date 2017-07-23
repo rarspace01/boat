@@ -2,3 +2,4 @@
 build/
 torrentboat.cfg
 .gradle/
+out/
