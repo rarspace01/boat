@@ -3,9 +3,6 @@ package torrent;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.select.Elements;
 import utilities.HttpHelper;
 import utilities.PropertiesHelper;
 
@@ -20,11 +17,13 @@ public class Premiumize {
 
     private List<Torrent> torrentList = new ArrayList<Torrent>();
 
-    String addTorrentToQueue(Torrent toBeAddedTorrent) {
+    public String addTorrentToQueue(Torrent toBeAddedTorrent) {
         String response = "";
-        response = HttpHelper.getPage("https://www.premiumize.me/api/transfer/create?customer_id=" +
+        String addTorrenntUrl = "https://www.premiumize.me/api/transfer/create?customer_id=" +
                 PropertiesHelper.getProperty("customer_id") + "&pin=" + PropertiesHelper.getProperty("pin") +
-                "&type=torrent&src=agnet:?xt=urn:btih:" + toBeAddedTorrent.magnetUri);
+                "&type=torrent&src=" + toBeAddedTorrent.magnetUri;
+        response = HttpHelper.getPage(addTorrenntUrl);
+        System.out.println("GET: " + addTorrenntUrl);
         return response;
     }
 
@@ -35,7 +34,6 @@ public class Premiumize {
         String responseTorrents = "";
         responseTorrents = HttpHelper.getPage("https://www.premiumize.me/api/transfer/list?customer_id=" +
                 PropertiesHelper.getProperty("customer_id") + "&pin=" + PropertiesHelper.getProperty("pin"));
-
 
 
         System.out.println("getRemoteTorrents URL: " + "https://www.premiumize.me/api/transfer/list?customer_id=" +
@@ -52,8 +50,8 @@ public class Premiumize {
         List<TorrentFile> returnList = new ArrayList<TorrentFile>();
 
         // https://www.premiumize.me/api/torrent/browse?hash=HASHID
-        String responseFiles =HttpHelper.getPage("https://www.premiumize.me/api/torrent/browse?hash=" +torrent.remoteId +
-                        "&customer_id=" +
+        String responseFiles = HttpHelper.getPage("https://www.premiumize.me/api/torrent/browse?hash=" + torrent.remoteId +
+                "&customer_id=" +
                 PropertiesHelper.getProperty("customer_id") + "&pin=" + PropertiesHelper.getProperty("pin"));
 
         System.out.println(responseFiles);
@@ -66,9 +64,9 @@ public class Premiumize {
 
             List<JsonNode> fileList = localNodes.findParents("type");
 
-            for(JsonNode jsonFile:fileList) {
+            for (JsonNode jsonFile : fileList) {
 
-                if(jsonFile.get("type").asText().equals("file")){
+                if (jsonFile.get("type").asText().equals("file")) {
 
                     TorrentFile tf = new TorrentFile();
 
@@ -90,7 +88,7 @@ public class Premiumize {
         return returnList;
     }
 
-    private ArrayList<Torrent> parseRemoteTorrents(String pageContent){
+    private ArrayList<Torrent> parseRemoteTorrents(String pageContent) {
 
         ArrayList<Torrent> remoteTorrentList = new ArrayList<Torrent>();
 
@@ -100,14 +98,16 @@ public class Premiumize {
 
             JsonNode localNodes = rootNode.path("transfers");
 
-            for(JsonNode localNode:localNodes){
+            for (JsonNode localNode : localNodes) {
 
                 Torrent tempTorrent = new Torrent();
 
-                tempTorrent.name = localNode.get("name").toString().replace("\"","");;
-                tempTorrent.remoteId = localNode.get("id").toString().replace("\"","");
+                tempTorrent.name = localNode.get("name").toString().replace("\"", "");
+                ;
+                tempTorrent.remoteId = localNode.get("id").toString().replace("\"", "");
                 tempTorrent.lsize = Long.parseLong(localNode.get("size").toString());
-                tempTorrent.status = localNode.get("status").toString().replace("\"","");;
+                tempTorrent.status = localNode.get("status").toString().replace("\"", "");
+                ;
                 tempTorrent.progress = localNode.get("progress").toString();
 
                 remoteTorrentList.add(tempTorrent);

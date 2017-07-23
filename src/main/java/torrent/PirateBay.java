@@ -11,6 +11,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -173,8 +174,8 @@ public class PirateBay implements TorrentSearchEngine {
             // extract date
 
             String inputDateString = torrent.select("td").get(2).text().replace("\u00a0", " ");
-
             SimpleDateFormat formatter = new SimpleDateFormat("MM-dd yyyy");
+            inputDateString = inputDateString.replace("Today", formatter.format(new Date()));
 
             try {
                 tempTorrent.date = formatter.parse(inputDateString);
