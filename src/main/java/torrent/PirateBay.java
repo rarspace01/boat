@@ -18,6 +18,9 @@ import java.util.concurrent.CopyOnWriteArrayList;
 public class PirateBay implements TorrentSearchEngine {
 
     private static final int MAX_PAGES = 5;
+    public static final String REGEX_CLEAN_NAME = "[-+ .]";
+    public static final double SIZE_FIRST_LIMIT = 1024.0;
+    private static final double SIZE_SECOND_LIMIT = 25 * 1024.0;
 
     //public static void main(String[] args) {
     public PirateBay() {
@@ -89,6 +92,30 @@ public class PirateBay implements TorrentSearchEngine {
             torrentList.addAll(parseTorrentsOnResultPage(localString, torrentname));
         }
 
+        // sort resultList
+
+        // sort the findings
+        torrentList.sort(new Comparator<Torrent>() {
+            @Override
+            public int compare(Torrent o1, Torrent o2) {
+
+                if (o1.searchRating > o2.searchRating) {
+                    return -1;
+                } else if (o1.searchRating < o2.searchRating) {
+                    return 1;
+                } else {
+                    if (o1.lsize > o2.lsize) {
+                        return -1;
+                    } else if (o1.lsize < o2.lsize) {
+                        return 1;
+                    } else {
+                        return 0;
+                    }
+                }
+
+            }
+        });
+
         return torrentList;
     }
 
@@ -120,8 +147,8 @@ public class PirateBay implements TorrentSearchEngine {
 
         if (inputList != null && inputList.size() > 0) {
 
-            int localMax = 0;
-            long maxSize = 0;
+            double localMax = 0;
+            double maxSize = 0;
             int maxSizeIndex = -1;
             int index = 0;
 
@@ -203,19 +230,18 @@ public class PirateBay implements TorrentSearchEngine {
             tempTorrent.leecher = Integer.parseInt(torrent.select("td").get(6).text());
 
             // evaluate result
-            if (tempTorrent.name.toLowerCase().replaceAll("[ .]", "").contains(torrentname.toLowerCase().replaceAll("[ .]", ""))) {
+            if (tempTorrent.name.toLowerCase().replaceAll(REGEX_CLEAN_NAME, "").contains(torrentname.toLowerCase().replaceAll(REGEX_CLEAN_NAME, ""))) {
                 tempTorrent.searchRating += 2;
             }
-            if (tempTorrent.lsize > 10 * 1024) {
-                tempTorrent.searchRating++;
-            } /* else if(tempTorrent.lsize>1300)
+            // calc first range
+            tempTorrent.searchRating+=Math.max(tempTorrent.lsize, SIZE_FIRST_LIMIT)/SIZE_FIRST_LIMIT;
+            if(tempTorrent.lsize>SIZE_FIRST_LIMIT)
             {
-                tempTorrent.searchRating++;
-            } */
+                tempTorrent.searchRating+=((Math.max(tempTorrent.lsize, SIZE_SECOND_LIMIT)-SIZE_FIRST_LIMIT)/(SIZE_SECOND_LIMIT-SIZE_FIRST_LIMIT));
+            }
             if (tempTorrent.seeder > 30) {
                 tempTorrent.searchRating++;
             }
-
 
             // filter torrents without any seeders
             if (tempTorrent.seeder > 0) {

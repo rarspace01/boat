@@ -14,12 +14,12 @@ public class Torrent {
     public Date date;
     //public long size;
     public String size;
-    public long lsize;
+    public double lsize;
     public int seeder;
     public int leecher;
     public String magnetUri;
     public String category;
-    public int searchRating = 0;
+    public double searchRating = 0.0;
     public String status;
     public String progress;
     public String remoteId;
@@ -41,6 +41,6 @@ public class Torrent {
             e.printStackTrace();
         }
 
-        return "[" + this.name + "][" + this.size + "][" + this.leecher + "/" + this.seeder + "@" + df.format(seedRatio) + "] R:" + this.searchRating + " <a href=\"./boat/download/?d=" + magnetUriBase64 + "\">Download</a> RID: " + this.remoteId + " Status/Progress:" + this.status + "/" + this.progress + "<br/>";
+        return "[" + this.name + "][" + this.size + "][" + this.leecher + "/" + this.seeder + "@" + df.format(seedRatio) + "] R:" + df.format(this.searchRating) + " <a href=\"./boat/download/?d=" + magnetUriBase64 + "\">Download</a> RID: " + this.remoteId + " Status/Progress:" + this.status + "/" + this.progress + "<br/>";
     }
 }

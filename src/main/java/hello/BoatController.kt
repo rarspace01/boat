@@ -20,7 +20,7 @@ class BoatController {
     fun getTorrents(@RequestParam("q") searchString: String): String {
         val pirateBay = PirateBay()
         val resultList = pirateBay.searchTorrents(searchString)
-        return "G: " + resultList.subList(0, Math.min(resultList.size, 3))
+        return "G: " + resultList.subList(0, Math.min(resultList.size, 10))
     }
 
     @RequestMapping("/boat/download")
