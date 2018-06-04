@@ -35,10 +35,12 @@ public class Torrent {
             seedRatio = this.seeder;
         }
         String magnetUriBase64 = "";
-        try {
-            magnetUriBase64 = Base64.getUrlEncoder().encodeToString(magnetUri.getBytes("utf-8"));
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
+        if (magnetUri != null) {
+            try {
+                magnetUriBase64 = Base64.getUrlEncoder().encodeToString(magnetUri.getBytes("utf-8"));
+            } catch (UnsupportedEncodingException e) {
+                e.printStackTrace();
+            }
         }
 
         return "[" + this.name + "][" + this.size + "][" + this.leecher + "/" + this.seeder + "@" + df.format(seedRatio) + "] R:" + df.format(this.searchRating) + " <a href=\"./boat/download/?d=" + magnetUriBase64 + "\">Download</a> RID: " + this.remoteId + " Status/Progress:" + this.status + "/" + this.progress + "<br/>";

@@ -27,7 +27,7 @@ public class Premiumize {
         return response;
     }
 
-    ArrayList<Torrent> getRemoteTorrents() {
+    public ArrayList<Torrent> getRemoteTorrents() {
 
         ArrayList<Torrent> remoteTorrentList = new ArrayList<Torrent>();
 
@@ -100,14 +100,16 @@ public class Premiumize {
 
             for (JsonNode localNode : localNodes) {
 
+                System.out.println(localNode.toString());
+
                 Torrent tempTorrent = new Torrent();
 
                 tempTorrent.name = localNode.get("name").toString().replace("\"", "");
-                ;
+
                 tempTorrent.remoteId = localNode.get("id").toString().replace("\"", "");
-                tempTorrent.lsize = Long.parseLong(localNode.get("size").toString());
+                //tempTorrent.lsize = Long.parseLong(localNode.get("size").toString());
                 tempTorrent.status = localNode.get("status").toString().replace("\"", "");
-                ;
+
                 tempTorrent.progress = localNode.get("progress").toString();
 
                 remoteTorrentList.add(tempTorrent);

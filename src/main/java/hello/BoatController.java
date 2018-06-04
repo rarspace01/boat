@@ -10,6 +10,7 @@ import torrent.PirateBay;
 import torrent.Premiumize;
 import torrent.Torrent;
 
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 
@@ -43,5 +44,12 @@ public final class BoatController {
         String var4 = (new Premiumize()).addTorrentToQueue(torrentToBeDownloaded);
         Intrinsics.checkExpressionValueIsNotNull(var4, "Premiumize().addTorrentT…ue(torrentToBeDownloaded)");
         return var4;
+    }
+
+    @GetMapping({"/boat/debug"})
+    @NotNull
+    public final String getDebugInfo() {
+        ArrayList<Torrent> remoteTorrents = new Premiumize().getRemoteTorrents();
+        return "D: " + remoteTorrents;
     }
 }
