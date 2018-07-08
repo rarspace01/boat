@@ -1,6 +1,5 @@
 package hello;
 
-import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -10,8 +9,11 @@ import torrent.Torrent;
 import utilities.PropertiesHelper;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.channels.Channels;
+import java.nio.channels.ReadableByteChannel;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -44,7 +46,11 @@ public class DownloadMonitor {
                     log.info("About to download:" + remoteTorrent.toString());
                     String mainFileURLFromTorrent = premiumize.getMainFileURLFromTorrent(remoteTorrent);
                     if (mainFileURLFromTorrent != null) {
-                        FileUtils.copyURLToFile(new URL(mainFileURLFromTorrent), new File(PropertiesHelper.getProperty("downloaddir") + remoteTorrent.name));
+                        URL website = new URL(mainFileURLFromTorrent);
+                        ReadableByteChannel rbc = Channels.newChannel(website.openStream());
+                        FileOutputStream fos = new FileOutputStream(PropertiesHelper.getProperty("downloaddir") + remoteTorrent.name);
+                        fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
+                        //FileUtils.copyURLToFile(, new File(PropertiesHelper.getProperty("downloaddir") + remoteTorrent.name));
                     } else {
                         log.info("sorry I'm not yet smart enough to handle multi file torrent downloads");
                     }
