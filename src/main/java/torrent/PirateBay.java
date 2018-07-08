@@ -76,6 +76,7 @@ public class PirateBay implements TorrentSearchEngine {
 
     }
 
+
     @Override
     public List<Torrent> searchTorrents(String torrentname) {
 
@@ -234,10 +235,9 @@ public class PirateBay implements TorrentSearchEngine {
                 tempTorrent.searchRating += 2;
             }
             // calc first range
-            tempTorrent.searchRating+=Math.max(tempTorrent.lsize, SIZE_FIRST_LIMIT)/SIZE_FIRST_LIMIT;
-            if(tempTorrent.lsize>SIZE_FIRST_LIMIT)
-            {
-                tempTorrent.searchRating+=((Math.max(tempTorrent.lsize, SIZE_SECOND_LIMIT)-SIZE_FIRST_LIMIT)/(SIZE_SECOND_LIMIT-SIZE_FIRST_LIMIT));
+            tempTorrent.searchRating += Math.max(tempTorrent.lsize, SIZE_FIRST_LIMIT) / SIZE_FIRST_LIMIT;
+            if (tempTorrent.lsize > SIZE_FIRST_LIMIT) {
+                tempTorrent.searchRating += ((Math.max(tempTorrent.lsize, SIZE_SECOND_LIMIT) - SIZE_FIRST_LIMIT) / (SIZE_SECOND_LIMIT - SIZE_FIRST_LIMIT));
             }
             if (tempTorrent.seeder > 30) {
                 tempTorrent.searchRating++;

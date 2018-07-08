@@ -23,6 +23,8 @@ public class Torrent {
     public String status;
     public String progress;
     public String remoteId;
+    public String folder_id;
+    public String file_id;
 
     @Override
     public String toString() {

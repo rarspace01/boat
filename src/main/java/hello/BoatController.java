@@ -33,7 +33,7 @@ public final class BoatController {
 
     @GetMapping({"/boat/download"})
     @NotNull
-    public final String downloadTorrent(@RequestParam("d") @NotNull String downloadUri) {
+    public final String downloadTorrentToPremiumize(@RequestParam("d") @NotNull String downloadUri) {
         Intrinsics.checkParameterIsNotNull(downloadUri, "downloadUri");
         byte[] var10000 = Base64.getUrlDecoder().decode(downloadUri);
         Intrinsics.checkExpressionValueIsNotNull(var10000, "Base64.getUrlDecoder().decode(downloadUri)");

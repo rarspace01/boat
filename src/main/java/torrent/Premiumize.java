@@ -1,6 +1,5 @@
 package torrent;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import utilities.HttpHelper;
@@ -34,23 +33,37 @@ public class Premiumize {
         String responseTorrents = "";
         responseTorrents = HttpHelper.getPage("https://www.premiumize.me/api/transfer/list?customer_id=" +
                 PropertiesHelper.getProperty("customer_id") + "&pin=" + PropertiesHelper.getProperty("pin"));
-
-
         System.out.println("getRemoteTorrents URL: " + "https://www.premiumize.me/api/transfer/list?customer_id=" +
                 PropertiesHelper.getProperty("customer_id") + "&pin=" + PropertiesHelper.getProperty("pin"));
         System.out.println("getRemoteTorrents: " + responseTorrents);
 
         remoteTorrentList = parseRemoteTorrents(responseTorrents);
 
-
         return remoteTorrentList;
+    }
+
+    public String getMainFileURLFromTorrent(Torrent torrent) {
+        List<TorrentFile> tfList = new Premiumize().getFilesFromTorrent(torrent);
+
+        String remoteURL = null;
+
+        // iterate over and check for One File Torrent
+        long biggestFileYet = 0;
+        for (TorrentFile tf : tfList) {
+            if (tf.filesize > biggestFileYet) {
+                biggestFileYet = tf.filesize;
+                remoteURL = tf.url;
+            }
+        }
+        return remoteURL;
     }
 
     public List<TorrentFile> getFilesFromTorrent(Torrent torrent) {
         List<TorrentFile> returnList = new ArrayList<TorrentFile>();
 
+
         // https://www.premiumize.me/api/torrent/browse?hash=HASHID
-        String responseFiles = HttpHelper.getPage("https://www.premiumize.me/api/torrent/browse?hash=" + torrent.remoteId +
+        String responseFiles = HttpHelper.getPage("https://www.premiumize.me/api/folder/list?folder_id=" + torrent.folder_id +
                 "&customer_id=" +
                 PropertiesHelper.getProperty("customer_id") + "&pin=" + PropertiesHelper.getProperty("pin"));
 
@@ -67,19 +80,25 @@ public class Premiumize {
             for (JsonNode jsonFile : fileList) {
 
                 if (jsonFile.get("type").asText().equals("file")) {
-
                     TorrentFile tf = new TorrentFile();
 
-                    tf.name = jsonFile.get("name").asText();
-                    tf.filesize = jsonFile.get("size").asLong();
-                    tf.url = jsonFile.get("url").asText();
-
-                    returnList.add(tf);
+                    // check if torrent is onefile and is located in root
+                    if (torrent.file_id != null && torrent.folder_id != null) {
+                        if (String.valueOf(jsonFile.get("id").asText()).equals(torrent.file_id)) {
+                            tf.name = jsonFile.get("name").asText();
+                            tf.filesize = jsonFile.get("size").asLong();
+                            tf.url = jsonFile.get("link").asText();
+                            returnList.add(tf);
+                        }
+                    } else {
+                        tf.name = jsonFile.get("name").asText();
+                        tf.filesize = jsonFile.get("size").asLong();
+                        tf.url = jsonFile.get("link").asText();
+                        returnList.add(tf);
+                    }
                 }
             }
 
-        } catch (JsonProcessingException e) {
-            e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -104,11 +123,15 @@ public class Premiumize {
 
                 Torrent tempTorrent = new Torrent();
 
-                tempTorrent.name = localNode.get("name").toString().replace("\"", "");
+                tempTorrent.name = localNode.get("name").asText();
+                tempTorrent.folder_id = localNode.get("folder_id").asText();
+                tempTorrent.file_id = localNode.get("file_id").asText();
+                tempTorrent.folder_id = cleanJsonNull(tempTorrent.folder_id);
+                tempTorrent.file_id = cleanJsonNull(tempTorrent.file_id);
 
                 tempTorrent.remoteId = localNode.get("id").toString().replace("\"", "");
-                //tempTorrent.lsize = Long.parseLong(localNode.get("size").toString());
-                tempTorrent.status = localNode.get("status").toString().replace("\"", "");
+
+                tempTorrent.status = localNode.get("status").asText();
 
                 tempTorrent.progress = localNode.get("progress").toString();
 
@@ -121,6 +144,10 @@ public class Premiumize {
 
         return remoteTorrentList;
 
+    }
+
+    private String cleanJsonNull(String inputString) {
+        return inputString.equals("null") ? null : inputString;
     }
 
 }
