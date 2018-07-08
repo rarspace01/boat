@@ -11,3 +11,10 @@ cache:
   - $HOME/.gradle/wrapper/
 script:
 - ./gradlew build
+deploy:
+  provider: releases
+  api_key: GITHUB_APIKEY
+  file: "./build/libs/pirateboat.jar"
+  skip_cleanup: true
+#  yon:
+#    tags: true
