@@ -7,6 +7,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import torrent.Premiumize;
 import torrent.Torrent;
+import utilities.PropertiesHelper;
 
 import java.io.File;
 import java.io.IOException;
@@ -43,7 +44,7 @@ public class DownloadMonitor {
                     log.info("About to download:" + remoteTorrent.toString());
                     String mainFileURLFromTorrent = premiumize.getMainFileURLFromTorrent(remoteTorrent);
                     if (mainFileURLFromTorrent != null) {
-                        FileUtils.copyURLToFile(new URL(mainFileURLFromTorrent), new File("./downloads/" + remoteTorrent.name));
+                        FileUtils.copyURLToFile(new URL(mainFileURLFromTorrent), new File(PropertiesHelper.getProperty("downloaddir") + remoteTorrent.name));
                     } else {
                         log.info("sorry I'm not yet smart enough to handle multi file torrent downloads");
                     }
