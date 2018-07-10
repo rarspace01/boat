@@ -43,9 +43,9 @@ public class DownloadMonitor {
                 try {
                     isDownloadInProgress = true;
                     createDownloadFolderIfNotExists();
-                    log.info("About to download:" + remoteTorrent.toString());
                     String mainFileURLFromTorrent = premiumize.getMainFileURLFromTorrent(remoteTorrent);
                     if (mainFileURLFromTorrent != null) {
+                        log.info("About to download:" + mainFileURLFromTorrent);
                         URL website = new URL(mainFileURLFromTorrent);
                         ReadableByteChannel rbc = Channels.newChannel(website.openStream());
                         FileOutputStream fos = new FileOutputStream(PropertiesHelper.getProperty("downloaddir") + remoteTorrent.name);
