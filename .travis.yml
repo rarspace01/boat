@@ -16,5 +16,7 @@ deploy:
   api_key: $GITHUB_APIKEY
   file: "./build/libs/pirateboat.jar"
   skip_cleanup: true
+  on:
+    branch: master
 #  yon:
 #    tags: true
