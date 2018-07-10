@@ -64,8 +64,8 @@ public class DownloadMonitor {
     }
 
     private void createDownloadFolderIfNotExists() {
-        if (!new File("./downloads/").exists()) {
-            new File("./downloads/").mkdirs();
+        if (!new File(PropertiesHelper.getProperty("downloaddir")).exists()) {
+            new File(PropertiesHelper.getProperty("downloaddir")).mkdirs();
         }
     }
 
