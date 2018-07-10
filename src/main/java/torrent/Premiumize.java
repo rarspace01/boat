@@ -61,9 +61,7 @@ public class Premiumize {
     public List<TorrentFile> getFilesFromTorrent(Torrent torrent) {
         List<TorrentFile> returnList = new ArrayList<TorrentFile>();
 
-
-        // https://www.premiumize.me/api/torrent/browse?hash=HASHID
-        String responseFiles = HttpHelper.getPage("https://www.premiumize.me/api/folder/list?folder_id=" + torrent.folder_id +
+        String responseFiles = HttpHelper.getPage("https://www.premiumize.me/api/folder/list?id=" + torrent.folder_id +
                 "&customer_id=" +
                 PropertiesHelper.getProperty("customer_id") + "&pin=" + PropertiesHelper.getProperty("pin"));
 
