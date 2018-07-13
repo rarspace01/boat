@@ -14,10 +14,10 @@ import java.util.List;
  */
 public class Premiumize {
 
-    private List<Torrent> torrentList = new ArrayList<Torrent>();
+    private List<Torrent> torrentList = new ArrayList<>();
 
     public String addTorrentToQueue(Torrent toBeAddedTorrent) {
-        String response = "";
+        String response;
         String addTorrenntUrl = "https://www.premiumize.me/api/transfer/create?customer_id=" +
                 PropertiesHelper.getProperty("customer_id") + "&pin=" + PropertiesHelper.getProperty("pin") +
                 "&type=torrent&src=" + toBeAddedTorrent.magnetUri;
@@ -28,9 +28,9 @@ public class Premiumize {
 
     public ArrayList<Torrent> getRemoteTorrents() {
 
-        ArrayList<Torrent> remoteTorrentList = new ArrayList<Torrent>();
+        ArrayList<Torrent> remoteTorrentList;
 
-        String responseTorrents = "";
+        String responseTorrents;
         responseTorrents = HttpHelper.getPage("https://www.premiumize.me/api/transfer/list?customer_id=" +
                 PropertiesHelper.getProperty("customer_id") + "&pin=" + PropertiesHelper.getProperty("pin"));
         System.out.println("getRemoteTorrents URL: " + "https://www.premiumize.me/api/transfer/list?customer_id=" +
@@ -58,8 +58,8 @@ public class Premiumize {
         return remoteURL;
     }
 
-    public List<TorrentFile> getFilesFromTorrent(Torrent torrent) {
-        List<TorrentFile> returnList = new ArrayList<TorrentFile>();
+    private List<TorrentFile> getFilesFromTorrent(Torrent torrent) {
+        List<TorrentFile> returnList = new ArrayList<>();
 
         String responseFiles = HttpHelper.getPage("https://www.premiumize.me/api/folder/list?id=" + torrent.folder_id +
                 "&customer_id=" +
@@ -107,7 +107,7 @@ public class Premiumize {
 
     private ArrayList<Torrent> parseRemoteTorrents(String pageContent) {
 
-        ArrayList<Torrent> remoteTorrentList = new ArrayList<Torrent>();
+        ArrayList<Torrent> remoteTorrentList = new ArrayList<>();
 
         ObjectMapper m = new ObjectMapper();
         try {
@@ -144,5 +144,6 @@ public class Premiumize {
         String removeTorrenntUrl = "https://www.premiumize.me/api/transfer/delete?id=" + remoteTorrent.remoteId + "&" +
                 PropertiesHelper.getProperty("customer_id") + "&pin=" + PropertiesHelper.getProperty("pin") +
                 "&type=torrent&src=" + remoteTorrent.magnetUri;
+        HttpHelper.getPage(removeTorrenntUrl);
     }
 }
