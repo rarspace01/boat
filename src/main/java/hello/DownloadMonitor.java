@@ -50,6 +50,8 @@ public class DownloadMonitor {
                         ReadableByteChannel rbc = Channels.newChannel(website.openStream());
                         FileOutputStream fos = new FileOutputStream(PropertiesHelper.getProperty("downloaddir") + remoteTorrent.name);
                         fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
+                        // cleanup afterwards
+                        premiumize.delete(remoteTorrent);
                     } else {
                         log.info("sorry I'm not yet smart enough to handle multi file torrent downloads");
                     }

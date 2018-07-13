@@ -148,4 +148,9 @@ public class Premiumize {
         return inputString.equals("null") ? null : inputString;
     }
 
+    public void delete(Torrent remoteTorrent) {
+        String removeTorrenntUrl = "https://www.premiumize.me/api/transfer/delete?id=" + remoteTorrent.remoteId + "&" +
+                PropertiesHelper.getProperty("customer_id") + "&pin=" + PropertiesHelper.getProperty("pin") +
+                "&type=torrent&src=" + remoteTorrent.magnetUri;
+    }
 }
