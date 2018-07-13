@@ -146,4 +146,20 @@ public class Premiumize {
                 "&type=torrent&src=" + remoteTorrent.magnetUri;
         HttpHelper.getPage(removeTorrenntUrl);
     }
+
+    public boolean isSingleFileDownload(Torrent remoteTorrent) {
+        List<TorrentFile> tfList = new Premiumize().getFilesFromTorrent(remoteTorrent);
+        // getMaxFilesize
+        // getSumSize
+        long sumFileSize = 0L;
+        long biggestFileYet = 0L;
+        for (TorrentFile tf : tfList) {
+            if (tf.filesize > biggestFileYet) {
+                biggestFileYet = tf.filesize;
+            }
+            sumFileSize += tf.filesize;
+        }
+        // if maxfilesize >90% sumSize --> Singlefile
+        return biggestFileYet > (0.9d * sumFileSize);
+    }
 }

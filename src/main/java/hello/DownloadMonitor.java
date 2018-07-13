@@ -43,18 +43,28 @@ public class DownloadMonitor {
                 try {
                     isDownloadInProgress = true;
                     createDownloadFolderIfNotExists();
-                    String mainFileURLFromTorrent = premiumize.getMainFileURLFromTorrent(remoteTorrent);
-                    if (mainFileURLFromTorrent != null) {
-                        log.info("About to download:" + mainFileURLFromTorrent + "\nto: " + PropertiesHelper.getProperty("downloaddir") + remoteTorrent.name);
-                        URL website = new URL(mainFileURLFromTorrent);
-                        ReadableByteChannel rbc = Channels.newChannel(website.openStream());
-                        FileOutputStream fos = new FileOutputStream(PropertiesHelper.getProperty("downloaddir") + remoteTorrent.name);
-                        fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
-                        // cleanup afterwards
-                        premiumize.delete(remoteTorrent);
+
+                    // check if SingleFileDownload
+                    if (premiumize.isSingleFileDownload(remoteTorrent)) {
+                        String mainFileURLFromTorrent = premiumize.getMainFileURLFromTorrent(remoteTorrent);
+                        if (mainFileURLFromTorrent != null) {
+                            log.info("About to download:" + mainFileURLFromTorrent + "\nto: " + PropertiesHelper.getProperty("downloaddir") + remoteTorrent.name);
+                            URL website = new URL(mainFileURLFromTorrent);
+                            ReadableByteChannel rbc = Channels.newChannel(website.openStream());
+                            FileOutputStream fos = new FileOutputStream(PropertiesHelper.getProperty("downloaddir") + remoteTorrent.name);
+                            fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
+                            // cleanup afterwards
+                            premiumize.delete(remoteTorrent);
+                        } else {
+                            log.info("sorry I'm not yet smart enough to handle multi file torrent downloads");
+                        }
                     } else {
-                        log.info("sorry I'm not yet smart enough to handle multi file torrent downloads");
+                        // download every file
                     }
+
+                    // process
+
+
                     isDownloadInProgress = false;
                 } catch (IOException e) {
                     isDownloadInProgress = false;
