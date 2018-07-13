@@ -112,27 +112,19 @@ public class Premiumize {
         ObjectMapper m = new ObjectMapper();
         try {
             JsonNode rootNode = m.readTree(pageContent);
-
             JsonNode localNodes = rootNode.path("transfers");
 
             for (JsonNode localNode : localNodes) {
-
                 System.out.println(localNode.toString());
-
                 Torrent tempTorrent = new Torrent();
-
                 tempTorrent.name = localNode.get("name").asText();
                 tempTorrent.folder_id = localNode.get("folder_id").asText();
                 tempTorrent.file_id = localNode.get("file_id").asText();
                 tempTorrent.folder_id = cleanJsonNull(tempTorrent.folder_id);
                 tempTorrent.file_id = cleanJsonNull(tempTorrent.file_id);
-
                 tempTorrent.remoteId = localNode.get("id").toString().replace("\"", "");
-
                 tempTorrent.status = localNode.get("status").asText();
-
                 tempTorrent.progress = localNode.get("progress").toString();
-
                 remoteTorrentList.add(tempTorrent);
             }
 
