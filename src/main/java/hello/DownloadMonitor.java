@@ -6,17 +6,16 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import torrent.Premiumize;
 import torrent.Torrent;
+import torrent.TorrentFile;
+import utilities.HttpHelper;
 import utilities.PropertiesHelper;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.net.URL;
-import java.nio.channels.Channels;
-import java.nio.channels.ReadableByteChannel;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 @Component
 public class DownloadMonitor {
@@ -46,25 +45,22 @@ public class DownloadMonitor {
 
                     // check if SingleFileDownload
                     if (premiumize.isSingleFileDownload(remoteTorrent)) {
-                        String mainFileURLFromTorrent = premiumize.getMainFileURLFromTorrent(remoteTorrent);
-                        if (mainFileURLFromTorrent != null) {
-                            log.info("About to download:" + mainFileURLFromTorrent + "\nto: " + PropertiesHelper.getProperty("downloaddir") + remoteTorrent.name);
-                            URL website = new URL(mainFileURLFromTorrent);
-                            ReadableByteChannel rbc = Channels.newChannel(website.openStream());
-                            FileOutputStream fos = new FileOutputStream(PropertiesHelper.getProperty("downloaddir") + remoteTorrent.name);
-                            fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
-                            // cleanup afterwards
-                            premiumize.delete(remoteTorrent);
-                        } else {
-                            log.info("sorry I'm not yet smart enough to handle multi file torrent downloads");
-                        }
-                    } else {
+                        String fileURLFromTorrent = premiumize.getMainFileURLFromTorrent(remoteTorrent);
+                        String localPath = PropertiesHelper.getProperty("downloaddir") + remoteTorrent.name + addFilenameIfNotYetPresent(remoteTorrent.name, fileURLFromTorrent);
+                        downloadFile(fileURLFromTorrent, localPath);
+                        // cleanup afterwards
+                        premiumize.delete(remoteTorrent);
+                    } else { // start multifile download
                         // download every file
+                        List<TorrentFile> filesFromTorrent = premiumize.getFilesFromTorrent(remoteTorrent);
+                        for (TorrentFile torrentFile : filesFromTorrent) {
+                            // check filesize to get rid of samples and NFO files?
+                            String localPath = PropertiesHelper.getProperty("downloaddir") + remoteTorrent.name + addFilenameIfNotYetPresent(remoteTorrent.name, torrentFile.url);
+                            downloadFile(torrentFile.url, localPath);
+                        }
+                        // cleanup afterwards
+                        premiumize.delete(remoteTorrent);
                     }
-
-                    // process
-
-
                     isDownloadInProgress = false;
                 } catch (IOException e) {
                     isDownloadInProgress = false;
@@ -74,9 +70,25 @@ public class DownloadMonitor {
         }
     }
 
-    private void createDownloadFolderIfNotExists() {
+    private void downloadFile(String fileURLFromTorrent, String localPath) throws IOException {
+        log.info("About to download:" + fileURLFromTorrent + "\nto: " + localPath);
+        HttpHelper.downloadFileToPath(fileURLFromTorrent, localPath);
+    }
+
+
+    private String addFilenameIfNotYetPresent(String name, String mainFileURLFromTorrent) {
+        if (name.matches(".+[.].*]")) {
+            return "";
+        } else {
+            return mainFileURLFromTorrent.substring(mainFileURLFromTorrent.lastIndexOf("/"));
+        }
+    }
+
+    private boolean createDownloadFolderIfNotExists() {
         if (!new File(PropertiesHelper.getProperty("downloaddir")).exists()) {
-            new File(PropertiesHelper.getProperty("downloaddir")).mkdirs();
+            return new File(PropertiesHelper.getProperty("downloaddir")).mkdirs();
+        } else {
+            return true;
         }
     }
 

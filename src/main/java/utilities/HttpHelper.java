@@ -1,20 +1,10 @@
 package utilities;
 
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
-import torrent.Torrent;
-
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.net.URL;
 import java.net.URLConnection;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.nio.channels.Channels;
+import java.nio.channels.ReadableByteChannel;
 import java.util.List;
 
 /**
@@ -24,10 +14,10 @@ public class HttpHelper {
     private static String charset = "UTF-8";  // Or in Java 7 and later, use the constant: java.nio.charset.StandardCharsets.UTF_8.name()
 
     public static String getPage(String url, List<String> params, String cookies) {
-        String returnString = null;
+        String returnString;
         StringBuilder buildString = new StringBuilder();
 
-        URLConnection connection = null;
+        URLConnection connection;
         try {
             connection = new URL(url).openConnection();
             connection.setRequestProperty("User-Agent", "");
@@ -53,22 +43,14 @@ public class HttpHelper {
                 }
             }
 
-            if(contentType != null && charset == null)
-            {
+            if (charset == null) {
                 charset = "UTF-8";
             }
 
-            if (charset != null) {
-                returnString = "";
-                try (BufferedReader reader = new BufferedReader(new InputStreamReader(response, charset))) {
-                    for (String line; (line = reader.readLine()) != null; ) {
-                        //System.out.println(line);
-                        buildString.append(line + System.getProperty("line.separator"));
-                    }
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(response, charset))) {
+                for (String line; (line = reader.readLine()) != null; ) {
+                    buildString.append(line).append(System.getProperty("line.separator"));
                 }
-            } else {
-                // It's likely binary content, use InputStream/OutputStream.
-                System.out.print("binary response");
             }
 
         } catch (IOException e) {
@@ -92,5 +74,11 @@ public class HttpHelper {
 
     }
 
+    public static void downloadFileToPath(String fileURLFromTorrent, String localPath) throws IOException {
+        URL remoteUrl = new URL(fileURLFromTorrent);
+        ReadableByteChannel rbc = Channels.newChannel(remoteUrl.openStream());
+        FileOutputStream fos = new FileOutputStream(localPath);
+        fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
+    }
 
 }

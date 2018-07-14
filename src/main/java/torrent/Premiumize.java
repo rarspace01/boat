@@ -58,7 +58,7 @@ public class Premiumize {
         return remoteURL;
     }
 
-    private List<TorrentFile> getFilesFromTorrent(Torrent torrent) {
+    public List<TorrentFile> getFilesFromTorrent(Torrent torrent) {
         List<TorrentFile> returnList = new ArrayList<>();
 
         String responseFiles = HttpHelper.getPage("https://www.premiumize.me/api/folder/list?id=" + torrent.folder_id +
