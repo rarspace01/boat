@@ -37,8 +37,9 @@ public class DownloadMonitor {
 
     private void checkForDownloadbleTorrentsAndDownloadTheFirst() {
         ArrayList<Torrent> remoteTorrents = premiumize.getRemoteTorrents();
+        boolean returnToMonitor = false;
         for (Torrent remoteTorrent : remoteTorrents) {
-            if (checkIfTorrentCanBeDownloaded(remoteTorrent)) {
+            if (checkIfTorrentCanBeDownloaded(remoteTorrent) && !returnToMonitor) {
                 try {
                     isDownloadInProgress = true;
                     createDownloadFolderIfNotExists();
@@ -62,6 +63,7 @@ public class DownloadMonitor {
                         premiumize.delete(remoteTorrent);
                     }
                     isDownloadInProgress = false;
+                    returnToMonitor = true;
                 } catch (IOException e) {
                     isDownloadInProgress = false;
                     e.printStackTrace();
