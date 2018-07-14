@@ -42,7 +42,7 @@ public class DownloadMonitor {
             if (checkIfTorrentCanBeDownloaded(remoteTorrent) && !returnToMonitor) {
                 try {
                     isDownloadInProgress = true;
-                    createDownloadFolderIfNotExists();
+                    createDownloadFolderIfNotExists(remoteTorrent);
 
                     // check if SingleFileDownload
                     if (premiumize.isSingleFileDownload(remoteTorrent)) {
@@ -86,11 +86,11 @@ public class DownloadMonitor {
         }
     }
 
-    private boolean createDownloadFolderIfNotExists() {
-        if (!new File(PropertiesHelper.getProperty("downloaddir")).exists()) {
+    private boolean createDownloadFolderIfNotExists(Torrent remoteTorrent) {
+        if (remoteTorrent.name.matches(".+[.].*]")) {
             return new File(PropertiesHelper.getProperty("downloaddir")).mkdirs();
         } else {
-            return true;
+            return new File(PropertiesHelper.getProperty("downloaddir") + remoteTorrent.name).mkdirs();
         }
     }
 
