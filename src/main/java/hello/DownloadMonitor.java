@@ -95,7 +95,7 @@ public class DownloadMonitor {
     }
 
     private boolean checkIfTorrentCanBeDownloaded(Torrent remoteTorrent) {
-        boolean remoteStatusIsFinished = remoteTorrent.status.contains("finished");
+        boolean remoteStatusIsFinished = remoteTorrent.status.contains("finished") || remoteTorrent.status.contains("seeding");
         boolean isAlreadyDownloaded = new File("./downloads/" + remoteTorrent.name).exists();
         return remoteStatusIsFinished && !isAlreadyDownloaded;
     }
