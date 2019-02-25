@@ -4,10 +4,7 @@ import org.apache.commons.io.Charsets;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import torrent.Premiumize;
-import torrent.SolidTorrents;
-import torrent.Torrent;
-import torrent.TorrentSearchEngine;
+import torrent.*;
 
 import javax.validation.constraints.NotNull;
 import java.util.ArrayList;
@@ -26,8 +23,16 @@ public final class BoatController {
     @NotNull
     public final String getTorrents(@RequestParam("q") @NotNull String searchString) {
         TorrentSearchEngine solidTorrents = new SolidTorrents();
-        List resultList = solidTorrents.searchTorrents(searchString);
-        return "G: " + resultList.subList(0, Math.min(resultList.size(), 10));
+        TorrentSearchEngine piratebay = new PirateBay();
+
+        List resultListSolid = solidTorrents.searchTorrents(searchString);
+        List resultListPiratebay = piratebay.searchTorrents(searchString);
+
+        List combineResults = new ArrayList<Torrent>();
+        combineResults.addAll(resultListSolid);
+        combineResults.addAll(resultListPiratebay);
+        combineResults.sort(TorrentHelper.torrentSorter);
+        return "G: " + combineResults.subList(0, Math.min(combineResults.size(), 10));
     }
 
     @GetMapping({"/boat/download"})
