@@ -25,8 +25,6 @@ public final class BoatController {
     @GetMapping({"/boat"})
     @NotNull
     public final String getTorrents(@RequestParam("q") @NotNull String searchString) {
-        //Intrinsics.checkParameterIsNotNull(searchString, "searchString");
-        //TorrentSearchEngine pirateBay = new PirateBay();
         TorrentSearchEngine solidTorrents = new SolidTorrents();
         List resultList = solidTorrents.searchTorrents(searchString);
         return "G: " + resultList.subList(0, Math.min(resultList.size(), 10));
@@ -35,13 +33,10 @@ public final class BoatController {
     @GetMapping({"/boat/download"})
     @NotNull
     public final String downloadTorrentToPremiumize(@RequestParam("d") @NotNull String downloadUri) {
-        //Intrinsics.checkParameterIsNotNull(downloadUri, "downloadUri");
-        //Intrinsics.checkExpressionValueIsNotNull(var10000, "Base64.getUrlDecoder().decode(downloadUri)");
         byte[] magnetUri = Base64.getUrlDecoder().decode(downloadUri);
         String decodedUri = new String(magnetUri, Charsets.UTF_8);
         Torrent torrentToBeDownloaded = new Torrent();
         torrentToBeDownloaded.magnetUri = decodedUri;
-        //Intrinsics.checkExpressionValueIsNotNull(var4, "Premiumize().addTorrentT…ue(torrentToBeDownloaded)");
         return (new Premiumize()).addTorrentToQueue(torrentToBeDownloaded);
     }
 
