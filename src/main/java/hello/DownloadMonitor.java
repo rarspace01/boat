@@ -9,6 +9,7 @@ import torrent.Torrent;
 import torrent.TorrentFile;
 import utilities.HttpHelper;
 import utilities.PropertiesHelper;
+import utilities.StreamGobbler;
 
 import java.io.File;
 import java.io.IOException;
@@ -16,6 +17,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.Executors;
 
 @Component
 public class DownloadMonitor {
@@ -40,36 +42,55 @@ public class DownloadMonitor {
         boolean returnToMonitor = false;
         for (Torrent remoteTorrent : remoteTorrents) {
             if (checkIfTorrentCanBeDownloaded(remoteTorrent) && !returnToMonitor) {
-                try {
-                    isDownloadInProgress = true;
-                    createDownloadFolderIfNotExists(remoteTorrent);
+                isDownloadInProgress = true;
+                createDownloadFolderIfNotExists(remoteTorrent);
 
-                    // check if SingleFileDownload
-                    if (premiumize.isSingleFileDownload(remoteTorrent)) {
-                        String fileURLFromTorrent = premiumize.getMainFileURLFromTorrent(remoteTorrent);
-                        String localPath = PropertiesHelper.getProperty("downloaddir") + remoteTorrent.name + addFilenameIfNotYetPresent(remoteTorrent.name, fileURLFromTorrent);
-                        downloadFile(fileURLFromTorrent, localPath);
-                        // cleanup afterwards
-                        premiumize.delete(remoteTorrent);
-                    } else { // start multifile download
-                        // download every file
-                        List<TorrentFile> filesFromTorrent = premiumize.getFilesFromTorrent(remoteTorrent);
-                        for (TorrentFile torrentFile : filesFromTorrent) {
-                            // check filesize to get rid of samples and NFO files?
-                            String localPath = PropertiesHelper.getProperty("downloaddir") + remoteTorrent.name + addFilenameIfNotYetPresent(remoteTorrent.name, torrentFile.url);
-                            downloadFile(torrentFile.url, localPath);
-                        }
-                        // cleanup afterwards
-                        premiumize.delete(remoteTorrent);
+                // check if SingleFileDownload
+                if (premiumize.isSingleFileDownload(remoteTorrent)) {
+                    String fileURLFromTorrent = premiumize.getMainFileURLFromTorrent(remoteTorrent);
+                    String localPath = PropertiesHelper.getProperty("rclonedir") + remoteTorrent.name + addFilenameIfNotYetPresent(remoteTorrent.name, fileURLFromTorrent);
+                    //downloadFile(fileURLFromTorrent, localPath);
+                    rcloneDownloadFileToGdrive(fileURLFromTorrent, PropertiesHelper.getProperty("rclonedir"));
+                    //uploadFile()
+                    // cleanup afterwards
+                    //premiumize.delete(remoteTorrent);
+                } else { // start multifile download
+                    // download every file
+                    List<TorrentFile> filesFromTorrent = premiumize.getFilesFromTorrent(remoteTorrent);
+                    for (TorrentFile torrentFile : filesFromTorrent) {
+                        // check filesize to get rid of samples and NFO files?
+                        String localPath = PropertiesHelper.getProperty("rclonedir") + remoteTorrent.name + addFilenameIfNotYetPresent(remoteTorrent.name, torrentFile.url);
+                        // downloadFile(torrentFile.url, localPath);
+                        rcloneDownloadFileToGdrive(torrentFile.url, PropertiesHelper.getProperty("rclonedir") + "/multipart");
                     }
-                    isDownloadInProgress = false;
-                    returnToMonitor = true;
-                } catch (IOException e) {
-                    isDownloadInProgress = false;
-                    e.printStackTrace();
+                    // cleanup afterwards
+                    //premiumize.delete(remoteTorrent);
                 }
+                isDownloadInProgress = false;
+                returnToMonitor = true;
             }
         }
+    }
+
+    private void rcloneDownloadFileToGdrive(String fileURLFromTorrent, String destinationPath) {
+        log.info("About to download:" + fileURLFromTorrent + "\nto: " + destinationPath);
+        ProcessBuilder builder = new ProcessBuilder();
+        builder.command("rclone", "copyurl", "dir", fileURLFromTorrent, destinationPath);
+        builder.directory(new File(System.getProperty("user.home")));
+        Process process = null;
+        int exitCode = -1;
+        try {
+            process = builder.start();
+            StreamGobbler streamGobbler =
+                    new StreamGobbler(process.getInputStream(), System.out::println);
+            Executors.newSingleThreadExecutor().submit(streamGobbler);
+            exitCode = process.waitFor();
+        } catch (IOException | InterruptedException e) {
+            log.error(e.getMessage());
+            e.printStackTrace();
+        }
+        assert exitCode == 0;
+        log.info("Download Successfull:" + fileURLFromTorrent + "\nto: " + destinationPath);
     }
 
     private void downloadFile(String fileURLFromTorrent, String localPath) throws IOException {
