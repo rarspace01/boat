@@ -4,9 +4,10 @@ import org.apache.commons.io.Charsets;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import torrent.PirateBay;
 import torrent.Premiumize;
+import torrent.SolidTorrents;
 import torrent.Torrent;
+import torrent.TorrentSearchEngine;
 
 import javax.validation.constraints.NotNull;
 import java.util.ArrayList;
@@ -25,8 +26,9 @@ public final class BoatController {
     @NotNull
     public final String getTorrents(@RequestParam("q") @NotNull String searchString) {
         //Intrinsics.checkParameterIsNotNull(searchString, "searchString");
-        PirateBay pirateBay = new PirateBay();
-        List resultList = pirateBay.searchTorrents(searchString);
+        //TorrentSearchEngine pirateBay = new PirateBay();
+        TorrentSearchEngine solidTorrents = new SolidTorrents();
+        List resultList = solidTorrents.searchTorrents(searchString);
         return "G: " + resultList.subList(0, Math.min(resultList.size(), 10));
     }
 
@@ -34,15 +36,13 @@ public final class BoatController {
     @NotNull
     public final String downloadTorrentToPremiumize(@RequestParam("d") @NotNull String downloadUri) {
         //Intrinsics.checkParameterIsNotNull(downloadUri, "downloadUri");
-        byte[] var10000 = Base64.getUrlDecoder().decode(downloadUri);
         //Intrinsics.checkExpressionValueIsNotNull(var10000, "Base64.getUrlDecoder().decode(downloadUri)");
-        byte[] var3 = var10000;
-        String decodedUri = new String(var3, Charsets.UTF_8);
+        byte[] magnetUri = Base64.getUrlDecoder().decode(downloadUri);
+        String decodedUri = new String(magnetUri, Charsets.UTF_8);
         Torrent torrentToBeDownloaded = new Torrent();
-        torrentToBeDownloaded.magnetUri = decodedUri.toString();
-        String var4 = (new Premiumize()).addTorrentToQueue(torrentToBeDownloaded);
+        torrentToBeDownloaded.magnetUri = decodedUri;
         //Intrinsics.checkExpressionValueIsNotNull(var4, "Premiumize().addTorrentT…ue(torrentToBeDownloaded)");
-        return var4;
+        return (new Premiumize()).addTorrentToQueue(torrentToBeDownloaded);
     }
 
     @GetMapping({"/boat/debug"})

@@ -8,7 +8,10 @@ import utilities.HttpHelper;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
@@ -17,14 +20,11 @@ import java.util.concurrent.CopyOnWriteArrayList;
 public class PirateBay implements TorrentSearchEngine {
 
     private static final int MAX_PAGES = 5;
-    public static final String REGEX_CLEAN_NAME = "[-+ .]";
-    public static final double SIZE_FIRST_LIMIT = 1024.0;
-    private static final double SIZE_SECOND_LIMIT = 25 * 1024.0;
 
     @Override
     public List<Torrent> searchTorrents(String torrentname) {
 
-        int iPageindex = 0;
+        int pageIndex;
 
         CopyOnWriteArrayList<Torrent> torrentList = new CopyOnWriteArrayList<>();
 
@@ -32,34 +32,15 @@ public class PirateBay implements TorrentSearchEngine {
 
             System.out.println("P [" + (i + 1) + "/" + MAX_PAGES + "]");
 
-            iPageindex = i;
-            String localString = HttpHelper.getPage("https://thepiratebay.org/search/" + torrentname + "/" + iPageindex + "/99/200", null, "lw=s");
+            pageIndex = i;
+            String localString = HttpHelper.getPage("https://thepiratebay.org/search/" + torrentname + "/" + pageIndex + "/99/200", null, "lw=s");
             torrentList.addAll(parseTorrentsOnResultPage(localString, torrentname));
         }
 
         // sort resultList
 
         // sort the findings
-        torrentList.sort(new Comparator<Torrent>() {
-            @Override
-            public int compare(Torrent o1, Torrent o2) {
-
-                if (o1.searchRating > o2.searchRating) {
-                    return -1;
-                } else if (o1.searchRating < o2.searchRating) {
-                    return 1;
-                } else {
-                    if (o1.lsize > o2.lsize) {
-                        return -1;
-                    } else if (o1.lsize < o2.lsize) {
-                        return 1;
-                    } else {
-                        return 0;
-                    }
-                }
-
-            }
-        });
+        torrentList.sort(TorrentHelper.torrentSorter);
 
         return torrentList;
     }
@@ -69,26 +50,7 @@ public class PirateBay implements TorrentSearchEngine {
         Torrent returnTorrent = null;
 
         // sort the findings
-        inputList.sort(new Comparator<Torrent>() {
-            @Override
-            public int compare(Torrent o1, Torrent o2) {
-
-                if (o1.searchRating > o2.searchRating) {
-                    return -1;
-                } else if (o1.searchRating < o2.searchRating) {
-                    return 1;
-                } else {
-                    if (o1.lsize > o2.lsize) {
-                        return -1;
-                    } else if (o1.lsize < o2.lsize) {
-                        return 1;
-                    } else {
-                        return 0;
-                    }
-                }
-
-            }
-        });
+        inputList.sort(TorrentHelper.torrentSorter);
 
         if (inputList != null && inputList.size() > 0) {
 
@@ -161,11 +123,7 @@ public class PirateBay implements TorrentSearchEngine {
             // extract size
             tempTorrent.size = torrent.select("td").get(4).text().replace("\u00a0", " ");
 
-            if (tempTorrent.size.contains("GiB")) {
-                tempTorrent.lsize = (long) (Double.parseDouble(tempTorrent.size.replace("GiB", "").trim()) * 1024);
-            } else if (tempTorrent.size.contains("MiB")) {
-                tempTorrent.lsize = (long) (Double.parseDouble(tempTorrent.size.replace("MiB", "").trim()));
-            }
+            tempTorrent.lsize = TorrentHelper.extractTorrentSizeFromString(tempTorrent);
 
 
             // extract seeder
@@ -175,17 +133,7 @@ public class PirateBay implements TorrentSearchEngine {
             tempTorrent.leecher = Integer.parseInt(torrent.select("td").get(6).text());
 
             // evaluate result
-            if (tempTorrent.name.toLowerCase().replaceAll(REGEX_CLEAN_NAME, "").contains(torrentname.toLowerCase().replaceAll(REGEX_CLEAN_NAME, ""))) {
-                tempTorrent.searchRating += 2;
-            }
-            // calc first range
-            tempTorrent.searchRating += Math.max(tempTorrent.lsize, SIZE_FIRST_LIMIT) / SIZE_FIRST_LIMIT;
-            if (tempTorrent.lsize > SIZE_FIRST_LIMIT) {
-                tempTorrent.searchRating += ((Math.max(tempTorrent.lsize, SIZE_SECOND_LIMIT) - SIZE_FIRST_LIMIT) / (SIZE_SECOND_LIMIT - SIZE_FIRST_LIMIT));
-            }
-            if (tempTorrent.seeder > 30) {
-                tempTorrent.searchRating++;
-            }
+            TorrentHelper.evaluateRating(tempTorrent, torrentname);
 
             // filter torrents without any seeders
             if (tempTorrent.seeder > 0) {
