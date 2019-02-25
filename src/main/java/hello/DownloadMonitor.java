@@ -13,8 +13,6 @@ import utilities.StreamGobbler;
 
 import java.io.File;
 import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executors;
@@ -24,13 +22,12 @@ public class DownloadMonitor {
     private static final int SECONDS_BETWEEN_POLLING = 30;
     private static final Logger log = LoggerFactory.getLogger(DownloadMonitor.class);
 
-    private static final SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm:ss");
     private boolean isDownloadInProgress = false;
     private Premiumize premiumize = new Premiumize();
 
     @Scheduled(fixedRate = SECONDS_BETWEEN_POLLING * 1000)
     public void checkForDownloadableTorrents() {
-        log.info("The time is now %s", dateFormat.format(Instant.now()));
+        log.info("checkForDownloadableTorrents()");
         this.premiumize = new Premiumize();
         if (!isDownloadInProgress) {
             checkForDownloadbleTorrentsAndDownloadTheFirst();
