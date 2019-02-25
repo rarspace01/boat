@@ -50,7 +50,7 @@ public class DownloadMonitor {
                     rcloneDownloadFileToGdrive(fileURLFromTorrent, PropertiesHelper.getProperty("rclonedir"));
                     //uploadFile()
                     // cleanup afterwards
-                    //premiumize.delete(remoteTorrent);
+                    premiumize.delete(remoteTorrent);
                 } else { // start multifile download
                     // download every file
                     List<TorrentFile> filesFromTorrent = premiumize.getFilesFromTorrent(remoteTorrent);
@@ -61,7 +61,7 @@ public class DownloadMonitor {
                         rcloneDownloadFileToGdrive(torrentFile.url, PropertiesHelper.getProperty("rclonedir") + "/multipart");
                     }
                     // cleanup afterwards
-                    //premiumize.delete(remoteTorrent);
+                    premiumize.delete(remoteTorrent);
                 }
                 isDownloadInProgress = false;
                 returnToMonitor = true;
