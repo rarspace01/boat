@@ -5,7 +5,6 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import utilities.HttpHelper;
-import utilities.PropertiesHelper;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -21,61 +20,6 @@ public class PirateBay implements TorrentSearchEngine {
     public static final String REGEX_CLEAN_NAME = "[-+ .]";
     public static final double SIZE_FIRST_LIMIT = 1024.0;
     private static final double SIZE_SECOND_LIMIT = 25 * 1024.0;
-
-    //public static void main(String[] args) {
-    public PirateBay() {
-
-//        DriveHelper test = new DriveHelper();
-//        test.uploadFile(new File(System.getProperty("user.home"),".gitconfig"), "remotetest/remotetest/remotetest");
-
-        System.out.println(PropertiesHelper.getProperty("customer_id"));
-
-
-
-
-        /*//new PirateBay().printResults(resultList);
-        Torrent bestTorrent = new PirateBay().suggestATorrent(resultList);
-        System.out.println("We should get:");
-        System.out.println(bestTorrent);
-
-        // add the torrent to premiumize
-        new Premiumize().addTorrentToQueue(bestTorrent);
-
-        System.out.println("Remote Torrents:");
-
-        List<Torrent> remoteList = new Premiumize().getRemoteTorrents();
-
-
-        for (Torrent torrent : remoteList) {
-            PropertiesHelper.writeState(torrent);
-
-            // check if not already downloaded
-            if (torrent.status.equals("finished")) {
-
-                System.out.println("Potential Torrent for Downloading found: " + torrent);
-
-                List<TorrentFile> tfList = new Premiumize().getFilesFromTorrent(torrent);
-
-                // iterate over and check for One File Torrent
-                for (TorrentFile tf : tfList) {
-                    if ((double) tf.filesize > (torrent.lsize * 0.8)) {
-                        System.out.println("SBF Torrent: " + tf.name + " -> " + tf.url + " Size: " + (tf.filesize / (1024L * 1024L)) + " MB");
-
-                        // start the download
-
-                        //FileUtils.copyURLToFile(new URL(tf.url), new File("./"+tf.name));
-                        System.out.println("Downloaded SBF Torrent: " + tf.name + " -> " + tf.url + " Size: " + (tf.filesize / (1024L * 1024L)) + " MB");
-
-                    }
-                }
-
-            }
-        }
-*/
-        //new PirateBay().printResults(remoteList);
-
-    }
-
 
     @Override
     public List<Torrent> searchTorrents(String torrentname) {

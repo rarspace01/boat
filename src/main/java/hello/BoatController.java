@@ -1,8 +1,6 @@
 package hello;
 
-import kotlin.jvm.internal.Intrinsics;
-import kotlin.text.Charsets;
-import org.jetbrains.annotations.NotNull;
+import org.apache.commons.io.Charsets;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -10,6 +8,7 @@ import torrent.PirateBay;
 import torrent.Premiumize;
 import torrent.Torrent;
 
+import javax.validation.constraints.NotNull;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
@@ -25,7 +24,7 @@ public final class BoatController {
     @GetMapping({"/boat"})
     @NotNull
     public final String getTorrents(@RequestParam("q") @NotNull String searchString) {
-        Intrinsics.checkParameterIsNotNull(searchString, "searchString");
+        //Intrinsics.checkParameterIsNotNull(searchString, "searchString");
         PirateBay pirateBay = new PirateBay();
         List resultList = pirateBay.searchTorrents(searchString);
         return "G: " + resultList.subList(0, Math.min(resultList.size(), 10));
@@ -34,15 +33,15 @@ public final class BoatController {
     @GetMapping({"/boat/download"})
     @NotNull
     public final String downloadTorrentToPremiumize(@RequestParam("d") @NotNull String downloadUri) {
-        Intrinsics.checkParameterIsNotNull(downloadUri, "downloadUri");
+        //Intrinsics.checkParameterIsNotNull(downloadUri, "downloadUri");
         byte[] var10000 = Base64.getUrlDecoder().decode(downloadUri);
-        Intrinsics.checkExpressionValueIsNotNull(var10000, "Base64.getUrlDecoder().decode(downloadUri)");
+        //Intrinsics.checkExpressionValueIsNotNull(var10000, "Base64.getUrlDecoder().decode(downloadUri)");
         byte[] var3 = var10000;
         String decodedUri = new String(var3, Charsets.UTF_8);
         Torrent torrentToBeDownloaded = new Torrent();
         torrentToBeDownloaded.magnetUri = decodedUri.toString();
         String var4 = (new Premiumize()).addTorrentToQueue(torrentToBeDownloaded);
-        Intrinsics.checkExpressionValueIsNotNull(var4, "Premiumize().addTorrentT…ue(torrentToBeDownloaded)");
+        //Intrinsics.checkExpressionValueIsNotNull(var4, "Premiumize().addTorrentT…ue(torrentToBeDownloaded)");
         return var4;
     }
 
