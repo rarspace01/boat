@@ -14,8 +14,8 @@ import utilities.StreamGobbler;
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.concurrent.Executors;
 
@@ -30,7 +30,7 @@ public class DownloadMonitor {
 
     @Scheduled(fixedRate = SECONDS_BETWEEN_POLLING * 1000)
     public void checkForDownloadableTorrents() {
-        log.info("The time is now {%s}", dateFormat.format(new Date()));
+        log.info("The time is now %s", dateFormat.format(Instant.now()));
         this.premiumize = new Premiumize();
         if (!isDownloadInProgress) {
             checkForDownloadbleTorrentsAndDownloadTheFirst();
@@ -43,7 +43,7 @@ public class DownloadMonitor {
         for (Torrent remoteTorrent : remoteTorrents) {
             if (checkIfTorrentCanBeDownloaded(remoteTorrent) && !returnToMonitor) {
                 isDownloadInProgress = true;
-                createDownloadFolderIfNotExists(remoteTorrent);
+                //createDownloadFolderIfNotExists(remoteTorrent);
 
                 // check if SingleFileDownload
                 if (premiumize.isSingleFileDownload(remoteTorrent)) {
@@ -75,7 +75,7 @@ public class DownloadMonitor {
     private void rcloneDownloadFileToGdrive(String fileURLFromTorrent, String destinationPath) {
         log.info("About to download:" + fileURLFromTorrent + "\nto: " + destinationPath);
         ProcessBuilder builder = new ProcessBuilder();
-        builder.command("rclone", "copyurl", "dir", fileURLFromTorrent, destinationPath);
+        builder.command("rclone", "copyurl", fileURLFromTorrent, destinationPath);
         builder.directory(new File(System.getProperty("user.home")));
         Process process = null;
         int exitCode = -1;
