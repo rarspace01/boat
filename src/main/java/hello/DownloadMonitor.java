@@ -47,7 +47,7 @@ public class DownloadMonitor {
                     String fileURLFromTorrent = premiumize.getMainFileURLFromTorrent(remoteTorrent);
                     String localPath = PropertiesHelper.getProperty("rclonedir") + remoteTorrent.name + addFilenameIfNotYetPresent(remoteTorrent.name, fileURLFromTorrent);
                     //downloadFile(fileURLFromTorrent, localPath);
-                    rcloneDownloadFileToGdrive(fileURLFromTorrent, PropertiesHelper.getProperty("rclonedir"));
+                    rcloneDownloadFileToGdrive(fileURLFromTorrent, PropertiesHelper.getProperty("rclonedir") + "/" + remoteTorrent.name);
                     //uploadFile()
                     // cleanup afterwards
                     premiumize.delete(remoteTorrent);
@@ -58,7 +58,7 @@ public class DownloadMonitor {
                         // check filesize to get rid of samples and NFO files?
                         String localPath = PropertiesHelper.getProperty("rclonedir") + remoteTorrent.name + addFilenameIfNotYetPresent(remoteTorrent.name, torrentFile.url);
                         // downloadFile(torrentFile.url, localPath);
-                        rcloneDownloadFileToGdrive(torrentFile.url, PropertiesHelper.getProperty("rclonedir") + "/multipart");
+                        rcloneDownloadFileToGdrive(torrentFile.url, PropertiesHelper.getProperty("rclonedir") + "/multipart/" + remoteTorrent.name);
                     }
                     // cleanup afterwards
                     premiumize.delete(remoteTorrent);
