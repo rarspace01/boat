@@ -5,6 +5,7 @@ buildscript {
     }
     dependencies {
         classpath("org.springframework.boot:spring-boot-gradle-plugin:$spring_version")
+        classpath("org.owasp:dependency-check-gradle:4.0.2")
     }
 }
 
@@ -13,7 +14,8 @@ apply plugin: 'java'
 apply plugin: 'eclipse'
 apply plugin: 'idea'
 apply plugin: 'org.springframework.boot'
-apply plugin: 'io.spring.dependency-management' // <-- add this to your build.gradle
+apply plugin: 'io.spring.dependency-management'
+apply plugin: 'org.owasp.dependencycheck'
 
 //runtime("org.springframework.boot:spring-boot-properties-migrator")
 jar {
