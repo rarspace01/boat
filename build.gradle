@@ -19,8 +19,8 @@ apply plugin: 'org.owasp.dependencycheck'
 
 //runtime("org.springframework.boot:spring-boot-properties-migrator")
 jar {
-    baseName = 'gs-spring-boot'
-    version = '0.1.0'
+    archivesBaseName = 'pirateboat'
+    version = '0.5.0'
 }
 
 repositories {
