@@ -49,7 +49,7 @@ public class DownloadMonitor {
                     String fileURLFromTorrent = premiumize.getMainFileURLFromTorrent(remoteTorrent);
                     String localPath = PropertiesHelper.getProperty("rclonedir") + remoteTorrent.name + addFilenameIfNotYetPresent(remoteTorrent.name, fileURLFromTorrent);
                     //downloadFile(fileURLFromTorrent, localPath);
-                    rcloneDownloadFileToGdrive(fileURLFromTorrent, PropertiesHelper.getProperty("rclonedir") + "/" + remoteTorrent.name + extractFileEndingFromUrl(fileURLFromTorrent));
+                    rcloneDownloadFileToGdrive(fileURLFromTorrent, PropertiesHelper.getProperty("rclonedir") + "/" + remoteTorrent.name + "." + extractFileEndingFromUrl(fileURLFromTorrent));
                     //uploadFile()
                     // cleanup afterwards
                     premiumize.delete(remoteTorrent);
