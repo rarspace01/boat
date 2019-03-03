@@ -16,6 +16,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executors;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Component
 public class DownloadMonitor {
@@ -47,7 +49,7 @@ public class DownloadMonitor {
                     String fileURLFromTorrent = premiumize.getMainFileURLFromTorrent(remoteTorrent);
                     String localPath = PropertiesHelper.getProperty("rclonedir") + remoteTorrent.name + addFilenameIfNotYetPresent(remoteTorrent.name, fileURLFromTorrent);
                     //downloadFile(fileURLFromTorrent, localPath);
-                    rcloneDownloadFileToGdrive(fileURLFromTorrent, PropertiesHelper.getProperty("rclonedir") + "/" + remoteTorrent.name);
+                    rcloneDownloadFileToGdrive(fileURLFromTorrent, PropertiesHelper.getProperty("rclonedir") + "/" + remoteTorrent.name + extractFileEndingFromUrl(fileURLFromTorrent));
                     //uploadFile()
                     // cleanup afterwards
                     premiumize.delete(remoteTorrent);
@@ -58,7 +60,7 @@ public class DownloadMonitor {
                         // check filesize to get rid of samples and NFO files?
                         String localPath = PropertiesHelper.getProperty("rclonedir") + remoteTorrent.name + addFilenameIfNotYetPresent(remoteTorrent.name, torrentFile.url);
                         // downloadFile(torrentFile.url, localPath);
-                        rcloneDownloadFileToGdrive(torrentFile.url, PropertiesHelper.getProperty("rclonedir") + "/multipart/" + remoteTorrent.name);
+                        rcloneDownloadFileToGdrive(torrentFile.url, PropertiesHelper.getProperty("rclonedir") + "/multipart/" + remoteTorrent.name + "/" + extractFileNameFromUrl(torrentFile.url));
                     }
                     // cleanup afterwards
                     premiumize.delete(remoteTorrent);
@@ -67,6 +69,29 @@ public class DownloadMonitor {
                 returnToMonitor = true;
             }
         }
+    }
+
+    private String extractFileNameFromUrl(String fileURLFromTorrent) {
+        Pattern pattern = Pattern.compile("([\\w.%\\-]+)$");
+        String foundMatch = null;
+        Matcher matcher = pattern.matcher(fileURLFromTorrent);
+
+        while (matcher.find()) {
+            foundMatch = matcher.group();
+        }
+        return foundMatch;
+    }
+
+    private String extractFileEndingFromUrl(String fileURLFromTorrent) {
+        Pattern pattern = Pattern.compile("[A-Za-z0-9]+$");
+        String foundMatch = null;
+        Matcher matcher = pattern.matcher(fileURLFromTorrent);
+
+        while (matcher.find()) {
+            foundMatch = matcher.group();
+        }
+
+        return foundMatch;
     }
 
     private void rcloneDownloadFileToGdrive(String fileURLFromTorrent, String destinationPath) {
@@ -117,4 +142,5 @@ public class DownloadMonitor {
         boolean isAlreadyDownloaded = new File("./downloads/" + remoteTorrent.name).exists();
         return remoteStatusIsFinished && !isAlreadyDownloaded;
     }
+
 }
