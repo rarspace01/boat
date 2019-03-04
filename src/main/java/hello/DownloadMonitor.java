@@ -79,6 +79,7 @@ public class DownloadMonitor {
         while (matcher.find()) {
             foundMatch = matcher.group();
         }
+        foundMatch.replaceAll("%20"," ");
         return foundMatch;
     }
 
