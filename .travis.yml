@@ -13,11 +13,15 @@ cache:
 script:
 - ./gradlew dependencyCheckAnalyze build
 deploy:
-  provider: releases
-  api_key: $GITHUB_APIKEY
-  file: "./build/libs/pirateboat.jar"
-  skip_cleanup: true
-  on:
-    branch: master
+  - provider: releases
+    api_key: $GITHUB_APIKEY
+    file: "./build/libs/pirateboat.jar"
+    skip_cleanup: true
+    on:
+      branch: master
+  - provider: script
+    script: bash curl $SERVERURL/boat/shutdown
+    on:
+      branch: master
 #  yon:
 #    tags: true
