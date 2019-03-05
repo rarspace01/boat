@@ -51,4 +51,10 @@ public final class BoatController {
         ArrayList<Torrent> remoteTorrents = new Premiumize().getRemoteTorrents();
         return "D: " + remoteTorrents;
     }
+
+    @GetMapping({"/boat/shutdown"})
+    @NotNull
+    public final void shutdownServer() {
+        System.exit(0);
+    }
 }
