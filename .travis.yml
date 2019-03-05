@@ -20,7 +20,7 @@ deploy:
     on:
       branch: master
   - provider: script
-    script: wget $SERVERURL/boat/shutdown
+    script: set +e;wget $SERVERURL/boat/shutdown
     on:
       branch: master
 #  yon:
