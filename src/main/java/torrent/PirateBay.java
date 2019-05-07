@@ -6,6 +6,7 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import utilities.HttpHelper;
 
+import java.math.BigInteger;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -13,6 +14,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.stream.Stream;
 
 /**
  * Created by denis on 02/10/2016.
@@ -24,20 +26,16 @@ public class PirateBay implements TorrentSearchEngine {
     @Override
     public List<Torrent> searchTorrents(String torrentname) {
 
-        int pageIndex;
 
         CopyOnWriteArrayList<Torrent> torrentList = new CopyOnWriteArrayList<>();
 
-        for (int i = 0; i < MAX_PAGES; i++) {
+        Stream<BigInteger> pageStream = Stream.iterate(BigInteger.ZERO, n -> n.add(BigInteger.ONE)).limit(MAX_PAGES);
 
-            System.out.println("P [" + (i + 1) + "/" + MAX_PAGES + "]");
-
-            pageIndex = i;
+        pageStream.parallel().forEach(bigInteger -> {
+            int pageIndex = bigInteger.getLowestSetBit();
             String localString = HttpHelper.getPage("https://thepiratebay.org/search/" + torrentname + "/" + pageIndex + "/99/200", null, "lw=s");
             torrentList.addAll(parseTorrentsOnResultPage(localString, torrentname));
-        }
-
-        // sort resultList
+        });
 
         // sort the findings
         torrentList.sort(TorrentHelper.torrentSorter);

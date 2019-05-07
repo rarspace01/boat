@@ -14,7 +14,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 public class SolidTorrents implements TorrentSearchEngine {
     public static void main(String[] args) {
-        new SolidTorrents().searchTorrents("Iron Man 3");
+        new SolidTorrents().searchTorrents("Blender");
     }
 
     @Override

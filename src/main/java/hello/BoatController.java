@@ -4,7 +4,12 @@ import org.apache.commons.io.Charsets;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import torrent.*;
+import torrent.PirateBay;
+import torrent.Premiumize;
+import torrent.SolidTorrents;
+import torrent.Torrent;
+import torrent.TorrentHelper;
+import torrent.TorrentSearchEngine;
 
 import javax.validation.constraints.NotNull;
 import java.util.ArrayList;
@@ -22,16 +27,20 @@ public final class BoatController {
     @GetMapping({"/boat"})
     @NotNull
     public final String getTorrents(@RequestParam("q") @NotNull String searchString) {
-        TorrentSearchEngine solidTorrents = new SolidTorrents();
-        TorrentSearchEngine piratebay = new PirateBay();
-
-        List resultListSolid = solidTorrents.searchTorrents(searchString);
-        List resultListPiratebay = piratebay.searchTorrents(searchString);
-
+        List<TorrentSearchEngine> torrentSearchEngines = new ArrayList<>();
         List combineResults = new ArrayList<Torrent>();
-        combineResults.addAll(resultListSolid);
-        combineResults.addAll(resultListPiratebay);
+
+        torrentSearchEngines.add(new PirateBay());
+        torrentSearchEngines.add(new SolidTorrents());
+
+        long currentTimeMillis = System.currentTimeMillis();
+
+        torrentSearchEngines.parallelStream()
+                .forEach(torrentSearchEngine -> combineResults.addAll(torrentSearchEngine.searchTorrents(searchString)));
         combineResults.sort(TorrentHelper.torrentSorter);
+
+        System.out.println("Took: [" + (System.currentTimeMillis() - currentTimeMillis) + "]ms");
+
         return "G: " + combineResults.subList(0, Math.min(combineResults.size(), 10));
     }
 
