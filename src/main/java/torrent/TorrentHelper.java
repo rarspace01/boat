@@ -28,7 +28,7 @@ public class TorrentHelper {
     }
 
     private static String trimSizeStringToValue(Torrent tempTorrent) {
-        return tempTorrent.size.replaceAll("(GiB)|(GB)|(MiB)|(MB)", "").trim();
+        return tempTorrent.size.replaceAll("(GiB)|(GB)|(MiB)|(MB)|(<.*?>)", "").trim();
     }
 
     public static void evaluateRating(Torrent tempTorrent, String torrentname) {

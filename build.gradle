@@ -5,7 +5,7 @@ buildscript {
     }
     dependencies {
         classpath("org.springframework.boot:spring-boot-gradle-plugin:$spring_version")
-        classpath("org.owasp:dependency-check-gradle:5.0.0-M1")
+        classpath("org.owasp:dependency-check-gradle:5.0.0-M2")
     }
 }
 
@@ -20,7 +20,7 @@ apply plugin: 'org.owasp.dependencycheck'
 //runtime("org.springframework.boot:spring-boot-properties-migrator")
 jar {
     archivesBaseName = 'pirateboat'
-    version = '0.5.0'
+    version = '0.5.1'
 }
 
 repositories {

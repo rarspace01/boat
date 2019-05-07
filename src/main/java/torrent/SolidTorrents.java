@@ -48,10 +48,10 @@ public class SolidTorrents implements TorrentSearchEngine {
                     if (element.childNodeSize() == 5 && element.children().get(0).childNodes().get(0).childNodes().get(0).attributes().hasKey("title")) {
                         //extract Size & S/L
                         tempTorrent.name = element.children().get(0).childNodes().get(0).childNodes().get(0).attributes().get("title");
-                        tempTorrent.size = element.children().get(2).childNodes().get(0).toString().trim();
+                        tempTorrent.size = element.children().get(2).childNodes().get(2).toString().trim();
                         tempTorrent.lsize = TorrentHelper.extractTorrentSizeFromString(tempTorrent);
-                        //tempTorrent.seeder = Integer.parseInt(element.children().get(2).childNodes().get(1).childNodes().get(1).toString());
-                        //tempTorrent.leecher = Integer.parseInt(element.children().get(2).childNodes().get(3).childNodes().get(1).toString());
+                        tempTorrent.seeder = Integer.parseInt(element.children().get(2).childNodes().get(4).childNodes().get(1).toString().trim());
+                        tempTorrent.leecher = Integer.parseInt(element.children().get(2).childNodes().get(6).childNodes().get(1).toString().trim());
                     } else if (element.children().get(0).children().get(0).toString().contains("Magnet Link")) {
                         tempTorrent.magnetUri = element.childNodes().get(0).childNodes().get(1).childNodes().get(0).attributes().get("href");
                     }
