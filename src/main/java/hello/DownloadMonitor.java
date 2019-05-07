@@ -29,7 +29,7 @@ public class DownloadMonitor {
 
     @Scheduled(fixedRate = SECONDS_BETWEEN_POLLING * 1000)
     public void checkForDownloadableTorrents() {
-        log.info("checkForDownloadableTorrents()");
+        log.debug("checkForDownloadableTorrents()");
         this.premiumize = new Premiumize();
         if (!isDownloadInProgress) {
             checkForDownloadbleTorrentsAndDownloadTheFirst();
@@ -79,7 +79,7 @@ public class DownloadMonitor {
         while (matcher.find()) {
             foundMatch = matcher.group();
         }
-        foundMatch.replaceAll("%20",".");
+        foundMatch.replaceAll("%20", ".");
         return foundMatch;
     }
 
