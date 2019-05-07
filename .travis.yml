@@ -13,7 +13,7 @@ cache:
 script:
 - ./gradlew dependencyCheckAnalyze build
 after_success:
-- ./gradlew clean cobertura:cobertura coveralls:report
+- ./gradlew cobertura:cobertura coveralls:report
 deploy:
   - provider: releases
     api_key: $GITHUB_APIKEY
