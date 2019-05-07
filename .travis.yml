@@ -20,7 +20,7 @@ deploy:
     on:
       branch: master
   - provider: script
-    script: curl $SERVERURL/boat/shutdown
+    script: set +e;curl $SERVERURL/boat/shutdown|| true
     on:
       branch: master
 #  yon:
