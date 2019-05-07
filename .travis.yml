@@ -12,6 +12,8 @@ cache:
   - $HOME/.gradle/wrapper/
 script:
 - ./gradlew dependencyCheckAnalyze build
+after_success:
+- ./gradlew clean cobertura:cobertura coveralls:report
 deploy:
   - provider: releases
     api_key: $GITHUB_APIKEY

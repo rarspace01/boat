@@ -42,6 +42,7 @@ dependencies {
     // end::actuator[]
     testCompile("junit:junit")
     testCompile("org.springframework.boot:spring-boot-starter-test:$spring_version")
+    testCompile("org.eluder.coveralls:scoveralls-maven-plugin:4.3.0")
 
     compile("org.jsoup:jsoup:1.11.3")
 
