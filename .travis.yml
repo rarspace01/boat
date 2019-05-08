@@ -1,6 +1,6 @@
 notifications:
   email: false
-before_script: 
+before_script:
 language: java
 jdk: openjdk11
 before_cache:
@@ -11,9 +11,9 @@ cache:
   - $HOME/.gradle/caches/
   - $HOME/.gradle/wrapper/
 script:
-- ./gradlew dependencyCheckAnalyze build
+- ./gradlew dependencyCheckAnalyze jacocoTestReport build
 after_success:
-- ./gradlew cobertura coveralls
+- ./gradlew jacocoTestReport coveralls
 deploy:
   - provider: releases
     api_key: $GITHUB_APIKEY

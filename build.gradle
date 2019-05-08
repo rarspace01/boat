@@ -6,8 +6,7 @@ buildscript {
     dependencies {
         classpath("org.springframework.boot:spring-boot-gradle-plugin:$spring_version")
         classpath("org.owasp:dependency-check-gradle:5.0.0-M2")
-        classpath("net.saliman:gradle-cobertura-plugin:2.6.0")
-        classpath("org.eluder.coveralls:scoveralls-maven-plugin:4.3.0")
+        classpath("org.kt3k.gradle.plugin:coveralls-gradle-plugin:2.8.2")
     }
 }
 
@@ -18,6 +17,20 @@ apply plugin: 'idea'
 apply plugin: 'org.springframework.boot'
 apply plugin: 'io.spring.dependency-management'
 apply plugin: 'org.owasp.dependencycheck'
+apply plugin: 'jacoco'
+apply plugin: 'com.github.kt3k.coveralls'
+
+jacoco {
+    toolVersion = "0.8.3+"
+}
+
+jacocoTestReport {
+    reports {
+        xml.enabled true
+        csv.enabled false
+    }
+}
+[compileJava, compileTestJava, javadoc]*.options*.encoding = 'UTF-8'
 
 //runtime("org.springframework.boot:spring-boot-properties-migrator")
 jar {
