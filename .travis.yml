@@ -11,9 +11,7 @@ cache:
   - $HOME/.gradle/caches/
   - $HOME/.gradle/wrapper/
 script:
-- ./gradlew dependencyCheckAnalyze jacocoTestReport build
-after_success:
-- ./gradlew jacocoTestReport coveralls
+- ./gradlew dependencyCheckAnalyze jacocoTestReport coveralls build
 deploy:
   - provider: releases
     api_key: $GITHUB_APIKEY
