@@ -56,6 +56,9 @@ public class Torrent {
     }
 
     public String getTorrentId() {
+        if (this.magnetUri == null) {
+            return String.valueOf(this.hashCode());
+        }
         Pattern magnetPattern = Pattern.compile("(btih:)([a-z0-9]*)(&dn)");
         Matcher matcher = magnetPattern.matcher(this.magnetUri);
         if (matcher.find()) {
