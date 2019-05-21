@@ -48,7 +48,8 @@ public class SolidTorrents implements TorrentSearchEngine {
                     if (element.childNodeSize() == 5 && element.children().get(0).childNodes().get(0).childNodes().get(0).attributes().hasKey("title")) {
                         //extract Size & S/L
                         tempTorrent.name = element.children().get(0).childNodes().get(0).childNodes().get(0).attributes().get("title");
-                        tempTorrent.size = element.children().get(2).childNodes().get(2).toString().trim();
+                        String sizeString = element.children().get(2).childNodes().get(2).toString();
+                        tempTorrent.size = Jsoup.parse(sizeString).text().trim();
                         tempTorrent.lsize = TorrentHelper.extractTorrentSizeFromString(tempTorrent);
                         tempTorrent.seeder = Integer.parseInt(element.children().get(2).childNodes().get(4).childNodes().get(1).toString().trim());
                         tempTorrent.leecher = Integer.parseInt(element.children().get(2).childNodes().get(6).childNodes().get(1).toString().trim());

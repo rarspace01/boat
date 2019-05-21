@@ -4,6 +4,8 @@ import java.io.UnsupportedEncodingException;
 import java.text.DecimalFormat;
 import java.util.Base64;
 import java.util.Date;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Created by denis on 02/10/2016.
@@ -46,5 +48,20 @@ public class Torrent {
         }
 
         return "[" + this.name + "][" + this.size + "][" + this.leecher + "/" + this.seeder + "@" + df.format(seedRatio) + "] R:" + df.format(this.searchRating) + " <a href=\"./boat/download/?d=" + magnetUriBase64 + "\">Download</a> RID: " + this.remoteId + " Status/Progress:" + this.status + "/" + this.progress + "<br/>";
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        return this.getTorrentId().equals(((Torrent) obj).getTorrentId());
+    }
+
+    public String getTorrentId() {
+        Pattern magnetPattern = Pattern.compile("(btih:)([a-z0-9]*)(&dn)");
+        Matcher matcher = magnetPattern.matcher(this.magnetUri);
+        if (matcher.find()) {
+            return matcher.group(2);
+        } else {
+            return null;
+        }
     }
 }

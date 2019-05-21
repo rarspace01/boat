@@ -57,6 +57,7 @@ dependencies {
     // end::actuator[]
     testCompile("junit:junit")
     testCompile("org.springframework.boot:spring-boot-starter-test:$spring_version")
+    testImplementation('org.junit.jupiter:junit-jupiter:5.4.2')
 
     compile("org.jsoup:jsoup:1.11.3")
 
@@ -73,3 +74,9 @@ dependencies {
 
 }
 
+test {
+    useJUnitPlatform()
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
+}

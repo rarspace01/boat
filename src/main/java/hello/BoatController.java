@@ -1,6 +1,5 @@
 package hello;
 
-import org.apache.commons.io.Charsets;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -12,9 +11,11 @@ import torrent.TorrentHelper;
 import torrent.TorrentSearchEngine;
 
 import javax.validation.constraints.NotNull;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 public final class BoatController {
@@ -29,6 +30,7 @@ public final class BoatController {
     public final String getTorrents(@RequestParam("q") @NotNull String searchString) {
         List<TorrentSearchEngine> torrentSearchEngines = new ArrayList<>();
         List combineResults = new ArrayList<Torrent>();
+        List returnResults = new ArrayList<Torrent>();
 
         torrentSearchEngines.add(new PirateBay());
         torrentSearchEngines.add(new SolidTorrents());
@@ -37,18 +39,29 @@ public final class BoatController {
 
         torrentSearchEngines.parallelStream()
                 .forEach(torrentSearchEngine -> combineResults.addAll(torrentSearchEngine.searchTorrents(searchString)));
-        combineResults.sort(TorrentHelper.torrentSorter);
+        returnResults.addAll(cleanDuplicates(combineResults));
+        returnResults.sort(TorrentHelper.torrentSorter);
 
         System.out.println("Took: [" + (System.currentTimeMillis() - currentTimeMillis) + "]ms");
 
-        return "G: " + combineResults.subList(0, Math.min(combineResults.size(), 10));
+        return "G: " + returnResults.stream().limit(10).collect(Collectors.toList());
+    }
+
+    private List<Torrent> cleanDuplicates(List<Torrent> combineResults) {
+        ArrayList<Torrent> cleanedTorrents = new ArrayList<>();
+        combineResults.forEach(result -> {
+            if (!cleanedTorrents.contains(result)) {
+                cleanedTorrents.add(result);
+            }
+        });
+        return cleanedTorrents;
     }
 
     @GetMapping({"/boat/download"})
     @NotNull
     public final String downloadTorrentToPremiumize(@RequestParam("d") @NotNull String downloadUri) {
         byte[] magnetUri = Base64.getUrlDecoder().decode(downloadUri);
-        String decodedUri = new String(magnetUri, Charsets.UTF_8);
+        String decodedUri = new String(magnetUri, StandardCharsets.UTF_8);
         Torrent torrentToBeDownloaded = new Torrent();
         torrentToBeDownloaded.magnetUri = decodedUri;
         return (new Premiumize()).addTorrentToQueue(torrentToBeDownloaded);
