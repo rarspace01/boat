@@ -64,7 +64,7 @@ public class Torrent {
         if (matcher.find()) {
             return matcher.group(2);
         } else {
-            return null;
+            return String.valueOf(this.hashCode());
         }
     }
 }
