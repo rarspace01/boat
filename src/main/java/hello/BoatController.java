@@ -11,10 +11,14 @@ import torrent.TorrentHelper;
 import torrent.TorrentSearchEngine;
 
 import javax.validation.constraints.NotNull;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
+import java.util.jar.Attributes;
+import java.util.jar.Manifest;
 import java.util.stream.Collectors;
 
 @RestController
@@ -70,8 +74,30 @@ public final class BoatController {
     @GetMapping({"/boat/debug"})
     @NotNull
     public final String getDebugInfo() {
+        InputStream stream = getClass().getResourceAsStream("/META-INF/MANIFEST.MF");
+        String impBuildDate = "";
+
+        if (stream == null) {
+            System.out.println("Couldn't find manifest.");
+            System.exit(0);
+        }
+
+        Manifest manifest = null;
+        try {
+            manifest = new Manifest(stream);
+            Attributes attributes = manifest.getMainAttributes();
+
+            String impTitle = attributes.getValue("Implementation-Title");
+            String impVersion = attributes.getValue("Implementation-Version");
+            impBuildDate = attributes.getValue("Built-Date");
+            String impBuiltBy = attributes.getValue("Built-By");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+
         ArrayList<Torrent> remoteTorrents = new Premiumize().getRemoteTorrents();
-        return "D: " + remoteTorrents;
+        return "[" + impBuildDate + "] D: " + remoteTorrents;
     }
 
     @GetMapping({"/boat/shutdown"})
