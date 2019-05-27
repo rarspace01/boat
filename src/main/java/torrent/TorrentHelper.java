@@ -4,8 +4,8 @@ import java.util.Comparator;
 
 public class TorrentHelper {
 
-    public static final String REGEX_CLEAN_NAME = "[-+ .]";
-    public static final double SIZE_FIRST_LIMIT = 1024.0;
+    public static final double SIZE_UPPER_LIMIT = 15000.0;
+    public static final double SEED_RATIO_UPPER_LIMIT = 3.0;
     public static final Comparator torrentSorter = (Comparator<Torrent>) (o1, o2) -> {
         if (o1.searchRating > o2.searchRating) {
             return -1;
@@ -15,7 +15,6 @@ public class TorrentHelper {
             return Double.compare(o2.lsize, o1.lsize);
         }
     };
-    private static final double SIZE_SECOND_LIMIT = 25 * 1024.0;
 
     public static double extractTorrentSizeFromString(Torrent tempTorrent) {
         long torrentSize = 0;
@@ -32,16 +31,20 @@ public class TorrentHelper {
     }
 
     public static void evaluateRating(Torrent tempTorrent, String torrentname) {
-        if (tempTorrent.name.toLowerCase().replaceAll(REGEX_CLEAN_NAME, "").contains(torrentname.toLowerCase().replaceAll(REGEX_CLEAN_NAME, ""))) {
+        if (getNormalizedTorrentString(tempTorrent.name).contains(getNormalizedTorrentString(torrentname))) {
             tempTorrent.searchRating += 2;
         }
         // calc first range
-        tempTorrent.searchRating += Math.max(tempTorrent.lsize, SIZE_FIRST_LIMIT) / SIZE_FIRST_LIMIT;
-        if (tempTorrent.lsize > SIZE_FIRST_LIMIT) {
-            tempTorrent.searchRating += ((Math.max(tempTorrent.lsize, SIZE_SECOND_LIMIT) - SIZE_FIRST_LIMIT) / (SIZE_SECOND_LIMIT - SIZE_FIRST_LIMIT));
+        tempTorrent.searchRating += Math.min(tempTorrent.lsize, SIZE_UPPER_LIMIT) / SIZE_UPPER_LIMIT;
+        // calculate seeder ratio
+        double seedRatio = (double) tempTorrent.seeder / (double) tempTorrent.leecher;
+        if (seedRatio > 1.0) {
+            tempTorrent.searchRating += Math.min(seedRatio, SEED_RATIO_UPPER_LIMIT) / SEED_RATIO_UPPER_LIMIT;
         }
-        if (tempTorrent.seeder > 30) {
-            tempTorrent.searchRating++;
-        }
+    }
+
+    public static String getNormalizedTorrentString(String name) {
+        String lowerCase = name.toLowerCase();
+        return lowerCase.trim().replaceAll("(ac3|x264|h265|x265|mp3|hdrip|mkv|mp4|xvid|divx|web|720p|1080p|\\s|\\.)", "").replaceAll("(-[\\S]+)", "").replaceAll("\\.", "");
     }
 }
