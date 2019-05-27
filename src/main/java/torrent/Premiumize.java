@@ -109,7 +109,6 @@ public class Premiumize {
             JsonNode localNodes = rootNode.path("transfers");
 
             for (JsonNode localNode : localNodes) {
-                System.out.println(localNode.toString());
                 Torrent tempTorrent = new Torrent();
                 tempTorrent.name = localNode.get("name").asText();
                 tempTorrent.folder_id = localNode.get("folder_id").asText();
