@@ -11,7 +11,7 @@ cache:
     - $HOME/.gradle/caches/
     - $HOME/.gradle/wrapper/
 script:
-  - ./gradlew dependencyCheckAnalyze jacocoTestReport coveralls build
+  - ./gradlew -Djdk.tls.client.protocols="TLSv1,TLSv1.1,TLSv1.2" dependencyCheckAnalyze jacocoTestReport coveralls build
 deploy:
   - provider: releases
     api_key: $GITHUB_APIKEY
