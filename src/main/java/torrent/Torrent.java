@@ -1,6 +1,6 @@
 package torrent;
 
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.text.DecimalFormat;
 import java.util.Base64;
 import java.util.Date;
@@ -40,14 +40,26 @@ public class Torrent {
         }
         String magnetUriBase64 = "";
         if (magnetUri != null) {
-            try {
-                magnetUriBase64 = Base64.getUrlEncoder().encodeToString(magnetUri.getBytes("utf-8"));
-            } catch (UnsupportedEncodingException e) {
-                e.printStackTrace();
-            }
+            magnetUriBase64 = Base64.getUrlEncoder().encodeToString(magnetUri.getBytes(StandardCharsets.UTF_8));
         }
 
-        return "[" + this.name + "][" + this.size + "][" + this.leecher + "/" + this.seeder + "@" + df.format(seedRatio) + "] R:" + df.format(this.searchRating) + " <a href=\"./boat/download/?d=" + magnetUriBase64 + "\">Download</a> RID: " + this.remoteId + " Status/Progress:" + this.status + "/" + this.progress + "<br/>";
+        StringBuilder stringBuilder = new StringBuilder();
+
+        stringBuilder.append("[" + this.name + "][" + this.size + "][" + this.leecher + "/" + this.seeder + "@" + df.format(seedRatio) + "] R:" + df.format(this.searchRating) + " ");
+
+        // download link
+        stringBuilder.append("<a href=\"./boat/download/?d=" + magnetUriBase64 + "\">Download</a>");
+
+        if (remoteId != null) {
+            stringBuilder.append(" RID:" + remoteId);
+        }
+        if (this.status != null && this.progress != null) {
+            stringBuilder.append(this.status + " / " + this.progress);
+        }
+
+        stringBuilder.append("</br>");
+
+        return stringBuilder.toString();
     }
 
     @Override
