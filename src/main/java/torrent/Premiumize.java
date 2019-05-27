@@ -14,8 +14,6 @@ import java.util.List;
  */
 public class Premiumize {
 
-    private List<Torrent> torrentList = new ArrayList<>();
-
     public String addTorrentToQueue(Torrent toBeAddedTorrent) {
         String response;
         String addTorrenntUrl = "https://www.premiumize.me/api/transfer/create?customer_id=" +
@@ -29,13 +27,9 @@ public class Premiumize {
     public ArrayList<Torrent> getRemoteTorrents() {
 
         ArrayList<Torrent> remoteTorrentList;
-
         String responseTorrents;
         responseTorrents = HttpHelper.getPage("https://www.premiumize.me/api/transfer/list?customer_id=" +
                 PropertiesHelper.getProperty("customer_id") + "&pin=" + PropertiesHelper.getProperty("pin"));
-        System.out.println("getRemoteTorrents URL: " + "https://www.premiumize.me/api/transfer/list?customer_id=" +
-                PropertiesHelper.getProperty("customer_id") + "&pin=" + PropertiesHelper.getProperty("pin"));
-        System.out.println("getRemoteTorrents: " + responseTorrents);
 
         remoteTorrentList = parseRemoteTorrents(responseTorrents);
 
