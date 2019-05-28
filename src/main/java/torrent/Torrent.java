@@ -45,7 +45,11 @@ public class Torrent {
 
         StringBuilder stringBuilder = new StringBuilder();
 
-        stringBuilder.append("[" + this.name + "][" + this.size + "][" + this.leecher + "/" + this.seeder + "@" + df.format(seedRatio) + "] R:" + df.format(this.searchRating) + " ");
+        stringBuilder.append("[" + this.name + "]");
+        if (this.size != null) {
+            stringBuilder.append("[" + this.size + "][" + this.leecher + "/" + this.seeder + "@" + df.format(seedRatio) + "]");
+            stringBuilder.append("R:" + df.format(this.searchRating) + " ");
+        }
 
         // download link
         stringBuilder.append("<a href=\"./boat/download/?d=" + magnetUriBase64 + "\">Download</a>");
@@ -54,7 +58,7 @@ public class Torrent {
             stringBuilder.append(" RID:" + remoteId);
         }
         if (this.status != null && this.progress != null) {
-            stringBuilder.append(this.status + " / " + this.progress);
+            stringBuilder.append(" " + this.status + "/" + this.progress);
         }
 
         stringBuilder.append("</br>");
