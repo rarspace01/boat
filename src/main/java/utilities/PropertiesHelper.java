@@ -12,8 +12,8 @@ import java.util.Properties;
 public class PropertiesHelper {
 
 
-    public static final String TORRENTCACHE = "torrentboat.torrents";
-    public static final String PROPERTIY_FILE = "torrentboat.cfg";
+    public static final String TORRENTCACHE = "pirateboat.torrents";
+    public static final String PROPERTIY_FILE = "pirateboat.cfg";
     private HashMap<String, String> torrentStates = new HashMap<>();
 
     public static String getProperty(String propname) {
