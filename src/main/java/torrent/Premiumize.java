@@ -72,22 +72,9 @@ public class Premiumize {
             for (JsonNode jsonFile : fileList) {
 
                 if (jsonFile.get("type").asText().equals("file")) {
-                    TorrentFile tf = new TorrentFile();
-
-                    // check if torrent is onefile and is located in root
-                    if (torrent.file_id != null && torrent.folder_id != null) {
-                        if (String.valueOf(jsonFile.get("id").asText()).equals(torrent.file_id)) {
-                            tf.name = jsonFile.get("name").asText();
-                            tf.filesize = jsonFile.get("size").asLong();
-                            tf.url = jsonFile.get("link").asText();
-                            returnList.add(tf);
-                        }
-                    } else {
-                        tf.name = jsonFile.get("name").asText();
-                        tf.filesize = jsonFile.get("size").asLong();
-                        tf.url = jsonFile.get("link").asText();
-                        returnList.add(tf);
-                    }
+                    extractTorrentFileFromJSON(torrent, returnList, jsonFile, "");
+                } else if (jsonFile.get("type").asText().equals("folder")) {
+                    extractTorrentFilesFromJSONFolder(torrent, returnList, jsonFile, "");
                 }
             }
 
@@ -97,6 +84,54 @@ public class Premiumize {
 
 
         return returnList;
+    }
+
+    private void extractTorrentFilesFromJSONFolder(Torrent torrent, List<TorrentFile> returnList, JsonNode jsonFolder, String prefix) {
+        String responseFiles = HttpHelper.getPage("https://www.premiumize.me/api/folder/list?id=" + String.valueOf(jsonFolder.get("id").asText()) +
+                "&customer_id=" +
+                PropertiesHelper.getProperty("customer_id") + "&pin=" + PropertiesHelper.getProperty("pin"));
+        String folderName = prefix + String.valueOf(jsonFolder.get("name").asText())+"/";
+
+        ObjectMapper m = new ObjectMapper();
+        JsonNode rootNode = null;
+        try {
+            rootNode = m.readTree(responseFiles);
+            JsonNode localNodes = rootNode.path("content");
+            List<JsonNode> fileList = localNodes.findParents("type");
+
+            for (JsonNode jsonFile : fileList) {
+
+                if (jsonFile.get("type").asText().equals("file")) {
+                    extractTorrentFileFromJSON(torrent, returnList, jsonFile, folderName);
+                } else if (jsonFile.get("type").asText().equals("folder")) {
+                    extractTorrentFilesFromJSONFolder(torrent, returnList, jsonFile, folderName);
+                }
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+
+        System.out.println(responseFiles);
+    }
+
+    private void extractTorrentFileFromJSON(Torrent torrent, List<TorrentFile> returnList, JsonNode jsonFile, String prefix) {
+        TorrentFile tf = new TorrentFile();
+        // check if torrent is onefile and is located in root
+        if (torrent.file_id != null && torrent.folder_id != null) {
+            if (String.valueOf(jsonFile.get("id").asText()).equals(torrent.file_id)) {
+                tf.name = prefix + jsonFile.get("name").asText();
+                tf.filesize = jsonFile.get("size").asLong();
+                tf.url = jsonFile.get("link").asText();
+                returnList.add(tf);
+            }
+        } else {
+            tf.name = prefix + jsonFile.get("name").asText();
+            tf.filesize = jsonFile.get("size").asLong();
+            tf.url = jsonFile.get("link").asText();
+            returnList.add(tf);
+        }
     }
 
     private ArrayList<Torrent> parseRemoteTorrents(String pageContent) {

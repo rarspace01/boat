@@ -60,7 +60,7 @@ public class DownloadMonitor {
                         // check filesize to get rid of samples and NFO files?
                         String localPath = PropertiesHelper.getProperty("rclonedir") + remoteTorrent.name + addFilenameIfNotYetPresent(remoteTorrent.name, torrentFile.url);
                         // downloadFile(torrentFile.url, localPath);
-                        rcloneDownloadFileToGdrive(torrentFile.url, PropertiesHelper.getProperty("rclonedir") + "/multipart/" + remoteTorrent.name + "/" + extractFileNameFromUrl(torrentFile.url));
+                        rcloneDownloadFileToGdrive(torrentFile.url, PropertiesHelper.getProperty("rclonedir") + "/multipart/" + remoteTorrent.name + "/" + extractFileNameFromTorrent(torrentFile));
                     }
                     // cleanup afterwards
                     premiumize.delete(remoteTorrent);
@@ -69,6 +69,10 @@ public class DownloadMonitor {
                 returnToMonitor = true;
             }
         }
+    }
+
+    private String extractFileNameFromTorrent(TorrentFile torrentFile) {
+        return extractFileNameFromUrl(torrentFile.name);
     }
 
     private String extractFileNameFromUrl(String fileURLFromTorrent) {
