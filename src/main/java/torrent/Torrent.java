@@ -51,7 +51,7 @@ public class Torrent {
             stringBuilder.append("R:" + df.format(this.searchRating) + " ");
         }
 
-        if (magnetUriBase64 != null) {
+        if (magnetUriBase64 != null && magnetUriBase64.length() > 0) {
             stringBuilder.append("<a href=\"./boat/download/?d=" + magnetUriBase64 + "\">Download</a>");
         }
 
