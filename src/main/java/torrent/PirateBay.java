@@ -16,9 +16,6 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Stream;
 
-/**
- * Created by denis on 02/10/2016.
- */
 public class PirateBay implements TorrentSearchEngine {
 
     private static final int MAX_PAGES = 5;

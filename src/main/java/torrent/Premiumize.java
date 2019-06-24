@@ -9,9 +9,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Created by denis on 24/11/2016.
- */
 public class Premiumize {
 
     public String addTorrentToQueue(Torrent toBeAddedTorrent) {
@@ -90,7 +87,7 @@ public class Premiumize {
         String responseFiles = HttpHelper.getPage("https://www.premiumize.me/api/folder/list?id=" + String.valueOf(jsonFolder.get("id").asText()) +
                 "&customer_id=" +
                 PropertiesHelper.getProperty("customer_id") + "&pin=" + PropertiesHelper.getProperty("pin"));
-        String folderName = prefix + String.valueOf(jsonFolder.get("name").asText())+"/";
+        String folderName = prefix + String.valueOf(jsonFolder.get("name").asText()) + "/";
 
         ObjectMapper m = new ObjectMapper();
         JsonNode rootNode = null;

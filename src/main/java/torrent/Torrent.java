@@ -7,9 +7,6 @@ import java.util.Date;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * Created by denis on 02/10/2016.
- */
 public class Torrent {
 
     public String name;

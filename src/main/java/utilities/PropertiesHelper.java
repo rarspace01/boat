@@ -2,13 +2,15 @@ package utilities;
 
 import torrent.Torrent;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Properties;
 
-/**
- * Created by denis on 24/11/2016.
- */
 public class PropertiesHelper {
 
 
@@ -71,7 +73,7 @@ public class PropertiesHelper {
             Properties properties = new Properties();
 
             File isFilecheck = new File(TORRENTCACHE);
-            if(isFilecheck.exists()) {
+            if (isFilecheck.exists()) {
                 inputStream = new FileInputStream(TORRENTCACHE);
 
                 if (inputStream != null) {

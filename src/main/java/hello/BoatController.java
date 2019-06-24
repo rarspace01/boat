@@ -68,7 +68,8 @@ public final class BoatController {
         String decodedUri = new String(magnetUri, StandardCharsets.UTF_8);
         Torrent torrentToBeDownloaded = new Torrent();
         torrentToBeDownloaded.magnetUri = decodedUri;
-        return (new Premiumize()).addTorrentToQueue(torrentToBeDownloaded);
+        final String switchToProgress = "<\"<a href=\"./boat/debug\">Show Progress</a>\" ";
+        return switchToProgress + (new Premiumize()).addTorrentToQueue(torrentToBeDownloaded);
     }
 
     @GetMapping({"/boat/debug"})

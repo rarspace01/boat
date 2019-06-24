@@ -17,9 +17,6 @@ import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.util.List;
 
-/**
- * Created by denis on 02/10/2016.
- */
 public class HttpHelper {
     private static String charset = "UTF-8";  // Or in Java 7 and later, use the constant: java.nio.charset.StandardCharsets.UTF_8.name()
     private static TrustManager[] trustAllCerts = new TrustManager[]{
