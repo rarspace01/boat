@@ -68,7 +68,7 @@ public final class BoatController {
         String decodedUri = new String(magnetUri, StandardCharsets.UTF_8);
         Torrent torrentToBeDownloaded = new Torrent();
         torrentToBeDownloaded.magnetUri = decodedUri;
-        final String switchToProgress = "<a href=\"../boat/debug\">Show Progress</a> ";
+        final String switchToProgress = "<a href=\"../debug\">Show Progress</a> ";
         return switchToProgress + (new Premiumize()).addTorrentToQueue(torrentToBeDownloaded);
     }
 
