@@ -1,5 +1,5 @@
 buildscript {
-    ext.spring_version = '2.1.5.RELEASE'
+    ext.spring_version = '2.1.6.RELEASE'
     repositories {
         mavenCentral()
     }
