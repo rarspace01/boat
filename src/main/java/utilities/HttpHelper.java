@@ -4,11 +4,7 @@ import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
-import java.io.BufferedReader;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.channels.Channels;
@@ -49,6 +45,8 @@ public class HttpHelper {
             ((HttpsURLConnection) connection).setSSLSocketFactory(sc.getSocketFactory());
             connection.setRequestProperty("User-Agent", "");
             connection.setRequestProperty("Accept-Charset", charset);
+            connection.setConnectTimeout(30 * 1000);
+            connection.setReadTimeout(30 * 1000);
 
             if (cookies != null) {
                 connection.setRequestProperty("Cookie", cookies);
