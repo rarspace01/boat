@@ -33,8 +33,7 @@ public final class BoatController {
     @NotNull
     public final String getTorrents(@RequestParam("q") @NotNull String searchString) {
         List<TorrentSearchEngine> torrentSearchEngines = new ArrayList<>();
-        List combineResults = new ArrayList<Torrent>();
-        List returnResults = new ArrayList<Torrent>();
+        List<Torrent> combineResults = new ArrayList<>();
 
         torrentSearchEngines.add(new PirateBay());
         torrentSearchEngines.add(new SolidTorrents());
@@ -43,10 +42,10 @@ public final class BoatController {
 
         torrentSearchEngines.parallelStream()
                 .forEach(torrentSearchEngine -> combineResults.addAll(torrentSearchEngine.searchTorrents(searchString)));
-        returnResults.addAll(cleanDuplicates(combineResults));
+        List<Torrent> returnResults = new ArrayList<>(cleanDuplicates(combineResults));
         returnResults.sort(TorrentHelper.torrentSorter);
 
-        System.out.println("Took: [" + (System.currentTimeMillis() - currentTimeMillis) + "]ms");
+        System.out.println(String.format("Took: [%s]ms for [%s]",(System.currentTimeMillis() - currentTimeMillis),searchString));
 
         return "G: " + returnResults.stream().limit(10).collect(Collectors.toList());
     }
@@ -76,29 +75,26 @@ public final class BoatController {
     @NotNull
     public final String getDebugInfo() {
         InputStream stream = getClass().getResourceAsStream("/META-INF/MANIFEST.MF");
-        String impBuildDate = "";
+        String buildVersion = "";
 
         if (stream == null) {
             System.out.println("Couldn't find manifest.");
             System.exit(0);
         }
 
-        Manifest manifest = null;
         try {
-            manifest = new Manifest(stream);
+            Manifest manifest = new Manifest(stream);
             Attributes attributes = manifest.getMainAttributes();
 
-            String impTitle = attributes.getValue("Implementation-Title");
-            String impVersion = attributes.getValue("Implementation-Version");
-            impBuildDate = attributes.getValue("Built-Date");
-            String impBuiltBy = attributes.getValue("Built-By");
+            buildVersion = attributes.getValue("Implementation-Version");
+            buildVersion = buildVersion !=null ? buildVersion: "";
         } catch (IOException e) {
             e.printStackTrace();
         }
 
 
         ArrayList<Torrent> remoteTorrents = new Premiumize().getRemoteTorrents();
-        return "[" + impBuildDate + "] D: " + remoteTorrents;
+        return "v" + buildVersion + " D: " + remoteTorrents;
     }
 
     @GetMapping({"/boat/shutdown"})
