@@ -94,7 +94,7 @@ public final class BoatController {
 
 
         ArrayList<Torrent> remoteTorrents = new Premiumize().getRemoteTorrents();
-        return "v" + buildVersion + " D: " + remoteTorrents;
+        return "v:" + buildVersion + " D: " + remoteTorrents;
     }
 
     @GetMapping({"/boat/shutdown"})
