@@ -100,7 +100,7 @@ public class DownloadMonitor {
     }
 
     private void rcloneDownloadFileToGdrive(String fileURLFromTorrent, String destinationPath) {
-        log.info("About to download:" + fileURLFromTorrent + "\nto: " + destinationPath);
+        log.info("D[" + fileURLFromTorrent + "]");
         ProcessBuilder builder = new ProcessBuilder();
         builder.command("rclone", "copyurl", fileURLFromTorrent, destinationPath);
         builder.directory(new File(System.getProperty("user.home")));
@@ -117,7 +117,7 @@ public class DownloadMonitor {
             e.printStackTrace();
         }
         assert exitCode == 0;
-        log.info("Download Successfull:" + fileURLFromTorrent + "\nto: " + destinationPath);
+        log.info("DF[" + destinationPath + "]");
     }
 
     private void downloadFile(String fileURLFromTorrent, String localPath) throws IOException {
