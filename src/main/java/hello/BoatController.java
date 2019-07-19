@@ -23,6 +23,8 @@ import java.util.stream.Collectors;
 
 @RestController
 public final class BoatController {
+    final String switchToProgress = "<a href=\"../debug\">Show Progress</a> ";
+
     @GetMapping({"/"})
     @NotNull
     public final String index() {
@@ -44,7 +46,8 @@ public final class BoatController {
                 "  <br>\n" +
                 "  <input type=\"submit\" value=\"Submit\">\n" +
                 "</form>\n" +
-                "\n" +
+                "<br/>\n" +
+                switchToProgress.replace("..","../boat") +
                 "</body>\n" +
                 "</html>\n";
     }
@@ -87,7 +90,6 @@ public final class BoatController {
         String decodedUri = new String(magnetUri, StandardCharsets.UTF_8);
         Torrent torrentToBeDownloaded = new Torrent();
         torrentToBeDownloaded.magnetUri = decodedUri;
-        final String switchToProgress = "<a href=\"../debug\">Show Progress</a> ";
         return switchToProgress + (new Premiumize()).addTorrentToQueue(torrentToBeDownloaded);
     }
 
