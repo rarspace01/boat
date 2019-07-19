@@ -29,6 +29,26 @@ public final class BoatController {
         return "Greetings from Spring Boot!";
     }
 
+    @GetMapping({"/search"})
+    @NotNull
+    public final String search() {
+        return "<!DOCTYPE html>\n" +
+                "<html>\n" +
+                "<body>\n" +
+                "\n" +
+                "<h2>Here to serve you</h2>\n" +
+                "\n" +
+                "<form action=\"../boat\" target=\"_blank\" method=\"GET\">\n" +
+                "  Title:<br>\n" +
+                "  <input type=\"text\" name=\"q\" value=\"\">\n" +
+                "  <br>\n" +
+                "  <input type=\"submit\" value=\"Submit\">\n" +
+                "</form>\n" +
+                "\n" +
+                "</body>\n" +
+                "</html>\n";
+    }
+
     @GetMapping({"/boat"})
     @NotNull
     public final String getTorrents(@RequestParam("q") @NotNull String searchString) {
@@ -74,25 +94,8 @@ public final class BoatController {
     @GetMapping({"/boat/debug"})
     @NotNull
     public final String getDebugInfo() {
-        InputStream stream = getClass().getResourceAsStream("/META-INF/MANIFEST.MF");
-        String buildVersion = "";
 
-        if (stream == null) {
-            System.out.println("Couldn't find manifest.");
-            System.exit(0);
-        }
-
-        try {
-            Manifest manifest = new Manifest(stream);
-            Attributes attributes = manifest.getMainAttributes();
-
-            buildVersion = attributes.getValue("Implementation-Version");
-            buildVersion = buildVersion !=null ? buildVersion: "";
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-
+        String buildVersion =  new Torrent().getClass().getPackage().getImplementationVersion();
         ArrayList<Torrent> remoteTorrents = new Premiumize().getRemoteTorrents();
         return "v:" + buildVersion + " D: " + remoteTorrents;
     }
