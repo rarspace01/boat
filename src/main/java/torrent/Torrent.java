@@ -21,6 +21,7 @@ public class Torrent {
     public double searchRating = 0.0;
     public String status;
     public String progress;
+    public String eta;
     public String remoteId;
     public String folder_id;
     public String file_id;
@@ -52,11 +53,15 @@ public class Torrent {
             stringBuilder.append("<a href=\"./boat/download/?d=" + magnetUriBase64 + "\">Download</a>");
         }
 
-        if (remoteId != null) {
-            stringBuilder.append(" RID:" + remoteId);
-        }
+
+//        if (remoteId != null) {
+//            stringBuilder.append(" RID:" + remoteId);
+//        }
         if (this.status != null && this.progress != null) {
             stringBuilder.append(" " + this.status + "/" + this.progress);
+        }
+        if(eta != null) {
+            stringBuilder.append(" ETA:" + this.eta);
         }
 
         stringBuilder.append("</br>");
