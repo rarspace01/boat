@@ -16,11 +16,36 @@ public class PropertiesHelper {
 
     public static final String TORRENTCACHE = "pirateboat.torrents";
     public static final String PROPERTIY_FILE = "pirateboat.cfg";
+    public static final String VERSION_FILE = "version.properties";
     private HashMap<String, String> torrentStates = new HashMap<>();
 
-    public static String getProperty(String propname) {
-        InputStream inputStream = null;
+    public static String getVersion(){
+        InputStream inputStream;
+        String result = null;
 
+        try {
+
+            Properties prop = new Properties();
+            inputStream = new FileInputStream(VERSION_FILE);
+
+            if (inputStream != null) {
+                prop.load(inputStream);
+            } else {
+                throw new FileNotFoundException("property file '" + VERSION_FILE + "' not found in the classpath");
+            }
+
+            result = prop.getProperty("version");
+            inputStream.close();
+
+        } catch (Exception e) {
+            System.out.println("Exception: " + e);
+        }
+
+        return result;
+    }
+
+    public static String getProperty(String propname) {
+        InputStream inputStream;
         String result = null;
 
         try {

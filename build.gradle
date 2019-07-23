@@ -74,6 +74,20 @@ dependencies {
 
 }
 
+task createProperties(dependsOn: processResources) {
+    doLast {
+        new File("$buildDir/resources/version.properties").withWriter { w ->
+            Properties p = new Properties()
+            p['version'] = project.version.toString()
+            p.store w, null
+        }
+    }
+}
+
+classes {
+    dependsOn createProperties
+}
+
 test {
     useJUnitPlatform()
     testLogging {

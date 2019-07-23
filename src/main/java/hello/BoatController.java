@@ -9,16 +9,13 @@ import torrent.SolidTorrents;
 import torrent.Torrent;
 import torrent.TorrentHelper;
 import torrent.TorrentSearchEngine;
+import utilities.PropertiesHelper;
 
 import javax.validation.constraints.NotNull;
-import java.io.IOException;
-import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
-import java.util.jar.Attributes;
-import java.util.jar.Manifest;
 import java.util.stream.Collectors;
 
 @RestController
@@ -47,7 +44,7 @@ public final class BoatController {
                 "  <input type=\"submit\" value=\"Submit\">\n" +
                 "</form>\n" +
                 "<br/>\n" +
-                switchToProgress.replace("..","../boat") +
+                switchToProgress.replace("..", "../boat") +
                 "</body>\n" +
                 "</html>\n";
     }
@@ -68,7 +65,7 @@ public final class BoatController {
         List<Torrent> returnResults = new ArrayList<>(cleanDuplicates(combineResults));
         returnResults.sort(TorrentHelper.torrentSorter);
 
-        System.out.println(String.format("Took: [%s]ms for [%s]",(System.currentTimeMillis() - currentTimeMillis),searchString));
+        System.out.println(String.format("Took: [%s]ms for [%s]", (System.currentTimeMillis() - currentTimeMillis), searchString));
 
         return "G: " + returnResults.stream().limit(10).collect(Collectors.toList());
     }
@@ -97,9 +94,8 @@ public final class BoatController {
     @NotNull
     public final String getDebugInfo() {
 
-        String buildVersion =  new Torrent().getClass().getPackage().getImplementationVersion();
         ArrayList<Torrent> remoteTorrents = new Premiumize().getRemoteTorrents();
-        return "v:" + buildVersion + " D: " + remoteTorrents;
+        return "v:" + PropertiesHelper.getVersion() + " D: " + remoteTorrents;
     }
 
     @GetMapping({"/boat/shutdown"})
