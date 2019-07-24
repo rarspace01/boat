@@ -26,7 +26,8 @@ public class PropertiesHelper {
         try {
 
             Properties prop = new Properties();
-            inputStream = new FileInputStream(VERSION_FILE);
+
+            inputStream = PropertiesHelper.class.getClassLoader().getResourceAsStream(VERSION_FILE);
 
             if (inputStream != null) {
                 prop.load(inputStream);
