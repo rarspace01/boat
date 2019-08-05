@@ -6,7 +6,7 @@ public class TorrentHelper {
 
     public static final double SIZE_UPPER_LIMIT = 15000.0;
     public static final double SEED_RATIO_UPPER_LIMIT = 3.0;
-    public static final Comparator torrentSorter = (Comparator<Torrent>) (o1, o2) -> {
+    public static final Comparator<Torrent> torrentSorter = (o1, o2) -> {
         if (o1.searchRating > o2.searchRating) {
             return -1;
         } else if (o1.searchRating < o2.searchRating) {

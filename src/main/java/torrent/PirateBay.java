@@ -23,7 +23,6 @@ public class PirateBay implements TorrentSearchEngine {
     @Override
     public List<Torrent> searchTorrents(String torrentname) {
 
-
         CopyOnWriteArrayList<Torrent> torrentList = new CopyOnWriteArrayList<>();
 
         Stream<BigInteger> pageStream = Stream.iterate(BigInteger.ZERO, n -> n.add(BigInteger.ONE)).limit(MAX_PAGES);

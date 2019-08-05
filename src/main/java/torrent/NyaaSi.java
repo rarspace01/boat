@@ -12,7 +12,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-public class SolidTorrents implements TorrentSearchEngine {
+public class NyaaSi implements TorrentSearchEngine {
+    public static void main(String[] args) {
+        new NyaaSi().searchTorrents("search");
+    }
 
     @Override
     public List<Torrent> searchTorrents(String torrentname) {
@@ -21,7 +24,7 @@ public class SolidTorrents implements TorrentSearchEngine {
 
         String resultString = null;
         try {
-            resultString = HttpHelper.getPage("https://solidtorrents.net/search?q=" + URLEncoder.encode(torrentname, "UTF-8"));
+            resultString = HttpHelper.getPage(String.format("https://nyaa.si/?f=0&c=0_0&q=%s&s=seeders&o=desc", URLEncoder.encode(torrentname, "UTF-8")));
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         }
@@ -36,25 +39,40 @@ public class SolidTorrents implements TorrentSearchEngine {
 
         Document doc = Jsoup.parse(pageContent);
 
-        Elements torrentListOnPage = doc.select("div .v-card__text > div[role=list] > div > div[role=listitem]");
+        Elements torrentListOnPage = doc.select(".torrent-list > tbody > tr");
 
         for (Element torrent : torrentListOnPage) {
             Torrent tempTorrent = new Torrent();
             if (torrent.childNodeSize() > 0) {
                 torrent.children().forEach(element -> {
-                    if (element.childNodeSize() == 5 && element.children().get(0).childNodes().get(0).childNodes().get(0).attributes().hasKey("title")) {
+
+                    if (element.getElementsByTag("a").size() == 2
+                            && element.getElementsByTag("a").get(1).attributes().get("title").length() > 0) {
                         //extract Size & S/L
-                        tempTorrent.name = element.children().get(0).childNodes().get(0).childNodes().get(0).attributes().get("title");
-                        String sizeString = element.children().get(2).childNodes().get(2).toString();
-                        tempTorrent.size = Jsoup.parse(sizeString).text().trim();
-                        tempTorrent.lsize = TorrentHelper.extractTorrentSizeFromString(tempTorrent);
-                        tempTorrent.seeder = Integer.parseInt(element.children().get(2).childNodes().get(4).childNodes().get(1).toString().trim());
-                        tempTorrent.leecher = Integer.parseInt(element.children().get(2).childNodes().get(6).childNodes().get(1).toString().trim());
-                    } else if (element.children().get(0).children().get(0).toString().contains("Magnet Link")) {
-                        tempTorrent.magnetUri = element.childNodes().get(0).childNodes().get(1).childNodes().get(0).attributes().get("href");
+                        tempTorrent.name = element.getElementsByTag("a").get(1).attributes().get("title");
                     }
+                    if (element.getElementsByTag("a").size() == 2
+                            && element.getElementsByTag("a").get(1).attributes().get("href").contains("magnet")) {
+                        //extract Size & S/L
+                        tempTorrent.magnetUri = element.getElementsByTag("a").get(1).attributes().get("href");
+                    }
+                    if (element.text().contains("MiB") || element.text().contains("GiB")) {
+                        tempTorrent.size = element.text().trim();
+                        tempTorrent.lsize = TorrentHelper.extractTorrentSizeFromString(tempTorrent);
+                    }
+//                        tempTorrent.seeder = Integer.parseInt(element.children().get(2).childNodes().get(4).childNodes().get(1).toString().trim());
+//                        tempTorrent.leecher = Integer.parseInt(element.children().get(2).childNodes().get(6).childNodes().get(1).toString().trim());
+
                 });
             }
+
+            int index = torrent.children().size() - 3;
+            if(index>0) {
+                tempTorrent.seeder = Integer.parseInt(torrent.children().get(index).text());
+                tempTorrent.leecher = Integer.parseInt(torrent.children().get(index+1).text());
+            }
+
+
             // evaluate result
             TorrentHelper.evaluateRating(tempTorrent, torrentname);
             if (tempTorrent.magnetUri != null && tempTorrent.seeder > 0) {
