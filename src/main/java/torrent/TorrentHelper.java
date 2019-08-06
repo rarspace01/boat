@@ -31,7 +31,13 @@ public class TorrentHelper {
     }
 
     public static void evaluateRating(Torrent tempTorrent, String torrentname) {
-        if (getNormalizedTorrentString(tempTorrent.name).contains(getNormalizedTorrentString(torrentname))) {
+        String torrentName = tempTorrent.name;
+        if(torrentName == null || torrentName.trim().length() == 0)
+        {
+            return;
+        }
+
+        if (getNormalizedTorrentString(torrentName).contains(getNormalizedTorrentString(torrentname))) {
             tempTorrent.searchRating += 1;
             // determine closeness
             double closenessFactor = (double) getNormalizedTorrentString(torrentname).length() / (double) getNormalizedTorrentString(torrentname).length();

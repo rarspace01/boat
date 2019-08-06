@@ -11,11 +11,9 @@ import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.stream.Collectors;
 
 public class NyaaSi implements TorrentSearchEngine {
-    public static void main(String[] args) {
-        new NyaaSi().searchTorrents("search");
-    }
 
     @Override
     public List<Torrent> searchTorrents(String torrentname) {
@@ -46,15 +44,14 @@ public class NyaaSi implements TorrentSearchEngine {
             if (torrent.childNodeSize() > 0) {
                 torrent.children().forEach(element -> {
 
-                    if (element.getElementsByTag("a").size() == 2
-                            && element.getElementsByTag("a").get(1).attributes().get("title").length() > 0) {
+                    if (element.getElementsByTag("a").size() > 0
+                            && getTorrentTitle(element).length() > 0) {
                         //extract Size & S/L
-                        tempTorrent.name = element.getElementsByTag("a").get(1).attributes().get("title");
+                        tempTorrent.name = getTorrentTitle(element);
                     }
-                    if (element.getElementsByTag("a").size() == 2
-                            && element.getElementsByTag("a").get(1).attributes().get("href").contains("magnet")) {
+                    if (elementContainsMagnetUri(element)) {
                         //extract Size & S/L
-                        tempTorrent.magnetUri = element.getElementsByTag("a").get(1).attributes().get("href");
+                        tempTorrent.magnetUri = getMagnetUri(element);
                     }
                     if (element.text().contains("MiB") || element.text().contains("GiB")) {
                         tempTorrent.size = element.text().trim();
@@ -67,19 +64,41 @@ public class NyaaSi implements TorrentSearchEngine {
             }
 
             int index = torrent.children().size() - 3;
-            if(index>0) {
+            if (index > 0) {
                 tempTorrent.seeder = Integer.parseInt(torrent.children().get(index).text());
-                tempTorrent.leecher = Integer.parseInt(torrent.children().get(index+1).text());
+                tempTorrent.leecher = Integer.parseInt(torrent.children().get(index + 1).text());
             }
 
 
             // evaluate result
             TorrentHelper.evaluateRating(tempTorrent, torrentname);
-            if (tempTorrent.magnetUri != null && tempTorrent.seeder > 0) {
+            if (tempTorrent.name != null && tempTorrent.magnetUri != null && tempTorrent.seeder > 0) {
                 torrentList.add(tempTorrent);
             }
         }
         return torrentList;
+    }
+
+    private String getMagnetUri(Element metaElement) {
+        return metaElement.getElementsByTag("a").stream()
+                .filter(element -> element.attributes().get("href").contains("magnet"))
+                .map(element -> element.attributes().get("href").trim()).collect(Collectors.joining(""));
+    }
+
+    private boolean elementContainsMagnetUri(Element metaElement) {
+        return metaElement.getElementsByTag("a").stream().anyMatch(element -> element.attributes().get("href").contains("magnet"));
+    }
+
+    private String getTorrentTitle(Element metaElement) {
+        final Elements elementsByTag = metaElement.getElementsByTag("a");
+        String title = elementsByTag.stream()
+                .filter(element -> !element.attributes().get("href").contains("magnet"))
+                .filter(element -> !element.attributes().get("href").contains("comment"))
+                .filter(element -> element.attributes().get("href").contains("/view/"))
+                .filter(element -> element.text().trim().length() > 0)
+                .map(element -> element.text().trim()).collect(Collectors.joining());
+
+        return title;
     }
 
     @Override
