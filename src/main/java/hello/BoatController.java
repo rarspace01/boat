@@ -3,6 +3,7 @@ package hello;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import torrent.NyaaSi;
 import torrent.PirateBay;
 import torrent.Premiumize;
 import torrent.SolidTorrents;
@@ -57,6 +58,7 @@ public final class BoatController {
 
         torrentSearchEngines.add(new PirateBay());
         torrentSearchEngines.add(new SolidTorrents());
+        torrentSearchEngines.add(new NyaaSi());
 
         long currentTimeMillis = System.currentTimeMillis();
 

@@ -6,7 +6,7 @@ public class TorrentHelper {
 
     public static final double SIZE_UPPER_LIMIT = 15000.0;
     public static final double SEED_RATIO_UPPER_LIMIT = 3.0;
-    public static final Comparator torrentSorter = (Comparator<Torrent>) (o1, o2) -> {
+    public static final Comparator<Torrent> torrentSorter = (o1, o2) -> {
         if (o1.searchRating > o2.searchRating) {
             return -1;
         } else if (o1.searchRating < o2.searchRating) {
@@ -31,7 +31,13 @@ public class TorrentHelper {
     }
 
     public static void evaluateRating(Torrent tempTorrent, String torrentname) {
-        if (getNormalizedTorrentString(tempTorrent.name).contains(getNormalizedTorrentString(torrentname))) {
+        String torrentName = tempTorrent.name;
+        if(torrentName == null || torrentName.trim().length() == 0)
+        {
+            return;
+        }
+
+        if (getNormalizedTorrentString(torrentName).contains(getNormalizedTorrentString(torrentname))) {
             tempTorrent.searchRating += 1;
             // determine closeness
             double closenessFactor = (double) getNormalizedTorrentString(torrentname).length() / (double) getNormalizedTorrentString(torrentname).length();

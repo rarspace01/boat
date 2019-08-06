@@ -13,9 +13,6 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 public class SolidTorrents implements TorrentSearchEngine {
-    public static void main(String[] args) {
-        new SolidTorrents().searchTorrents("Blender");
-    }
 
     @Override
     public List<Torrent> searchTorrents(String torrentname) {
@@ -69,6 +66,6 @@ public class SolidTorrents implements TorrentSearchEngine {
 
     @Override
     public Torrent suggestATorrent(List<Torrent> inputList) {
-        return null;
+        return inputList.stream().min(TorrentHelper.torrentSorter).orElse(null);
     }
 }
