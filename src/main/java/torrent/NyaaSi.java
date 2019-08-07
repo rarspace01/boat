@@ -7,11 +7,13 @@ import org.jsoup.select.Elements;
 import utilities.HttpHelper;
 
 import java.io.UnsupportedEncodingException;
+import java.math.BigInteger;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class NyaaSi implements TorrentSearchEngine {
 
@@ -57,9 +59,6 @@ public class NyaaSi implements TorrentSearchEngine {
                         tempTorrent.size = element.text().trim();
                         tempTorrent.lsize = TorrentHelper.extractTorrentSizeFromString(tempTorrent);
                     }
-//                        tempTorrent.seeder = Integer.parseInt(element.children().get(2).childNodes().get(4).childNodes().get(1).toString().trim());
-//                        tempTorrent.leecher = Integer.parseInt(element.children().get(2).childNodes().get(6).childNodes().get(1).toString().trim());
-
                 });
             }
 

@@ -6,7 +6,9 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import utilities.HttpHelper;
 
+import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
+import java.net.URLEncoder;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -18,20 +20,31 @@ import java.util.stream.Stream;
 
 public class PirateBay implements TorrentSearchEngine {
 
-    private static final int MAX_PAGES = 5;
+    private static final int MAX_PAGES = 2;
 
     @Override
     public List<Torrent> searchTorrents(String torrentname) {
 
         CopyOnWriteArrayList<Torrent> torrentList = new CopyOnWriteArrayList<>();
 
-        Stream<BigInteger> pageStream = Stream.iterate(BigInteger.ZERO, n -> n.add(BigInteger.ONE)).limit(MAX_PAGES);
+//        Stream<BigInteger> pageStream = Stream.iterate(BigInteger.ZERO, n -> n.add(BigInteger.ONE)).limit(MAX_PAGES);
+//
+//        pageStream.parallel().forEach(bigInteger -> {
+//            int pageIndex = bigInteger.getLowestSetBit();
+//            String localString = HttpHelper.getPage("https://thepiratebay.org/search/" + torrentname + "/" + pageIndex + "/99/200", null, "lw=s");
+//            torrentList.addAll(parseTorrentsOnResultPage(localString, torrentname));
+//        });
+//
+//        CopyOnWriteArrayList<Torrent> torrentList = new CopyOnWriteArrayList<>();
 
-        pageStream.parallel().forEach(bigInteger -> {
-            int pageIndex = bigInteger.getLowestSetBit();
-            String localString = HttpHelper.getPage("https://thepiratebay.org/search/" + torrentname + "/" + pageIndex + "/99/200", null, "lw=s");
-            torrentList.addAll(parseTorrentsOnResultPage(localString, torrentname));
-        });
+        String resultString = null;
+        try {
+            resultString = HttpHelper.getPage(String.format("https://thepiratebay.org/search/%s/%d/99/200", URLEncoder.encode(torrentname, "UTF-8"), 0),null,"lw=s");
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+
+        torrentList.addAll(parseTorrentsOnResultPage(resultString, torrentname));
 
         // sort the findings
         torrentList.sort(TorrentHelper.torrentSorter);
