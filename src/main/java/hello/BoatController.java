@@ -94,7 +94,7 @@ public final class BoatController {
     @NotNull
     public final String getDebugInfo() {
         ArrayList<Torrent> remoteTorrents = new Premiumize().getRemoteTorrents();
-        return "v:" + PropertiesHelper.getVersion() + " TS:" + torrentSearchEngineService.getActiveSearchEngines() + " D: " + remoteTorrents;
+        return "v:" + PropertiesHelper.getVersion() + "<br/>ActiveSearchEngines: " + torrentSearchEngineService.getActiveSearchEngines() + "<br/>D: " + remoteTorrents;
     }
 
     @GetMapping({"/boat/shutdown"})
