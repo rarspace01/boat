@@ -3,13 +3,10 @@ package hello;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import torrent.NyaaSi;
-import torrent.PirateBay;
 import torrent.Premiumize;
-import torrent.SolidTorrents;
 import torrent.Torrent;
 import torrent.TorrentHelper;
-import torrent.TorrentSearchEngine;
+import torrent.TorrentSearchEngineService;
 import utilities.PropertiesHelper;
 
 import javax.validation.constraints.NotNull;
@@ -21,7 +18,13 @@ import java.util.stream.Collectors;
 
 @RestController
 public final class BoatController {
+    private final TorrentSearchEngineService torrentSearchEngineService;
+
     final String switchToProgress = "<a href=\"../debug\">Show Progress</a> ";
+
+    public BoatController(TorrentSearchEngineService torrentSearchEngineService) {
+        this.torrentSearchEngineService = torrentSearchEngineService;
+    }
 
     @GetMapping({"/"})
     @NotNull
@@ -53,16 +56,11 @@ public final class BoatController {
     @GetMapping({"/boat"})
     @NotNull
     public final String getTorrents(@RequestParam("q") @NotNull String searchString) {
-        List<TorrentSearchEngine> torrentSearchEngines = new ArrayList<>();
         List<Torrent> combineResults = new ArrayList<>();
-
-        torrentSearchEngines.add(new PirateBay());
-        torrentSearchEngines.add(new SolidTorrents());
-        torrentSearchEngines.add(new NyaaSi());
 
         long currentTimeMillis = System.currentTimeMillis();
 
-        torrentSearchEngines.parallelStream()
+        torrentSearchEngineService.getActiveSearchEngines().parallelStream()
                 .forEach(torrentSearchEngine -> combineResults.addAll(torrentSearchEngine.searchTorrents(searchString)));
         List<Torrent> returnResults = new ArrayList<>(cleanDuplicates(combineResults));
         returnResults.sort(TorrentHelper.torrentSorter);
@@ -95,9 +93,8 @@ public final class BoatController {
     @GetMapping({"/boat/debug"})
     @NotNull
     public final String getDebugInfo() {
-
         ArrayList<Torrent> remoteTorrents = new Premiumize().getRemoteTorrents();
-        return "v:" + PropertiesHelper.getVersion() + " D: " + remoteTorrents;
+        return "v:" + PropertiesHelper.getVersion() + " TS:" + torrentSearchEngineService.getActiveSearchEngines() + " D: " + remoteTorrents;
     }
 
     @GetMapping({"/boat/shutdown"})

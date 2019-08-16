@@ -4,7 +4,11 @@ import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.channels.Channels;
@@ -31,8 +35,11 @@ public class HttpHelper {
             }
     };
 
-
     public static String getPage(String url, List<String> params, String cookies) {
+        return getPage(url, params, cookies, 30 * 1000);
+    }
+
+    public static String getPage(String url, List<String> params, String cookies, int timeout) {
         String returnString;
         StringBuilder buildString = new StringBuilder();
 
@@ -45,8 +52,8 @@ public class HttpHelper {
             ((HttpsURLConnection) connection).setSSLSocketFactory(sc.getSocketFactory());
             connection.setRequestProperty("User-Agent", "");
             connection.setRequestProperty("Accept-Charset", charset);
-            connection.setConnectTimeout(30 * 1000);
-            connection.setReadTimeout(30 * 1000);
+            connection.setConnectTimeout(timeout);
+            connection.setReadTimeout(timeout);
 
             if (cookies != null) {
                 connection.setRequestProperty("Cookie", cookies);
@@ -92,15 +99,15 @@ public class HttpHelper {
     }
 
     public static String getPage(String url) {
-
         return getPage(url, null, null);
+    }
 
+    public static String getPage(String url, int timeout) {
+        return getPage(url, null, null, timeout);
     }
 
     public static String getPage(String url, List<String> params) {
-
         return getPage(url, params, null);
-
     }
 
     public static void downloadFileToPath(String fileURLFromTorrent, String localPath) throws IOException {
@@ -110,4 +117,7 @@ public class HttpHelper {
         fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
     }
 
+    public static boolean isWebsiteResponding(String baseUrl, int timeout) {
+        return getPage(baseUrl,timeout).length()>0;
+    }
 }

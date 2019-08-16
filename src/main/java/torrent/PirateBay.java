@@ -7,7 +7,6 @@ import org.jsoup.select.Elements;
 import utilities.HttpHelper;
 
 import java.io.UnsupportedEncodingException;
-import java.math.BigInteger;
 import java.net.URLEncoder;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -16,35 +15,22 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.stream.Stream;
 
 public class PirateBay implements TorrentSearchEngine {
 
-    private static final int MAX_PAGES = 2;
-
     @Override
-    public List<Torrent> searchTorrents(String torrentname) {
+    public List<Torrent> searchTorrents(String torrentName) {
 
         CopyOnWriteArrayList<Torrent> torrentList = new CopyOnWriteArrayList<>();
 
-//        Stream<BigInteger> pageStream = Stream.iterate(BigInteger.ZERO, n -> n.add(BigInteger.ONE)).limit(MAX_PAGES);
-//
-//        pageStream.parallel().forEach(bigInteger -> {
-//            int pageIndex = bigInteger.getLowestSetBit();
-//            String localString = HttpHelper.getPage("https://thepiratebay.org/search/" + torrentname + "/" + pageIndex + "/99/200", null, "lw=s");
-//            torrentList.addAll(parseTorrentsOnResultPage(localString, torrentname));
-//        });
-//
-//        CopyOnWriteArrayList<Torrent> torrentList = new CopyOnWriteArrayList<>();
-
         String resultString = null;
         try {
-            resultString = HttpHelper.getPage(String.format("https://thepiratebay.org/search/%s/%d/99/200", URLEncoder.encode(torrentname, "UTF-8"), 0),null,"lw=s");
+            resultString = HttpHelper.getPage(String.format(getBaseUrl() + "/search/%s/%d/99/200", URLEncoder.encode(torrentName, "UTF-8"), 0), null, "lw=s");
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         }
 
-        torrentList.addAll(parseTorrentsOnResultPage(resultString, torrentname));
+        torrentList.addAll(parseTorrentsOnResultPage(resultString, torrentName));
 
         // sort the findings
         torrentList.sort(TorrentHelper.torrentSorter);
@@ -53,36 +39,13 @@ public class PirateBay implements TorrentSearchEngine {
     }
 
     @Override
+    public String getBaseUrl() {
+        return "https://thepiratebay.org";
+    }
+
+    @Override
     public Torrent suggestATorrent(List<Torrent> inputList) {
-        Torrent returnTorrent = null;
-
-        // sort the findings
-        inputList.sort(TorrentHelper.torrentSorter);
-
-        if (inputList != null && inputList.size() > 0) {
-
-            double localMax = 0;
-            double maxSize = 0;
-            int maxSizeIndex = -1;
-            int index = 0;
-
-            // get the potentials
-            for (Torrent torrent : inputList) {
-                if ((torrent.searchRating > localMax) && (torrent.lsize > maxSize)) {
-                    localMax = torrent.searchRating;
-                    maxSize = torrent.lsize;
-                    maxSizeIndex = index;
-                } else {
-                    break;
-                }
-                index++;
-            }
-
-            if (maxSizeIndex > -1) {
-                returnTorrent = inputList.get(maxSizeIndex);
-            }
-        }
-        return returnTorrent;
+        return inputList.stream().max(TorrentHelper.torrentSorter).orElse(null);
     }
 
     private List<Torrent> parseTorrentsOnResultPage(String pageContent, String torrentname) {
@@ -152,10 +115,8 @@ public class PirateBay implements TorrentSearchEngine {
 
     }
 
-    private void printResults(List<Torrent> torrents) {
-        for (Torrent t : torrents) {
-            System.out.println(t);
-        }
+    @Override
+    public String toString() {
+        return this.getClass().getName();
     }
-
 }

@@ -17,7 +17,6 @@ public class Premiumize {
                 PropertiesHelper.getProperty("customer_id") + "&pin=" + PropertiesHelper.getProperty("pin") +
                 "&type=torrent&src=" + toBeAddedTorrent.magnetUri;
         response = HttpHelper.getPage(addTorrenntUrl);
-        //System.out.println("GET: " + addTorrenntUrl);
         return response;
     }
 

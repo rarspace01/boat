@@ -7,31 +7,34 @@ import org.jsoup.select.Elements;
 import utilities.HttpHelper;
 
 import java.io.UnsupportedEncodingException;
-import java.math.BigInteger;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class NyaaSi implements TorrentSearchEngine {
 
     @Override
-    public List<Torrent> searchTorrents(String torrentname) {
+    public List<Torrent> searchTorrents(String torrentName) {
 
         CopyOnWriteArrayList<Torrent> torrentList = new CopyOnWriteArrayList<>();
 
         String resultString = null;
         try {
-            resultString = HttpHelper.getPage(String.format("https://nyaa.si/?f=0&c=0_0&q=%s&s=seeders&o=desc", URLEncoder.encode(torrentname, "UTF-8")));
+            resultString = HttpHelper.getPage(String.format(getBaseUrl() + "/?f=0&c=0_0&q=%s&s=seeders&o=desc", URLEncoder.encode(torrentName, "UTF-8")));
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         }
 
-        torrentList.addAll(parseTorrentsOnResultPage(resultString, torrentname));
+        torrentList.addAll(parseTorrentsOnResultPage(resultString, torrentName));
         torrentList.sort(TorrentHelper.torrentSorter);
         return torrentList;
+    }
+
+    @Override
+    public String getBaseUrl() {
+        return "https://nyaa.si";
     }
 
     private List<Torrent> parseTorrentsOnResultPage(String pageContent, String torrentname) {
@@ -102,6 +105,12 @@ public class NyaaSi implements TorrentSearchEngine {
 
     @Override
     public Torrent suggestATorrent(List<Torrent> inputList) {
-        return inputList.stream().min(TorrentHelper.torrentSorter).orElse(null);
+        return inputList.stream().max(TorrentHelper.torrentSorter).orElse(null);
     }
+
+    @Override
+    public String toString() {
+        return this.getClass().getName();
+    }
+
 }

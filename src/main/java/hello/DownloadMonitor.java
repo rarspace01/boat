@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 import torrent.Premiumize;
 import torrent.Torrent;
 import torrent.TorrentFile;
+import torrent.TorrentSearchEngineService;
 import utilities.HttpHelper;
 import utilities.PropertiesHelper;
 import utilities.StreamGobbler;
@@ -21,11 +22,23 @@ import java.util.regex.Pattern;
 
 @Component
 public class DownloadMonitor {
+
+    private final TorrentSearchEngineService torrentSearchEngineService;
+
     private static final int SECONDS_BETWEEN_POLLING = 30;
     private static final Logger log = LoggerFactory.getLogger(DownloadMonitor.class);
 
     private boolean isDownloadInProgress = false;
     private Premiumize premiumize = new Premiumize();
+
+    public DownloadMonitor(TorrentSearchEngineService torrentSearchEngineService) {
+        this.torrentSearchEngineService = torrentSearchEngineService;
+    }
+
+    @Scheduled(fixedRate = SECONDS_BETWEEN_POLLING * 1000)
+    public void refreshTorrentSearchEngines() {
+        torrentSearchEngineService.refreshTorrentSearchEngines();
+    }
 
     @Scheduled(fixedRate = SECONDS_BETWEEN_POLLING * 1000)
     public void checkForDownloadableTorrents() {

@@ -15,23 +15,28 @@ import java.util.concurrent.CopyOnWriteArrayList;
 public class SolidTorrents implements TorrentSearchEngine {
 
     @Override
-    public List<Torrent> searchTorrents(String torrentname) {
+    public List<Torrent> searchTorrents(String torrentName) {
 
         CopyOnWriteArrayList<Torrent> torrentList = new CopyOnWriteArrayList<>();
 
         String resultString = null;
         try {
-            resultString = HttpHelper.getPage("https://solidtorrents.net/search?q=" + URLEncoder.encode(torrentname, "UTF-8"));
+            resultString = HttpHelper.getPage(getBaseUrl() + "/search?q=" + URLEncoder.encode(torrentName, "UTF-8"));
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         }
 
-        torrentList.addAll(parseTorrentsOnResultPage(resultString, torrentname));
+        torrentList.addAll(parseTorrentsOnResultPage(resultString, torrentName));
         torrentList.sort(TorrentHelper.torrentSorter);
         return torrentList;
     }
 
-    private List<Torrent> parseTorrentsOnResultPage(String pageContent, String torrentname) {
+    @Override
+    public String getBaseUrl() {
+        return "https://solidtorrents.net";
+    }
+
+    private List<Torrent> parseTorrentsOnResultPage(String pageContent, String torrentName) {
         ArrayList<Torrent> torrentList = new ArrayList<>();
 
         Document doc = Jsoup.parse(pageContent);
@@ -56,7 +61,7 @@ public class SolidTorrents implements TorrentSearchEngine {
                 });
             }
             // evaluate result
-            TorrentHelper.evaluateRating(tempTorrent, torrentname);
+            TorrentHelper.evaluateRating(tempTorrent, torrentName);
             if (tempTorrent.magnetUri != null && tempTorrent.seeder > 0) {
                 torrentList.add(tempTorrent);
             }
@@ -66,6 +71,11 @@ public class SolidTorrents implements TorrentSearchEngine {
 
     @Override
     public Torrent suggestATorrent(List<Torrent> inputList) {
-        return inputList.stream().min(TorrentHelper.torrentSorter).orElse(null);
+        return inputList.stream().max(TorrentHelper.torrentSorter).orElse(null);
+    }
+
+    @Override
+    public String toString() {
+        return this.getClass().getName();
     }
 }
