@@ -25,7 +25,8 @@ public class DownloadMonitor {
 
     private final TorrentSearchEngineService torrentSearchEngineService;
 
-    private static final int SECONDS_BETWEEN_POLLING = 30;
+    private static final int SECONDS_BETWEEN_DOWNLOAD_POLLING = 30;
+    private static final int SECONDS_BETWEEN_SEARCH_ENGINE_POLLING = 60;
     private static final Logger log = LoggerFactory.getLogger(DownloadMonitor.class);
 
     private boolean isDownloadInProgress = false;
@@ -35,12 +36,12 @@ public class DownloadMonitor {
         this.torrentSearchEngineService = torrentSearchEngineService;
     }
 
-    @Scheduled(fixedRate = SECONDS_BETWEEN_POLLING * 1000)
+    @Scheduled(fixedRate = SECONDS_BETWEEN_SEARCH_ENGINE_POLLING * 1000)
     public void refreshTorrentSearchEngines() {
         torrentSearchEngineService.refreshTorrentSearchEngines();
     }
 
-    @Scheduled(fixedRate = SECONDS_BETWEEN_POLLING * 1000)
+    @Scheduled(fixedRate = SECONDS_BETWEEN_DOWNLOAD_POLLING * 1000)
     public void checkForDownloadableTorrents() {
         log.debug("checkForDownloadableTorrents()");
         this.premiumize = new Premiumize();
