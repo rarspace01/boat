@@ -1,6 +1,9 @@
 package torrent;
 
+import java.util.Arrays;
 import java.util.Comparator;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class TorrentHelper {
 
@@ -30,19 +33,34 @@ public class TorrentHelper {
         return tempTorrent.size.replaceAll("(GiB)|(GB)|(MiB)|(MB)|(<.*?>)", "").trim();
     }
 
-    public static void evaluateRating(Torrent tempTorrent, String torrentname) {
+    public static void evaluateRating(Torrent tempTorrent, String searchName) {
         String torrentName = tempTorrent.name;
-        if(torrentName == null || torrentName.trim().length() == 0)
-        {
+        if (torrentName == null || torrentName.trim().length() == 0) {
             return;
         }
 
-        if (getNormalizedTorrentString(torrentName).contains(getNormalizedTorrentString(torrentname))) {
+        String normalizedTorrentName = getNormalizedTorrentString(torrentName);
+        String normalizedSearchName = getNormalizedTorrentString(searchName);
+
+        if (normalizedTorrentName.contains(searchName.trim().toLowerCase())) {
             tempTorrent.searchRating += 1;
-            // determine closeness
-            double closenessFactor = (double) getNormalizedTorrentString(torrentname).length() / (double) getNormalizedTorrentString(torrentname).length();
-            tempTorrent.searchRating += closenessFactor;
         }
+        //check indivdual words
+        List<String> searchWords = Arrays.asList(searchName.trim().toLowerCase().split(" "));
+        int searchMaxScore = searchWords.size();
+        AtomicInteger matches = new AtomicInteger();
+        searchWords.forEach(searchWord -> {
+            if (normalizedTorrentName.contains(searchWord)) {
+                matches.getAndIncrement();
+            }
+        });
+        double matchScore = (double) matches.get() / (double) searchMaxScore;
+        tempTorrent.searchRating += matchScore;
+
+        // determine closeness
+        double closenessFactor = (double) normalizedTorrentName.length() / (double) getNormalizedTorrentString(searchName).length();
+        tempTorrent.searchRating += closenessFactor;
+
         // calc first range
         tempTorrent.searchRating += Math.min(tempTorrent.lsize, SIZE_UPPER_LIMIT) / SIZE_UPPER_LIMIT;
         // calculate seeder ratio
@@ -54,6 +72,6 @@ public class TorrentHelper {
 
     public static String getNormalizedTorrentString(String name) {
         String lowerCase = name.toLowerCase();
-        return lowerCase.trim().replaceAll("(ac3|x264|h265|x265|mp3|hdrip|mkv|mp4|xvid|divx|web|720p|1080p|\\s|\\.)", "").replaceAll("(-[\\S]+)", "").replaceAll("\\.", "");
+        return lowerCase.trim().replaceAll("(ac3|x264|h265|x265|mp3|hdrip|mkv|mp4|xvid|divx|web|720p|1080p|4K|UHD|\\s|\\.)", "").replaceAll("(-[\\S]+)", "").replaceAll("\\.", "");
     }
 }
