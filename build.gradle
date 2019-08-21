@@ -1,11 +1,11 @@
 buildscript {
-    ext.spring_version = '2.1.6.RELEASE'
+    ext.spring_version = '2.1.7.RELEASE'
     repositories {
         mavenCentral()
     }
     dependencies {
         classpath("org.springframework.boot:spring-boot-gradle-plugin:$spring_version")
-        classpath("org.owasp:dependency-check-gradle:5.1.1")
+        classpath("org.owasp:dependency-check-gradle:5.2.1")
         classpath("org.kt3k.gradle.plugin:coveralls-gradle-plugin:2.8.3")
     }
 }
@@ -21,7 +21,7 @@ apply plugin: 'jacoco'
 apply plugin: 'com.github.kt3k.coveralls'
 
 jacoco {
-    toolVersion = "0.8.3+"
+    toolVersion = "0.8.4+"
 }
 
 jacocoTestReport {
@@ -57,12 +57,12 @@ dependencies {
     // end::actuator[]
     testCompile("junit:junit")
     testCompile("org.springframework.boot:spring-boot-starter-test:$spring_version")
-    testImplementation('org.junit.jupiter:junit-jupiter:5.5.0')
+    testImplementation('org.junit.jupiter:junit-jupiter:5.5.1')
 
     compile("org.jsoup:jsoup:1.12.1")
 
     // https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-databind
-    compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.9.9.1'
+    compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.9.9.3'
 
     compile group: 'org.springframework.boot', name: 'spring-boot-properties-migrator', version: "$spring_version"
 

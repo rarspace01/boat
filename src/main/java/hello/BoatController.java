@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.RestController;
 import torrent.Premiumize;
 import torrent.Torrent;
 import torrent.TorrentHelper;
+import torrent.TorrentSearchEngine;
 import torrent.TorrentSearchEngineService;
 import utilities.PropertiesHelper;
 
@@ -18,9 +19,8 @@ import java.util.stream.Collectors;
 
 @RestController
 public final class BoatController {
+    private final String switchToProgress = "<a href=\"../debug\">Show Progress</a> ";
     private final TorrentSearchEngineService torrentSearchEngineService;
-
-    final String switchToProgress = "<a href=\"../debug\">Show Progress</a> ";
 
     public BoatController(TorrentSearchEngineService torrentSearchEngineService) {
         this.torrentSearchEngineService = torrentSearchEngineService;
@@ -60,7 +60,9 @@ public final class BoatController {
 
         long currentTimeMillis = System.currentTimeMillis();
 
-        torrentSearchEngineService.getActiveSearchEngines().parallelStream()
+        final List<TorrentSearchEngine> activeSearchEngines = new ArrayList<>();
+        activeSearchEngines.addAll(torrentSearchEngineService.getActiveSearchEngines());
+        activeSearchEngines.parallelStream()
                 .forEach(torrentSearchEngine -> combineResults.addAll(torrentSearchEngine.searchTorrents(searchString)));
         List<Torrent> returnResults = new ArrayList<>(cleanDuplicates(combineResults));
         returnResults.sort(TorrentHelper.torrentSorter);
