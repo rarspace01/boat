@@ -19,18 +19,18 @@ import java.util.concurrent.CopyOnWriteArrayList;
 public class PirateBay implements TorrentSearchEngine {
 
     @Override
-    public List<Torrent> searchTorrents(String torrentName) {
+    public List<Torrent> searchTorrents(String searchName) {
 
         CopyOnWriteArrayList<Torrent> torrentList = new CopyOnWriteArrayList<>();
 
         String resultString = null;
         try {
-            resultString = HttpHelper.getPage(String.format(getBaseUrl() + "/search/%s/%d/99/200", URLEncoder.encode(torrentName, "UTF-8"), 0), null, "lw=s");
+            resultString = HttpHelper.getPage(String.format(getBaseUrl() + "/search/%s/%d/99/200", URLEncoder.encode(searchName, "UTF-8"), 0), null, "lw=s");
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         }
 
-        torrentList.addAll(parseTorrentsOnResultPage(resultString, torrentName));
+        torrentList.addAll(parseTorrentsOnResultPage(resultString, searchName));
 
         // sort the findings
         torrentList.sort(TorrentHelper.torrentSorter);
@@ -48,7 +48,7 @@ public class PirateBay implements TorrentSearchEngine {
         return inputList.stream().max(TorrentHelper.torrentSorter).orElse(null);
     }
 
-    private List<Torrent> parseTorrentsOnResultPage(String pageContent, String torrentname) {
+    private List<Torrent> parseTorrentsOnResultPage(String pageContent, String searchName) {
 
         ArrayList<Torrent> torrentList = new ArrayList<>();
 
@@ -103,7 +103,7 @@ public class PirateBay implements TorrentSearchEngine {
             tempTorrent.leecher = Integer.parseInt(torrent.select("td").get(6).text());
 
             // evaluate result
-            TorrentHelper.evaluateRating(tempTorrent, torrentname);
+            TorrentHelper.evaluateRating(tempTorrent, searchName);
 
             // filter torrents without any seeders
             if (tempTorrent.seeder > 0) {

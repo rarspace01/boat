@@ -15,18 +15,18 @@ import java.util.concurrent.CopyOnWriteArrayList;
 public class SolidTorrents implements TorrentSearchEngine {
 
     @Override
-    public List<Torrent> searchTorrents(String torrentName) {
+    public List<Torrent> searchTorrents(String searchName) {
 
         CopyOnWriteArrayList<Torrent> torrentList = new CopyOnWriteArrayList<>();
 
         String resultString = null;
         try {
-            resultString = HttpHelper.getPage(getBaseUrl() + "/search?q=" + URLEncoder.encode(torrentName, "UTF-8"));
+            resultString = HttpHelper.getPage(getBaseUrl() + "/search?q=" + URLEncoder.encode(searchName, "UTF-8"));
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         }
 
-        torrentList.addAll(parseTorrentsOnResultPage(resultString, torrentName));
+        torrentList.addAll(parseTorrentsOnResultPage(resultString, searchName));
         torrentList.sort(TorrentHelper.torrentSorter);
         return torrentList;
     }
@@ -36,7 +36,7 @@ public class SolidTorrents implements TorrentSearchEngine {
         return "https://solidtorrents.net";
     }
 
-    private List<Torrent> parseTorrentsOnResultPage(String pageContent, String torrentName) {
+    private List<Torrent> parseTorrentsOnResultPage(String pageContent, String searchName) {
         ArrayList<Torrent> torrentList = new ArrayList<>();
 
         Document doc = Jsoup.parse(pageContent);
@@ -61,7 +61,7 @@ public class SolidTorrents implements TorrentSearchEngine {
                 });
             }
             // evaluate result
-            TorrentHelper.evaluateRating(tempTorrent, torrentName);
+            TorrentHelper.evaluateRating(tempTorrent, searchName);
             if (tempTorrent.magnetUri != null && tempTorrent.seeder > 0) {
                 torrentList.add(tempTorrent);
             }

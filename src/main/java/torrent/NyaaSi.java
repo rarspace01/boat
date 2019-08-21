@@ -16,18 +16,18 @@ import java.util.stream.Collectors;
 public class NyaaSi implements TorrentSearchEngine {
 
     @Override
-    public List<Torrent> searchTorrents(String torrentName) {
+    public List<Torrent> searchTorrents(String searchName) {
 
         CopyOnWriteArrayList<Torrent> torrentList = new CopyOnWriteArrayList<>();
 
         String resultString = null;
         try {
-            resultString = HttpHelper.getPage(String.format(getBaseUrl() + "/?f=0&c=0_0&q=%s&s=seeders&o=desc", URLEncoder.encode(torrentName, "UTF-8")));
+            resultString = HttpHelper.getPage(String.format(getBaseUrl() + "/?f=0&c=0_0&q=%s&s=seeders&o=desc", URLEncoder.encode(searchName, "UTF-8")));
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         }
 
-        torrentList.addAll(parseTorrentsOnResultPage(resultString, torrentName));
+        torrentList.addAll(parseTorrentsOnResultPage(resultString, searchName));
         torrentList.sort(TorrentHelper.torrentSorter);
         return torrentList;
     }
@@ -37,7 +37,7 @@ public class NyaaSi implements TorrentSearchEngine {
         return "https://nyaa.si";
     }
 
-    private List<Torrent> parseTorrentsOnResultPage(String pageContent, String torrentname) {
+    private List<Torrent> parseTorrentsOnResultPage(String pageContent, String searchName) {
         ArrayList<Torrent> torrentList = new ArrayList<>();
 
         Document doc = Jsoup.parse(pageContent);
@@ -73,7 +73,7 @@ public class NyaaSi implements TorrentSearchEngine {
 
 
             // evaluate result
-            TorrentHelper.evaluateRating(tempTorrent, torrentname);
+            TorrentHelper.evaluateRating(tempTorrent, searchName);
             if (tempTorrent.name != null && tempTorrent.magnetUri != null && tempTorrent.seeder > 0) {
                 torrentList.add(tempTorrent);
             }
