@@ -2,7 +2,7 @@ notifications:
   email: false
 before_script:
 language: java
-jdk: openjdk12
+jdk: openjdk13
 before_cache:
   - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
   - rm -fr $HOME/.gradle/caches/*/plugin-resolution/
@@ -11,7 +11,7 @@ cache:
     - $HOME/.gradle/caches/
     - $HOME/.gradle/wrapper/
 script:
-  - ./gradlew -Djdk.tls.client.protocols="TLSv1,TLSv1.1,TLSv1.2" jacocoTestReport coveralls build
+  - ./gradlew jacocoTestReport coveralls build
 deploy:
   - provider: releases
     api_key: $GITHUB_APIKEY
