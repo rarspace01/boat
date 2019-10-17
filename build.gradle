@@ -1,11 +1,11 @@
 buildscript {
-    ext.spring_version = '2.1.7.RELEASE'
+    ext.spring_version = '2.2.0.RELEASE'
     repositories {
         mavenCentral()
     }
     dependencies {
         classpath("org.springframework.boot:spring-boot-gradle-plugin:$spring_version")
-        classpath("org.owasp:dependency-check-gradle:5.2.1")
+        classpath("org.owasp:dependency-check-gradle:5.2.2")
         classpath("org.kt3k.gradle.plugin:coveralls-gradle-plugin:2.8.3")
     }
 }
@@ -35,7 +35,7 @@ jacocoTestReport {
 //runtime("org.springframework.boot:spring-boot-properties-migrator")
 jar {
     archivesBaseName = 'pirateboat'
-    archiveVersion = '0.6.1'
+    archiveVersion = '0.6.2'
 }
 
 repositories {
