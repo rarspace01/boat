@@ -35,7 +35,7 @@ jacocoTestReport {
 //runtime("org.springframework.boot:spring-boot-properties-migrator")
 jar {
     archivesBaseName = 'pirateboat'
-    archiveVersion = '0.6.3'
+    archiveVersion = '0.6.5'
 }
 
 repositories {
@@ -57,12 +57,12 @@ dependencies {
     // end::actuator[]
     testCompile("junit:junit")
     testCompile("org.springframework.boot:spring-boot-starter-test:$spring_version")
-    testImplementation('org.junit.jupiter:junit-jupiter:5.5.1')
+    testImplementation('org.junit.jupiter:junit-jupiter:5.5.2')
 
     compile("org.jsoup:jsoup:1.12.1")
 
     // https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-databind
-    compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.9.9.3'
+    compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.10.0'
 
     compile group: 'org.springframework.boot', name: 'spring-boot-properties-migrator', version: "$spring_version"
 

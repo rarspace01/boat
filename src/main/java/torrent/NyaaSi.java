@@ -51,11 +51,11 @@ public class NyaaSi implements TorrentSearchEngine {
 
                     if (element.getElementsByTag("a").size() > 0
                             && getTorrentTitle(element).length() > 0) {
-                        //extract Size & S/L
+                        //extract name
                         tempTorrent.name = getTorrentTitle(element);
                     }
                     if (elementContainsMagnetUri(element)) {
-                        //extract Size & S/L
+                        //extract magneturi
                         tempTorrent.magnetUri = getMagnetUri(element);
                     }
                     if (element.text().contains("MiB") || element.text().contains("GiB")) {

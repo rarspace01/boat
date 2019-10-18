@@ -11,7 +11,7 @@ import java.util.List;
 public class TorrentSearchEngineService {
 
     private final List<TorrentSearchEngine> activeSearchEngines = new ArrayList<>();
-    private final List<TorrentSearchEngine> allSearchEngines = Arrays.asList(new PirateBay(), new NyaaSi(), new SolidTorrents(), new LeetxTo());
+    private final List<TorrentSearchEngine> allSearchEngines = Arrays.asList(new PirateBay(), new NyaaSi(), new SolidTorrents(), new LeetxTo(), new Katcr());
 
     public void refreshTorrentSearchEngines() {
         final List<TorrentSearchEngine> tempActiveSearchEngines = new ArrayList<>();

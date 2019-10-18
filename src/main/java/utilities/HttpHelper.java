@@ -4,11 +4,7 @@ import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
-import java.io.BufferedReader;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.channels.Channels;
@@ -50,7 +46,7 @@ public class HttpHelper {
 
             connection = new URL(url).openConnection();
             ((HttpsURLConnection) connection).setSSLSocketFactory(sc.getSocketFactory());
-            connection.setRequestProperty("User-Agent", "");
+            connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:68.0) Gecko/20100101 Firefox/68.0");
             connection.setRequestProperty("Accept-Charset", charset);
             connection.setConnectTimeout(timeout);
             connection.setReadTimeout(timeout);
