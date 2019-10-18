@@ -25,6 +25,7 @@ public class Torrent {
     public String remoteId;
     public String folder_id;
     public String file_id;
+    public String remoteUrl;
 
     @Override
     public String toString() {
