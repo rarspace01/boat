@@ -1,5 +1,8 @@
 package utilities;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
@@ -15,6 +18,7 @@ import java.util.List;
 
 public class HttpHelper {
     private static String charset = "UTF-8";  // Or in Java 7 and later, use the constant: java.nio.charset.StandardCharsets.UTF_8.name()
+    private static final Logger log = LoggerFactory.getLogger(HttpHelper.class);
     private static TrustManager[] trustAllCerts = new TrustManager[]{
             new X509TrustManager() {
                 public java.security.cert.X509Certificate[] getAcceptedIssuers() {
@@ -81,12 +85,8 @@ public class HttpHelper {
                 }
             }
 
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-        } catch (KeyManagementException e) {
-            e.printStackTrace();
+        } catch (IOException | NoSuchAlgorithmException | KeyManagementException e) {
+            log.info("Couldn't retrieve: " + url);
         }
 
         returnString = buildString.toString();
@@ -114,6 +114,6 @@ public class HttpHelper {
     }
 
     public static boolean isWebsiteResponding(String baseUrl, int timeout) {
-        return getPage(baseUrl,timeout).length()>0;
+        return getPage(baseUrl, timeout).length() > 0;
     }
 }
