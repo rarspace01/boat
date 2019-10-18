@@ -73,7 +73,7 @@ public class LeetxTo implements TorrentSearchEngine {
             // evaluate result
             TorrentHelper.evaluateRating(tempTorrent, searchName);
             if (tempTorrent.name != null &&
-                    //tempTorrent.magnetUri != null &&
+                    tempTorrent.magnetUri != null &&
                     tempTorrent.seeder > 0) {
                 torrentList.add(tempTorrent);
             }
@@ -87,7 +87,11 @@ public class LeetxTo implements TorrentSearchEngine {
     private String retrieveMagnetUri(Torrent torrent) {
         String pageContent = HttpHelper.getPage(torrent.remoteUrl);
         Document doc = Jsoup.parse(pageContent);
-        return doc.select("* > li > a[href*=magnet]").get(0).attr("href").trim();
+        if (doc.select("* > li > a[href*=magnet]").size() > 0) {
+            return doc.select("* > li > a[href*=magnet]").get(0).attr("href").trim();
+        } else {
+            return null;
+        }
     }
 
     @Override
