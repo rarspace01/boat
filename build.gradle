@@ -2,6 +2,9 @@ buildscript {
     ext.spring_version = '2.2.0.RELEASE'
     repositories {
         mavenCentral()
+        maven {
+            url "https://plugins.gradle.org/m2/" java
+        }
     }
     dependencies {
         classpath("org.springframework.boot:spring-boot-gradle-plugin:$spring_version")
@@ -9,7 +12,6 @@ buildscript {
         classpath("org.kt3k.gradle.plugin:coveralls-gradle-plugin:2.8.3")
     }
 }
-
 
 apply plugin: 'java'
 apply plugin: 'eclipse'
@@ -91,6 +93,7 @@ classes {
 test {
     useJUnitPlatform()
     testLogging {
-        events "passed", "skipped", "failed"
+        showStandardStreams = true
+        events "standardOut", "started", "passed", "skipped", "failed"
     }
 }
