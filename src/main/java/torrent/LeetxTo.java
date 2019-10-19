@@ -11,6 +11,7 @@ import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.stream.Collectors;
 
 public class LeetxTo implements TorrentSearchEngine {
 
@@ -73,7 +74,6 @@ public class LeetxTo implements TorrentSearchEngine {
             // evaluate result
             TorrentHelper.evaluateRating(tempTorrent, searchName);
             if (tempTorrent.name != null &&
-                    tempTorrent.magnetUri != null &&
                     tempTorrent.seeder > 0) {
                 torrentList.add(tempTorrent);
             }
@@ -81,7 +81,8 @@ public class LeetxTo implements TorrentSearchEngine {
         //retrieve magneturis for torrents
         torrentList.parallelStream().forEach(torrent -> torrent.magnetUri = retrieveMagnetUri(torrent));
 
-        return torrentList;
+        // remove torrents without magneturi
+        return torrentList.stream().filter(torrent -> torrent.magnetUri != null).collect(Collectors.toList());
     }
 
     private String retrieveMagnetUri(Torrent torrent) {
