@@ -6,6 +6,9 @@ import utilities.HttpHelper;
 import utilities.PropertiesHelper;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -15,9 +18,17 @@ public class Premiumize {
         String response;
         String addTorrenntUrl = "https://www.premiumize.me/api/transfer/create?customer_id=" +
                 PropertiesHelper.getProperty("customer_id") + "&pin=" + PropertiesHelper.getProperty("pin") +
-                "&type=torrent&src=" + toBeAddedTorrent.magnetUri;
+                "&type=torrent&src=" + cleanMagnetUri(toBeAddedTorrent.magnetUri);
         response = HttpHelper.getPage(addTorrenntUrl);
         return response;
+    }
+
+    private String cleanMagnetUri(String magnetUri) {
+        try {
+            return URLEncoder.encode(magnetUri, StandardCharsets.UTF_8.toString());
+        } catch (UnsupportedEncodingException e) {
+            return magnetUri;
+        }
     }
 
     public ArrayList<Torrent> getRemoteTorrents() {
