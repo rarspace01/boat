@@ -56,7 +56,7 @@ public class LeetxTo implements TorrentSearchEngine {
                         tempTorrent.remoteUrl = getBaseUrl() + element.getElementsByAttributeValueContaining("class", "name").get(0).getElementsByAttributeValueContaining("href", "torrent").get(0).attr("href").trim();
                     }
                     if (element.attr("class").contains("size")) {
-                        tempTorrent.size = element.getElementsByAttributeValueContaining("class", "size").get(0).textNodes().get(0).text().trim().replace(",", "");
+                        tempTorrent.size = element.getElementsByAttributeValueContaining("class", "size").get(0).textNodes().get(0).text().trim().replaceAll(",", "");
                         tempTorrent.lsize = TorrentHelper.extractTorrentSizeFromString(tempTorrent);
                     }
 
