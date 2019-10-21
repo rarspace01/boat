@@ -6,9 +6,6 @@ import utilities.HttpHelper;
 import utilities.PropertiesHelper;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,11 +21,7 @@ public class Premiumize {
     }
 
     private String cleanMagnetUri(String magnetUri) {
-        try {
-            return URLEncoder.encode(magnetUri, StandardCharsets.UTF_8.toString());
-        } catch (UnsupportedEncodingException e) {
-            return magnetUri;
-        }
+        return magnetUri.replaceAll(" ", "_");
     }
 
     public ArrayList<Torrent> getRemoteTorrents() {
