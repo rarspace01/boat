@@ -74,4 +74,8 @@ public class TorrentHelper {
         String lowerCase = name.toLowerCase();
         return lowerCase.trim().replaceAll("(ac3|x264|h265|x265|mp3|hdrip|mkv|mp4|xvid|divx|web|720p|1080p|4K|UHD|\\s|\\.)", "").replaceAll("(-[\\S]+)", "").replaceAll("\\.", "");
     }
+
+    public static String cleanNumberString(String value) {
+        return value.replaceAll(",", "");
+    }
 }

@@ -59,7 +59,7 @@ public class NyaaSi implements TorrentSearchEngine {
                         tempTorrent.magnetUri = getMagnetUri(element);
                     }
                     if (element.text().contains("MiB") || element.text().contains("GiB")) {
-                        tempTorrent.size = element.text().trim();
+                        tempTorrent.size = TorrentHelper.cleanNumberString(element.text().trim());
                         tempTorrent.lsize = TorrentHelper.extractTorrentSizeFromString(tempTorrent);
                     }
                 });
@@ -67,8 +67,8 @@ public class NyaaSi implements TorrentSearchEngine {
 
             int index = torrent.children().size() - 3;
             if (index > 0) {
-                tempTorrent.seeder = Integer.parseInt(torrent.children().get(index).text());
-                tempTorrent.leecher = Integer.parseInt(torrent.children().get(index + 1).text());
+                tempTorrent.seeder = Integer.parseInt(TorrentHelper.cleanNumberString(torrent.children().get(index).text()));
+                tempTorrent.leecher = Integer.parseInt(TorrentHelper.cleanNumberString(torrent.children().get(index + 1).text()));
             }
 
 

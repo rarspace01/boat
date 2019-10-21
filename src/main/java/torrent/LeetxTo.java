@@ -56,16 +56,16 @@ public class LeetxTo implements TorrentSearchEngine {
                         tempTorrent.remoteUrl = getBaseUrl() + element.getElementsByAttributeValueContaining("class", "name").get(0).getElementsByAttributeValueContaining("href", "torrent").get(0).attr("href").trim();
                     }
                     if (element.attr("class").contains("size")) {
-                        tempTorrent.size = element.getElementsByAttributeValueContaining("class", "size").get(0).textNodes().get(0).text().trim().replaceAll(",", "");
+                        tempTorrent.size = TorrentHelper.cleanNumberString(element.getElementsByAttributeValueContaining("class", "size").get(0).textNodes().get(0).text().trim());
                         tempTorrent.lsize = TorrentHelper.extractTorrentSizeFromString(tempTorrent);
                     }
 
                     if (element.attr("class").contains("seeds")) {
-                        tempTorrent.seeder = Integer.parseInt(element.getElementsByAttributeValueContaining("class", "seeds").get(0).textNodes().get(0).text().trim());
+                        tempTorrent.seeder = Integer.parseInt(TorrentHelper.cleanNumberString(element.getElementsByAttributeValueContaining("class", "seeds").get(0).textNodes().get(0).text().trim()));
                     }
 
                     if (element.attr("class").contains("leeches")) {
-                        tempTorrent.leecher = Integer.parseInt(element.getElementsByAttributeValueContaining("class", "leeches").get(0).textNodes().get(0).text().trim());
+                        tempTorrent.leecher = Integer.parseInt(TorrentHelper.cleanNumberString(element.getElementsByAttributeValueContaining("class", "leeches").get(0).textNodes().get(0).text().trim()));
                     }
 
                 });

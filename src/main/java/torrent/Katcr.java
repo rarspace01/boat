@@ -57,14 +57,14 @@ public class Katcr implements TorrentSearchEngine {
                         tempTorrent.magnetUri = element.getElementsByAttributeValueMatching("href", "magnet:").attr("href").trim();
                     }
                     if (element.getElementsByAttributeValueMatching("data-title", "Size").size() > 0) {
-                        tempTorrent.size = element.getElementsByAttributeValueMatching("data-title", "Size").text().trim().replaceAll(",", "");
+                        tempTorrent.size = TorrentHelper.cleanNumberString(element.getElementsByAttributeValueMatching("data-title", "Size").text().trim());
                         tempTorrent.lsize = TorrentHelper.extractTorrentSizeFromString(tempTorrent);
                     }
                     if (element.getElementsByAttributeValueMatching("data-title", "Seed").size() > 0) {
-                        tempTorrent.seeder = Integer.parseInt(element.getElementsByAttributeValueMatching("data-title", "Seed").text().trim());
+                        tempTorrent.seeder = Integer.parseInt(TorrentHelper.cleanNumberString(element.getElementsByAttributeValueMatching("data-title", "Seed").text().trim()));
                     }
                     if (element.getElementsByAttributeValueMatching("data-title", "Leech").size() > 0) {
-                        tempTorrent.leecher = Integer.parseInt(element.getElementsByAttributeValueMatching("data-title", "Leech").text().trim());
+                        tempTorrent.leecher = Integer.parseInt(TorrentHelper.cleanNumberString(element.getElementsByAttributeValueMatching("data-title", "Leech").text().trim()));
                     }
                 });
             }

@@ -91,16 +91,16 @@ public class PirateBay implements TorrentSearchEngine {
             }
 
             // extract size
-            tempTorrent.size = torrent.select("td").get(4).text().replace("\u00a0", " ");
+            tempTorrent.size = TorrentHelper.cleanNumberString(torrent.select("td").get(4).text().replace("\u00a0", " "));
 
             tempTorrent.lsize = TorrentHelper.extractTorrentSizeFromString(tempTorrent);
 
 
             // extract seeder
-            tempTorrent.seeder = Integer.parseInt(torrent.select("td").get(5).text());
+            tempTorrent.seeder = Integer.parseInt(TorrentHelper.cleanNumberString(torrent.select("td").get(5).text()));
 
             // extract leecher
-            tempTorrent.leecher = Integer.parseInt(torrent.select("td").get(6).text());
+            tempTorrent.leecher = Integer.parseInt(TorrentHelper.cleanNumberString(torrent.select("td").get(6).text()));
 
             // evaluate result
             TorrentHelper.evaluateRating(tempTorrent, searchName);
