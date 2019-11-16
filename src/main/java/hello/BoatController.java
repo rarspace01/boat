@@ -69,7 +69,7 @@ public final class BoatController {
 
         System.out.println(String.format("Took: [%s]ms for [%s]", (System.currentTimeMillis() - currentTimeMillis), searchString));
 
-        return "G: " + returnResults.stream().limit(15).collect(Collectors.toList());
+        return "G: " + returnResults.stream().limit(25).collect(Collectors.toList());
     }
 
     private List<Torrent> cleanDuplicates(List<Torrent> combineResults) {
