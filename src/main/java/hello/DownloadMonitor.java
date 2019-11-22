@@ -157,14 +157,6 @@ public class DownloadMonitor {
         }
     }
 
-    private boolean createDownloadFolderIfNotExists(Torrent remoteTorrent) {
-        if (remoteTorrent.name.matches(".+[.].*]")) {
-            return new File(PropertiesHelper.getProperty("downloaddir")).mkdirs();
-        } else {
-            return new File(PropertiesHelper.getProperty("downloaddir") + remoteTorrent.name).mkdirs();
-        }
-    }
-
     private boolean checkIfTorrentCanBeDownloaded(Torrent remoteTorrent) {
         boolean remoteStatusIsFinished = remoteTorrent.status.contains("finished") || remoteTorrent.status.contains("seeding");
         boolean isAlreadyDownloaded = new File("./downloads/" + remoteTorrent.name).exists();
