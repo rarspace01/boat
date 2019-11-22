@@ -44,8 +44,8 @@ repositories {
     mavenCentral()
 }
 
-sourceCompatibility = 12
-targetCompatibility = 12
+sourceCompatibility = 13
+targetCompatibility = 13
 
 dependencies {
     // tag::jetty[]
