@@ -77,7 +77,7 @@ public class LeetxTo extends HttpUser implements TorrentSearchEngine {
 
             // evaluate result
             TorrentHelper.evaluateRating(tempTorrent, searchName);
-            if (TorrentHelper.isValidTorrent(tempTorrent)) {
+            if (TorrentHelper.isValidMetaTorrent(tempTorrent)) {
                 torrentList.add(tempTorrent);
             }
         }
@@ -85,7 +85,7 @@ public class LeetxTo extends HttpUser implements TorrentSearchEngine {
         torrentList.parallelStream().forEach(torrent -> torrent.magnetUri = retrieveMagnetUri(torrent));
 
         // remove torrents without magneturi
-        return torrentList.stream().filter(torrent -> torrent.magnetUri != null).collect(Collectors.toList());
+        return torrentList.stream().filter(TorrentHelper::isValidTorrent).collect(Collectors.toList());
     }
 
     private String retrieveMagnetUri(Torrent torrent) {

@@ -97,4 +97,10 @@ public class TorrentHelper {
                 torrent.seeder > 0 &&
                 !isBlacklisted(torrent);
     }
+
+    public static boolean isValidMetaTorrent(Torrent torrent) {
+        return torrent.name != null &&
+                torrent.seeder > 0 &&
+                !isBlacklisted(torrent);
+    }
 }
