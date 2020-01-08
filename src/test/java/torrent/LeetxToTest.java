@@ -12,7 +12,7 @@ class LeetxToTest {
     void shouldFindTorrents() {
         // Given
         // When
-        List<Torrent> torrentList = new LeetxTo().searchTorrents("search");
+        List<Torrent> torrentList = new LeetxTo().searchTorrents("planet");
         // Then
         assertTrue(torrentList.size() > 0);
     }

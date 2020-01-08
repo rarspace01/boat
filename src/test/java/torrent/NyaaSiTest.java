@@ -12,7 +12,7 @@ class NyaaSiTest {
     public void shouldFindTorrents() {
         // Given
         // When
-        List<Torrent> torrentList = new NyaaSi().searchTorrents("search");
+        List<Torrent> torrentList = new NyaaSi().searchTorrents("planet");
         // Then
         assertTrue(torrentList.size() > 0);
     }

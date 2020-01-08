@@ -12,7 +12,7 @@ class KatcrTest {
     void shouldFindTorrents() {
         // Given
         // When
-        List<Torrent> torrentList = new Katcr().searchTorrents("search");
+        List<Torrent> torrentList = new Katcr().searchTorrents("planet");
         // Then
         assertTrue(torrentList.size() > 0);
     }
