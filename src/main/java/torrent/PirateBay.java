@@ -106,7 +106,7 @@ public class PirateBay implements TorrentSearchEngine {
             TorrentHelper.evaluateRating(tempTorrent, searchName);
 
             // filter torrents without any seeders
-            if (tempTorrent.seeder > 0) {
+            if (TorrentHelper.isValidTorrent(tempTorrent)) {
                 torrentList.add(tempTorrent);
             }
         }

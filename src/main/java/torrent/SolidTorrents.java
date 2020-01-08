@@ -62,7 +62,7 @@ public class SolidTorrents implements TorrentSearchEngine {
             }
             // evaluate result
             TorrentHelper.evaluateRating(tempTorrent, searchName);
-            if (tempTorrent.magnetUri != null && tempTorrent.seeder > 0) {
+            if (TorrentHelper.isValidTorrent(tempTorrent)) {
                 torrentList.add(tempTorrent);
             }
         }

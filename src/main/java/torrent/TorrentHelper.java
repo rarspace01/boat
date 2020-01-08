@@ -68,6 +68,9 @@ public class TorrentHelper {
         if (seedRatio > 1.0) {
             tempTorrent.searchRating += Math.min(seedRatio, SEED_RATIO_UPPER_LIMIT) / SEED_RATIO_UPPER_LIMIT;
         }
+        if (tempTorrent.seeder == 1) {
+            tempTorrent.searchRating = tempTorrent.searchRating / 10;
+        }
     }
 
     public static String getNormalizedTorrentString(String name) {
@@ -77,5 +80,21 @@ public class TorrentHelper {
 
     public static String cleanNumberString(String value) {
         return value.replaceAll(",", "");
+    }
+
+    public static boolean isBlacklisted(Torrent torrent) {
+        return torrent.name != null && (
+                torrent.name.toLowerCase().contains("hdcam") ||
+                        torrent.name.toLowerCase().contains("tscam") ||
+                        torrent.name.toLowerCase().contains(".ts.") ||
+                        torrent.name.toLowerCase().contains(".cam.")
+        );
+    }
+
+    public static boolean isValidTorrent(Torrent torrent) {
+        return torrent.name != null &&
+                torrent.magnetUri != null &&
+                torrent.seeder > 0 &&
+                !isBlacklisted(torrent);
     }
 }

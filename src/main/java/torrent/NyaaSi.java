@@ -74,7 +74,7 @@ public class NyaaSi implements TorrentSearchEngine {
 
             // evaluate result
             TorrentHelper.evaluateRating(tempTorrent, searchName);
-            if (tempTorrent.name != null && tempTorrent.magnetUri != null && tempTorrent.seeder > 0) {
+            if (TorrentHelper.isValidTorrent(tempTorrent)) {
                 torrentList.add(tempTorrent);
             }
         }
