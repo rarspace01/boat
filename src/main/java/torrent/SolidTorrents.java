@@ -1,14 +1,15 @@
 package torrent;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
 import utilities.HttpHelper;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -25,7 +26,7 @@ public class SolidTorrents extends HttpUser implements TorrentSearchEngine {
 
         String resultString = null;
         try {
-            resultString = httpHelper.getPage(getBaseUrl() + "/search?q=" + URLEncoder.encode(searchName, "UTF-8"));
+            resultString = httpHelper.getPage(getBaseUrl() + "/api/v1/search?sort=seeders&q=" + URLEncoder.encode(searchName, "UTF-8") + "&category=all&fuv=yes");
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         }
@@ -43,32 +44,35 @@ public class SolidTorrents extends HttpUser implements TorrentSearchEngine {
     private List<Torrent> parseTorrentsOnResultPage(String pageContent, String searchName) {
         ArrayList<Torrent> torrentList = new ArrayList<>();
 
-        Document doc = Jsoup.parse(pageContent);
+        //create ObjectMapper instance
+        ObjectMapper objectMapper = new ObjectMapper();
 
-        Elements torrentListOnPage = doc.select("div .v-card__text > div[role=list] > div > div[role=listitem]");
+//read JSON like DOM Parser
+        try {
+            JsonNode rootNode = objectMapper.readTree(pageContent);
+            JsonNode resultsNode = rootNode.get("results");
 
-        for (Element torrent : torrentListOnPage) {
-            Torrent tempTorrent = new Torrent();
-            if (torrent.childNodeSize() > 0) {
-                torrent.children().forEach(element -> {
-                    if (element.childNodeSize() == 5 && element.children().get(0).childNodes().get(0).childNodes().get(0).attributes().hasKey("title")) {
-                        //extract Size & S/L
-                        tempTorrent.name = element.children().get(0).childNodes().get(0).childNodes().get(0).attributes().get("title");
-                        String sizeString = element.children().get(2).childNodes().get(2).toString();
-                        tempTorrent.size = TorrentHelper.cleanNumberString(Jsoup.parse(sizeString).text().trim());
-                        tempTorrent.lsize = TorrentHelper.extractTorrentSizeFromString(tempTorrent);
-                        tempTorrent.seeder = Integer.parseInt(TorrentHelper.cleanNumberString(element.children().get(2).childNodes().get(4).childNodes().get(1).toString().trim()));
-                        tempTorrent.leecher = Integer.parseInt(TorrentHelper.cleanNumberString(element.children().get(2).childNodes().get(6).childNodes().get(1).toString().trim()));
-                    } else if (element.children().get(0).children().get(0).toString().contains("Magnet Link")) {
-                        tempTorrent.magnetUri = element.childNodes().get(0).childNodes().get(1).childNodes().get(0).attributes().get("href");
-                    }
-                });
+            Iterator<JsonNode> elements = resultsNode.elements();
+            while (elements.hasNext()) {
+                JsonNode jsonTorrent = elements.next();
+                Torrent tempTorrent = new Torrent();
+                //extract Size & S/L
+                tempTorrent.name = jsonTorrent.get("title").asText();
+                String sizeString = jsonTorrent.get("size").asLong() / 1024 / 1024 + "MB";
+                tempTorrent.size = TorrentHelper.cleanNumberString(Jsoup.parse(sizeString).text().trim());
+                tempTorrent.lsize = TorrentHelper.extractTorrentSizeFromString(tempTorrent);
+                tempTorrent.seeder = jsonTorrent.get("swarm").get("seeders").asInt();
+                tempTorrent.leecher = jsonTorrent.get("swarm").get("leechers").asInt();
+                tempTorrent.magnetUri = jsonTorrent.get("magnet").asText();
+                // evaluate result
+                TorrentHelper.evaluateRating(tempTorrent, searchName);
+                if (TorrentHelper.isValidTorrent(tempTorrent)) {
+                    torrentList.add(tempTorrent);
+                }
             }
-            // evaluate result
-            TorrentHelper.evaluateRating(tempTorrent, searchName);
-            if (TorrentHelper.isValidTorrent(tempTorrent)) {
-                torrentList.add(tempTorrent);
-            }
+
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
         }
         return torrentList;
     }
