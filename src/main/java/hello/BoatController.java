@@ -8,6 +8,7 @@ import torrent.Torrent;
 import torrent.TorrentHelper;
 import torrent.TorrentSearchEngine;
 import torrent.TorrentSearchEngineService;
+import utilities.HttpHelper;
 import utilities.PropertiesHelper;
 
 import javax.validation.constraints.NotNull;
@@ -21,9 +22,11 @@ import java.util.stream.Collectors;
 public final class BoatController {
     private final String switchToProgress = "<a href=\"../debug\">Show Progress</a> ";
     private final TorrentSearchEngineService torrentSearchEngineService;
+    private final HttpHelper httpHelper;
 
-    public BoatController(TorrentSearchEngineService torrentSearchEngineService) {
+    public BoatController(TorrentSearchEngineService torrentSearchEngineService, HttpHelper httpHelper) {
         this.torrentSearchEngineService = torrentSearchEngineService;
+        this.httpHelper = httpHelper;
     }
 
     @GetMapping({"/"})
@@ -89,13 +92,13 @@ public final class BoatController {
         String decodedUri = new String(magnetUri, StandardCharsets.UTF_8);
         Torrent torrentToBeDownloaded = new Torrent();
         torrentToBeDownloaded.magnetUri = decodedUri;
-        return switchToProgress + (new Premiumize()).addTorrentToQueue(torrentToBeDownloaded);
+        return switchToProgress + (new Premiumize(httpHelper)).addTorrentToQueue(torrentToBeDownloaded);
     }
 
     @GetMapping({"/boat/debug"})
     @NotNull
     public final String getDebugInfo() {
-        ArrayList<Torrent> remoteTorrents = new Premiumize().getRemoteTorrents();
+        ArrayList<Torrent> remoteTorrents = new Premiumize(httpHelper).getRemoteTorrents();
         return "v:" + PropertiesHelper.getVersion() + "<br/>ActiveSearchEngines: " + torrentSearchEngineService.getActiveSearchEngines() + "<br/>D: " + remoteTorrents;
     }
 

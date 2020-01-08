@@ -9,14 +9,18 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Premiumize {
+public class Premiumize extends HttpUser {
+
+    public Premiumize(HttpHelper httpHelper) {
+        super(httpHelper);
+    }
 
     public String addTorrentToQueue(Torrent toBeAddedTorrent) {
         String response;
         String addTorrenntUrl = "https://www.premiumize.me/api/transfer/create?customer_id=" +
                 PropertiesHelper.getProperty("customer_id") + "&pin=" + PropertiesHelper.getProperty("pin") +
                 "&type=torrent&src=" + cleanMagnetUri(toBeAddedTorrent.magnetUri);
-        response = HttpHelper.getPage(addTorrenntUrl);
+        response = httpHelper.getPage(addTorrenntUrl);
         return response;
     }
 
@@ -28,7 +32,7 @@ public class Premiumize {
 
         ArrayList<Torrent> remoteTorrentList;
         String responseTorrents;
-        responseTorrents = HttpHelper.getPage("https://www.premiumize.me/api/transfer/list?customer_id=" +
+        responseTorrents = httpHelper.getPage("https://www.premiumize.me/api/transfer/list?customer_id=" +
                 PropertiesHelper.getProperty("customer_id") + "&pin=" + PropertiesHelper.getProperty("pin"));
 
         remoteTorrentList = parseRemoteTorrents(responseTorrents);
@@ -37,7 +41,7 @@ public class Premiumize {
     }
 
     public String getMainFileURLFromTorrent(Torrent torrent) {
-        List<TorrentFile> tfList = new Premiumize().getFilesFromTorrent(torrent);
+        List<TorrentFile> tfList = getFilesFromTorrent(torrent);
 
         String remoteURL = null;
 
@@ -55,7 +59,7 @@ public class Premiumize {
     public List<TorrentFile> getFilesFromTorrent(Torrent torrent) {
         List<TorrentFile> returnList = new ArrayList<>();
 
-        String responseFiles = HttpHelper.getPage("https://www.premiumize.me/api/folder/list?id=" + torrent.folder_id +
+        String responseFiles = httpHelper.getPage("https://www.premiumize.me/api/folder/list?id=" + torrent.folder_id +
                 "&customer_id=" +
                 PropertiesHelper.getProperty("customer_id") + "&pin=" + PropertiesHelper.getProperty("pin"));
 
@@ -87,7 +91,7 @@ public class Premiumize {
     }
 
     private void extractTorrentFilesFromJSONFolder(Torrent torrent, List<TorrentFile> returnList, JsonNode jsonFolder, String prefix) {
-        String responseFiles = HttpHelper.getPage("https://www.premiumize.me/api/folder/list?id=" + String.valueOf(jsonFolder.get("id").asText()) +
+        String responseFiles = httpHelper.getPage("https://www.premiumize.me/api/folder/list?id=" + String.valueOf(jsonFolder.get("id").asText()) +
                 "&customer_id=" +
                 PropertiesHelper.getProperty("customer_id") + "&pin=" + PropertiesHelper.getProperty("pin"));
         String folderName = prefix + String.valueOf(jsonFolder.get("name").asText()) + "/";
@@ -176,11 +180,11 @@ public class Premiumize {
         String removeTorrenntUrl = "https://www.premiumize.me/api/transfer/delete?id=" + remoteTorrent.remoteId + "&" +
                 PropertiesHelper.getProperty("customer_id") + "&pin=" + PropertiesHelper.getProperty("pin") +
                 "&type=torrent&src=" + remoteTorrent.magnetUri;
-        HttpHelper.getPage(removeTorrenntUrl);
+        httpHelper.getPage(removeTorrenntUrl);
     }
 
     public boolean isSingleFileDownload(Torrent remoteTorrent) {
-        List<TorrentFile> tfList = new Premiumize().getFilesFromTorrent(remoteTorrent);
+        List<TorrentFile> tfList = getFilesFromTorrent(remoteTorrent);
         // getMaxFilesize
         // getSumSize
         long sumFileSize = 0L;

@@ -13,7 +13,11 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 
-public class LeetxTo implements TorrentSearchEngine {
+public class LeetxTo extends HttpUser implements TorrentSearchEngine {
+
+    LeetxTo(HttpHelper httpHelper) {
+        super(httpHelper);
+    }
 
     @Override
     public List<Torrent> searchTorrents(String searchName) {
@@ -22,7 +26,7 @@ public class LeetxTo implements TorrentSearchEngine {
 
         String resultString = null;
         try {
-            resultString = HttpHelper.getPage(String.format(getBaseUrl() + "/sort-search/%s/seeders/desc/1/", URLEncoder.encode(searchName, "UTF-8")));
+            resultString = httpHelper.getPage(String.format(getBaseUrl() + "/sort-search/%s/seeders/desc/1/", URLEncoder.encode(searchName, "UTF-8")));
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         }
@@ -85,7 +89,7 @@ public class LeetxTo implements TorrentSearchEngine {
     }
 
     private String retrieveMagnetUri(Torrent torrent) {
-        String pageContent = HttpHelper.getPage(torrent.remoteUrl);
+        String pageContent = httpHelper.getPage(torrent.remoteUrl);
         Document doc = Jsoup.parse(pageContent);
         if (doc.select("* > li > a[href*=magnet]").size() > 0) {
             return doc.select("* > li > a[href*=magnet]").get(0).attr("href").trim();

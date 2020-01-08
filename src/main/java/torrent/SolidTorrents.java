@@ -12,7 +12,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-public class SolidTorrents implements TorrentSearchEngine {
+public class SolidTorrents extends HttpUser implements TorrentSearchEngine {
+
+    SolidTorrents(HttpHelper httpHelper) {
+        super(httpHelper);
+    }
 
     @Override
     public List<Torrent> searchTorrents(String searchName) {
@@ -21,7 +25,7 @@ public class SolidTorrents implements TorrentSearchEngine {
 
         String resultString = null;
         try {
-            resultString = HttpHelper.getPage(getBaseUrl() + "/search?q=" + URLEncoder.encode(searchName, "UTF-8"));
+            resultString = httpHelper.getPage(getBaseUrl() + "/search?q=" + URLEncoder.encode(searchName, "UTF-8"));
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         }

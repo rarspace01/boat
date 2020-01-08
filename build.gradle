@@ -64,6 +64,8 @@ dependencies {
     compile group: 'commons-io', name: 'commons-io', version: '2.6'
 
     runtime("org.springframework.boot:spring-boot-properties-migrator")
+    testCompile group: 'org.mockito', name: 'mockito-core', version: '3.2.4'
+    testCompile group: 'org.mockito', name: 'mockito-junit-jupiter', version: '3.2.4'
     testImplementation('org.junit.jupiter:junit-jupiter:5.5.2')
     testImplementation("junit:junit")
     testImplementation("org.springframework.boot:spring-boot-starter-test:$spring_version")

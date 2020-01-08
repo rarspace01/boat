@@ -1,6 +1,7 @@
 package torrent;
 
-import org.junit.jupiter.api.Test;
+import org.junit.Test;
+import utilities.HttpHelper;
 
 import java.util.List;
 
@@ -11,8 +12,9 @@ class KatcrTest {
     @Test
     void shouldFindTorrents() {
         // Given
+        //when(httpHelper.getPage(anyString())).thenReturn("responseBody");
         // When
-        List<Torrent> torrentList = new Katcr().searchTorrents("planet");
+        List<Torrent> torrentList = new Katcr(new HttpHelper()).searchTorrents("planet");
         // Then
         assertTrue(torrentList.size() > 0);
     }

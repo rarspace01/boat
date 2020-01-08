@@ -4,6 +4,7 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.springframework.beans.factory.annotation.Autowired;
 import utilities.HttpHelper;
 
 import java.io.UnsupportedEncodingException;
@@ -12,7 +13,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-public class Katcr implements TorrentSearchEngine {
+public class Katcr extends HttpUser implements TorrentSearchEngine {
+
+    Katcr(HttpHelper httpHelper) {
+        super(httpHelper);
+    }
 
     @Override
     public List<Torrent> searchTorrents(String searchName) {
@@ -21,7 +26,7 @@ public class Katcr implements TorrentSearchEngine {
 
         String resultString = null;
         try {
-            resultString = HttpHelper.getPage(String.format(getBaseUrl() + "/katsearch/page/1/%s", URLEncoder.encode(searchName, "UTF-8")));
+            resultString = httpHelper.getPage(String.format(getBaseUrl() + "/katsearch/page/1/%s", URLEncoder.encode(searchName, "UTF-8")));
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         }

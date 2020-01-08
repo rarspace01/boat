@@ -1,5 +1,6 @@
 package torrent;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import utilities.HttpHelper;
 
@@ -11,12 +12,19 @@ import java.util.List;
 public class TorrentSearchEngineService {
 
     private final List<TorrentSearchEngine> activeSearchEngines = new ArrayList<>();
-    private final List<TorrentSearchEngine> allSearchEngines = Arrays.asList(new PirateBay(), new NyaaSi(), new SolidTorrents(), new LeetxTo(), new Katcr());
+    private final List<TorrentSearchEngine> allSearchEngines;
+    private final HttpHelper httpHelper;
+
+    @Autowired
+    public TorrentSearchEngineService(HttpHelper httpHelper) {
+        this.httpHelper = httpHelper;
+        this.allSearchEngines = Arrays.asList(new PirateBay(httpHelper), new NyaaSi(httpHelper), new SolidTorrents(httpHelper), new LeetxTo(httpHelper), new Katcr(httpHelper));
+    }
 
     public void refreshTorrentSearchEngines() {
         final List<TorrentSearchEngine> tempActiveSearchEngines = new ArrayList<>();
         allSearchEngines.parallelStream().forEach(torrentSearchEngine -> {
-            if (HttpHelper.isWebsiteResponding(torrentSearchEngine.getBaseUrl(), 10000)) {
+            if (httpHelper.isWebsiteResponding(torrentSearchEngine.getBaseUrl(), 10000)) {
                 tempActiveSearchEngines.add(torrentSearchEngine);
             }
         });

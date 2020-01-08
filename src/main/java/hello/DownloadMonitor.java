@@ -30,10 +30,11 @@ public class DownloadMonitor {
     private static final Logger log = LoggerFactory.getLogger(DownloadMonitor.class);
 
     private boolean isDownloadInProgress = false;
-    private Premiumize premiumize = new Premiumize();
+    private Premiumize premiumize;
 
-    public DownloadMonitor(TorrentSearchEngineService torrentSearchEngineService) {
+    public DownloadMonitor(TorrentSearchEngineService torrentSearchEngineService, HttpHelper httpHelper) {
         this.torrentSearchEngineService = torrentSearchEngineService;
+        this.premiumize = new Premiumize(httpHelper);
     }
 
     @Scheduled(fixedRate = SECONDS_BETWEEN_SEARCH_ENGINE_POLLING * 1000)
@@ -44,7 +45,6 @@ public class DownloadMonitor {
     @Scheduled(fixedRate = SECONDS_BETWEEN_DOWNLOAD_POLLING * 1000)
     public void checkForDownloadableTorrents() {
         log.debug("checkForDownloadableTorrents()");
-        this.premiumize = new Premiumize();
         if (!isDownloadInProgress) {
             checkForDownloadbleTorrentsAndDownloadTheFirst();
         }
@@ -106,7 +106,9 @@ public class DownloadMonitor {
         while (matcher.find()) {
             foundMatch = matcher.group();
         }
-        foundMatch.replaceAll("%20", ".");
+        if (foundMatch != null) {
+            foundMatch.replaceAll("%20", ".");
+        }
         return foundMatch;
     }
 

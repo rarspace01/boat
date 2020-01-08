@@ -16,7 +16,11 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-public class PirateBay implements TorrentSearchEngine {
+public class PirateBay extends HttpUser implements TorrentSearchEngine {
+
+    PirateBay(HttpHelper httpHelper) {
+        super(httpHelper);
+    }
 
     @Override
     public List<Torrent> searchTorrents(String searchName) {
@@ -25,7 +29,7 @@ public class PirateBay implements TorrentSearchEngine {
 
         String resultString = null;
         try {
-            resultString = HttpHelper.getPage(String.format(getBaseUrl() + "/search/%s/%d/99/200", URLEncoder.encode(searchName, "UTF-8"), 0), null, "lw=s");
+            resultString = httpHelper.getPage(String.format(getBaseUrl() + "/search/%s/%d/99/200", URLEncoder.encode(searchName, "UTF-8"), 0), null, "lw=s");
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         }

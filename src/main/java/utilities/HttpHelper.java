@@ -2,6 +2,7 @@ package utilities;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
@@ -16,6 +17,7 @@ import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.util.List;
 
+@Component
 public class HttpHelper {
     private static String charset = "UTF-8";  // Or in Java 7 and later, use the constant: java.nio.charset.StandardCharsets.UTF_8.name()
     private static final Logger log = LoggerFactory.getLogger(HttpHelper.class);
@@ -35,11 +37,11 @@ public class HttpHelper {
             }
     };
 
-    public static String getPage(String url, List<String> params, String cookies) {
+    public String getPage(String url, List<String> params, String cookies) {
         return getPage(url, params, cookies, 30 * 1000);
     }
 
-    public static String getPage(String url, List<String> params, String cookies, int timeout) {
+    public String getPage(String url, List<String> params, String cookies, int timeout) {
         String returnString;
         StringBuilder buildString = new StringBuilder();
 
@@ -94,15 +96,15 @@ public class HttpHelper {
         return returnString;
     }
 
-    public static String getPage(String url) {
+    public String getPage(String url) {
         return getPage(url, null, null);
     }
 
-    public static String getPage(String url, int timeout) {
+    public String getPage(String url, int timeout) {
         return getPage(url, null, null, timeout);
     }
 
-    public static String getPage(String url, List<String> params) {
+    public String getPage(String url, List<String> params) {
         return getPage(url, params, null);
     }
 
@@ -113,7 +115,7 @@ public class HttpHelper {
         fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
     }
 
-    public static boolean isWebsiteResponding(String baseUrl, int timeout) {
+    public boolean isWebsiteResponding(String baseUrl, int timeout) {
         return getPage(baseUrl, timeout).length() > 0;
     }
 }

@@ -13,7 +13,11 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 
-public class NyaaSi implements TorrentSearchEngine {
+public class NyaaSi extends HttpUser implements TorrentSearchEngine {
+
+    NyaaSi(HttpHelper httpHelper) {
+        super(httpHelper);
+    }
 
     @Override
     public List<Torrent> searchTorrents(String searchName) {
@@ -22,7 +26,7 @@ public class NyaaSi implements TorrentSearchEngine {
 
         String resultString = null;
         try {
-            resultString = HttpHelper.getPage(String.format(getBaseUrl() + "/?f=0&c=0_0&q=%s&s=seeders&o=desc", URLEncoder.encode(searchName, "UTF-8")));
+            resultString = httpHelper.getPage(String.format(getBaseUrl() + "/?f=0&c=0_0&q=%s&s=seeders&o=desc", URLEncoder.encode(searchName, "UTF-8")));
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         }

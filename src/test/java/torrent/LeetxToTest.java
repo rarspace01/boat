@@ -1,6 +1,7 @@
 package torrent;
 
 import org.junit.jupiter.api.Test;
+import utilities.HttpHelper;
 
 import java.util.List;
 
@@ -12,7 +13,7 @@ class LeetxToTest {
     void shouldFindTorrents() {
         // Given
         // When
-        List<Torrent> torrentList = new LeetxTo().searchTorrents("planet");
+        List<Torrent> torrentList = new LeetxTo(new HttpHelper()).searchTorrents("planet");
         // Then
         assertTrue(torrentList.size() > 0);
     }
