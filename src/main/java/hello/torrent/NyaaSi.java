@@ -1,10 +1,10 @@
-package torrent;
+package hello.torrent;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
-import utilities.HttpHelper;
+import hello.utilities.HttpHelper;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -46,7 +46,7 @@ public class NyaaSi extends HttpUser implements TorrentSearchEngine {
 
         Document doc = Jsoup.parse(pageContent);
 
-        Elements torrentListOnPage = doc.select(".torrent-list > tbody > tr");
+        Elements torrentListOnPage = doc.select(".hello.torrent-list > tbody > tr");
 
         for (Element torrent : torrentListOnPage) {
             Torrent tempTorrent = new Torrent();

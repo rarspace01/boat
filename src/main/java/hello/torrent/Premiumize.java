@@ -1,9 +1,9 @@
-package torrent;
+package hello.torrent;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import utilities.HttpHelper;
-import utilities.PropertiesHelper;
+import hello.utilities.HttpHelper;
+import hello.utilities.PropertiesHelper;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -19,7 +19,7 @@ public class Premiumize extends HttpUser {
         String response;
         String addTorrenntUrl = "https://www.premiumize.me/api/transfer/create?customer_id=" +
                 PropertiesHelper.getProperty("customer_id") + "&pin=" + PropertiesHelper.getProperty("pin") +
-                "&type=torrent&src=" + cleanMagnetUri(toBeAddedTorrent.magnetUri);
+                "&type=hello.torrent&src=" + cleanMagnetUri(toBeAddedTorrent.magnetUri);
         response = httpHelper.getPage(addTorrenntUrl);
         return response;
     }
@@ -122,7 +122,7 @@ public class Premiumize extends HttpUser {
 
     private void extractTorrentFileFromJSON(Torrent torrent, List<TorrentFile> returnList, JsonNode jsonFile, String prefix) {
         TorrentFile tf = new TorrentFile();
-        // check if torrent is onefile and is located in root
+        // check if hello.torrent is onefile and is located in root
         if (torrent.file_id != null && torrent.folder_id != null) {
             if (String.valueOf(jsonFile.get("id").asText()).equals(torrent.file_id)) {
                 tf.name = prefix + jsonFile.get("name").asText();
@@ -179,7 +179,7 @@ public class Premiumize extends HttpUser {
     public void delete(Torrent remoteTorrent) {
         String removeTorrenntUrl = "https://www.premiumize.me/api/transfer/delete?id=" + remoteTorrent.remoteId + "&" +
                 PropertiesHelper.getProperty("customer_id") + "&pin=" + PropertiesHelper.getProperty("pin") +
-                "&type=torrent&src=" + remoteTorrent.magnetUri;
+                "&type=hello.torrent&src=" + remoteTorrent.magnetUri;
         httpHelper.getPage(removeTorrenntUrl);
     }
 

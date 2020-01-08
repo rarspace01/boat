@@ -1,10 +1,10 @@
-package torrent;
+package hello.torrent;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.jsoup.Jsoup;
-import utilities.HttpHelper;
+import hello.utilities.HttpHelper;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;

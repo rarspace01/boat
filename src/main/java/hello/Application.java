@@ -12,7 +12,7 @@ import java.util.Arrays;
 @SpringBootApplication
 @EnableAutoConfiguration
 @EnableScheduling
-@ComponentScan({"hello","torrent"})
+@ComponentScan({"hello", "hello.torrent"})
 public class Application {
 
     public static void main(String[] args) {

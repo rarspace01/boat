@@ -1,7 +1,7 @@
-package torrent;
+package hello.torrent;
 
 import org.junit.jupiter.api.Test;
-import utilities.HttpHelper;
+import hello.utilities.HttpHelper;
 
 import java.util.List;
 

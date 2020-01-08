@@ -1,8 +1,8 @@
-package torrent;
+package hello.torrent;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import utilities.HttpHelper;
+import hello.utilities.HttpHelper;
 
 import java.util.ArrayList;
 import java.util.Arrays;

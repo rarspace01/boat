@@ -1,16 +1,16 @@
 package hello;
 
+import hello.torrent.Premiumize;
+import hello.torrent.Torrent;
+import hello.torrent.TorrentHelper;
+import hello.torrent.TorrentSearchEngine;
+import hello.torrent.TorrentSearchEngineService;
+import hello.utilities.HttpHelper;
+import hello.utilities.PropertiesHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import torrent.Premiumize;
-import torrent.Torrent;
-import torrent.TorrentHelper;
-import torrent.TorrentSearchEngine;
-import torrent.TorrentSearchEngineService;
-import utilities.HttpHelper;
-import utilities.PropertiesHelper;
 
 import javax.validation.constraints.NotNull;
 import java.nio.charset.StandardCharsets;

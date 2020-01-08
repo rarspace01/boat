@@ -1,19 +1,19 @@
-package torrent;
+package hello.torrent;
 
 import org.junit.jupiter.api.Test;
-import utilities.HttpHelper;
+import hello.utilities.HttpHelper;
 
 import java.util.List;
 
 import static org.junit.Assert.assertTrue;
 
-class NyaaSiTest {
+class LeetxToTest {
 
     @Test
-    public void shouldFindTorrents() {
+    void shouldFindTorrents() {
         // Given
         // When
-        List<Torrent> torrentList = new NyaaSi(new HttpHelper()).searchTorrents("planet");
+        List<Torrent> torrentList = new LeetxTo(new HttpHelper()).searchTorrents("planet");
         // Then
         assertTrue(torrentList.size() > 0);
     }

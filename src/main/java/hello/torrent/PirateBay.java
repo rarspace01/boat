@@ -1,10 +1,10 @@
-package torrent;
+package hello.torrent;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
-import utilities.HttpHelper;
+import hello.utilities.HttpHelper;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;

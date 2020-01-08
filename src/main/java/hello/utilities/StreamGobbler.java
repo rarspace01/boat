@@ -1,4 +1,4 @@
-package utilities;
+package hello.utilities;
 
 import java.io.BufferedReader;
 import java.io.InputStream;

@@ -1,4 +1,4 @@
-package torrent;
+package hello.torrent;
 
 import java.nio.charset.StandardCharsets;
 import java.text.DecimalFormat;

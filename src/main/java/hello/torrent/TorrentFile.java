@@ -1,4 +1,4 @@
-package torrent;
+package hello.torrent;
 
 public class TorrentFile {
 

@@ -1,6 +1,6 @@
-package torrent;
+package hello.torrent;
 
-import utilities.HttpHelper;
+import hello.utilities.HttpHelper;
 
 public abstract class HttpUser {
     public final HttpHelper httpHelper;
