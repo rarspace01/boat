@@ -1,5 +1,6 @@
 package hello;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -24,6 +25,7 @@ public final class BoatController {
     private final TorrentSearchEngineService torrentSearchEngineService;
     private final HttpHelper httpHelper;
 
+    @Autowired
     public BoatController(TorrentSearchEngineService torrentSearchEngineService, HttpHelper httpHelper) {
         this.torrentSearchEngineService = torrentSearchEngineService;
         this.httpHelper = httpHelper;
