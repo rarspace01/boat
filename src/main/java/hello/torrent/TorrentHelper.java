@@ -107,6 +107,7 @@ public class TorrentHelper {
                         torrent.name.toLowerCase().contains(".hdtc.") ||
                         torrent.name.toLowerCase().contains("tscam") ||
                         torrent.name.toLowerCase().contains(".ts.") ||
+                        torrent.name.toLowerCase().contains("[ts]") ||
                         torrent.name.toLowerCase().contains(".hdts.") ||
                         torrent.name.toLowerCase().contains(".cam.") ||
                         torrent.name.toLowerCase().contains(".hdcam.")
