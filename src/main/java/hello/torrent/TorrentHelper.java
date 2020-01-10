@@ -44,7 +44,7 @@ public class TorrentHelper {
 
         if (normalizedTorrentName.contains(normalizedSearchName.trim().toLowerCase())) {
             tempTorrent.searchRating += 1;
-            tempTorrent.debugRating += "exactMatch+1|";
+            tempTorrent.debugRating += "EM+1|";
         }
         //check indivdual words
         List<String> searchWords = Arrays.asList(searchName.trim().toLowerCase().split(" "));
@@ -57,28 +57,30 @@ public class TorrentHelper {
         });
         double matchScore = (double) matches.get() / (double) searchMaxScore;
         tempTorrent.searchRating += matchScore;
-        tempTorrent.debugRating += "matchScore" + matchScore + "|";
+        tempTorrent.debugRating += String.format("MS:%.2f|", matchScore);
 
         // determine closeness
         if (normalizedTorrentName.length() > 0) {
             double closenessFactor = (double) normalizedSearchName.length() / (double) normalizedTorrentName.length();
             tempTorrent.searchRating += closenessFactor;
-            tempTorrent.debugRating += "closenessFactor" + closenessFactor + "|";
+            tempTorrent.debugRating += String.format("CF:%.2f|", closenessFactor);
         }
 
         // calc first range
         double rangeRating = Math.min(tempTorrent.lsize, SIZE_UPPER_LIMIT) / SIZE_UPPER_LIMIT;
         tempTorrent.searchRating += rangeRating;
-        tempTorrent.debugRating += "sizerange" + rangeRating + "|";
+        tempTorrent.debugRating += String.format("SR:%.2f|", rangeRating);
         // calculate seeder ratio
         double seedRatio = (double) tempTorrent.seeder / (double) tempTorrent.leecher;
         if (seedRatio > 1.0) {
-            tempTorrent.searchRating += Math.min(seedRatio, SEED_RATIO_UPPER_LIMIT) / SEED_RATIO_UPPER_LIMIT;
-            tempTorrent.debugRating += "seedRatio>1 " + Math.min(seedRatio, SEED_RATIO_UPPER_LIMIT) / SEED_RATIO_UPPER_LIMIT + "|";
+            double seedRating = Math.min(seedRatio, SEED_RATIO_UPPER_LIMIT) / SEED_RATIO_UPPER_LIMIT;
+            tempTorrent.searchRating += seedRating;
+            tempTorrent.debugRating += String.format("SDR:%.2f|", seedRating);
         }
         if (tempTorrent.seeder == 1) {
             tempTorrent.searchRating = tempTorrent.searchRating / 10;
-            tempTorrent.debugRating += "seeder=1 " + tempTorrent.searchRating / 10 + "|";
+            tempTorrent.debugRating += String.format("!SDR OVR:%.2f|", tempTorrent.searchRating / 10);
+            ;
         }
     }
 
