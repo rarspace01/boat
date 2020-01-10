@@ -60,9 +60,11 @@ public class TorrentHelper {
         tempTorrent.debugRating += "matchScore" + matchScore + "|";
 
         // determine closeness
-        double closenessFactor = (double) getNormalizedTorrentString(normalizedSearchName).length() / (double) normalizedTorrentName.length();
-        tempTorrent.searchRating += closenessFactor;
-        tempTorrent.debugRating += "closenessFactor" + closenessFactor + "|";
+        if (normalizedTorrentName.length() > 0) {
+            double closenessFactor = (double) normalizedSearchName.length() / (double) normalizedTorrentName.length();
+            tempTorrent.searchRating += closenessFactor;
+            tempTorrent.debugRating += "closenessFactor" + closenessFactor + "|";
+        }
 
         // calc first range
         double rangeRating = Math.min(tempTorrent.lsize, SIZE_UPPER_LIMIT) / SIZE_UPPER_LIMIT;
@@ -81,12 +83,11 @@ public class TorrentHelper {
     }
 
     public static String getNormalizedTorrentString(String name) {
-        String lowerCase = name.toLowerCase();
+        String lowerCase = name.replaceAll("(-[A-Z]+)", "").toLowerCase();
         return lowerCase.trim()
                 .replaceAll("(ac3|x264|h264|h265|x265|mp3|hdrip|mkv|mp4|xvid|divx|web|720p|1080p|4K|UHD|\\s|\\.)", "")
                 .replaceAll("[()]+", "")
-                .replaceAll("\\[.+\\]", "")
-                .replaceAll("(-[\\S]+)", "")
+                .replaceAll("\\[[A-Za-z0-9. -]+\\]", "")
                 .replaceAll("\\.", "");
     }
 

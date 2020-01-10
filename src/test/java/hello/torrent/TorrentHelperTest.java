@@ -67,4 +67,21 @@ class TorrentHelperTest {
         assertTrue(torrent1.searchRating < torrent2.searchRating);
     }
 
+    @Test
+    void shouldRateTorrentNameShouldNotReportInfinityCloseness() {
+        // Given
+        Torrent torrent1 = new Torrent();
+        torrent1.name = "[FileTracker.pl] Planeta Ziemia - Planet Earth 2006 miniserial [720p.HDDVD.x264.AC3-ESiR][Narrator PL][Alusia]";
+        torrent1.seeder = 1;
+        torrent1.leecher = 1;
+        torrent1.lsize = 1000;
+
+
+        // When
+        TorrentHelper.evaluateRating(torrent1, "planet earth 2006");
+        // Then
+        assertTrue(torrent1.searchRating > 0);
+    }
+    //
+
 }
