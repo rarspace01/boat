@@ -58,7 +58,7 @@ public class Torrent {
         }
 
         if (Strings.isNotEmpty(this.debugRating)) {
-            stringBuilder.append(" Debug:" + debugRating + " ");
+            stringBuilder.append(" 🏭" + this.debugRating);
         }
 
 
