@@ -44,7 +44,7 @@ public class TorrentHelper {
 
         if (normalizedTorrentName.contains(normalizedSearchName.trim().toLowerCase())) {
             tempTorrent.searchRating += 1;
-            tempTorrent.debugRating += "🔍🔍";
+            tempTorrent.debugRating += "🔍";
         }
         //check indivdual words
         List<String> searchWords = Arrays.asList(searchName.trim().toLowerCase().split(" "));
