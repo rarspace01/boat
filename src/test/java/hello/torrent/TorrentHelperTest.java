@@ -10,13 +10,19 @@ class TorrentHelperTest {
     @Test
     void shouldCleanTorrentName() {
         String resultString = TorrentHelper.getNormalizedTorrentString("Test.Movie.2018.HDRip.x264.AC3.mp3-GROUP.mkv");
-        assertEquals(resultString, "testmovie2018");
+        assertEquals("testmovie2018", resultString);
     }
 
     @Test
     void shouldCleanTorrentNameSecondMovie() {
         String resultString = TorrentHelper.getNormalizedTorrentString("Test.Movie.2.2019.HDRip.x264.AC3.mp3.-GROUP.mkvs");
-        assertEquals(resultString, "testmovie22019");
+        assertEquals("testmovie22019", resultString);
+    }
+
+    @Test
+    void shouldCleanTorrentNameThirdMovie() {
+        String resultString = TorrentHelper.getNormalizedTorrentString("Planet Planet (2019) [WEBRip] [1080p] [GROUP] [GROUP]");
+        assertEquals("planetplanet2019", resultString);
     }
 
     @Test
@@ -30,6 +36,27 @@ class TorrentHelperTest {
         torrent1.lsize = 1000;
 
         torrent2.name = "Test.Movie.2018.HDRip.x264.AC3.mp3.-GROUP.mkvs";
+        torrent2.seeder = 2;
+        torrent2.leecher = 1;
+        torrent2.lsize = 2000;
+        // When
+        TorrentHelper.evaluateRating(torrent1, "Test Movie");
+        TorrentHelper.evaluateRating(torrent2, "Test Movie");
+        // Then
+        assertTrue(torrent1.searchRating < torrent2.searchRating);
+    }
+
+    @Test
+    void shouldRateTorrentNameLongVsShort() {
+        // Given
+        Torrent torrent1 = new Torrent();
+        Torrent torrent2 = new Torrent();
+        torrent1.name = "Planet Planet S01E01 (2019) [WEBRip] [1080p] [GROUP] [GROUP]";
+        torrent1.seeder = 1;
+        torrent1.leecher = 1;
+        torrent1.lsize = 1000;
+
+        torrent2.name = "Planet Planet (2019) [WEBRip] [1080p] [GROUP] [GROUP]";
         torrent2.seeder = 2;
         torrent2.leecher = 1;
         torrent2.lsize = 2000;

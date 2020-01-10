@@ -19,6 +19,7 @@ public class Torrent {
     public String magnetUri;
     public String category;
     public double searchRating = 0.0;
+    public String debugRating;
     public String status;
     public String progress;
     public String eta;
@@ -47,7 +48,7 @@ public class Torrent {
         stringBuilder.append("[" + this.name + "]");
         if (this.size != null) {
             stringBuilder.append("[" + this.size + "][" + this.leecher + "/" + this.seeder + "@" + df.format(seedRatio) + "]");
-            stringBuilder.append("R:" + df.format(this.searchRating) + " ");
+            stringBuilder.append("R:" + df.format(this.searchRating) + " Debug:" + debugRating);
         }
 
         if (magnetUriBase64 != null && magnetUriBase64.length() > 0) {
@@ -61,7 +62,7 @@ public class Torrent {
         if (this.status != null && this.progress != null) {
             stringBuilder.append(" " + this.status + "/" + this.progress);
         }
-        if(eta != null) {
+        if (eta != null) {
             stringBuilder.append(" ETA:" + this.eta);
         }
 

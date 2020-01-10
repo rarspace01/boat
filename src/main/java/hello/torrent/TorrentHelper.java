@@ -42,8 +42,9 @@ public class TorrentHelper {
         String normalizedTorrentName = getNormalizedTorrentString(torrentName);
         String normalizedSearchName = getNormalizedTorrentString(searchName);
 
-        if (normalizedTorrentName.contains(searchName.trim().toLowerCase())) {
+        if (normalizedTorrentName.contains(normalizedSearchName.trim().toLowerCase())) {
             tempTorrent.searchRating += 1;
+            tempTorrent.debugRating += "exactMatch+1|";
         }
         //check indivdual words
         List<String> searchWords = Arrays.asList(searchName.trim().toLowerCase().split(" "));
@@ -56,26 +57,37 @@ public class TorrentHelper {
         });
         double matchScore = (double) matches.get() / (double) searchMaxScore;
         tempTorrent.searchRating += matchScore;
+        tempTorrent.debugRating += "matchScore" + matchScore + "|";
 
         // determine closeness
-        double closenessFactor = (double) normalizedTorrentName.length() / (double) getNormalizedTorrentString(searchName).length();
+        double closenessFactor = (double) normalizedTorrentName.length() / (double) getNormalizedTorrentString(normalizedSearchName).length();
         tempTorrent.searchRating += closenessFactor;
+        tempTorrent.debugRating += "closenessFactor" + closenessFactor + "|";
 
         // calc first range
-        tempTorrent.searchRating += Math.min(tempTorrent.lsize, SIZE_UPPER_LIMIT) / SIZE_UPPER_LIMIT;
+        double rangeRating = Math.min(tempTorrent.lsize, SIZE_UPPER_LIMIT) / SIZE_UPPER_LIMIT;
+        tempTorrent.searchRating += rangeRating;
+        tempTorrent.debugRating += "sizerange" + rangeRating + "|";
         // calculate seeder ratio
         double seedRatio = (double) tempTorrent.seeder / (double) tempTorrent.leecher;
         if (seedRatio > 1.0) {
             tempTorrent.searchRating += Math.min(seedRatio, SEED_RATIO_UPPER_LIMIT) / SEED_RATIO_UPPER_LIMIT;
+            tempTorrent.debugRating += "seedRatio>1 " + Math.min(seedRatio, SEED_RATIO_UPPER_LIMIT) / SEED_RATIO_UPPER_LIMIT + "|";
         }
         if (tempTorrent.seeder == 1) {
             tempTorrent.searchRating = tempTorrent.searchRating / 10;
+            tempTorrent.debugRating += "seeder=1 " + tempTorrent.searchRating / 10 + "|";
         }
     }
 
     public static String getNormalizedTorrentString(String name) {
         String lowerCase = name.toLowerCase();
-        return lowerCase.trim().replaceAll("(ac3|x264|h265|x265|mp3|hdrip|mkv|mp4|xvid|divx|web|720p|1080p|4K|UHD|\\s|\\.)", "").replaceAll("(-[\\S]+)", "").replaceAll("\\.", "");
+        return lowerCase.trim()
+                .replaceAll("(ac3|x264|h264|h265|x265|mp3|hdrip|mkv|mp4|xvid|divx|web|720p|1080p|4K|UHD|\\s|\\.)", "")
+                .replaceAll("[()]+", "")
+                .replaceAll("\\[.+\\]", "")
+                .replaceAll("(-[\\S]+)", "")
+                .replaceAll("\\.", "");
     }
 
     public static String cleanNumberString(String value) {
