@@ -60,7 +60,7 @@ public class TorrentHelper {
         tempTorrent.debugRating += "matchScore" + matchScore + "|";
 
         // determine closeness
-        double closenessFactor = (double) normalizedTorrentName.length() / (double) getNormalizedTorrentString(normalizedSearchName).length();
+        double closenessFactor = (double) getNormalizedTorrentString(normalizedSearchName).length() / (double) normalizedTorrentName.length();
         tempTorrent.searchRating += closenessFactor;
         tempTorrent.debugRating += "closenessFactor" + closenessFactor + "|";
 

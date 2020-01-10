@@ -1,5 +1,7 @@
 package hello.torrent;
 
+import org.apache.logging.log4j.util.Strings;
+
 import java.nio.charset.StandardCharsets;
 import java.text.DecimalFormat;
 import java.util.Base64;
@@ -19,7 +21,7 @@ public class Torrent {
     public String magnetUri;
     public String category;
     public double searchRating = 0.0;
-    public String debugRating;
+    public String debugRating = "";
     public String status;
     public String progress;
     public String eta;
@@ -48,11 +50,15 @@ public class Torrent {
         stringBuilder.append("[" + this.name + "]");
         if (this.size != null) {
             stringBuilder.append("[" + this.size + "][" + this.leecher + "/" + this.seeder + "@" + df.format(seedRatio) + "]");
-            stringBuilder.append("R:" + df.format(this.searchRating) + " Debug:" + debugRating);
+            stringBuilder.append("R:" + df.format(this.searchRating) + " ");
         }
 
         if (magnetUriBase64 != null && magnetUriBase64.length() > 0) {
             stringBuilder.append("<a href=\"./boat/download/?d=" + magnetUriBase64 + "\">Download</a>");
+        }
+
+        if (Strings.isNotEmpty(this.debugRating)) {
+            stringBuilder.append("Debug:" + debugRating + " ");
         }
 
 
