@@ -63,7 +63,7 @@ public class TorrentHelper {
         if (normalizedTorrentName.length() > 0) {
             double closenessFactor = (double) normalizedSearchName.length() / (double) normalizedTorrentName.length();
             tempTorrent.searchRating += closenessFactor;
-            tempTorrent.debugRating += String.format("CF:%.2f|", closenessFactor);
+            tempTorrent.debugRating += String.format("🤲:%.2f|", closenessFactor);
         }
 
         // calc first range
