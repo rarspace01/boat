@@ -15,7 +15,7 @@ class TorrentHelperTest {
 
     @Test
     void shouldCleanTorrentNameSecondMovie() {
-        String resultString = TorrentHelper.getNormalizedTorrentString("Test.Movie.2.2019.HDRip.x264.AC3.mp3.-GROUP.mkvs");
+        String resultString = TorrentHelper.getNormalizedTorrentString("Test.Movie.2.2019.HDRip.x264.AC3.mp3.-GROUP.mkv");
         assertEquals("testmovie22019", resultString);
     }
 

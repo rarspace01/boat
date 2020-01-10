@@ -87,7 +87,7 @@ public class TorrentHelper {
         return lowerCase.trim()
                 .replaceAll("(ac3|x264|h264|h265|x265|mp3|hdrip|mkv|mp4|xvid|divx|web|720p|1080p|4K|UHD|\\s|\\.)", "")
                 .replaceAll("[()]+", "")
-                .replaceAll("\\[[A-Za-z0-9. -]+\\]", "")
+                .replaceAll("\\[[A-Za-z0-9. -]*\\]", "")
                 .replaceAll("\\.", "");
     }
 
