@@ -89,7 +89,7 @@ public class Katcr extends HttpUser implements TorrentSearchEngine {
 
     @Override
     public String toString() {
-        return this.getClass().getName();
+        return this.getClass().getSimpleName();
     }
 
 }
