@@ -6,8 +6,8 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -25,11 +25,7 @@ public class LeetxTo extends HttpUser implements TorrentSearchEngine {
         CopyOnWriteArrayList<Torrent> torrentList = new CopyOnWriteArrayList<>();
 
         String resultString = null;
-        try {
-            resultString = httpHelper.getPage(String.format(getBaseUrl() + "/sort-search/%s/seeders/desc/1/", URLEncoder.encode(searchName, "UTF-8")));
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-        }
+        resultString = httpHelper.getPage(String.format(getBaseUrl() + "/sort-search/%s/seeders/desc/1/", URLEncoder.encode(searchName, StandardCharsets.UTF_8)));
 
         torrentList.addAll(parseTorrentsOnResultPage(resultString, searchName));
         torrentList.sort(TorrentHelper.torrentSorter);

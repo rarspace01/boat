@@ -6,8 +6,8 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -28,11 +28,7 @@ public class PirateBay extends HttpUser implements TorrentSearchEngine {
         CopyOnWriteArrayList<Torrent> torrentList = new CopyOnWriteArrayList<>();
 
         String resultString = null;
-        try {
-            resultString = httpHelper.getPage(String.format(getBaseUrl() + "/search/%s/%d/99/200", URLEncoder.encode(searchName, "UTF-8"), 0), null, "lw=s");
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-        }
+        resultString = httpHelper.getPage(String.format(getBaseUrl() + "/search/%s/%d/99/200", URLEncoder.encode(searchName, StandardCharsets.UTF_8), 0), null, "lw=s");
 
         torrentList.addAll(parseTorrentsOnResultPage(resultString, searchName));
 

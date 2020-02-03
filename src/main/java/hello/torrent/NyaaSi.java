@@ -6,8 +6,8 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -25,11 +25,7 @@ public class NyaaSi extends HttpUser implements TorrentSearchEngine {
         CopyOnWriteArrayList<Torrent> torrentList = new CopyOnWriteArrayList<>();
 
         String resultString = null;
-        try {
-            resultString = httpHelper.getPage(String.format(getBaseUrl() + "/?f=0&c=0_0&q=%s&s=seeders&o=desc", URLEncoder.encode(searchName, "UTF-8")));
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-        }
+        resultString = httpHelper.getPage(String.format(getBaseUrl() + "/?f=0&c=0_0&q=%s&s=seeders&o=desc", URLEncoder.encode(searchName, StandardCharsets.UTF_8)));
 
         torrentList.addAll(parseTorrentsOnResultPage(resultString, searchName));
         torrentList.sort(TorrentHelper.torrentSorter);
@@ -99,14 +95,13 @@ public class NyaaSi extends HttpUser implements TorrentSearchEngine {
 
     private String getTorrentTitle(Element metaElement) {
         final Elements elementsByTag = metaElement.getElementsByTag("a");
-        String title = elementsByTag.stream()
+
+        return elementsByTag.stream()
                 .filter(element -> !element.attributes().get("href").contains("magnet"))
                 .filter(element -> !element.attributes().get("href").contains("comment"))
                 .filter(element -> element.attributes().get("href").contains("/view/"))
                 .filter(element -> element.text().trim().length() > 0)
                 .map(element -> element.text().trim()).collect(Collectors.joining());
-
-        return title;
     }
 
     @Override

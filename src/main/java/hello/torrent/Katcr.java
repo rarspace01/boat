@@ -8,6 +8,7 @@ import org.jsoup.select.Elements;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -24,11 +25,7 @@ public class Katcr extends HttpUser implements TorrentSearchEngine {
         CopyOnWriteArrayList<Torrent> torrentList = new CopyOnWriteArrayList<>();
 
         String resultString = null;
-        try {
-            resultString = httpHelper.getPage(String.format(getBaseUrl() + "/katsearch/page/1/%s", URLEncoder.encode(searchName, "UTF-8")));
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-        }
+        resultString = httpHelper.getPage(String.format(getBaseUrl() + "/katsearch/page/1/%s", URLEncoder.encode(searchName, StandardCharsets.UTF_8)));
 
         torrentList.addAll(parseTorrentsOnResultPage(resultString, searchName));
         torrentList.sort(TorrentHelper.torrentSorter);

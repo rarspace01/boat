@@ -3,11 +3,11 @@ package hello.torrent;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.jsoup.Jsoup;
 import hello.utilities.HttpHelper;
+import org.jsoup.Jsoup;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -25,11 +25,7 @@ public class SolidTorrents extends HttpUser implements TorrentSearchEngine {
         CopyOnWriteArrayList<Torrent> torrentList = new CopyOnWriteArrayList<>();
 
         String resultString = null;
-        try {
-            resultString = httpHelper.getPage(getBaseUrl() + "/api/v1/search?sort=seeders&q=" + URLEncoder.encode(searchName, "UTF-8") + "&category=all&fuv=yes");
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-        }
+        resultString = httpHelper.getPage(getBaseUrl() + "/api/v1/search?sort=seeders&q=" + URLEncoder.encode(searchName, StandardCharsets.UTF_8) + "&category=all&fuv=yes");
 
         torrentList.addAll(parseTorrentsOnResultPage(resultString, searchName));
         torrentList.sort(TorrentHelper.torrentSorter);
@@ -52,7 +48,7 @@ public class SolidTorrents extends HttpUser implements TorrentSearchEngine {
             JsonNode rootNode = objectMapper.readTree(pageContent);
             JsonNode resultsNode = rootNode.get("results");
 
-            if(resultsNode != null) {
+            if (resultsNode != null) {
                 Iterator<JsonNode> elements = resultsNode.elements();
                 while (elements.hasNext()) {
                     JsonNode jsonTorrent = elements.next();
