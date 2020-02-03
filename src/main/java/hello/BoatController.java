@@ -50,7 +50,15 @@ public final class BoatController {
                 "  Title:<br>\n" +
                 "  <input type=\"text\" name=\"q\" value=\"\">\n" +
                 "  <br>\n" +
-                "  <input type=\"submit\" value=\"Submit\">\n" +
+                "  <input type=\"submit\" value=\"Search\">\n" +
+                "</form>\n" +
+                "  <br>\n" +
+                "  <br>\n" +
+                "<form action=\"../boat/download\" target=\"_blank\" method=\"POST\">\n" +
+                "  Direct download URL:<br>\n" +
+                "  <input type=\"text\" name=\"dd\" value=\"\">\n" +
+                "  <br>\n" +
+                "  <input type=\"submit\" value=\"Download\">\n" +
                 "</form>\n" +
                 "<br/>\n" +
                 switchToProgress.replace("..", "../boat") +
@@ -94,6 +102,14 @@ public final class BoatController {
         String decodedUri = new String(magnetUri, StandardCharsets.UTF_8);
         Torrent torrentToBeDownloaded = new Torrent();
         torrentToBeDownloaded.magnetUri = decodedUri;
+        return switchToProgress + (new Premiumize(httpHelper)).addTorrentToQueue(torrentToBeDownloaded);
+    }
+
+    @GetMapping({"/boat/download"})
+    @NotNull
+    public final String directDownloadTorrentToPremiumize(@RequestParam("dd") @NotNull String downloadUri) {
+        Torrent torrentToBeDownloaded = new Torrent();
+        torrentToBeDownloaded.magnetUri = downloadUri;
         return switchToProgress + (new Premiumize(httpHelper)).addTorrentToQueue(torrentToBeDownloaded);
     }
 
