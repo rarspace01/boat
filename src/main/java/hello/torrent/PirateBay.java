@@ -1,10 +1,10 @@
 package hello.torrent;
 
+import hello.utilities.HttpHelper;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
-import hello.utilities.HttpHelper;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -60,58 +60,60 @@ public class PirateBay extends HttpUser implements TorrentSearchEngine {
 
         Elements torrentListOnPage = doc.select("tr:not(.header)");
 
-        for (Element torrent : torrentListOnPage) {
+        if (torrentListOnPage != null) {
+            for (Element torrent : torrentListOnPage) {
 
-            Torrent tempTorrent = new Torrent();
+                Torrent tempTorrent = new Torrent();
 
-            // extract ahref for title
-            Elements nameElements = torrent.select("a[title~=Details for]");
-            if (nameElements.size() > 0) {
-                tempTorrent.name = nameElements.get(0).text();
-            }
-
-            // extract uri for magnetlink
-            Elements uriElements = torrent.select("a[title~=using magnet]");
-            if (uriElements.size() > 0) {
-                tempTorrent.magnetUri = uriElements.get(0).attributes().get("href");
-            }
-
-            // extract date
-
-            String inputDateString = torrent.select("td").get(2).text().replace("\u00a0", " ");
-            SimpleDateFormat formatter = new SimpleDateFormat("MM-dd yyyy");
-            if (inputDateString.matches("Today.*")) {
-                tempTorrent.date = new Date();
-            } else if (inputDateString.matches("Y-day.*")) {
-                Calendar constructedDate = Calendar.getInstance();
-                constructedDate.add(Calendar.DAY_OF_MONTH, -1);
-                tempTorrent.date = constructedDate.getTime();
-            } else {
-                try {
-                    tempTorrent.date = formatter.parse(inputDateString);
-                } catch (ParseException e) {
-                    e.printStackTrace();
+                // extract ahref for title
+                Elements nameElements = torrent.select("a[title~=Details for]");
+                if (nameElements.size() > 0) {
+                    tempTorrent.name = nameElements.get(0).text();
                 }
-            }
 
-            // extract size
-            tempTorrent.size = TorrentHelper.cleanNumberString(torrent.select("td").get(4).text().replace("\u00a0", " "));
+                // extract uri for magnetlink
+                Elements uriElements = torrent.select("a[title~=using magnet]");
+                if (uriElements.size() > 0) {
+                    tempTorrent.magnetUri = uriElements.get(0).attributes().get("href");
+                }
 
-            tempTorrent.lsize = TorrentHelper.extractTorrentSizeFromString(tempTorrent);
+                // extract date
+
+                String inputDateString = torrent.select("td").get(2).text().replace("\u00a0", " ");
+                SimpleDateFormat formatter = new SimpleDateFormat("MM-dd yyyy");
+                if (inputDateString.matches("Today.*")) {
+                    tempTorrent.date = new Date();
+                } else if (inputDateString.matches("Y-day.*")) {
+                    Calendar constructedDate = Calendar.getInstance();
+                    constructedDate.add(Calendar.DAY_OF_MONTH, -1);
+                    tempTorrent.date = constructedDate.getTime();
+                } else {
+                    try {
+                        tempTorrent.date = formatter.parse(inputDateString);
+                    } catch (ParseException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                // extract size
+                tempTorrent.size = TorrentHelper.cleanNumberString(torrent.select("td").get(4).text().replace("\u00a0", " "));
+
+                tempTorrent.lsize = TorrentHelper.extractTorrentSizeFromString(tempTorrent);
 
 
-            // extract seeder
-            tempTorrent.seeder = Integer.parseInt(TorrentHelper.cleanNumberString(torrent.select("td").get(5).text()));
+                // extract seeder
+                tempTorrent.seeder = Integer.parseInt(TorrentHelper.cleanNumberString(torrent.select("td").get(5).text()));
 
-            // extract leecher
-            tempTorrent.leecher = Integer.parseInt(TorrentHelper.cleanNumberString(torrent.select("td").get(6).text()));
+                // extract leecher
+                tempTorrent.leecher = Integer.parseInt(TorrentHelper.cleanNumberString(torrent.select("td").get(6).text()));
 
-            // evaluate result
-            TorrentHelper.evaluateRating(tempTorrent, searchName);
+                // evaluate result
+                TorrentHelper.evaluateRating(tempTorrent, searchName);
 
-            // filter torrents without any seeders
-            if (TorrentHelper.isValidTorrent(tempTorrent)) {
-                torrentList.add(tempTorrent);
+                // filter torrents without any seeders
+                if (TorrentHelper.isValidTorrent(tempTorrent)) {
+                    torrentList.add(tempTorrent);
+                }
             }
         }
 

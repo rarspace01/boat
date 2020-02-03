@@ -52,22 +52,24 @@ public class SolidTorrents extends HttpUser implements TorrentSearchEngine {
             JsonNode rootNode = objectMapper.readTree(pageContent);
             JsonNode resultsNode = rootNode.get("results");
 
-            Iterator<JsonNode> elements = resultsNode.elements();
-            while (elements.hasNext()) {
-                JsonNode jsonTorrent = elements.next();
-                Torrent tempTorrent = new Torrent();
-                //extract Size & S/L
-                tempTorrent.name = jsonTorrent.get("title").asText();
-                String sizeString = jsonTorrent.get("size").asLong() / 1024 / 1024 + "MB";
-                tempTorrent.size = TorrentHelper.cleanNumberString(Jsoup.parse(sizeString).text().trim());
-                tempTorrent.lsize = TorrentHelper.extractTorrentSizeFromString(tempTorrent);
-                tempTorrent.seeder = jsonTorrent.get("swarm").get("seeders").asInt();
-                tempTorrent.leecher = jsonTorrent.get("swarm").get("leechers").asInt();
-                tempTorrent.magnetUri = jsonTorrent.get("magnet").asText();
-                // evaluate result
-                TorrentHelper.evaluateRating(tempTorrent, searchName);
-                if (TorrentHelper.isValidTorrent(tempTorrent)) {
-                    torrentList.add(tempTorrent);
+            if(resultsNode != null) {
+                Iterator<JsonNode> elements = resultsNode.elements();
+                while (elements.hasNext()) {
+                    JsonNode jsonTorrent = elements.next();
+                    Torrent tempTorrent = new Torrent();
+                    //extract Size & S/L
+                    tempTorrent.name = jsonTorrent.get("title").asText();
+                    String sizeString = jsonTorrent.get("size").asLong() / 1024 / 1024 + "MB";
+                    tempTorrent.size = TorrentHelper.cleanNumberString(Jsoup.parse(sizeString).text().trim());
+                    tempTorrent.lsize = TorrentHelper.extractTorrentSizeFromString(tempTorrent);
+                    tempTorrent.seeder = jsonTorrent.get("swarm").get("seeders").asInt();
+                    tempTorrent.leecher = jsonTorrent.get("swarm").get("leechers").asInt();
+                    tempTorrent.magnetUri = jsonTorrent.get("magnet").asText();
+                    // evaluate result
+                    TorrentHelper.evaluateRating(tempTorrent, searchName);
+                    if (TorrentHelper.isValidTorrent(tempTorrent)) {
+                        torrentList.add(tempTorrent);
+                    }
                 }
             }
 

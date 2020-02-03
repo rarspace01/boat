@@ -1,10 +1,10 @@
 package hello.torrent;
 
+import hello.utilities.HttpHelper;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
-import hello.utilities.HttpHelper;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -48,38 +48,40 @@ public class NyaaSi extends HttpUser implements TorrentSearchEngine {
 
         Elements torrentListOnPage = doc.select(".hello.torrent-list > tbody > tr");
 
-        for (Element torrent : torrentListOnPage) {
-            Torrent tempTorrent = new Torrent();
-            if (torrent.childNodeSize() > 0) {
-                torrent.children().forEach(element -> {
+        if (torrentListOnPage != null) {
+            for (Element torrent : torrentListOnPage) {
+                Torrent tempTorrent = new Torrent();
+                if (torrent.childNodeSize() > 0) {
+                    torrent.children().forEach(element -> {
 
-                    if (element.getElementsByTag("a").size() > 0
-                            && getTorrentTitle(element).length() > 0) {
-                        //extract name
-                        tempTorrent.name = getTorrentTitle(element);
-                    }
-                    if (elementContainsMagnetUri(element)) {
-                        //extract magneturi
-                        tempTorrent.magnetUri = getMagnetUri(element);
-                    }
-                    if (element.text().contains("MiB") || element.text().contains("GiB")) {
-                        tempTorrent.size = TorrentHelper.cleanNumberString(element.text().trim());
-                        tempTorrent.lsize = TorrentHelper.extractTorrentSizeFromString(tempTorrent);
-                    }
-                });
-            }
+                        if (element.getElementsByTag("a").size() > 0
+                                && getTorrentTitle(element).length() > 0) {
+                            //extract name
+                            tempTorrent.name = getTorrentTitle(element);
+                        }
+                        if (elementContainsMagnetUri(element)) {
+                            //extract magneturi
+                            tempTorrent.magnetUri = getMagnetUri(element);
+                        }
+                        if (element.text().contains("MiB") || element.text().contains("GiB")) {
+                            tempTorrent.size = TorrentHelper.cleanNumberString(element.text().trim());
+                            tempTorrent.lsize = TorrentHelper.extractTorrentSizeFromString(tempTorrent);
+                        }
+                    });
+                }
 
-            int index = torrent.children().size() - 3;
-            if (index > 0) {
-                tempTorrent.seeder = Integer.parseInt(TorrentHelper.cleanNumberString(torrent.children().get(index).text()));
-                tempTorrent.leecher = Integer.parseInt(TorrentHelper.cleanNumberString(torrent.children().get(index + 1).text()));
-            }
+                int index = torrent.children().size() - 3;
+                if (index > 0) {
+                    tempTorrent.seeder = Integer.parseInt(TorrentHelper.cleanNumberString(torrent.children().get(index).text()));
+                    tempTorrent.leecher = Integer.parseInt(TorrentHelper.cleanNumberString(torrent.children().get(index + 1).text()));
+                }
 
 
-            // evaluate result
-            TorrentHelper.evaluateRating(tempTorrent, searchName);
-            if (TorrentHelper.isValidTorrent(tempTorrent)) {
-                torrentList.add(tempTorrent);
+                // evaluate result
+                TorrentHelper.evaluateRating(tempTorrent, searchName);
+                if (TorrentHelper.isValidTorrent(tempTorrent)) {
+                    torrentList.add(tempTorrent);
+                }
             }
         }
         return torrentList;

@@ -1,10 +1,10 @@
 package hello.torrent;
 
+import hello.utilities.HttpHelper;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
-import hello.utilities.HttpHelper;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -48,37 +48,39 @@ public class LeetxTo extends HttpUser implements TorrentSearchEngine {
 
         Elements torrentListOnPage = doc.select(".table-list > tbody > tr");
 
-        for (Element torrent : torrentListOnPage) {
-            Torrent tempTorrent = new Torrent();
-            if (torrent.childNodeSize() > 0) {
-                torrent.children().forEach(element -> {
+        if (torrentListOnPage != null) {
+            for (Element torrent : torrentListOnPage) {
+                Torrent tempTorrent = new Torrent();
+                if (torrent.childNodeSize() > 0) {
+                    torrent.children().forEach(element -> {
 
-                    if (element.attr("class").contains("name")) {
-                        //extract name
-                        tempTorrent.name = element.getElementsByAttributeValueContaining("class", "name").get(0).getElementsByAttributeValueContaining("href", "torrent").get(0).html();
-                        //save remote url for later
-                        tempTorrent.remoteUrl = getBaseUrl() + element.getElementsByAttributeValueContaining("class", "name").get(0).getElementsByAttributeValueContaining("href", "torrent").get(0).attr("href").trim();
-                    }
-                    if (element.attr("class").contains("size")) {
-                        tempTorrent.size = TorrentHelper.cleanNumberString(element.getElementsByAttributeValueContaining("class", "size").get(0).textNodes().get(0).text().trim());
-                        tempTorrent.lsize = TorrentHelper.extractTorrentSizeFromString(tempTorrent);
-                    }
+                        if (element.attr("class").contains("name")) {
+                            //extract name
+                            tempTorrent.name = element.getElementsByAttributeValueContaining("class", "name").get(0).getElementsByAttributeValueContaining("href", "torrent").get(0).html();
+                            //save remote url for later
+                            tempTorrent.remoteUrl = getBaseUrl() + element.getElementsByAttributeValueContaining("class", "name").get(0).getElementsByAttributeValueContaining("href", "torrent").get(0).attr("href").trim();
+                        }
+                        if (element.attr("class").contains("size")) {
+                            tempTorrent.size = TorrentHelper.cleanNumberString(element.getElementsByAttributeValueContaining("class", "size").get(0).textNodes().get(0).text().trim());
+                            tempTorrent.lsize = TorrentHelper.extractTorrentSizeFromString(tempTorrent);
+                        }
 
-                    if (element.attr("class").contains("seeds")) {
-                        tempTorrent.seeder = Integer.parseInt(TorrentHelper.cleanNumberString(element.getElementsByAttributeValueContaining("class", "seeds").get(0).textNodes().get(0).text().trim()));
-                    }
+                        if (element.attr("class").contains("seeds")) {
+                            tempTorrent.seeder = Integer.parseInt(TorrentHelper.cleanNumberString(element.getElementsByAttributeValueContaining("class", "seeds").get(0).textNodes().get(0).text().trim()));
+                        }
 
-                    if (element.attr("class").contains("leeches")) {
-                        tempTorrent.leecher = Integer.parseInt(TorrentHelper.cleanNumberString(element.getElementsByAttributeValueContaining("class", "leeches").get(0).textNodes().get(0).text().trim()));
-                    }
+                        if (element.attr("class").contains("leeches")) {
+                            tempTorrent.leecher = Integer.parseInt(TorrentHelper.cleanNumberString(element.getElementsByAttributeValueContaining("class", "leeches").get(0).textNodes().get(0).text().trim()));
+                        }
 
-                });
-            }
+                    });
+                }
 
-            // evaluate result
-            TorrentHelper.evaluateRating(tempTorrent, searchName);
-            if (TorrentHelper.isValidMetaTorrent(tempTorrent)) {
-                torrentList.add(tempTorrent);
+                // evaluate result
+                TorrentHelper.evaluateRating(tempTorrent, searchName);
+                if (TorrentHelper.isValidMetaTorrent(tempTorrent)) {
+                    torrentList.add(tempTorrent);
+                }
             }
         }
         //retrieve magneturis for torrents

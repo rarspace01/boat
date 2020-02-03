@@ -1,10 +1,10 @@
 package hello.torrent;
 
+import hello.utilities.HttpHelper;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
-import hello.utilities.HttpHelper;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -47,36 +47,38 @@ public class Katcr extends HttpUser implements TorrentSearchEngine {
 
         Elements torrentListOnPage = doc.select(".table > tbody > tr");
 
-        for (Element torrent : torrentListOnPage) {
-            Torrent tempTorrent = new Torrent();
-            if (torrent.childNodeSize() > 0) {
-                torrent.children().forEach(element -> {
+        if (torrentListOnPage != null) {
+            for (Element torrent : torrentListOnPage) {
+                Torrent tempTorrent = new Torrent();
+                if (torrent.childNodeSize() > 0) {
+                    torrent.children().forEach(element -> {
 
-                    if (element.getElementsByClass("torrents_table__torrent_title").size() > 0) {
-                        //extract name
-                        tempTorrent.name = element.getElementsByClass("torrents_table__torrent_title").get(0).text();
-                    }
-                    if (element.getElementsByAttributeValueMatching("href", "magnet:").size() > 0) {
-                        //extract magneturi
-                        tempTorrent.magnetUri = element.getElementsByAttributeValueMatching("href", "magnet:").attr("href").trim();
-                    }
-                    if (element.getElementsByAttributeValueMatching("data-title", "Size").size() > 0) {
-                        tempTorrent.size = TorrentHelper.cleanNumberString(element.getElementsByAttributeValueMatching("data-title", "Size").text().trim());
-                        tempTorrent.lsize = TorrentHelper.extractTorrentSizeFromString(tempTorrent);
-                    }
-                    if (element.getElementsByAttributeValueMatching("data-title", "Seed").size() > 0) {
-                        tempTorrent.seeder = Integer.parseInt(TorrentHelper.cleanNumberString(element.getElementsByAttributeValueMatching("data-title", "Seed").text().trim()));
-                    }
-                    if (element.getElementsByAttributeValueMatching("data-title", "Leech").size() > 0) {
-                        tempTorrent.leecher = Integer.parseInt(TorrentHelper.cleanNumberString(element.getElementsByAttributeValueMatching("data-title", "Leech").text().trim()));
-                    }
-                });
-            }
+                        if (element.getElementsByClass("torrents_table__torrent_title").size() > 0) {
+                            //extract name
+                            tempTorrent.name = element.getElementsByClass("torrents_table__torrent_title").get(0).text();
+                        }
+                        if (element.getElementsByAttributeValueMatching("href", "magnet:").size() > 0) {
+                            //extract magneturi
+                            tempTorrent.magnetUri = element.getElementsByAttributeValueMatching("href", "magnet:").attr("href").trim();
+                        }
+                        if (element.getElementsByAttributeValueMatching("data-title", "Size").size() > 0) {
+                            tempTorrent.size = TorrentHelper.cleanNumberString(element.getElementsByAttributeValueMatching("data-title", "Size").text().trim());
+                            tempTorrent.lsize = TorrentHelper.extractTorrentSizeFromString(tempTorrent);
+                        }
+                        if (element.getElementsByAttributeValueMatching("data-title", "Seed").size() > 0) {
+                            tempTorrent.seeder = Integer.parseInt(TorrentHelper.cleanNumberString(element.getElementsByAttributeValueMatching("data-title", "Seed").text().trim()));
+                        }
+                        if (element.getElementsByAttributeValueMatching("data-title", "Leech").size() > 0) {
+                            tempTorrent.leecher = Integer.parseInt(TorrentHelper.cleanNumberString(element.getElementsByAttributeValueMatching("data-title", "Leech").text().trim()));
+                        }
+                    });
+                }
 
-            // evaluate result
-            TorrentHelper.evaluateRating(tempTorrent, searchName);
-            if (TorrentHelper.isValidTorrent(tempTorrent)) {
-                torrentList.add(tempTorrent);
+                // evaluate result
+                TorrentHelper.evaluateRating(tempTorrent, searchName);
+                if (TorrentHelper.isValidTorrent(tempTorrent)) {
+                    torrentList.add(tempTorrent);
+                }
             }
         }
         return torrentList;
