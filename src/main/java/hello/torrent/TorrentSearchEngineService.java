@@ -24,7 +24,7 @@ public class TorrentSearchEngineService {
     public void refreshTorrentSearchEngines() {
         final List<TorrentSearchEngine> tempActiveSearchEngines = new ArrayList<>();
         allSearchEngines.parallelStream().forEach(torrentSearchEngine -> {
-            if (httpHelper.isWebsiteResponding(torrentSearchEngine.getBaseUrl(), 10000)) {
+            if (httpHelper.isWebsiteResponding(torrentSearchEngine.getSearchPage(), 10000)) {
                 tempActiveSearchEngines.add(torrentSearchEngine);
             }
         });

@@ -25,16 +25,25 @@ public class SolidTorrents extends HttpUser implements TorrentSearchEngine {
         CopyOnWriteArrayList<Torrent> torrentList = new CopyOnWriteArrayList<>();
 
         String resultString = null;
-        resultString = httpHelper.getPage(getBaseUrl() + "/api/v1/search?sort=seeders&q=" + URLEncoder.encode(searchName, StandardCharsets.UTF_8) + "&category=all&fuv=yes");
+        resultString = httpHelper.getPage(buildSearchUrl(searchName));
 
         torrentList.addAll(parseTorrentsOnResultPage(resultString, searchName));
         torrentList.sort(TorrentHelper.torrentSorter);
         return torrentList;
     }
 
+    private String buildSearchUrl(String searchName) {
+        return getBaseUrl() + "/api/v1/search?sort=seeders&q=" + URLEncoder.encode(searchName, StandardCharsets.UTF_8) + "&category=all&fuv=yes";
+    }
+
     @Override
     public String getBaseUrl() {
         return "https://solidtorrents.net";
+    }
+
+    @Override
+    public String getSearchPage() {
+        return buildSearchUrl("test");
     }
 
     private List<Torrent> parseTorrentsOnResultPage(String pageContent, String searchName) {

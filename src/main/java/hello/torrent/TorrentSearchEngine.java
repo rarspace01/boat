@@ -8,6 +8,8 @@ public interface TorrentSearchEngine {
 
     String getBaseUrl();
 
+    String getSearchPage();
+
     Torrent suggestATorrent(List<Torrent> inputList);
 
 }

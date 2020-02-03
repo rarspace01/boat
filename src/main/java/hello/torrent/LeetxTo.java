@@ -25,16 +25,25 @@ public class LeetxTo extends HttpUser implements TorrentSearchEngine {
         CopyOnWriteArrayList<Torrent> torrentList = new CopyOnWriteArrayList<>();
 
         String resultString = null;
-        resultString = httpHelper.getPage(String.format(getBaseUrl() + "/sort-search/%s/seeders/desc/1/", URLEncoder.encode(searchName, StandardCharsets.UTF_8)));
+        resultString = httpHelper.getPage(buildSearchUrl(searchName));
 
         torrentList.addAll(parseTorrentsOnResultPage(resultString, searchName));
         torrentList.sort(TorrentHelper.torrentSorter);
         return torrentList;
     }
 
+    private String buildSearchUrl(String searchName) {
+        return String.format(getBaseUrl() + "/sort-search/%s/seeders/desc/1/", URLEncoder.encode(searchName, StandardCharsets.UTF_8));
+    }
+
     @Override
     public String getBaseUrl() {
         return "https://1337x.to";
+    }
+
+    @Override
+    public String getSearchPage() {
+        return buildSearchUrl("test");
     }
 
     private List<Torrent> parseTorrentsOnResultPage(String pageContent, String searchName) {

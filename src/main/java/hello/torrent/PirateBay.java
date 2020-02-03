@@ -28,7 +28,7 @@ public class PirateBay extends HttpUser implements TorrentSearchEngine {
         CopyOnWriteArrayList<Torrent> torrentList = new CopyOnWriteArrayList<>();
 
         String resultString = null;
-        resultString = httpHelper.getPage(String.format(getBaseUrl() + "/search/%s/%d/99/200", URLEncoder.encode(searchName, StandardCharsets.UTF_8), 0), null, "lw=s");
+        resultString = httpHelper.getPage(buildSearchUrl(searchName), null, "lw=s");
 
         torrentList.addAll(parseTorrentsOnResultPage(resultString, searchName));
 
@@ -38,9 +38,18 @@ public class PirateBay extends HttpUser implements TorrentSearchEngine {
         return torrentList;
     }
 
+    private String buildSearchUrl(String searchName) {
+        return String.format(getBaseUrl() + "/search/%s/%d/99/200", URLEncoder.encode(searchName, StandardCharsets.UTF_8), 0);
+    }
+
     @Override
     public String getBaseUrl() {
         return "https://thepiratebay.org";
+    }
+
+    @Override
+    public String getSearchPage() {
+        return buildSearchUrl("test");
     }
 
     @Override

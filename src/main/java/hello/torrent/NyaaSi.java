@@ -25,16 +25,25 @@ public class NyaaSi extends HttpUser implements TorrentSearchEngine {
         CopyOnWriteArrayList<Torrent> torrentList = new CopyOnWriteArrayList<>();
 
         String resultString = null;
-        resultString = httpHelper.getPage(String.format(getBaseUrl() + "/?f=0&c=0_0&q=%s&s=seeders&o=desc", URLEncoder.encode(searchName, StandardCharsets.UTF_8)));
+        resultString = httpHelper.getPage(buildSearchUrl(searchName));
 
         torrentList.addAll(parseTorrentsOnResultPage(resultString, searchName));
         torrentList.sort(TorrentHelper.torrentSorter);
         return torrentList;
     }
 
+    private String buildSearchUrl(String searchName) {
+        return String.format(getBaseUrl() + "/?f=0&c=0_0&q=%s&s=seeders&o=desc", URLEncoder.encode(searchName, StandardCharsets.UTF_8));
+    }
+
     @Override
     public String getBaseUrl() {
         return "https://nyaa.si";
+    }
+
+    @Override
+    public String getSearchPage() {
+        return buildSearchUrl("test");
     }
 
     private List<Torrent> parseTorrentsOnResultPage(String pageContent, String searchName) {
