@@ -10,6 +10,7 @@ import hello.utilities.PropertiesHelper;
 import org.apache.logging.log4j.util.Strings;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -96,7 +97,7 @@ public final class BoatController {
         return cleanedTorrents;
     }
 
-    @GetMapping({"/boat/download"})
+    @RequestMapping({"/boat/download"})
     @NotNull
     public final String downloadTorrentToPremiumize(@RequestParam(value = "d", required = false) String downloadUri, @RequestParam(value = "dd", required = false) String directDownloadUri) {
         String decodedUri = "";
