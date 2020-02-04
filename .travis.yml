@@ -18,7 +18,7 @@ deploy:
   - provider: releases
     token: $GITHUB_APIKEY
     file: "./build/libs/pirateboat.jar"
-    cleanup: false
+    skip_cleanup: true
     on:
       branch: master
   - provider: script
