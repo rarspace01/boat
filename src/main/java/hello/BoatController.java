@@ -7,6 +7,7 @@ import hello.torrent.TorrentSearchEngine;
 import hello.torrent.TorrentSearchEngineService;
 import hello.utilities.HttpHelper;
 import hello.utilities.PropertiesHelper;
+import org.apache.logging.log4j.util.Strings;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -97,19 +98,16 @@ public final class BoatController {
 
     @GetMapping({"/boat/download"})
     @NotNull
-    public final String downloadTorrentToPremiumize(@RequestParam("d") @NotNull String downloadUri) {
-        byte[] magnetUri = Base64.getUrlDecoder().decode(downloadUri);
-        String decodedUri = new String(magnetUri, StandardCharsets.UTF_8);
+    public final String downloadTorrentToPremiumize(@RequestParam(value = "d", required = false) String downloadUri, @RequestParam(value = "dd", required = false) String directDownloadUri) {
+        String decodedUri = "";
+        if(Strings.isNotEmpty(downloadUri)) {
+            byte[] magnetUri = Base64.getUrlDecoder().decode(downloadUri);
+            decodedUri = new String(magnetUri, StandardCharsets.UTF_8);
+        } else if(Strings.isNotEmpty(directDownloadUri)){
+            decodedUri = directDownloadUri;
+        }
         Torrent torrentToBeDownloaded = new Torrent();
         torrentToBeDownloaded.magnetUri = decodedUri;
-        return switchToProgress + (new Premiumize(httpHelper)).addTorrentToQueue(torrentToBeDownloaded);
-    }
-
-    @GetMapping({"/boat/download"})
-    @NotNull
-    public final String directDownloadTorrentToPremiumize(@RequestParam("dd") @NotNull String downloadUri) {
-        Torrent torrentToBeDownloaded = new Torrent();
-        torrentToBeDownloaded.magnetUri = downloadUri;
         return switchToProgress + (new Premiumize(httpHelper)).addTorrentToQueue(torrentToBeDownloaded);
     }
 
