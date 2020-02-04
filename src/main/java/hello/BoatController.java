@@ -56,7 +56,7 @@ public final class BoatController {
                 "</form>\n" +
                 "  <br>\n" +
                 "  <br>\n" +
-                "<form action=\"../boat/download\" target=\"_blank\" method=\"POST\">\n" +
+                "<form action=\"../boat/download/\" target=\"_blank\" method=\"POST\">\n" +
                 "  Direct download URL:<br>\n" +
                 "  <input type=\"text\" name=\"dd\" value=\"\">\n" +
                 "  <br>\n" +
