@@ -1,5 +1,6 @@
 package hello;
 
+import hello.info.TheFilmDataBaseService;
 import hello.torrent.Premiumize;
 import hello.torrent.Torrent;
 import hello.torrent.TorrentHelper;
@@ -26,11 +27,15 @@ public final class BoatController {
     private final String switchToProgress = "<a href=\"../debug\">Show Progress</a> ";
     private final TorrentSearchEngineService torrentSearchEngineService;
     private final HttpHelper httpHelper;
+    private final TheFilmDataBaseService theFilmDataBaseService;
 
     @Autowired
-    public BoatController(TorrentSearchEngineService torrentSearchEngineService, HttpHelper httpHelper) {
+    public BoatController(TorrentSearchEngineService torrentSearchEngineService,
+                          HttpHelper httpHelper,
+                          TheFilmDataBaseService theFilmDataBaseService) {
         this.torrentSearchEngineService = torrentSearchEngineService;
         this.httpHelper = httpHelper;
+        this.theFilmDataBaseService = theFilmDataBaseService;
     }
 
     @GetMapping({"/"})
@@ -109,13 +114,19 @@ public final class BoatController {
         }
         Torrent torrentToBeDownloaded = new Torrent();
         torrentToBeDownloaded.magnetUri = decodedUri;
-        return switchToProgress + (new Premiumize(httpHelper)).addTorrentToQueue(torrentToBeDownloaded);
+        return switchToProgress + (new Premiumize(httpHelper, theFilmDataBaseService)).addTorrentToQueue(torrentToBeDownloaded);
+    }
+
+    @RequestMapping({"/boat/tfdb"})
+    @NotNull
+    public final String downloadTorrentToPremiumize(@RequestParam(value = "q") String query) {
+        return theFilmDataBaseService.search(query).toString();
     }
 
     @GetMapping({"/boat/debug"})
     @NotNull
     public final String getDebugInfo() {
-        ArrayList<Torrent> remoteTorrents = new Premiumize(httpHelper).getRemoteTorrents();
+        ArrayList<Torrent> remoteTorrents = new Premiumize(httpHelper, theFilmDataBaseService).getRemoteTorrents();
         return "v:" + PropertiesHelper.getVersion() + "<br/>ActiveSearchEngines: " + torrentSearchEngineService.getActiveSearchEngines() + "<br/>D: " + remoteTorrents;
     }
 

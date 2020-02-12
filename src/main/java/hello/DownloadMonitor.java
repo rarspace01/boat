@@ -1,5 +1,6 @@
 package hello;
 
+import hello.info.TheFilmDataBaseService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -31,10 +32,14 @@ public class DownloadMonitor {
 
     private boolean isDownloadInProgress = false;
     private Premiumize premiumize;
+    private final TheFilmDataBaseService theFilmDataBaseService;
 
-    public DownloadMonitor(TorrentSearchEngineService torrentSearchEngineService, HttpHelper httpHelper) {
+    public DownloadMonitor(TorrentSearchEngineService torrentSearchEngineService,
+                           HttpHelper httpHelper,
+                           TheFilmDataBaseService theFilmDataBaseService) {
         this.torrentSearchEngineService = torrentSearchEngineService;
-        this.premiumize = new Premiumize(httpHelper);
+        this.premiumize = new Premiumize(httpHelper, theFilmDataBaseService);
+        this.theFilmDataBaseService = theFilmDataBaseService;
     }
 
     @Scheduled(fixedRate = SECONDS_BETWEEN_SEARCH_ENGINE_POLLING * 1000)

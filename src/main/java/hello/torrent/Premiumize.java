@@ -2,6 +2,7 @@ package hello.torrent;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import hello.info.TheFilmDataBaseService;
 import hello.utilities.HttpHelper;
 import hello.utilities.PropertiesHelper;
 
@@ -11,8 +12,11 @@ import java.util.List;
 
 public class Premiumize extends HttpUser {
 
-    public Premiumize(HttpHelper httpHelper) {
+    private final TheFilmDataBaseService theFilmDataBaseService;
+
+    public Premiumize(HttpHelper httpHelper, TheFilmDataBaseService theFilmDataBaseService) {
         super(httpHelper);
+        this.theFilmDataBaseService = theFilmDataBaseService;
     }
 
     public String addTorrentToQueue(Torrent toBeAddedTorrent) {
