@@ -1,10 +1,7 @@
 package hello;
 
+import hello.info.MediaItem;
 import hello.info.TheFilmDataBaseService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Component;
 import hello.torrent.Premiumize;
 import hello.torrent.Torrent;
 import hello.torrent.TorrentFile;
@@ -12,6 +9,10 @@ import hello.torrent.TorrentSearchEngineService;
 import hello.utilities.HttpHelper;
 import hello.utilities.PropertiesHelper;
 import hello.utilities.StreamGobbler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
 
 import java.io.File;
 import java.io.IOException;
@@ -63,6 +64,9 @@ public class DownloadMonitor {
                 isDownloadInProgress = true;
                 //createDownloadFolderIfNotExists(remoteTorrent);
 
+                // try to determine MediaType for torrent to download
+                log.info(String.format("determineMediaType: %s", determineMediaType(remoteTorrent)));
+
                 // check if SingleFileDownload
                 if (premiumize.isSingleFileDownload(remoteTorrent)) {
                     String fileURLFromTorrent = premiumize.getMainFileURLFromTorrent(remoteTorrent);
@@ -88,6 +92,29 @@ public class DownloadMonitor {
                 returnToMonitor = true;
             }
         }
+    }
+
+    private MediaItem determineMediaType(Torrent remoteTorrent) {
+        Integer yearOfRelease = extractYearInTorrent(remoteTorrent.name);
+        List<MediaItem> mediaItems = new ArrayList<>();
+        if (yearOfRelease != null) {
+            mediaItems.addAll(theFilmDataBaseService.search(remoteTorrent.name, yearOfRelease));
+        } else {
+            mediaItems.addAll(theFilmDataBaseService.search(remoteTorrent.name));
+        }
+        return mediaItems.stream().findFirst().orElse(null);
+    }
+
+    private Integer extractYearInTorrent(String torrentName) {
+        Pattern pattern = Pattern.compile("([0-9]{4})[^\\w]");
+        Matcher matcher = pattern.matcher(torrentName);
+        while (matcher.find()) {
+            // Get the group matched using group() method
+            String group = matcher.group(1);
+            if (group != null)
+                return Integer.parseInt(group);
+        }
+        return null;
     }
 
     private String buildFilename(String name, String fileURLFromTorrent) {
