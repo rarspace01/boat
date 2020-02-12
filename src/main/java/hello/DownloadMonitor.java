@@ -62,10 +62,15 @@ public class DownloadMonitor {
         for (Torrent remoteTorrent : remoteTorrents) {
             if (checkIfTorrentCanBeDownloaded(remoteTorrent) && !returnToMonitor) {
                 isDownloadInProgress = true;
-                //createDownloadFolderIfNotExists(remoteTorrent);
 
-                // try to determine MediaType for torrent to download
-                log.info(String.format("determineMediaType: %s", determineMediaType(remoteTorrent)));
+                Runnable runnable = () -> {
+                    log.info("determining MediaType");
+                    // try to determine MediaType for torrent to download
+                    log.info(String.format("determineMediaType: %s", determineMediaType(remoteTorrent)));
+                };
+                Thread thread = new Thread(runnable);
+                thread.start();
+                //createDownloadFolderIfNotExists(remoteTorrent);
 
                 // check if SingleFileDownload
                 if (premiumize.isSingleFileDownload(remoteTorrent)) {
