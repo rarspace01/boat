@@ -52,28 +52,39 @@ public class TheFilmDataBaseService {
                 mediaItem.setTitle(jsonMediaObject.get("name").getAsString());
                 mediaItem.setOriginalTitle(jsonMediaObject.get("original_name").getAsString());
             } else {
-                mediaItem.setTitle(jsonMediaObject.get("title").getAsString());
-                mediaItem.setOriginalTitle(jsonMediaObject.get("original_title").getAsString());
+                JsonElement title = jsonMediaObject.get("title");
+                JsonElement originalTitle = jsonMediaObject.get("original_title");
+                if (title != null) {
+                    mediaItem.setTitle(title.getAsString());
+                }
+                if (originalTitle != null) {
+                    mediaItem.setOriginalTitle(originalTitle.getAsString());
+                }
             }
             mediaItem.setType(determineMediaType(mediaType));
             try {
                 Calendar calendar = Calendar.getInstance();
                 JsonElement releaseDate = jsonMediaObject.get("release_date");
-                if (releaseDate != null && !(releaseDate instanceof JsonNull)) {
-                    calendar.setTime(new SimpleDateFormat("yyyy-MM-dd").parse(releaseDate.getAsString()));
+                JsonElement firstAirDate = jsonMediaObject.get("first_air_date");
+                String releaseDateString = releaseDate != null ? releaseDate.getAsString() : (firstAirDate != null ? firstAirDate.getAsString() : null);
+                if (releaseDateString != null) {
+                    calendar.setTime(new SimpleDateFormat("yyyy-MM-dd").parse(releaseDateString));
                     mediaItem.setYear(calendar.get(Calendar.YEAR));
                 }
             } catch (ParseException ignored) {
             }
-            mediaItems.add(mediaItem);
+            if (mediaItem.getTitle() != null || mediaItem.getOriginalTitle() != null) {
+                mediaItems.add(mediaItem);
+            }
         });
         return mediaItems;
     }
 
     private MediaType determineMediaType(String mediaTypeString) {
-        if (mediaTypeString.toLowerCase().contains("movie")) {
+        String mediaTypeStringCleaned = mediaTypeString.toLowerCase();
+        if (mediaTypeStringCleaned.contains("movie")) {
             return MediaType.Movie;
-        } else if (mediaTypeString.toLowerCase().contains("series") || mediaTypeString.toLowerCase().contains("tv")) {
+        } else if (mediaTypeStringCleaned.contains("series") || mediaTypeStringCleaned.contains("tv")) {
             return MediaType.Series;
         } else {
             return MediaType.Other;

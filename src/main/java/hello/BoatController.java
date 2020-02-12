@@ -119,7 +119,7 @@ public final class BoatController {
 
     @RequestMapping({"/boat/tfdb"})
     @NotNull
-    public final String downloadTorrentToPremiumize(@RequestParam(value = "q") String query) {
+    public final String searchTfdb(@RequestParam(value = "q") String query) {
         return theFilmDataBaseService.search(query).toString();
     }
 

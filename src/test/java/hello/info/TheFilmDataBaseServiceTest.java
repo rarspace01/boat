@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 class TheFilmDataBaseServiceTest {
@@ -27,6 +28,16 @@ class TheFilmDataBaseServiceTest {
         List<MediaItem> mediaItems = tfdbs.search("Planet");
         // Then
         assertTrue(mediaItems.size() > 0);
+    }
+
+    //@Disabled
+    @Test
+    void searchEmpty() {
+        // Given
+        // When
+        List<MediaItem> mediaItems = tfdbs.search("TrestTrest");
+        // Then
+        assertEquals(0, mediaItems.size());
     }
 
 }
