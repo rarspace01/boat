@@ -30,7 +30,7 @@ class TheFilmDataBaseServiceTest {
         assertTrue(mediaItems.size() > 0);
     }
 
-    //@Disabled
+    @Disabled
     @Test
     void searchEmpty() {
         // Given
