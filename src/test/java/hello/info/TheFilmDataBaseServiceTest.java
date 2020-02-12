@@ -1,5 +1,6 @@
 package hello.info;
 
+import hello.torrent.Torrent;
 import hello.utilities.HttpHelper;
 import org.junit.Ignore;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,6 +39,19 @@ class TheFilmDataBaseServiceTest {
         List<MediaItem> mediaItems = tfdbs.search("TrestTrest");
         // Then
         assertEquals(0, mediaItems.size());
+    }
+
+    @Disabled
+    @Test
+    void determineMediaType() {
+        // Given
+        Torrent mockTorrent = new Torrent();
+        mockTorrent.name = "Big Buck Bunny (2008) [720p] [PLA]";
+        // When
+        MediaType mediaType = tfdbs.determineMediaType(mockTorrent);
+        // Then
+        assertEquals(MediaType.Movie, mediaType);
+
     }
 
 }

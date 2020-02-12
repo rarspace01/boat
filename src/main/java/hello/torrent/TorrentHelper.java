@@ -1,5 +1,8 @@
 package hello.torrent;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
@@ -93,6 +96,15 @@ public class TorrentHelper {
                 .replaceAll("\\.", "");
     }
 
+    public static String getNormalizedTorrentStringWithSpaces(String name) {
+        String lowerCase = name.replaceAll("(-[A-Z]+)", "").toLowerCase();
+        return lowerCase.trim()
+                .replaceAll("(ac3|x264|h264|h265|x265|mp3|hdrip|mkv|mp4|xvid|divx|web|720p|1080p|4K|UHD|\\.)", "")
+                .replaceAll("[()]+", "")
+                .replaceAll("\\[[A-Za-z0-9. -]*\\]", "")
+                .replaceAll("\\.", " ").trim();
+    }
+
     public static String cleanNumberString(String value) {
         return value.replaceAll(",", "");
     }
@@ -126,5 +138,13 @@ public class TorrentHelper {
         return torrent.name != null &&
                 torrent.seeder > 0 &&
                 !isBlacklisted(torrent);
+    }
+
+    public static String urlEncode(final String string){
+        try {
+            return URLEncoder.encode(string, StandardCharsets.UTF_8.toString());
+        } catch (UnsupportedEncodingException e) {
+            return string;
+        }
     }
 }
