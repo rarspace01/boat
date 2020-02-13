@@ -3,7 +3,6 @@ package hello.info;
 import hello.torrent.Torrent;
 import hello.utilities.HttpHelper;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -20,7 +19,6 @@ class TheFilmDataBaseServiceTest {
         this.tfdbs = new TheFilmDataBaseService(new HttpHelper());
     }
 
-    @Disabled
     @Test
     void search() {
         // Given
