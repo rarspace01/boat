@@ -11,7 +11,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class TorrentHelper {
 
     public static final double SIZE_UPPER_LIMIT = 15000.0;
-    public static final double SEED_RATIO_UPPER_LIMIT = 3.0;
+    public static final double SEED_RATIO_UPPER_LIMIT = 5.0;
     public static final Comparator<Torrent> torrentSorter = (o1, o2) -> {
         if (o1.searchRating > o2.searchRating) {
             return -1;
@@ -76,14 +76,20 @@ public class TorrentHelper {
         tempTorrent.debugRating += String.format("📦:%.2f", rangeRating);
         // calculate seeder ratio
         double seedRatio = (double) tempTorrent.seeder / (double) tempTorrent.leecher;
+        double seedRatioOptimized;
+        if (tempTorrent.seeder >= 1 && tempTorrent.seeder <= 3) {
+            seedRatioOptimized = 1.0 / (double) tempTorrent.leecher;
+        } else {
+            seedRatioOptimized = seedRatio;
+        }
         if (seedRatio > 1.0) {
-            double seedRating = Math.min(seedRatio, SEED_RATIO_UPPER_LIMIT) / SEED_RATIO_UPPER_LIMIT;
+            double seedRating = Math.min(seedRatioOptimized, SEED_RATIO_UPPER_LIMIT) / SEED_RATIO_UPPER_LIMIT;
             tempTorrent.searchRating += seedRating;
             tempTorrent.debugRating += String.format("🚄:%.2f", seedRating);
         }
         if (tempTorrent.seeder == 1) {
             tempTorrent.searchRating = tempTorrent.searchRating / 10;
-            tempTorrent.debugRating += String.format("!🚄 OVR:%.2f", tempTorrent.searchRating / 10);
+            tempTorrent.debugRating += String.format("⚡🚄 OVR:%.2f", tempTorrent.searchRating / 10);
             ;
         }
     }
@@ -94,7 +100,7 @@ public class TorrentHelper {
                 .replaceAll(TAG_REGEX, "")
                 .replaceAll("[()]+", "")
                 .replaceAll("\\[[A-Za-z0-9. -]*\\]", "")
-                .replaceAll("\\s","")
+                .replaceAll("\\s", "")
                 .replaceAll("\\.", "")
                 ;
     }
@@ -143,7 +149,7 @@ public class TorrentHelper {
                 !isBlacklisted(torrent);
     }
 
-    public static String urlEncode(final String string){
+    public static String urlEncode(final String string) {
         try {
             return URLEncoder.encode(string, StandardCharsets.UTF_8.toString());
         } catch (UnsupportedEncodingException e) {
