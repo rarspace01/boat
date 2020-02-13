@@ -21,6 +21,7 @@ public class TorrentHelper {
             return Double.compare(o2.lsize, o1.lsize);
         }
     };
+    public static final String TAG_REGEX = "(ac3|x264|h264|h265|x265|mp3|hdrip|mkv|mp4|xvid|divx|web|720p|1080p|4k|uhd|bluray|dts|remastered)";
 
     public static double extractTorrentSizeFromString(Torrent tempTorrent) {
         long torrentSize = 0;
@@ -90,16 +91,17 @@ public class TorrentHelper {
     public static String getNormalizedTorrentString(String name) {
         String lowerCase = name.replaceAll("(-[A-Z]+)", "").toLowerCase();
         return lowerCase.trim()
-                .replaceAll("(ac3|x264|h264|h265|x265|mp3|hdrip|mkv|mp4|xvid|divx|web|720p|1080p|4K|UHD|\\s|\\.)", "")
+                .replaceAll(TAG_REGEX, "")
                 .replaceAll("[()]+", "")
                 .replaceAll("\\[[A-Za-z0-9. -]*\\]", "")
-                .replaceAll("\\.", "");
+                .replaceAll("\\s","")
+                ;
     }
 
     public static String getNormalizedTorrentStringWithSpaces(String name) {
         String lowerCase = name.replaceAll("(-[A-Z]+)", "").toLowerCase();
         return lowerCase.trim()
-                .replaceAll("(ac3|x264|h264|h265|x265|mp3|hdrip|mkv|mp4|xvid|divx|web|720p|1080p|4K|UHD|\\.)", "")
+                .replaceAll(TAG_REGEX, "")
                 .replaceAll("[()]+", "")
                 .replaceAll("\\[[A-Za-z0-9. -]*\\]", "")
                 .replaceAll("\\.", " ").trim();

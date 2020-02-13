@@ -10,11 +10,9 @@ import java.util.Properties;
 public class PropertiesHelper {
 
 
-    public static final String TORRENTCACHE = "pirateboat.torrents";
     public static final String PROPERTIY_FILE = "pirateboat.cfg";
     public static final String PROPERTIY_FILE_DEFAULT = "pirateboat.default.cfg";
     public static final String VERSION_FILE = "version.properties";
-    private HashMap<String, String> torrentStates = new HashMap<>();
 
     public static String getVersion() {
         InputStream inputStream;
@@ -45,6 +43,12 @@ public class PropertiesHelper {
     public static String getProperty(String propname) {
         InputStream inputStream;
         String result = null;
+
+        // check if property exists in Environment, then skip
+        String envValue = System.getenv(propname);
+        if(envValue != null){
+            return envValue;
+        }
 
         if (getPropertyFile() != null) {
             try {

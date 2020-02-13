@@ -103,7 +103,7 @@ public class TheFilmDataBaseService {
         Integer yearOfRelease = extractYearInTorrent(remoteTorrent.name);
         List<MediaItem> mediaItems = new ArrayList<>();
         if (yearOfRelease != null) {
-            mediaItems.addAll(search(TorrentHelper.getNormalizedTorrentStringWithSpaces(remoteTorrent.name).replaceAll(yearOfRelease.toString(), ""), yearOfRelease));
+            mediaItems.addAll(search(TorrentHelper.getNormalizedTorrentStringWithSpaces(remoteTorrent.name).replaceAll(yearOfRelease.toString(), "").trim(), yearOfRelease));
         } else {
             mediaItems.addAll(search(remoteTorrent.name));
         }
