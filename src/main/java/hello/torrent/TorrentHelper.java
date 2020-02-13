@@ -95,6 +95,7 @@ public class TorrentHelper {
                 .replaceAll("[()]+", "")
                 .replaceAll("\\[[A-Za-z0-9. -]*\\]", "")
                 .replaceAll("\\s","")
+                .replaceAll("\\.", "")
                 ;
     }
 
