@@ -33,7 +33,7 @@ public class TheFilmDataBaseService {
     }
 
     public List<MediaItem> search(String name) {
-        String page = httpHelper.getPage(String.format("%s&query=%s", baseUrl, name));
+        String page = httpHelper.getPage(String.format("%s&query=%s", baseUrl, TorrentHelper.urlEncode(name)));
         return parseResponsePage(page);
     }
 
@@ -105,7 +105,7 @@ public class TheFilmDataBaseService {
         if (yearOfRelease != null) {
             mediaItems.addAll(search(TorrentHelper.getNormalizedTorrentStringWithSpaces(remoteTorrent.name).replaceAll(yearOfRelease.toString(), "").trim(), yearOfRelease));
         } else {
-            mediaItems.addAll(search(remoteTorrent.name));
+            mediaItems.addAll(search(TorrentHelper.getNormalizedTorrentStringWithSpaces(remoteTorrent.name).trim()));
         }
         Optional<MediaItem> mediaItem = mediaItems.stream().findFirst();
         return mediaItem.map(MediaItem::getType).orElse(null);
