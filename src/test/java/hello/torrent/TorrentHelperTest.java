@@ -28,8 +28,8 @@ class TorrentHelperTest {
     @Test
     void shouldRateTorrentName() {
         // Given
-        Torrent torrent1 = new Torrent();
-        Torrent torrent2 = new Torrent();
+        Torrent torrent1 = new Torrent("Test");
+        Torrent torrent2 = new Torrent("Test");
         torrent1.name = "Test.Movie.2.2019.HDRip.x264.AC3.mp3.-GROUP.mkvs";
         torrent1.seeder = 1;
         torrent1.leecher = 1;
@@ -49,8 +49,8 @@ class TorrentHelperTest {
     @Test
     void shouldRateTorrentNameLongVsShort() {
         // Given
-        Torrent torrent1 = new Torrent();
-        Torrent torrent2 = new Torrent();
+        Torrent torrent1 = new Torrent("Test");
+        Torrent torrent2 = new Torrent("Test");
         torrent1.name = "Planet Planet S01E01 (2019) [WEBRip] [1080p] [GROUP] [GROUP]";
         torrent1.seeder = 1;
         torrent1.leecher = 1;
@@ -70,7 +70,7 @@ class TorrentHelperTest {
     @Test
     void shouldRateTorrentNameShouldNotReportInfinityCloseness() {
         // Given
-        Torrent torrent1 = new Torrent();
+        Torrent torrent1 = new Torrent("Test");
         torrent1.name = "[FileTracker.pl] Planeta Ziemia - Planet Earth 2006 miniserial [720p.HDDVD.x264.AC3-ESiR][Narrator PL][Alusia]";
         torrent1.seeder = 1;
         torrent1.leecher = 1;

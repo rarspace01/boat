@@ -40,7 +40,7 @@ class TheFilmDataBaseServiceTest {
     @Test
     void determineMediaType() {
         // Given
-        Torrent mockTorrent = new Torrent();
+        Torrent mockTorrent = new Torrent("Test");
         mockTorrent.name = "Big Buck Bunny (2008) [720p] [PLA]";
         // When
         MediaType mediaType = tfdbs.determineMediaType(mockTorrent);
@@ -52,7 +52,7 @@ class TheFilmDataBaseServiceTest {
     @Test
     void determineMediaTypeMore() {
         // Given
-        Torrent mockTorrent = new Torrent();
+        Torrent mockTorrent = new Torrent("Test");
         mockTorrent.name = "Big.Buck.Bunny.2008.REMASTERED.1080p.BluRay.x264.DTS-FGT";
         // When
         MediaType mediaType = tfdbs.determineMediaType(mockTorrent);
