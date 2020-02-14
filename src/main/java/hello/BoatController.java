@@ -112,7 +112,7 @@ public final class BoatController {
         } else if(Strings.isNotEmpty(directDownloadUri)){
             decodedUri = directDownloadUri;
         }
-        Torrent torrentToBeDownloaded = new Torrent();
+        Torrent torrentToBeDownloaded = new Torrent("BoatController");
         torrentToBeDownloaded.magnetUri = decodedUri;
         return switchToProgress + (new Premiumize(httpHelper, theFilmDataBaseService)).addTorrentToQueue(torrentToBeDownloaded);
     }
