@@ -67,9 +67,7 @@ public class PirateBay extends HttpUser implements TorrentSearchEngine {
 
         if (torrentListOnPage != null) {
             for (Element torrent : torrentListOnPage) {
-
-                Torrent tempTorrent = new Torrent();
-
+                Torrent tempTorrent = new Torrent(toString());
                 // extract ahref for title
                 Elements nameElements = torrent.select("a[title~=Details for]");
                 if (nameElements.size() > 0) {

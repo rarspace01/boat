@@ -29,6 +29,11 @@ public class Torrent {
     public String folder_id;
     public String file_id;
     public String remoteUrl;
+    public String source;
+
+    public Torrent(String source) {
+        this.source = source;
+    }
 
     @Override
     public String toString() {
@@ -58,7 +63,7 @@ public class Torrent {
         }
 
         if (Strings.isNotEmpty(this.debugRating)) {
-            stringBuilder.append(" 🏭" + this.debugRating);
+            stringBuilder.append(" 🏭" + this.debugRating + " \uD83C\uDFE0" + this.source);
         }
 
 

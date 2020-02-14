@@ -55,7 +55,7 @@ public class LeetxTo extends HttpUser implements TorrentSearchEngine {
 
         if (torrentListOnPage != null) {
             for (Element torrent : torrentListOnPage) {
-                Torrent tempTorrent = new Torrent();
+                Torrent tempTorrent = new Torrent(toString());
                 if (torrent.childNodeSize() > 0) {
                     torrent.children().forEach(element -> {
 

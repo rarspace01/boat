@@ -61,7 +61,7 @@ public class SolidTorrents extends HttpUser implements TorrentSearchEngine {
                 Iterator<JsonNode> elements = resultsNode.elements();
                 while (elements.hasNext()) {
                     JsonNode jsonTorrent = elements.next();
-                    Torrent tempTorrent = new Torrent();
+                    Torrent tempTorrent = new Torrent(toString());
                     //extract Size & S/L
                     tempTorrent.name = jsonTorrent.get("title").asText();
                     String sizeString = jsonTorrent.get("size").asLong() / 1024 / 1024 + "MB";

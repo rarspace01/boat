@@ -152,7 +152,7 @@ public class Premiumize extends HttpUser {
             JsonNode localNodes = rootNode.path("transfers");
 
             for (JsonNode localNode : localNodes) {
-                Torrent tempTorrent = new Torrent();
+                Torrent tempTorrent = new Torrent(toString());
                 tempTorrent.name = localNode.get("name").asText();
                 tempTorrent.folder_id = localNode.get("folder_id").asText();
                 tempTorrent.file_id = localNode.get("file_id").asText();
