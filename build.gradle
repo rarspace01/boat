@@ -37,7 +37,7 @@ jacocoTestReport {
 //runtime("org.springframework.boot:spring-boot-properties-migrator")
 jar {
     archivesBaseName = 'pirateboat'
-    archiveVersion = '0.6.12'
+    archiveVersion = '0.6.13'
 }
 
 repositories {
@@ -49,20 +49,20 @@ targetCompatibility = 13
 
 dependencies {
     // tag::jetty[]
-    compile("org.springframework.boot:spring-boot-starter-web:$spring_version") {
+    implementation("org.springframework.boot:spring-boot-starter-web:$spring_version") {
         exclude module: "spring-boot-starter-tomcat"
     }
-    compile group: 'org.springframework.boot', name: 'spring-boot-starter-jetty', version: "$spring_version"
+    implementation group: 'org.springframework.boot', name: 'spring-boot-starter-jetty', version: "$spring_version"
     // end::jetty[]
     // tag::actuator[]
-    compile("org.springframework.boot:spring-boot-starter-actuator:$spring_version")
+    implementation("org.springframework.boot:spring-boot-starter-actuator:$spring_version")
     // end::actuator[]
-    compile("org.jsoup:jsoup:1.12.2")
+    implementation("org.jsoup:jsoup:1.12.2")
 
-    compile group: 'com.google.code.gson', name: 'gson', version: '2.8.5'
-    compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.10.2'
-    compile group: 'org.springframework.boot', name: 'spring-boot-properties-migrator', version: "$spring_version"
-    compile group: 'commons-io', name: 'commons-io', version: '2.6'
+    implementation group: 'com.google.code.gson', name: 'gson', version: '2.8.5'
+    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.10.2'
+    implementation group: 'org.springframework.boot', name: 'spring-boot-properties-migrator', version: "$spring_version"
+    implementation group: 'commons-io', name: 'commons-io', version: '2.6'
 
     compileOnly 'org.projectlombok:lombok:1.18.12'
     annotationProcessor 'org.projectlombok:lombok:1.18.12'
@@ -70,9 +70,9 @@ dependencies {
     testCompileOnly 'org.projectlombok:lombok:1.18.12'
     testAnnotationProcessor 'org.projectlombok:lombok:1.18.12'
 
-    runtime("org.springframework.boot:spring-boot-properties-migrator")
-    testCompile group: 'org.mockito', name: 'mockito-core', version: '3.2.4'
-    testCompile group: 'org.mockito', name: 'mockito-junit-jupiter', version: '3.2.4'
+    runtimeOnly("org.springframework.boot:spring-boot-properties-migrator")
+    testCompileOnly group: 'org.mockito', name: 'mockito-core', version: '3.2.4'
+    testCompileOnly group: 'org.mockito', name: 'mockito-junit-jupiter', version: '3.2.4'
     testImplementation('org.junit.jupiter:junit-jupiter:5.6.0')
     testImplementation("org.springframework.boot:spring-boot-starter-test:$spring_version")
 
