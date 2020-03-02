@@ -117,3 +117,7 @@ test {
         showStandardStreams = true
     }
 }
+
+wrapper {
+    distributionType = Wrapper.DistributionType.ALL
+}
