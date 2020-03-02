@@ -1,8 +1,8 @@
 package hello.torrent;
 
+import hello.utilities.HttpHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import hello.utilities.HttpHelper;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -18,7 +18,7 @@ public class TorrentSearchEngineService {
     @Autowired
     public TorrentSearchEngineService(HttpHelper httpHelper) {
         this.httpHelper = httpHelper;
-        this.allSearchEngines = Arrays.asList(new PirateBay(httpHelper), new NyaaSi(httpHelper), new SolidTorrents(httpHelper), new LeetxTo(httpHelper), new Katcr(httpHelper));
+        this.allSearchEngines = Arrays.asList(new PirateBay(httpHelper), new NyaaSi(httpHelper), new SolidTorrents(httpHelper), new LeetxTo(httpHelper), new Katcr(httpHelper), new YTS(httpHelper));
     }
 
     public void refreshTorrentSearchEngines() {

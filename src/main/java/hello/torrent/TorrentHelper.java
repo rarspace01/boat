@@ -1,12 +1,21 @@
 package hello.torrent;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 public class TorrentHelper {
 
@@ -156,4 +165,29 @@ public class TorrentHelper {
             return string;
         }
     }
+
+    public static String buildMagnetUriFromHash(final String hash, final String torrentName) {
+        return String.format("magnet:?xt=urn:btih:%s&dn=%s", hash, urlEncode(torrentName))
+                + getTrackerUrls().stream().map(TorrentHelper::urlEncode).collect(Collectors.joining("&tr=", "&tr=", ""));
+    }
+
+    public static List<String> getTrackerUrls() {
+        final int maxChars = 1000;
+        AtomicInteger currentChars = new AtomicInteger(0);
+        List<String> trackerList = new ArrayList<>();
+        try {
+            URL u = TorrentHelper.class.getResource("/trackers.txt");
+            Path path = Paths.get(u.toURI());
+            Files.readAllLines(path).forEach(string -> {
+                if (currentChars.get() + string.length() < maxChars) {
+                    trackerList.add(string);
+                    currentChars.addAndGet(string.length());
+                }
+            });
+            return trackerList;
+        } catch (IOException | URISyntaxException e) {
+            return Collections.emptyList();
+        }
+    }
+
 }
