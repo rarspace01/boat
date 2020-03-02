@@ -1,3 +1,4 @@
+if: branch = master
 os:
   - linux
 notifications:
@@ -14,6 +15,12 @@ cache:
     - $HOME/.gradle/wrapper/
 script:
   - ./gradlew jacocoTestReport coveralls build
+before_deploy:
+  # Set up git user name and tag this commit
+  - git config --local user.name "rarspace01"
+  - git config --local user.email "rarspace01@users.noreply.github.com"
+  - export TRAVIS_TAG=${TRAVIS_TAG:-$(date +'%Y%m%d%H%M%S')-$(git log --format=%h -1)}
+  - git tag $TRAVIS_TAG
 deploy:
   - provider: releases
     token: $GITHUB_APIKEY
