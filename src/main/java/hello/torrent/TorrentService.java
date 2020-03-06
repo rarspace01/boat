@@ -10,9 +10,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class TrackerService {
+public class TorrentService {
 
     private List<String> trackerList = new ArrayList<>();
+    private List<String> releaseTags = new ArrayList<>();
 
     public List<String> getTrackerUrls() {
         if (trackerList.size() > 0) {
@@ -22,7 +23,7 @@ public class TrackerService {
         AtomicInteger currentChars = new AtomicInteger(0);
         List<String> trackerList = new ArrayList<>();
         try {
-            InputStream inputStream = TrackerService.class.getResourceAsStream("/trackers.txt");
+            InputStream inputStream = TorrentService.class.getResourceAsStream("/trackers.txt");
             InputStreamReader inputStreamReader = new InputStreamReader(inputStream, Charset.defaultCharset());
             BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
             String line;
@@ -33,6 +34,25 @@ public class TrackerService {
                 }
             }
             return trackerList;
+        } catch (IOException e) {
+            return Collections.emptyList();
+        }
+    }
+
+    public List<String> getReleaseTags() {
+        if (releaseTags.size() > 0) {
+            return releaseTags;
+        }
+        List<String> releaseTags = new ArrayList<>();
+        try {
+            InputStream inputStream = TorrentService.class.getResourceAsStream("/releasetags.txt");
+            InputStreamReader inputStreamReader = new InputStreamReader(inputStream, Charset.defaultCharset());
+            BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+            String line;
+            while ((line = bufferedReader.readLine()) != null) {
+                    releaseTags.add(line.toLowerCase());
+            }
+            return releaseTags;
         } catch (IOException e) {
             return Collections.emptyList();
         }

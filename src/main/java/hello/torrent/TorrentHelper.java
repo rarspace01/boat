@@ -10,6 +10,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 public class TorrentHelper {
+    private static TorrentService torrentService = new TorrentService();
 
     public static final double SIZE_UPPER_LIMIT = 15000.0;
     public static final double SEED_RATIO_UPPER_LIMIT = 5.0;
@@ -22,9 +23,11 @@ public class TorrentHelper {
             return Double.compare(o2.lsize, o1.lsize);
         }
     };
-    public static final String TAG_REGEX = "(ac3|x264|h264|h265|x265|mp3|hdrip|mkv|mp4|xvid|divx|web|720p|1080p|4k|uhd|bluray|dts|remastered)";
+    public static final String TAG_REGEX = "(" + listOfReleaseTagsPiped() + ")";
 
-    private static TrackerService trackerService = new TrackerService();
+    private static String listOfReleaseTagsPiped() {
+        return String.join("|", torrentService.getReleaseTags());
+    }
 
     public static double extractTorrentSizeFromString(Torrent tempTorrent) {
         long torrentSize = 0;
@@ -47,14 +50,14 @@ public class TorrentHelper {
         }
 
         String normalizedTorrentName = getNormalizedTorrentString(torrentName);
-        String normalizedSearchName = getNormalizedTorrentString(searchName);
+        String normalizedSearchName = getNormalizedTorrentStringWithSpaces(searchName);
 
         if (normalizedTorrentName.contains(normalizedSearchName.trim().toLowerCase())) {
             tempTorrent.searchRating += 1;
             tempTorrent.debugRating += "🔍";
         }
-        //check indivdual words
-        List<String> searchWords = Arrays.asList(searchName.trim().toLowerCase().split(" "));
+        //check individual words
+        List<String> searchWords = Arrays.asList(normalizedSearchName.trim().toLowerCase().split(" "));
         int searchMaxScore = searchWords.size();
         AtomicInteger matches = new AtomicInteger();
         searchWords.forEach(searchWord -> {
@@ -81,7 +84,7 @@ public class TorrentHelper {
         double seedRatio = (double) tempTorrent.seeder / (double) tempTorrent.leecher;
         double seedRatioOptimized;
         if (tempTorrent.seeder >= 1 && tempTorrent.seeder <= 3) {
-            seedRatioOptimized = 1.0 / (double) tempTorrent.leecher;
+            seedRatioOptimized = 1.0;
         } else {
             seedRatioOptimized = seedRatio;
         }
@@ -126,16 +129,20 @@ public class TorrentHelper {
                 torrent.name.toLowerCase().contains("telesync") ||
                         torrent.name.toLowerCase().contains("telecine") ||
                         torrent.name.toLowerCase().contains(" hdcam") ||
+                        torrent.name.toLowerCase().contains("tscam") ||
+                        torrent.name.toLowerCase().contains(".cam.") ||
+                        torrent.name.toLowerCase().contains("cam-rip") ||
+                        torrent.name.toLowerCase().contains(".hdcam.") ||
                         torrent.name.toLowerCase().contains(" hdts") ||
                         torrent.name.toLowerCase().contains(" hd-ts") ||
                         torrent.name.toLowerCase().contains(".hd-ts") ||
                         torrent.name.toLowerCase().contains(".hdtc.") ||
-                        torrent.name.toLowerCase().contains("tscam") ||
                         torrent.name.toLowerCase().contains(".ts.") ||
                         torrent.name.toLowerCase().contains("[ts]") ||
-                        torrent.name.toLowerCase().contains(".hdts.") ||
-                        torrent.name.toLowerCase().contains(".cam.") ||
-                        torrent.name.toLowerCase().contains(".hdcam.")
+                        torrent.name.toLowerCase().contains("pdvd") ||
+                        torrent.name.toLowerCase().contains("predvdrip") ||
+                        torrent.name.toLowerCase().contains("workprint") ||
+                        torrent.name.toLowerCase().contains(".hdts.")
         );
     }
 
@@ -162,7 +169,7 @@ public class TorrentHelper {
 
     public static String buildMagnetUriFromHash(final String hash, final String torrentName) {
         return String.format("magnet:?xt=urn:btih:%s&dn=%s", hash, urlEncode(torrentName))
-                + trackerService.getTrackerUrls().stream().map(TorrentHelper::urlEncode).collect(Collectors.joining("&tr=", "&tr=", ""));
+                + torrentService.getTrackerUrls().stream().map(TorrentHelper::urlEncode).collect(Collectors.joining("&tr=", "&tr=", ""));
     }
 
 }

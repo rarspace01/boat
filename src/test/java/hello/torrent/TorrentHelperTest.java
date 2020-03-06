@@ -52,9 +52,9 @@ class TorrentHelperTest {
         Torrent torrent1 = new Torrent("Test");
         Torrent torrent2 = new Torrent("Test");
         torrent1.name = "Planet Planet S01E01 (2019) [WEBRip] [1080p] [GROUP] [GROUP]";
-        torrent1.seeder = 1;
+        torrent1.seeder = 2;
         torrent1.leecher = 1;
-        torrent1.lsize = 1000;
+        torrent1.lsize = 2000;
 
         torrent2.name = "Planet Planet (2019) [WEBRip] [1080p] [GROUP] [GROUP]";
         torrent2.seeder = 2;
