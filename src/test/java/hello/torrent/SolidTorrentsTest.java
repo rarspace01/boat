@@ -9,12 +9,12 @@ import static org.junit.Assert.assertTrue;
 
 class SolidTorrentsTest {
 
-//    @Test
-//    void shouldFindTorrents() {
-//        // Given
-//        // When
-//        List<Torrent> torrentList = new SolidTorrents(new HttpHelper()).searchTorrents("planet");
-//        // Then
-//        assertTrue(torrentList.size() > 0);
-//    }
+    @Test
+    void shouldFindTorrents() {
+        // Given
+        // When
+        List<Torrent> torrentList = new SolidTorrents(new HttpHelper()).searchTorrents("planet");
+        // Then
+        assertTrue(torrentList.size() > 0);
+    }
 }

@@ -51,7 +51,7 @@ public class NyaaSi extends HttpUser implements TorrentSearchEngine {
 
         Document doc = Jsoup.parse(pageContent);
 
-        Elements torrentListOnPage = doc.select(".hello.torrent-list > tbody > tr");
+        Elements torrentListOnPage = doc.select(".torrent-list > tbody > tr");
 
         if (torrentListOnPage != null) {
             for (Element torrent : torrentListOnPage) {

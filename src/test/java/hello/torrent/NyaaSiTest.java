@@ -9,12 +9,12 @@ import static org.junit.Assert.assertTrue;
 
 class NyaaSiTest {
 
-//    @Test
-//    public void shouldFindTorrents() {
-//        // Given
-//        // When
-//        List<Torrent> torrentList = new NyaaSi(new HttpHelper()).searchTorrents("planet");
-//        // Then
-//        assertTrue(torrentList.size() > 0);
-//    }
+    @Test
+    public void shouldFindTorrents() {
+        // Given
+        // When
+        List<Torrent> torrentList = new NyaaSi(new HttpHelper()).searchTorrents("planet");
+        // Then
+        assertTrue(torrentList.size() > 0);
+    }
 }
