@@ -2,6 +2,8 @@ udp://tracker.openbittorrent.com:80
 udp://tracker.publicbt.com:80
 udp://tracker.ccc.de:80
 udp://tracker.opentrackr.org:1337/announce
+udp://open.stealth.si:80/announce
+udp://exodus.desync.com:6969/announce
 udp://p4p.arenabg.com:1337/announce
 udp://tracker.tiny-vps.com:6969/announce
 udp://zephir.monocul.us:6969/announce
@@ -14,8 +16,6 @@ udp://tracker.beeimg.com:6969/announce
 udp://opentracker.i2p.rocks:6969/announce
 udp://tracker.zerobytes.xyz:1337/announce
 https://tracker.nitrix.me:443/announce
-udp://open.stealth.si:80/announce
-udp://exodus.desync.com:6969/announce
 udp://retracker.hotplug.ru:2710/announce
 udp://chihaya.toss.li:9696/announce
 udp://explodie.org:6969/announce
