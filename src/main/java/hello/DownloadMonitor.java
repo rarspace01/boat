@@ -1,7 +1,7 @@
 package hello;
 
-import hello.info.MediaItem;
 import hello.info.TheFilmDataBaseService;
+import hello.info.TorrentMetaService;
 import hello.torrent.Premiumize;
 import hello.torrent.Torrent;
 import hello.torrent.TorrentFile;
@@ -16,7 +16,6 @@ import org.springframework.stereotype.Component;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
@@ -26,6 +25,7 @@ import java.util.regex.Pattern;
 public class DownloadMonitor {
 
     private final TorrentSearchEngineService torrentSearchEngineService;
+    private final TorrentMetaService torrentMetaService;
 
     private static final int SECONDS_BETWEEN_DOWNLOAD_POLLING = 30;
     private static final int SECONDS_BETWEEN_SEARCH_ENGINE_POLLING = 60;
@@ -37,8 +37,10 @@ public class DownloadMonitor {
 
     public DownloadMonitor(TorrentSearchEngineService torrentSearchEngineService,
                            HttpHelper httpHelper,
-                           TheFilmDataBaseService theFilmDataBaseService) {
+                           TheFilmDataBaseService theFilmDataBaseService,
+                           TorrentMetaService torrentMetaService) {
         this.torrentSearchEngineService = torrentSearchEngineService;
+        this.torrentMetaService = torrentMetaService;
         this.premiumize = new Premiumize(httpHelper, theFilmDataBaseService);
         this.theFilmDataBaseService = theFilmDataBaseService;
     }
@@ -57,9 +59,9 @@ public class DownloadMonitor {
     }
 
     private void checkForDownloadbleTorrentsAndDownloadTheFirst() {
-        ArrayList<Torrent> remoteTorrents = premiumize.getRemoteTorrents();
+        torrentMetaService.refreshTorrents();
         boolean returnToMonitor = false;
-        for (Torrent remoteTorrent : remoteTorrents) {
+        for (Torrent remoteTorrent : torrentMetaService.getActiveTorrents()) {
             if (checkIfTorrentCanBeDownloaded(remoteTorrent) && !returnToMonitor) {
                 isDownloadInProgress = true;
 
@@ -74,21 +76,30 @@ public class DownloadMonitor {
 
                 // check if SingleFileDownload
                 if (premiumize.isSingleFileDownload(remoteTorrent)) {
+                    remoteTorrent.status = "Uploading: 0/1 done";
+                    torrentMetaService.updateTorrent(remoteTorrent);
                     String fileURLFromTorrent = premiumize.getMainFileURLFromTorrent(remoteTorrent);
-                    String localPath = PropertiesHelper.getProperty("rclonedir") + remoteTorrent.name + addFilenameIfNotYetPresent(remoteTorrent.name, fileURLFromTorrent);
                     //downloadFile(fileURLFromTorrent, localPath);
                     rcloneDownloadFileToGdrive(fileURLFromTorrent, PropertiesHelper.getProperty("rclonedir") + "/" + buildFilename(remoteTorrent.name, fileURLFromTorrent));
                     //uploadFile()
                     // cleanup afterwards
+                    remoteTorrent.status = "Uploading: 1/1 done";
+                    torrentMetaService.updateTorrent(remoteTorrent);
                     premiumize.delete(remoteTorrent);
                 } else { // start multifile download
                     // download every file
                     List<TorrentFile> filesFromTorrent = premiumize.getFilesFromTorrent(remoteTorrent);
+                    int fileNumber = 0;
+                    int fileCount = filesFromTorrent.size();
                     for (TorrentFile torrentFile : filesFromTorrent) {
                         // check filesize to get rid of samples and NFO files?
-                        String localPath = PropertiesHelper.getProperty("rclonedir") + remoteTorrent.name + addFilenameIfNotYetPresent(remoteTorrent.name, torrentFile.url);
+                        remoteTorrent.status = String.format("Uploading: %d/%d done",fileNumber,fileCount);
+                        torrentMetaService.updateTorrent(remoteTorrent);
                         // downloadFile(torrentFile.url, localPath);
                         rcloneDownloadFileToGdrive(torrentFile.url, PropertiesHelper.getProperty("rclonedir") + "/multipart/" + remoteTorrent.name + "/" + torrentFile.name);
+                        fileNumber++;
+                        remoteTorrent.status = String.format("Uploading: %d/%d done",fileNumber,fileCount);
+                        torrentMetaService.updateTorrent(remoteTorrent);
                     }
                     // cleanup afterwards
                     premiumize.delete(remoteTorrent);
