@@ -16,6 +16,8 @@ import org.springframework.stereotype.Component;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Base64;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
@@ -72,13 +74,15 @@ public class DownloadMonitor {
                 };
                 Thread thread = new Thread(runnable);
                 thread.start();
-                //createDownloadFolderIfNotExists(remoteTorrent);
 
                 // check if SingleFileDownload
                 if (premiumize.isSingleFileDownload(remoteTorrent)) {
                     remoteTorrent.status = "Uploading: 0/1 done";
-                    torrentMetaService.updateTorrent(remoteTorrent);
                     String fileURLFromTorrent = premiumize.getMainFileURLFromTorrent(remoteTorrent);
+                    if (remoteTorrent.name.contains("magnet:?")) {
+                        remoteTorrent.name = extractFileNameFromUrl(fileURLFromTorrent);
+                    }
+                    torrentMetaService.updateTorrent(remoteTorrent);
                     //downloadFile(fileURLFromTorrent, localPath);
                     rcloneDownloadFileToGdrive(fileURLFromTorrent, PropertiesHelper.getProperty("rclonedir") + "/" + buildFilename(remoteTorrent.name, fileURLFromTorrent));
                     //uploadFile()
@@ -93,12 +97,12 @@ public class DownloadMonitor {
                     int fileCount = filesFromTorrent.size();
                     for (TorrentFile torrentFile : filesFromTorrent) {
                         // check filesize to get rid of samples and NFO files?
-                        remoteTorrent.status = String.format("Uploading: %d/%d done",fileNumber,fileCount);
+                        remoteTorrent.status = String.format("Uploading: %d/%d done", fileNumber, fileCount);
                         torrentMetaService.updateTorrent(remoteTorrent);
                         // downloadFile(torrentFile.url, localPath);
                         rcloneDownloadFileToGdrive(torrentFile.url, PropertiesHelper.getProperty("rclonedir") + "/multipart/" + remoteTorrent.name + "/" + torrentFile.name);
                         fileNumber++;
-                        remoteTorrent.status = String.format("Uploading: %d/%d done",fileNumber,fileCount);
+                        remoteTorrent.status = String.format("Uploading: %d/%d done", fileNumber, fileCount);
                         torrentMetaService.updateTorrent(remoteTorrent);
                     }
                     // cleanup afterwards
@@ -124,15 +128,16 @@ public class DownloadMonitor {
     }
 
     private String extractFileNameFromUrl(String fileURLFromTorrent) {
+        String fileString = Arrays.toString(Base64.getUrlDecoder().decode(fileURLFromTorrent));
         Pattern pattern = Pattern.compile("([\\w.%\\-]+)$");
         String foundMatch = null;
-        Matcher matcher = pattern.matcher(fileURLFromTorrent);
+        Matcher matcher = pattern.matcher(fileString);
 
         while (matcher.find()) {
             foundMatch = matcher.group();
         }
         if (foundMatch != null) {
-            foundMatch.replaceAll("%20", ".");
+            foundMatch.replaceAll("\\s", ".");
         }
         return foundMatch;
     }
