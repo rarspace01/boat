@@ -91,6 +91,7 @@ public class TorrentHelper {
             seedRatioOptimized = seedRatio;
         }
         if (tempTorrent.isCached) {
+            tempTorrent.searchRating += 2;
             tempTorrent.debugRating += "🚄: 🚄🚄";
         } else if (seedRatio > 1.0) {
             double seedRating = Math.min(seedRatioOptimized, SEED_RATIO_UPPER_LIMIT) / SEED_RATIO_UPPER_LIMIT;
