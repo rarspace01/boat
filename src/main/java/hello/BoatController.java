@@ -49,23 +49,23 @@ public final class BoatController {
     public final String search() {
         return "<!DOCTYPE html>\n" +
                 "<html>\n" +
-                "<body>\n" +
+                "<body style=\"font-size: 4vw;>\n" +
                 "\n" +
                 "<h2>Here to serve you</h2>\n" +
                 "\n" +
                 "<form action=\"../boat\" target=\"_blank\" method=\"GET\">\n" +
                 "  Title:<br>\n" +
-                "  <input type=\"text\" name=\"q\" value=\"\">\n" +
+                "  <input type=\"text\" name=\"q\" value=\"\" style=\"font-size: 4vw; \">\n" +
                 "  <br>\n" +
-                "  <input type=\"submit\" value=\"Search\">\n" +
+                "  <input type=\"submit\" value=\"Search\" style=\"font-size: 4vw; \">\n" +
                 "</form>\n" +
                 "  <br>\n" +
                 "  <br>\n" +
                 "<form action=\"../boat/download/\" target=\"_blank\" method=\"POST\">\n" +
                 "  Direct download URL:<br>\n" +
-                "  <input type=\"text\" name=\"dd\" value=\"\">\n" +
+                "  <input type=\"text\" name=\"dd\" value=\"\" style=\"font-size: 4vw; \">\n" +
                 "  <br>\n" +
-                "  <input type=\"submit\" value=\"Download\">\n" +
+                "  <input type=\"submit\" value=\"Download\" style=\"font-size: 4vw; \">\n" +
                 "</form>\n" +
                 "<br/>\n" +
                 switchToProgress.replace("..", "../boat") +
