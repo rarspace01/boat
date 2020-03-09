@@ -43,10 +43,12 @@ public class TorrentHelper {
         return tempTorrent.size.replaceAll("(GiB)|(GB)|(MiB)|(MB)|(<.*?>)", "").trim();
     }
 
-    public static void evaluateRating(Torrent tempTorrent, String searchName) {
+    public static Torrent evaluateRating(Torrent tempTorrent, String searchName) {
+        tempTorrent.searchRating = 0;
+        tempTorrent.debugRating = "";
         String torrentName = tempTorrent.name;
         if (torrentName == null || torrentName.trim().length() == 0) {
-            return;
+            return tempTorrent;
         }
 
         String normalizedTorrentName = getNormalizedTorrentString(torrentName);
@@ -88,16 +90,17 @@ public class TorrentHelper {
         } else {
             seedRatioOptimized = seedRatio;
         }
-        if (seedRatio > 1.0) {
+        if (tempTorrent.isCached) {
+            tempTorrent.debugRating += "🚄: 🚄🚄";
+        } else if (seedRatio > 1.0) {
             double seedRating = Math.min(seedRatioOptimized, SEED_RATIO_UPPER_LIMIT) / SEED_RATIO_UPPER_LIMIT;
             tempTorrent.searchRating += seedRating;
             tempTorrent.debugRating += String.format("🚄:%.2f", seedRating);
-        }
-        if (tempTorrent.seeder == 1) {
+        } else if (tempTorrent.seeder == 1) {
             tempTorrent.searchRating = tempTorrent.searchRating / 10;
             tempTorrent.debugRating += String.format("⚡🚄 OVR:%.2f", tempTorrent.searchRating / 10);
-            ;
         }
+        return tempTorrent;
     }
 
     public static String getNormalizedTorrentString(String name) {

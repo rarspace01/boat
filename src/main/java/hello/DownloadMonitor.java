@@ -16,12 +16,16 @@ import org.springframework.stereotype.Component;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URLDecoder;
+import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 @Component
 public class DownloadMonitor {
@@ -128,7 +132,7 @@ public class DownloadMonitor {
     }
 
     private String extractFileNameFromUrl(String fileURLFromTorrent) {
-        String fileString = Arrays.toString(Base64.getUrlDecoder().decode(fileURLFromTorrent));
+        String fileString = URLDecoder.decode(fileURLFromTorrent, UTF_8);
         Pattern pattern = Pattern.compile("([\\w.%\\-]+)$");
         String foundMatch = null;
         Matcher matcher = pattern.matcher(fileString);

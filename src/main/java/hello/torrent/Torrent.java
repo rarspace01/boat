@@ -30,6 +30,7 @@ public class Torrent {
     public String file_id;
     public String remoteUrl;
     public String source;
+    public boolean isCached = false;
 
     public Torrent(String source) {
         this.source = source;
@@ -91,7 +92,7 @@ public class Torrent {
         if (this.magnetUri == null) {
             return String.valueOf(this.hashCode());
         }
-        Pattern magnetPattern = Pattern.compile("(btih:)([a-z0-9]*)(&dn)");
+        Pattern magnetPattern = Pattern.compile("(btih:)([a-z0-9]*)(&)");
         Matcher matcher = magnetPattern.matcher(this.magnetUri);
         if (matcher.find()) {
             return matcher.group(2);

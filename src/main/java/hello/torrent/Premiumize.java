@@ -2,6 +2,9 @@ package hello.torrent;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
 import hello.info.TheFilmDataBaseService;
 import hello.utilities.HttpHelper;
 import hello.utilities.PropertiesHelper;
@@ -9,6 +12,8 @@ import hello.utilities.PropertiesHelper;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 public class Premiumize extends HttpUser {
 
@@ -202,4 +207,26 @@ public class Premiumize extends HttpUser {
         // if maxfilesize >90% sumSize --> Singlefile
         return biggestFileYet > (0.9d * sumFileSize);
     }
+
+    public List<Torrent> getCacheStateOfTorrents(List<Torrent> torrents) {
+        String requestUrl = "https://www.premiumize.me/api/cache/check?" + "apikey=" +
+                PropertiesHelper.getProperty("pin") + "%s";
+        String urlEncodedBrackets = TorrentHelper.urlEncode("[]");
+        String collected = torrents.stream().map(Torrent::getTorrentId).collect(Collectors.joining("&items" + urlEncodedBrackets + "=", "&items" + urlEncodedBrackets + "=", ""));
+        String checkUrl = String.format(requestUrl, collected);
+        String pageContent = httpHelper.getPage(checkUrl);
+        JsonParser parser = new JsonParser();
+        JsonElement jsonRoot = parser.parse(pageContent);
+        JsonElement reponse = jsonRoot.getAsJsonObject().get("response");
+        JsonArray reponseArray = reponse.getAsJsonArray();
+        AtomicInteger index= new AtomicInteger();
+        if(reponseArray.size() == torrents.size()){
+            reponseArray.forEach(jsonElement -> {
+                torrents.get(index.get()).isCached = jsonElement.getAsBoolean();
+                index.getAndIncrement();
+            });
+        }
+        return torrents;
+    }
+
 }

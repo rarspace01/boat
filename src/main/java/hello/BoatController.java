@@ -85,11 +85,14 @@ public final class BoatController {
         activeSearchEngines.parallelStream()
                 .forEach(torrentSearchEngine -> combineResults.addAll(torrentSearchEngine.searchTorrents(searchString)));
         List<Torrent> returnResults = new ArrayList<>(cleanDuplicates(combineResults));
-        returnResults.sort(TorrentHelper.torrentSorter);
+        // checkAllForCache
+        List<Torrent> cacheStateOfTorrents = new Premiumize(httpHelper, theFilmDataBaseService).getCacheStateOfTorrents(returnResults);
+        List<Torrent> torrentList = cacheStateOfTorrents.stream().map(torrent -> TorrentHelper.evaluateRating(torrent, searchString)).collect(Collectors.toList());
+        torrentList.sort(TorrentHelper.torrentSorter);
 
         System.out.println(String.format("Took: [%s]ms for [%s]", (System.currentTimeMillis() - currentTimeMillis), searchString));
 
-        return "G: " + returnResults.stream().limit(25).collect(Collectors.toList());
+        return "G: " + torrentList.stream().limit(25).collect(Collectors.toList());
     }
 
     private List<Torrent> cleanDuplicates(List<Torrent> combineResults) {
