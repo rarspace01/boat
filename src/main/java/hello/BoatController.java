@@ -49,7 +49,7 @@ public final class BoatController {
     public final String search() {
         return "<!DOCTYPE html>\n" +
                 "<html>\n" +
-                "<body style=\"font-size: 4vw;>\n" +
+                "<body style=\"font-size: 4vw;\n>" +
                 "\n" +
                 "<h2>Here to serve you</h2>\n" +
                 "\n" +
