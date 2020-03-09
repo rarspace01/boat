@@ -72,8 +72,6 @@ public class Premiumize extends HttpUser {
                 "&customer_id=" +
                 PropertiesHelper.getProperty("customer_id") + "&pin=" + PropertiesHelper.getProperty("pin"));
 
-        System.out.println(responseFiles);
-
         ObjectMapper m = new ObjectMapper();
         try {
             JsonNode rootNode = m.readTree(responseFiles);
@@ -125,8 +123,6 @@ public class Premiumize extends HttpUser {
             e.printStackTrace();
         }
 
-
-        System.out.println(responseFiles);
     }
 
     private void extractTorrentFileFromJSON(Torrent torrent, List<TorrentFile> returnList, JsonNode jsonFile, String prefix) {
