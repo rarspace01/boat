@@ -8,6 +8,8 @@ import com.google.gson.JsonParser;
 import hello.info.TheFilmDataBaseService;
 import hello.utilities.HttpHelper;
 import hello.utilities.PropertiesHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -18,6 +20,9 @@ import java.util.stream.Collectors;
 public class Premiumize extends HttpUser {
 
     private final TheFilmDataBaseService theFilmDataBaseService;
+
+    private static final Logger log = LoggerFactory.getLogger(Premiumize.class);
+
 
     public Premiumize(HttpHelper httpHelper, TheFilmDataBaseService theFilmDataBaseService) {
         super(httpHelper);
@@ -213,14 +218,21 @@ public class Premiumize extends HttpUser {
         String pageContent = httpHelper.getPage(checkUrl);
         JsonParser parser = new JsonParser();
         JsonElement jsonRoot = parser.parse(pageContent);
-        JsonElement reponse = jsonRoot.getAsJsonObject().get("response");
-        JsonArray reponseArray = reponse.getAsJsonArray();
-        AtomicInteger index= new AtomicInteger();
-        if(reponseArray.size() == torrents.size()){
-            reponseArray.forEach(jsonElement -> {
-                torrents.get(index.get()).isCached = jsonElement.getAsBoolean();
-                index.getAndIncrement();
-            });
+        if (jsonRoot == null) {
+            log.error("couldn't retrieve cache for:" + checkUrl);
+            log.error(pageContent);
+        } else {
+
+
+            JsonElement reponse = jsonRoot.getAsJsonObject().get("response");
+            JsonArray reponseArray = reponse.getAsJsonArray();
+            AtomicInteger index = new AtomicInteger();
+            if (reponseArray.size() == torrents.size()) {
+                reponseArray.forEach(jsonElement -> {
+                    torrents.get(index.get()).isCached = jsonElement.getAsBoolean();
+                    index.getAndIncrement();
+                });
+            }
         }
         return torrents;
     }
