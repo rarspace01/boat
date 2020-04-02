@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @RestController
 public final class BoatController {
@@ -62,7 +63,7 @@ public final class BoatController {
                 "  <br>\n" +
                 "  <br>\n" +
                 "<form action=\"../boat/download/\" target=\"_blank\" method=\"POST\">\n" +
-                "  Direct download URL:<br>\n" +
+                "  Direct download URL (multiple seperate by comma):<br>\n" +
                 "  <input type=\"text\" name=\"dd\" value=\"\" style=\"font-size: 4vw; \">\n" +
                 "  <br>\n" +
                 "  <input type=\"submit\" value=\"Download\" style=\"font-size: 4vw; \">\n" +
@@ -108,16 +109,34 @@ public final class BoatController {
     @RequestMapping({"/boat/download"})
     @NotNull
     public final String downloadTorrentToPremiumize(@RequestParam(value = "d", required = false) String downloadUri, @RequestParam(value = "dd", required = false) String directDownloadUri) {
+        List<Torrent> torrentsToBeDownloaded = new ArrayList<>();
         String decodedUri = "";
-        if(Strings.isNotEmpty(downloadUri)) {
+        if (Strings.isNotEmpty(downloadUri)) {
             byte[] magnetUri = Base64.getUrlDecoder().decode(downloadUri);
             decodedUri = new String(magnetUri, StandardCharsets.UTF_8);
-        } else if(Strings.isNotEmpty(directDownloadUri)){
+            addUriToQueue(torrentsToBeDownloaded, decodedUri);
+        } else if (Strings.isNotEmpty(directDownloadUri)) {
             decodedUri = directDownloadUri;
+            if (!decodedUri.contains(",")) {
+                addUriToQueue(torrentsToBeDownloaded, decodedUri);
+            } else {
+                String[] uris = decodedUri.split(",");
+                Stream.of(uris).forEach(uri -> addUriToQueue(torrentsToBeDownloaded, uri));
+            }
         }
+        if(torrentsToBeDownloaded.size()==1) {
+        return switchToProgress + (new Premiumize(httpHelper, theFilmDataBaseService)).addTorrentToQueue(torrentsToBeDownloaded.get(0));
+        } else {
+            Premiumize premiumize = new Premiumize(httpHelper, theFilmDataBaseService);
+            torrentsToBeDownloaded.forEach(premiumize::addTorrentToQueue);
+            return switchToProgress;
+        }
+    }
+
+    private void addUriToQueue(List<Torrent> torrentsToBeDownloaded, String decodedUri) {
         Torrent torrentToBeDownloaded = new Torrent("BoatController");
         torrentToBeDownloaded.magnetUri = decodedUri;
-        return switchToProgress + (new Premiumize(httpHelper, theFilmDataBaseService)).addTorrentToQueue(torrentToBeDownloaded);
+        torrentsToBeDownloaded.add(torrentToBeDownloaded);
     }
 
     @RequestMapping({"/boat/tfdb"})
