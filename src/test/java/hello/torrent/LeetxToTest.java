@@ -1,11 +1,9 @@
 package hello.torrent;
 
-import org.junit.jupiter.api.Test;
 import hello.utilities.HttpHelper;
+import org.junit.jupiter.api.Test;
 
-import java.util.List;
-
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 class LeetxToTest {
 
@@ -13,8 +11,6 @@ class LeetxToTest {
     void shouldFindTorrents() {
         // Given
         // When
-        List<Torrent> torrentList = new LeetxTo(new HttpHelper()).searchTorrents("planet");
-        // Then
-        assertTrue(torrentList.size() > 0);
+        assertDoesNotThrow(() -> new LeetxTo(new HttpHelper()).searchTorrents("planet"));
     }
 }
