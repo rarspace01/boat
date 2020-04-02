@@ -50,23 +50,23 @@ public final class BoatController {
     public final String search() {
         return "<!DOCTYPE html>\n" +
                 "<html>\n" +
-                "<body style=\"font-size: 4vw;\">\n" +
+                "<body style=\"font-size: 2em;\">\n" +
                 "\n" +
                 "<h2>Here to serve you</h2>\n" +
                 "\n" +
                 "<form action=\"../boat\" target=\"_blank\" method=\"GET\">\n" +
                 "  Title:<br>\n" +
-                "  <input type=\"text\" name=\"q\" value=\"\" style=\"font-size: 4vw; \">\n" +
+                "  <input type=\"text\" name=\"q\" value=\"\" style=\"font-size: 2em; \">\n" +
                 "  <br>\n" +
-                "  <input type=\"submit\" value=\"Search\" style=\"font-size: 4vw; \">\n" +
+                "  <input type=\"submit\" value=\"Search\" style=\"font-size: 2em; \">\n" +
                 "</form>\n" +
                 "  <br>\n" +
                 "  <br>\n" +
                 "<form action=\"../boat/download/\" target=\"_blank\" method=\"POST\">\n" +
                 "  Direct download URL (multiple seperate by comma):<br>\n" +
-                "  <input type=\"text\" name=\"dd\" value=\"\" style=\"font-size: 4vw; \">\n" +
+                "  <input type=\"text\" name=\"dd\" value=\"\" style=\"font-size: 2em; \">\n" +
                 "  <br>\n" +
-                "  <input type=\"submit\" value=\"Download\" style=\"font-size: 4vw; \">\n" +
+                "  <input type=\"submit\" value=\"Download\" style=\"font-size: 2em; \">\n" +
                 "</form>\n" +
                 "<br/>\n" +
                 switchToProgress.replace("..", "../boat") +
