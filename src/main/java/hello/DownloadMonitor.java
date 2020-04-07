@@ -32,6 +32,7 @@ public class DownloadMonitor {
 
     private static final int SECONDS_BETWEEN_DOWNLOAD_POLLING = 30;
     private static final int SECONDS_BETWEEN_SEARCH_ENGINE_POLLING = 60;
+    private static final int SECONDS_BETWEEN_CLEAR_TRANSFER_POLLING = 3600;
     private static final Logger log = LoggerFactory.getLogger(DownloadMonitor.class);
 
     private boolean isDownloadInProgress = false;
@@ -57,11 +58,17 @@ public class DownloadMonitor {
     public void checkForDownloadableTorrents() {
         log.debug("checkForDownloadableTorrents()");
         if (!isDownloadInProgress) {
-            checkForDownloadbleTorrentsAndDownloadTheFirst();
+            checkForDownloadableTorrentsAndDownloadTheFirst();
         }
     }
 
-    private void checkForDownloadbleTorrentsAndDownloadTheFirst() {
+    @Scheduled(fixedRate = SECONDS_BETWEEN_CLEAR_TRANSFER_POLLING * 1000)
+    public void clearTransferTorrents() {
+        log.debug("clearTransferTorrents()");
+        premiumize.getRemoteTorrents().stream().filter(torrent -> torrent.status.contains("error")).forEach(torrent -> premiumize.delete(torrent));
+    }
+
+    private void checkForDownloadableTorrentsAndDownloadTheFirst() {
         torrentMetaService.refreshTorrents();
         boolean returnToMonitor = false;
         for (Torrent remoteTorrent : torrentMetaService.getActiveTorrents()) {
