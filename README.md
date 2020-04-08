@@ -7,7 +7,7 @@ Run `/runPirateboat.sh` to have an autoupdate of the newest version.
 
 tested with:
 ```
-openjdk version "13.0.1"
+openjdk version "14 2020-03-17"
 ```
 
 Build Status:
