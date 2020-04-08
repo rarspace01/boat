@@ -1,4 +1,7 @@
 if: branch = master
+env:
+  - GRADLEPARAMS="jacocoTestReport coveralls build"
+  - GRADLEPARAMS="assemble"
 os:
   - linux
 notifications:
@@ -14,7 +17,7 @@ cache:
     - $HOME/.gradle/caches/
     - $HOME/.gradle/wrapper/
 script:
-  - ./gradlew jacocoTestReport coveralls build --parallel
+  - ./gradlew $GRADLEPARAMS
 before_deploy:
   # Set up git user name and tag this commit
   - git config --local user.name "rarspace01"
