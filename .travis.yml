@@ -30,9 +30,11 @@ deploy:
     skip_cleanup: true
     on:
       branch: master
+      condition: $GRADLEPARAMS = "assemble"
   - provider: script
     script: set +e;curl $SERVERURL/boat/shutdown|| true
     on:
       branch: master
+      condition: $GRADLEPARAMS = "assemble"
 #  yon:
 #    tags: true
