@@ -1,14 +1,11 @@
 if: branch = master
-env:
-  - GRADLEPARAMS="jacocoTestReport coveralls build"
-  - GRADLEPARAMS="assemble"
 os:
   - linux
 notifications:
   email: false
 before_script:
 language: java
-jdk: openjdk13
+jdk: openjdk14
 before_cache:
   - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
   - rm -fr $HOME/.gradle/caches/*/plugin-resolution/
@@ -17,7 +14,7 @@ cache:
     - $HOME/.gradle/caches/
     - $HOME/.gradle/wrapper/
 script:
-  - ./gradlew $GRADLEPARAMS
+  - ./gradlew jacocoTestReport coveralls build
 before_deploy:
   # Set up git user name and tag this commit
   - git config --local user.name "rarspace01"
@@ -30,11 +27,9 @@ deploy:
     skip_cleanup: true
     on:
       branch: master
-      condition: $GRADLEPARAMS = "assemble"
   - provider: script
     script: set +e;curl $SERVERURL/boat/shutdown|| true
     on:
       branch: master
-      condition: $GRADLEPARAMS = "assemble"
 #  yon:
 #    tags: true

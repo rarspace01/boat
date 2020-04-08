@@ -121,7 +121,3 @@ test {
 wrapper {
     distributionType = Wrapper.DistributionType.ALL
 }
-
-tasks.withType(Test) {
-    maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
-}
