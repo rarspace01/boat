@@ -12,7 +12,6 @@ import hello.utilities.PropertiesHelper;
 import hello.utilities.StreamGobbler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -66,9 +65,9 @@ public class DownloadMonitor {
     }
 
     private boolean isRcloneInstalled() {
-        if(isRcloneInstalled == null) {
-            isRcloneInstalled=ProcessUtil.isRcloneInstalled();
-            if(!isRcloneInstalled) {
+        if (isRcloneInstalled == null) {
+            isRcloneInstalled = ProcessUtil.isRcloneInstalled();
+            if (!isRcloneInstalled) {
                 log.error("no rclone found. Downloads not possible");
             }
         }
@@ -178,7 +177,8 @@ public class DownloadMonitor {
     private void rcloneDownloadFileToGdrive(String fileURLFromTorrent, String destinationPath) {
         log.info("D[" + fileURLFromTorrent + "]");
         ProcessBuilder builder = new ProcessBuilder();
-        builder.command("bash","-c","rclone", "copyurl", fileURLFromTorrent, destinationPath);
+        final String commandToRun = String.format("\"rclone copyurl '%s' '%s'\"", fileURLFromTorrent, destinationPath);
+        builder.command("bash", "-c", commandToRun);
         builder.directory(new File(System.getProperty("user.home")));
         Process process = null;
         int exitCode = -1;
