@@ -1,6 +1,7 @@
 package hello;
 
 import hello.info.TheFilmDataBaseService;
+import hello.info.TorrentMetaService;
 import hello.torrent.Premiumize;
 import hello.torrent.Torrent;
 import hello.torrent.TorrentHelper;
@@ -28,14 +29,17 @@ public final class BoatController {
     private final String switchToProgress = "<a href=\"../debug\">Show Progress</a> ";
     private final TorrentSearchEngineService torrentSearchEngineService;
     private final HttpHelper httpHelper;
+    private final TorrentMetaService torrentMetaService;
     private final TheFilmDataBaseService theFilmDataBaseService;
 
     @Autowired
     public BoatController(TorrentSearchEngineService torrentSearchEngineService,
                           HttpHelper httpHelper,
+                          TorrentMetaService torrentMetaService,
                           TheFilmDataBaseService theFilmDataBaseService) {
         this.torrentSearchEngineService = torrentSearchEngineService;
         this.httpHelper = httpHelper;
+        this.torrentMetaService = torrentMetaService;
         this.theFilmDataBaseService = theFilmDataBaseService;
     }
 
@@ -110,7 +114,7 @@ public final class BoatController {
     @NotNull
     public final String downloadTorrentToPremiumize(@RequestParam(value = "d", required = false) String downloadUri, @RequestParam(value = "dd", required = false) String directDownloadUri) {
         List<Torrent> torrentsToBeDownloaded = new ArrayList<>();
-        String decodedUri = "";
+        String decodedUri;
         if (Strings.isNotEmpty(downloadUri)) {
             byte[] magnetUri = Base64.getUrlDecoder().decode(downloadUri);
             decodedUri = new String(magnetUri, StandardCharsets.UTF_8);
@@ -148,7 +152,8 @@ public final class BoatController {
     @GetMapping({"/boat/debug"})
     @NotNull
     public final String getDebugInfo() {
-        ArrayList<Torrent> remoteTorrents = new Premiumize(httpHelper, theFilmDataBaseService).getRemoteTorrents();
+        torrentMetaService.refreshTorrents();
+        List<Torrent> remoteTorrents = torrentMetaService.getActiveTorrents();
         return "v:" + PropertiesHelper.getVersion() + "<br/>ActiveSearchEngines: " + torrentSearchEngineService.getActiveSearchEngines() + "<br/>D: " + remoteTorrents;
     }
 
