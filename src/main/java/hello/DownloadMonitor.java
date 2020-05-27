@@ -7,10 +7,12 @@ import hello.torrent.Torrent;
 import hello.torrent.TorrentFile;
 import hello.torrent.TorrentSearchEngineService;
 import hello.utilities.HttpHelper;
+import hello.utilities.ProcessUtil;
 import hello.utilities.PropertiesHelper;
 import hello.utilities.StreamGobbler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -38,6 +40,7 @@ public class DownloadMonitor {
     private boolean isDownloadInProgress = false;
     private Premiumize premiumize;
     private final TheFilmDataBaseService theFilmDataBaseService;
+    private Boolean isRcloneInstalled;
 
     public DownloadMonitor(TorrentSearchEngineService torrentSearchEngineService,
                            HttpHelper httpHelper,
@@ -57,9 +60,19 @@ public class DownloadMonitor {
     @Scheduled(fixedRate = SECONDS_BETWEEN_DOWNLOAD_POLLING * 1000)
     public void checkForDownloadableTorrents() {
         log.debug("checkForDownloadableTorrents()");
-        if (!isDownloadInProgress) {
+        if (!isDownloadInProgress && isRcloneInstalled()) {
             checkForDownloadableTorrentsAndDownloadTheFirst();
         }
+    }
+
+    private boolean isRcloneInstalled() {
+        if(isRcloneInstalled == null) {
+            isRcloneInstalled=ProcessUtil.isRcloneInstalled();
+            if(!isRcloneInstalled) {
+                log.error("no rclone found. Downloads not possible");
+            }
+        }
+        return isRcloneInstalled;
     }
 
     @Scheduled(fixedRate = SECONDS_BETWEEN_CLEAR_TRANSFER_POLLING * 1000)
