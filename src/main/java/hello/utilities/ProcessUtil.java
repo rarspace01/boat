@@ -7,7 +7,7 @@ public class ProcessUtil {
 
     public static boolean isRcloneInstalled() {
         final ProcessBuilder builder = new ProcessBuilder();
-        builder.command("rlcone", "version");
+        builder.command("bash","-c","rlcone", "version");
         builder.directory(new File(System.getProperty("user.home")));
         Process process;
         try {
