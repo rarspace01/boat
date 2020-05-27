@@ -53,6 +53,7 @@ public class DownloadMonitor {
 
     @Scheduled(fixedRate = SECONDS_BETWEEN_SEARCH_ENGINE_POLLING * 1000)
     public void refreshTorrentSearchEngines() {
+        log.debug("refreshTorrentSearchEngines()");
         torrentSearchEngineService.refreshTorrentSearchEngines();
     }
 
