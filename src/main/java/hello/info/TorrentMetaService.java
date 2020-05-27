@@ -19,7 +19,7 @@ public class TorrentMetaService {
         return activeTorrents;
     }
 
-    private List<Torrent> activeTorrents = new ArrayList<>();
+    private final List<Torrent> activeTorrents = new ArrayList<>();
 
     @Autowired
     public TorrentMetaService(HttpHelper httpHelper, TheFilmDataBaseService theFilmDataBaseService) {
@@ -28,29 +28,24 @@ public class TorrentMetaService {
 
     public void refreshTorrents() {
         ArrayList<Torrent> remoteTorrents = premiumize.getRemoteTorrents();
-        // deleteNonexisting remoteTorrent
-        activeTorrents.retainAll(remoteTorrents);
-        List<Torrent> newTorrentList = remoteTorrents.stream().map(remoteTorrent -> {
-            int indexOfRemoteTorrent = activeTorrents.indexOf(remoteTorrent);
-            if (indexOfRemoteTorrent == -1) {
-                return remoteTorrent;
+        List<Torrent> newTorrentList = remoteTorrents.stream().peek(remoteTorrent -> activeTorrents.forEach(cachedTorrent -> {
+            if(cachedTorrent.getTorrentId().equals(remoteTorrent.getTorrentId())) {
+                if (remoteTorrent.status.equals("finished")) {
+                    remoteTorrent.status = cachedTorrent.status;
+                }
             }
-            Torrent activeTorrent = activeTorrents.get(indexOfRemoteTorrent);
-            if (remoteTorrent.status.equals("finished")) {
-                remoteTorrent.status = activeTorrent.status;
-            }
-            return remoteTorrent;
-        }).collect(Collectors.toList());
+        })).collect(Collectors.toList());
         activeTorrents.clear();
         activeTorrents.addAll(newTorrentList);
     }
 
     public void updateTorrent(Torrent torrentUpdate) {
         if (torrentUpdate != null) {
-            int indexOf = activeTorrents.indexOf(torrentUpdate);
-            if(indexOf != -1) {
-                activeTorrents.set(indexOf,torrentUpdate);
-            }
+            activeTorrents.forEach(torrent -> {
+                if (torrentUpdate.getTorrentId().equals(torrent.getTorrentId())) {
+                    torrent.status = torrentUpdate.status;
+                }
+            });
         }
     }
 
