@@ -3,6 +3,8 @@ package hello.info;
 import hello.torrent.Premiumize;
 import hello.torrent.Torrent;
 import hello.utilities.HttpHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -14,6 +16,9 @@ import java.util.stream.Collectors;
 public class TorrentMetaService {
 
     private final Premiumize premiumize;
+
+    private static final Logger log = LoggerFactory.getLogger(TorrentMetaService.class);
+
 
     public List<Torrent> getActiveTorrents() {
         return activeTorrents;
@@ -44,6 +49,7 @@ public class TorrentMetaService {
             activeTorrents.forEach(torrent -> {
                 if (torrentUpdate.getTorrentId().equals(torrent.getTorrentId())) {
                     torrent.status = torrentUpdate.status;
+                    log.info("Updated torrent to status:" + torrentUpdate.status);
                 }
             });
         }
