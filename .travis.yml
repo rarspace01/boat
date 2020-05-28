@@ -14,7 +14,7 @@ cache:
     - $HOME/.gradle/caches/
     - $HOME/.gradle/wrapper/
 script:
-  - ./gradlew jacocoTestReport coveralls dependencyCheckAnalyze build
+  - ./gradlew jacocoTestReport coveralls build
 before_deploy:
   # Set up git user name and tag this commit
   - git config --local user.name "rarspace01"
@@ -29,6 +29,10 @@ deploy:
       branch: master
   - provider: script
     script: set +e;curl $SERVERURL/boat/shutdown|| true
+    on:
+      branch: master
+  - provider: script
+    script: ./gradlew dependencyCheckAnalyze
     on:
       branch: master
 #  yon:
