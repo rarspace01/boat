@@ -50,7 +50,6 @@ public class Torrent {
         }
         String magnetUriBase64 = "";
         if (magnetUri != null) {
-            stringBuilder.append("magnetUri:[" + this.magnetUri + "]");
             magnetUriBase64 = Base64.getUrlEncoder().encodeToString(magnetUri.getBytes(StandardCharsets.UTF_8));
         }
 
