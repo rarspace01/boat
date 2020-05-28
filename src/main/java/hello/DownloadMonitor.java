@@ -84,7 +84,8 @@ public class DownloadMonitor {
     private void checkForDownloadableTorrentsAndDownloadTheFirst() {
         torrentMetaService.refreshTorrents();
         boolean returnToMonitor = false;
-        for (Torrent remoteTorrent : torrentMetaService.getActiveTorrents()) {
+        List<Torrent> activeTorrents = torrentMetaService.getActiveTorrents();
+        for (Torrent remoteTorrent : activeTorrents) {
             if (checkIfTorrentCanBeDownloaded(remoteTorrent) && !returnToMonitor) {
                 isDownloadInProgress = true;
 
