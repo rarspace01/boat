@@ -14,7 +14,7 @@ cache:
     - $HOME/.gradle/caches/
     - $HOME/.gradle/wrapper/
 script:
-  - ./gradlew jacocoTestReport coveralls build
+  - ./gradlew jacocoTestReport coveralls dependencyCheckAnalyze build
 before_deploy:
   # Set up git user name and tag this commit
   - git config --local user.name "rarspace01"
