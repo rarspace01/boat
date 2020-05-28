@@ -157,11 +157,7 @@ public final class BoatController {
     @GetMapping({"/boat/debug"})
     @NonNull
     public final String getDebugInfo() {
-        log.info("prerefresh:");
-        log.info(torrentMetaService.getActiveTorrents().toString());
         torrentMetaService.refreshTorrents();
-        log.info("afterrefresh:");
-        log.info(torrentMetaService.getActiveTorrents().toString());
         List<Torrent> remoteTorrents = torrentMetaService.getActiveTorrents();
         return "v:" + PropertiesHelper.getVersion() + "<br/>ActiveSearchEngines: " + torrentSearchEngineService.getActiveSearchEngines() + "<br/>D: " + remoteTorrents;
     }
