@@ -10,6 +10,8 @@ import hello.torrent.TorrentSearchEngineService;
 import hello.utilities.HttpHelper;
 import hello.utilities.PropertiesHelper;
 import org.apache.logging.log4j.util.Strings;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -31,6 +33,9 @@ public final class BoatController {
     private final HttpHelper httpHelper;
     private final TorrentMetaService torrentMetaService;
     private final TheFilmDataBaseService theFilmDataBaseService;
+
+    private static final Logger log = LoggerFactory.getLogger(BoatController.class);
+
 
     @Autowired
     public BoatController(TorrentSearchEngineService torrentSearchEngineService,
@@ -152,7 +157,11 @@ public final class BoatController {
     @GetMapping({"/boat/debug"})
     @NotNull
     public final String getDebugInfo() {
+        log.info("prerefresh:");
+        log.info(torrentMetaService.getActiveTorrents().toString());
         torrentMetaService.refreshTorrents();
+        log.info("afterrefresh:");
+        log.info(torrentMetaService.getActiveTorrents().toString());
         List<Torrent> remoteTorrents = torrentMetaService.getActiveTorrents();
         return "v:" + PropertiesHelper.getVersion() + "<br/>ActiveSearchEngines: " + torrentSearchEngineService.getActiveSearchEngines() + "<br/>D: " + remoteTorrents;
     }
