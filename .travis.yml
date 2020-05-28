@@ -31,9 +31,9 @@ deploy:
     script: set +e;curl $SERVERURL/boat/shutdown|| true
     on:
       branch: master
-  - provider: script
-    script: ./gradlew dependencyCheckAnalyze
-    on:
-      branch: master
+#  - provider: script
+#    script: ./gradlew dependencyCheckAnalyze
+#    on:
+#      branch: master
 #  yon:
 #    tags: true
