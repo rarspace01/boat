@@ -39,6 +39,7 @@ public class Torrent {
 
     @Override
     public String toString() {
+        StringBuilder stringBuilder = new StringBuilder();
         DecimalFormat df = new DecimalFormat("#.##");
         double seedRatio;
 
@@ -49,10 +50,10 @@ public class Torrent {
         }
         String magnetUriBase64 = "";
         if (magnetUri != null) {
+            stringBuilder.append("magnetUri:[" + this.magnetUri + "]");
             magnetUriBase64 = Base64.getUrlEncoder().encodeToString(magnetUri.getBytes(StandardCharsets.UTF_8));
         }
 
-        StringBuilder stringBuilder = new StringBuilder();
 
         stringBuilder.append("[" + this.name + "]");
         if (this.size != null) {
