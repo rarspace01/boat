@@ -166,6 +166,10 @@ public class Premiumize extends HttpUser {
                 tempTorrent.file_id = cleanJsonNull(tempTorrent.file_id);
                 tempTorrent.remoteId = localNode.get("id").toString().replace("\"", "");
                 tempTorrent.status = localNode.get("status").asText();
+                String src = localNode.get("src").asText();
+                if(src.contains("btih")) {
+                    tempTorrent.magnetUri = src;
+                }
                 String[] messages = localNode.get("message").asText().split(",");
                 if (messages.length == 3) {
                     tempTorrent.eta = messages[2];

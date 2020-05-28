@@ -95,7 +95,7 @@ public class Torrent {
         Pattern magnetPattern = Pattern.compile("(btih:)([a-z0-9]*)(&)");
         Matcher matcher = magnetPattern.matcher(this.magnetUri);
         if (matcher.find()) {
-            return matcher.group(2);
+            return matcher.group(2).toLowerCase();
         } else {
             return String.valueOf(this.hashCode());
         }
