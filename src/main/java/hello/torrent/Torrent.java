@@ -73,7 +73,11 @@ public class Torrent {
 //            stringBuilder.append(" RID:" + remoteId);
 //        }
         if (this.status != null && this.progress != null) {
-            stringBuilder.append(" " + this.status + "/" + this.progress);
+            String progress = "/" + this.progress;
+            if(status.contains("Uploading")){
+                progress ="";
+            }
+            stringBuilder.append(" " + this.status + progress);
         }
         if (eta != null) {
             stringBuilder.append(" ETA:" + this.eta);

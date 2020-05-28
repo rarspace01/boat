@@ -99,7 +99,7 @@ public class DownloadMonitor {
 
                 // check if SingleFileDownload
                 if (premiumize.isSingleFileDownload(remoteTorrent)) {
-                    remoteTorrent.status = "Uploading: 0/1 done";
+                    remoteTorrent.status = setUploadStatus(0,1);
                     String fileURLFromTorrent = premiumize.getMainFileURLFromTorrent(remoteTorrent);
                     if (remoteTorrent.name.contains("magnet:?")) {
                         remoteTorrent.name = extractFileNameFromUrl(fileURLFromTorrent);
@@ -109,7 +109,7 @@ public class DownloadMonitor {
                     rcloneDownloadFileToGdrive(fileURLFromTorrent, PropertiesHelper.getProperty("rclonedir") + "/" + buildFilename(remoteTorrent.name, fileURLFromTorrent));
                     //uploadFile()
                     // cleanup afterwards
-                    remoteTorrent.status = "Uploading: 1/1 done";
+                    remoteTorrent.status = setUploadStatus(1,1);;
                     torrentMetaService.updateTorrent(remoteTorrent);
                     premiumize.delete(remoteTorrent);
                 } else { // start multifile download
@@ -119,12 +119,12 @@ public class DownloadMonitor {
                     int fileCount = filesFromTorrent.size();
                     for (TorrentFile torrentFile : filesFromTorrent) {
                         // check filesize to get rid of samples and NFO files?
-                        remoteTorrent.status = String.format("Uploading: %d/%d done", fileNumber, fileCount);
+                        remoteTorrent.status = setUploadStatus(fileNumber, fileCount);
                         torrentMetaService.updateTorrent(remoteTorrent);
                         // downloadFile(torrentFile.url, localPath);
                         rcloneDownloadFileToGdrive(torrentFile.url, PropertiesHelper.getProperty("rclonedir") + "/multipart/" + remoteTorrent.name + "/" + torrentFile.name);
                         fileNumber++;
-                        remoteTorrent.status = String.format("Uploading: %d/%d done", fileNumber, fileCount);
+                        remoteTorrent.status = setUploadStatus(fileNumber, fileCount);
                         torrentMetaService.updateTorrent(remoteTorrent);
                     }
                     // cleanup afterwards
@@ -134,6 +134,10 @@ public class DownloadMonitor {
                 returnToMonitor = true;
             }
         }
+    }
+
+    private String setUploadStatus(int fileNumber, int fileCount) {
+        return String.format("Uploading: %d/%d done", fileNumber, fileCount);
     }
 
     private String buildFilename(String name, String fileURLFromTorrent) {
