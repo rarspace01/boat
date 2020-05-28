@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import javax.validation.constraints.NotNull;
+import lombok.NonNull;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -49,13 +49,13 @@ public final class BoatController {
     }
 
     @GetMapping({"/"})
-    @NotNull
+    @NonNull
     public final String index() {
         return "Greetings from Spring Boot!";
     }
 
     @GetMapping({"/search"})
-    @NotNull
+    @NonNull
     public final String search() {
         return "<!DOCTYPE html>\n" +
                 "<html>\n" +
@@ -84,8 +84,8 @@ public final class BoatController {
     }
 
     @GetMapping({"/boat"})
-    @NotNull
-    public final String getTorrents(@RequestParam("q") @NotNull String searchString) {
+    @NonNull
+    public final String getTorrents(@RequestParam("q") @NonNull String searchString) {
         List<Torrent> combineResults = new ArrayList<>();
 
         long currentTimeMillis = System.currentTimeMillis();
@@ -116,7 +116,7 @@ public final class BoatController {
     }
 
     @RequestMapping({"/boat/download"})
-    @NotNull
+    @NonNull
     public final String downloadTorrentToPremiumize(@RequestParam(value = "d", required = false) String downloadUri, @RequestParam(value = "dd", required = false) String directDownloadUri) {
         List<Torrent> torrentsToBeDownloaded = new ArrayList<>();
         String decodedUri;
@@ -149,13 +149,13 @@ public final class BoatController {
     }
 
     @RequestMapping({"/boat/tfdb"})
-    @NotNull
+    @NonNull
     public final String searchTfdb(@RequestParam(value = "q") String query) {
         return theFilmDataBaseService.search(query).toString();
     }
 
     @GetMapping({"/boat/debug"})
-    @NotNull
+    @NonNull
     public final String getDebugInfo() {
         log.info("prerefresh:");
         log.info(torrentMetaService.getActiveTorrents().toString());
@@ -167,7 +167,7 @@ public final class BoatController {
     }
 
     @GetMapping({"/boat/shutdown"})
-    @NotNull
+    @NonNull
     public final void shutdownServer() {
         System.exit(0);
     }
