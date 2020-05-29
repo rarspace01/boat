@@ -59,7 +59,6 @@ public class DownloadMonitor {
 
     @Scheduled(fixedRate = SECONDS_BETWEEN_DOWNLOAD_POLLING * 1000)
     public void checkForDownloadableTorrents() {
-        log.debug("checkForDownloadableTorrents()");
         if (!isDownloadInProgress && isRcloneInstalled()) {
             checkForDownloadableTorrentsAndDownloadTheFirst();
         }
@@ -77,67 +76,52 @@ public class DownloadMonitor {
 
     @Scheduled(fixedRate = SECONDS_BETWEEN_CLEAR_TRANSFER_POLLING * 1000)
     public void clearTransferTorrents() {
-        log.debug("clearTransferTorrents()");
         premiumize.getRemoteTorrents().stream().filter(torrent -> torrent.status.contains("error")).forEach(torrent -> premiumize.delete(torrent));
     }
 
     private void checkForDownloadableTorrentsAndDownloadTheFirst() {
         torrentMetaService.refreshTorrents();
-        boolean returnToMonitor = false;
         List<Torrent> activeTorrents = torrentMetaService.getActiveTorrents();
-        for (Torrent remoteTorrent : activeTorrents) {
-            if (checkIfTorrentCanBeDownloaded(remoteTorrent) && !returnToMonitor) {
+        final Torrent torrentToBeDownloaded = activeTorrents.stream().filter(this::checkIfTorrentCanBeDownloaded).findFirst().orElse(null);
+        if(torrentToBeDownloaded != null) {
                 isDownloadInProgress = true;
-
-                Runnable runnable = () -> {
-                    log.info("determining MediaType");
-                    // try to determine MediaType for torrent to download
-                    log.info(String.format("determineMediaType: %s", theFilmDataBaseService.determineMediaType(remoteTorrent)));
-                };
-                Thread thread = new Thread(runnable);
-                thread.start();
-
-                // check if SingleFileDownload
-                if (premiumize.isSingleFileDownload(remoteTorrent)) {
-                    remoteTorrent.status = setUploadStatus(0,1);
-                    String fileURLFromTorrent = premiumize.getMainFileURLFromTorrent(remoteTorrent);
-                    if (remoteTorrent.name.contains("magnet:?")) {
-                        remoteTorrent.name = extractFileNameFromUrl(fileURLFromTorrent);
+                try {
+                    if (premiumize.isSingleFileDownload(torrentToBeDownloaded)) {
+                        updateUploadStatus(torrentToBeDownloaded, 0, 1);
+                        String fileURLFromTorrent = premiumize.getMainFileURLFromTorrent(torrentToBeDownloaded);
+                        if (torrentToBeDownloaded.name.contains("magnet:?")) {
+                            torrentToBeDownloaded.name = extractFileNameFromUrl(fileURLFromTorrent);
+                        }
+                        rcloneDownloadFileToGdrive(fileURLFromTorrent, PropertiesHelper.getProperty("rclonedir") + "/" + buildFilename(torrentToBeDownloaded.name, fileURLFromTorrent));
+                        updateUploadStatus(torrentToBeDownloaded, 1, 1);
+                    } else {
+                        List<TorrentFile> filesFromTorrent = premiumize.getFilesFromTorrent(torrentToBeDownloaded);
+                        int currentFileNumber = 0;
+                        int maxFileCount = filesFromTorrent.size();
+                        for (TorrentFile torrentFile : filesFromTorrent) {
+                            // check fileSize to get rid of samples and NFO files?
+                            updateUploadStatus(torrentToBeDownloaded, currentFileNumber, maxFileCount);
+                            rcloneDownloadFileToGdrive(torrentFile.url, PropertiesHelper.getProperty("rclonedir") + "/multipart/" + torrentToBeDownloaded.name + "/" + torrentFile.name);
+                            currentFileNumber++;
+                            updateUploadStatus(torrentToBeDownloaded, currentFileNumber, maxFileCount);
+                        }
                     }
-                    torrentMetaService.updateTorrent(remoteTorrent);
-                    //downloadFile(fileURLFromTorrent, localPath);
-                    rcloneDownloadFileToGdrive(fileURLFromTorrent, PropertiesHelper.getProperty("rclonedir") + "/" + buildFilename(remoteTorrent.name, fileURLFromTorrent));
-                    //uploadFile()
-                    // cleanup afterwards
-                    remoteTorrent.status = setUploadStatus(1,1);;
-                    torrentMetaService.updateTorrent(remoteTorrent);
-                    premiumize.delete(remoteTorrent);
-                } else { // start multifile download
-                    // download every file
-                    List<TorrentFile> filesFromTorrent = premiumize.getFilesFromTorrent(remoteTorrent);
-                    int fileNumber = 0;
-                    int fileCount = filesFromTorrent.size();
-                    for (TorrentFile torrentFile : filesFromTorrent) {
-                        // check filesize to get rid of samples and NFO files?
-                        remoteTorrent.status = setUploadStatus(fileNumber, fileCount);
-                        torrentMetaService.updateTorrent(remoteTorrent);
-                        // downloadFile(torrentFile.url, localPath);
-                        rcloneDownloadFileToGdrive(torrentFile.url, PropertiesHelper.getProperty("rclonedir") + "/multipart/" + remoteTorrent.name + "/" + torrentFile.name);
-                        fileNumber++;
-                        remoteTorrent.status = setUploadStatus(fileNumber, fileCount);
-                        torrentMetaService.updateTorrent(remoteTorrent);
-                    }
-                    // cleanup afterwards
-                    premiumize.delete(remoteTorrent);
+                    premiumize.delete(torrentToBeDownloaded);
+                } catch (Exception exception) {
+                    log.error(String.format("Couldn't download Torrent: %s",torrentToBeDownloaded),exception);
+                } finally {
+                    isDownloadInProgress = false;
                 }
-                isDownloadInProgress = false;
-                returnToMonitor = true;
-            }
         }
     }
 
-    private String setUploadStatus(int fileNumber, int fileCount) {
-        return String.format("Uploading: %d/%d done", fileNumber, fileCount);
+    private void updateUploadStatus(Torrent torrentToBeDownloaded, int currentFileNumber, int fileCount) {
+        torrentToBeDownloaded.status = getUploadStatusString(currentFileNumber, fileCount);
+        torrentMetaService.updateTorrent(torrentToBeDownloaded);
+    }
+
+    private String getUploadStatusString(int currentFileNumber, int fileCount) {
+        return String.format("Uploading: %d/%d done", currentFileNumber, fileCount);
     }
 
     private String buildFilename(String name, String fileURLFromTorrent) {
@@ -147,10 +131,6 @@ public class DownloadMonitor {
         } else {
             return name;
         }
-    }
-
-    private String extractFileNameFromTorrent(TorrentFile torrentFile) {
-        return extractFileNameFromUrl(torrentFile.name);
     }
 
     private String extractFileNameFromUrl(String fileURLFromTorrent) {
@@ -181,7 +161,6 @@ public class DownloadMonitor {
     }
 
     private void rcloneDownloadFileToGdrive(String fileURLFromTorrent, String destinationPath) {
-        log.info("D[" + fileURLFromTorrent + "]");
         ProcessBuilder builder = new ProcessBuilder();
         final String commandToRun = String.format("rclone copyurl '%s' '%s'", fileURLFromTorrent, destinationPath);
         builder.command("bash", "-c", commandToRun);
@@ -218,8 +197,7 @@ public class DownloadMonitor {
 
     private boolean checkIfTorrentCanBeDownloaded(Torrent remoteTorrent) {
         boolean remoteStatusIsFinished = remoteTorrent.status.contains("finished") || remoteTorrent.status.contains("seeding");
-        boolean isAlreadyDownloaded = new File("./downloads/" + remoteTorrent.name).exists();
-        return remoteStatusIsFinished && !isAlreadyDownloaded;
+        return remoteStatusIsFinished;
     }
 
 }

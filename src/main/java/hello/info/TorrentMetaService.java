@@ -49,6 +49,7 @@ public class TorrentMetaService {
             activeTorrents.forEach(torrent -> {
                 if (torrentUpdate.getTorrentId().equals(torrent.getTorrentId())) {
                     torrent.status = torrentUpdate.status;
+                    log.info(String.format("Updated torrent: %s",torrent.toString()));
                 }
             });
         }

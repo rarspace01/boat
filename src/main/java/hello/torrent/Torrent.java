@@ -6,7 +6,6 @@ import java.nio.charset.StandardCharsets;
 import java.text.DecimalFormat;
 import java.util.Base64;
 import java.util.Date;
-import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -60,8 +59,10 @@ public class Torrent {
             stringBuilder.append("R:" + df.format(this.searchRating) + " ");
         }
 
-        if (magnetUriBase64 != null && magnetUriBase64.length() > 0 && this.status == null ) {
+        if (magnetUriBase64 != null && magnetUriBase64.length() > 0 && this.status == null) {
             stringBuilder.append("<a href=\"./boat/download/?d=" + magnetUriBase64 + "\">Download</a>");
+        } else {
+            stringBuilder.append(String.format("[%s]", magnetUri));
         }
 
         if (Strings.isNotEmpty(this.debugRating)) {
@@ -74,8 +75,8 @@ public class Torrent {
 //        }
         if (this.status != null && this.progress != null) {
             String progress = "/" + this.progress;
-            if(status.contains("Uploading")){
-                progress ="";
+            if (status.contains("Uploading")) {
+                progress = "";
             }
             stringBuilder.append(" " + this.status + progress);
         }
