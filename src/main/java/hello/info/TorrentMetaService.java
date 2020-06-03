@@ -38,6 +38,10 @@ public class TorrentMetaService {
                 if (remoteTorrent.status.equals("finished")) {
                     remoteTorrent.status = cachedTorrent.status;
                 }
+            } else {
+                if (remoteTorrent.status.equals("finished")) {
+                    remoteTorrent.status = "read to upload";
+                }
             }
         })).collect(Collectors.toList());
         activeTorrents.clear();
