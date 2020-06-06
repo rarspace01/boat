@@ -196,7 +196,7 @@ public class DownloadMonitor {
     }
 
     private boolean checkIfTorrentCanBeDownloaded(Torrent remoteTorrent) {
-        boolean remoteStatusIsFinished = remoteTorrent.status.contains("finished") || remoteTorrent.status.contains("seeding");
+        boolean remoteStatusIsFinished = remoteTorrent.status.contains("finished") || remoteTorrent.status.contains("seeding") || remoteTorrent.status.contains("ready to upload");
         return remoteStatusIsFinished;
     }
 
