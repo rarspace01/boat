@@ -40,7 +40,7 @@ public class TorrentMetaService {
                 }
             } else {
                 if (remoteTorrent.status.equals("finished")) {
-                    remoteTorrent.status = "read to upload";
+                    remoteTorrent.status = "ready to upload";
                 }
             }
         })).collect(Collectors.toList());
