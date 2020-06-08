@@ -87,8 +87,7 @@ public class HttpHelper {
                 }
             }
 
-        } catch (IOException | NoSuchAlgorithmException | KeyManagementException e) {
-            log.info("Couldn't retrieve: " + url);
+        } catch (IOException | NoSuchAlgorithmException | KeyManagementException ignored) {
         }
 
         returnString = buildString.toString();
