@@ -24,7 +24,7 @@ public class TorrentMetaService {
         return activeTorrents;
     }
 
-    private final List<Torrent> activeTorrents = null;
+    private List<Torrent> activeTorrents = null;
 
     @Autowired
     public TorrentMetaService(HttpHelper httpHelper, TheFilmDataBaseService theFilmDataBaseService) {
@@ -44,7 +44,7 @@ public class TorrentMetaService {
                 }
             }
         })).collect(Collectors.toList());
-        activeTorrents.clear();
+        activeTorrents = new ArrayList<>();
         activeTorrents.addAll(newTorrentList);
     }
 
