@@ -80,9 +80,7 @@ public class DownloadMonitor {
     }
 
     private void checkForDownloadableTorrentsAndDownloadTheFirst() {
-        torrentMetaService.refreshTorrents();
-        List<Torrent> activeTorrents = torrentMetaService.getActiveTorrents();
-        final Torrent torrentToBeDownloaded = activeTorrents.stream().filter(this::checkIfTorrentCanBeDownloaded).findFirst().orElse(null);
+        final Torrent torrentToBeDownloaded = getTorrentToBeDownloaded();
         if(torrentToBeDownloaded != null) {
                 isDownloadInProgress = true;
                 try {
@@ -113,6 +111,12 @@ public class DownloadMonitor {
                     isDownloadInProgress = false;
                 }
         }
+    }
+
+    public Torrent getTorrentToBeDownloaded() {
+        torrentMetaService.refreshTorrents();
+        List<Torrent> activeTorrents = torrentMetaService.getActiveTorrents();
+        return activeTorrents.stream().filter(this::checkIfTorrentCanBeDownloaded).findFirst().orElse(null);
     }
 
     private void updateUploadStatus(Torrent torrentToBeDownloaded, int currentFileNumber, int fileCount) {
@@ -161,6 +165,7 @@ public class DownloadMonitor {
     }
 
     private void rcloneDownloadFileToGdrive(String fileURLFromTorrent, String destinationPath) {
+        log.info("D>[" + destinationPath + "]");
         ProcessBuilder builder = new ProcessBuilder();
         final String commandToRun = String.format("rclone copyurl '%s' '%s'", fileURLFromTorrent, destinationPath);
         builder.command("bash", "-c", commandToRun);
@@ -178,7 +183,6 @@ public class DownloadMonitor {
             e.printStackTrace();
         }
         assert exitCode == 0;
-        log.info("DF[" + destinationPath + "]");
     }
 
     private void downloadFile(String fileURLFromTorrent, String localPath) throws IOException {
@@ -196,8 +200,7 @@ public class DownloadMonitor {
     }
 
     private boolean checkIfTorrentCanBeDownloaded(Torrent remoteTorrent) {
-        boolean remoteStatusIsFinished = remoteTorrent.status.contains("finished") || remoteTorrent.status.contains("seeding") || remoteTorrent.status.contains("ready to upload");
-        return remoteStatusIsFinished;
+        return List.of("finished", "seeding", "ready to upload").stream().anyMatch(status -> remoteTorrent.status.contains(status));
     }
 
 }
