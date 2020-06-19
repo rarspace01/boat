@@ -26,7 +26,7 @@ public class TorrentHelper {
     public static final String TAG_REGEX = "(" + listOfReleaseTagsPiped() + ")";
 
     private static String listOfReleaseTagsPiped() {
-        return String.join("|", torrentService.getReleaseTags());
+        return String.join("|[ .]", torrentService.getReleaseTags());
     }
 
     public static double extractTorrentSizeFromString(Torrent tempTorrent) {
