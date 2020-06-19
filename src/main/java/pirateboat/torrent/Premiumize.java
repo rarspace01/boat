@@ -222,7 +222,7 @@ public class Premiumize extends HttpUser {
         String pageContent = httpHelper.getPage(checkUrl);
         JsonParser parser = new JsonParser();
         JsonElement jsonRoot = parser.parse(pageContent);
-        if (jsonRoot == null) {
+        if (jsonRoot == null || !jsonRoot.isJsonObject()) {
             log.error("couldn't retrieve cache for:" + checkUrl);
             log.error(pageContent);
         } else {
