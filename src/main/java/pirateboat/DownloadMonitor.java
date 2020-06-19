@@ -1,5 +1,6 @@
 package pirateboat;
 
+import pirateboat.info.CloudService;
 import pirateboat.info.TheFilmDataBaseService;
 import pirateboat.info.TorrentMetaService;
 import pirateboat.torrent.Premiumize;
@@ -30,6 +31,7 @@ public class DownloadMonitor {
 
     private final TorrentSearchEngineService torrentSearchEngineService;
     private final TorrentMetaService torrentMetaService;
+    private final CloudService cloudService;
 
     private static final int SECONDS_BETWEEN_DOWNLOAD_POLLING = 30;
     private static final int SECONDS_BETWEEN_SEARCH_ENGINE_POLLING = 60;
@@ -44,9 +46,11 @@ public class DownloadMonitor {
     public DownloadMonitor(TorrentSearchEngineService torrentSearchEngineService,
                            HttpHelper httpHelper,
                            TheFilmDataBaseService theFilmDataBaseService,
-                           TorrentMetaService torrentMetaService) {
+                           TorrentMetaService torrentMetaService,
+                           CloudService cloudService) {
         this.torrentSearchEngineService = torrentSearchEngineService;
         this.torrentMetaService = torrentMetaService;
+        this.cloudService = cloudService;
         this.premiumize = new Premiumize(httpHelper, theFilmDataBaseService);
         this.theFilmDataBaseService = theFilmDataBaseService;
     }
@@ -90,7 +94,7 @@ public class DownloadMonitor {
                         if (torrentToBeDownloaded.name.contains("magnet:?")) {
                             torrentToBeDownloaded.name = extractFileNameFromUrl(fileURLFromTorrent);
                         }
-                        rcloneDownloadFileToGdrive(fileURLFromTorrent, PropertiesHelper.getProperty("rclonedir") + "/" + buildFilename(torrentToBeDownloaded.name, fileURLFromTorrent));
+                        rcloneDownloadFileToGdrive(fileURLFromTorrent, cloudService.buildDestinationPath(torrentToBeDownloaded)+ "/" + buildFilename(torrentToBeDownloaded.name, fileURLFromTorrent));
                         updateUploadStatus(torrentToBeDownloaded, 1, 1);
                     } else {
                         List<TorrentFile> filesFromTorrent = premiumize.getFilesFromTorrent(torrentToBeDownloaded);
@@ -99,7 +103,7 @@ public class DownloadMonitor {
                         for (TorrentFile torrentFile : filesFromTorrent) {
                             // check fileSize to get rid of samples and NFO files?
                             updateUploadStatus(torrentToBeDownloaded, currentFileNumber, maxFileCount);
-                            rcloneDownloadFileToGdrive(torrentFile.url, PropertiesHelper.getProperty("rclonedir") + "/multipart/" + torrentToBeDownloaded.name + "/" + torrentFile.name);
+                            rcloneDownloadFileToGdrive(torrentFile.url, PropertiesHelper.getProperty("rclonedir") + "/transfer/multipart/" + torrentToBeDownloaded.name + "/" + torrentFile.name);
                             currentFileNumber++;
                             updateUploadStatus(torrentToBeDownloaded, currentFileNumber, maxFileCount);
                         }

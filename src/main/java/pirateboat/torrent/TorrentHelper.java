@@ -124,6 +124,14 @@ public class TorrentHelper {
                 .replaceAll("\\.", " ").trim();
     }
 
+    public static String getNormalizedTorrentStringWithSpacesKeepCase(String name) {
+        String string = name.replaceAll("(-[A-Z]+)", "");
+        return string.trim()
+                .replaceAll("[()]+", "")
+                .replaceAll("\\[[A-Za-z0-9. -]*\\]", "")
+                .replaceAll("\\.", " ").trim();
+    }
+
     public static String cleanNumberString(String value) {
         return value.replaceAll(",", "");
     }
