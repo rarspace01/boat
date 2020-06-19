@@ -1,7 +1,11 @@
 plugins {
     id "com.gradle.enterprise" version "3.0"
 }
-
+buildCache {
+    local {
+        enabled = true
+    }
+}
 gradleEnterprise {
     buildScan {
         server = "https://gradle-enterprise.company.com"
