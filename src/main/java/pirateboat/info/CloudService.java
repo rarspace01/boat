@@ -6,8 +6,6 @@ import pirateboat.torrent.TorrentHelper;
 import pirateboat.torrent.TorrentService;
 import pirateboat.utilities.PropertiesHelper;
 
-import static pirateboat.torrent.TorrentHelper.TAG_REGEX;
-
 @Service
 public class CloudService {
 
@@ -32,13 +30,13 @@ public class CloudService {
             cleanedString = cleanedString.substring(0, 1);
         }
         //
-        return basePath + "/" +typeOfMedia+"/"+ cleanedString + "/";
+        return basePath + "/" + typeOfMedia + "/" + cleanedString + "/";
     }
 
     private String determineTypeOfMedia(String cleanedString) {
-        if(cleanedString.matches("(S0[0-9]])|(Season)")) {
+        if (cleanedString.matches("(.[ .]++S[0-9]+.+)|(.+Season.+)")) {
             return "Series-Shows";
-        } else if(isMovieString(cleanedString)) {
+        } else if (isMovieString(cleanedString)) {
             return "Movies";
         }
         return "transfer";

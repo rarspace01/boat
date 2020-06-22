@@ -5,14 +5,14 @@ import org.junit.jupiter.api.Test;
 import pirateboat.torrent.Torrent;
 import pirateboat.utilities.PropertiesHelper;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class CloudServiceTest {
 
     private CloudService cloudService;
 
     @BeforeEach
-    public void beforeMethod(){
+    public void beforeMethod() {
         cloudService = new CloudService();
     }
 
@@ -25,7 +25,7 @@ class CloudServiceTest {
         // When
         String destinationPath = cloudService.buildDestinationPath(torrentToBeDownloaded);
         // Then
-        assertEquals(PropertiesHelper.getProperty("rclonedir")+"/Movies/M/",destinationPath);
+        assertEquals(PropertiesHelper.getProperty("rclonedir") + "/Movies/M/", destinationPath);
     }
 
     @Test
@@ -36,6 +36,17 @@ class CloudServiceTest {
         // When
         String destinationPath = cloudService.buildDestinationPath(torrentToBeDownloaded);
         // Then
-        assertEquals(PropertiesHelper.getProperty("rclonedir")+"/Movies/M/",destinationPath);
+        assertEquals(PropertiesHelper.getProperty("rclonedir") + "/Movies/M/", destinationPath);
+    }
+
+    @Test
+    void buildDestinationPathForMultiFileTorrentTest() {
+        // Given
+        Torrent torrentToBeDownloaded = new Torrent("test");
+        torrentToBeDownloaded.name = "Test and Test [UNCENSORED] Season 1-3 [1080p] [5.1 MP3] [x265][FINAL]";
+        // When
+        String destinationPath = cloudService.buildDestinationPath(torrentToBeDownloaded);
+        // Then
+        assertEquals(PropertiesHelper.getProperty("rclonedir") + "/Series-Shows/T/", destinationPath);
     }
 }
