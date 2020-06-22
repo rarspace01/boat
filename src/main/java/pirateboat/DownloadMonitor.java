@@ -103,7 +103,14 @@ public class DownloadMonitor {
                         for (TorrentFile torrentFile : filesFromTorrent) {
                             // check fileSize to get rid of samples and NFO files?
                             updateUploadStatus(torrentToBeDownloaded, currentFileNumber, maxFileCount);
-                            rcloneDownloadFileToGdrive(torrentFile.url, PropertiesHelper.getProperty("rclonedir") + "/transfer/multipart/" + torrentToBeDownloaded.name + "/" + torrentFile.name);
+                            String destinationPath = cloudService.buildDestinationPath(torrentToBeDownloaded);
+                            String targetFilePath;
+                            if(destinationPath.contains("transfer")) {
+                                targetFilePath = PropertiesHelper.getProperty("rclonedir") + "/transfer/multipart/" + torrentToBeDownloaded.name + "/" + torrentFile.name;
+                            } else {
+                                targetFilePath = destinationPath +"/"+ torrentToBeDownloaded.name + "/" + torrentFile.name;
+                            }
+                            rcloneDownloadFileToGdrive(torrentFile.url, targetFilePath);
                             currentFileNumber++;
                             updateUploadStatus(torrentToBeDownloaded, currentFileNumber, maxFileCount);
                         }

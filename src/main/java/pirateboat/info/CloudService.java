@@ -25,7 +25,7 @@ public class CloudService {
             cleanedString = split[0];
         }
         // remove articles
-        cleanedString = cleanedString.replaceAll("(A |The |Der )", "");
+        cleanedString = cleanedString.replaceAll("(A[ .]|The[ .]|Der[ .])", "");
         //
         cleanedString = cleanedString.trim();
         if (cleanedString.length() > 0) {

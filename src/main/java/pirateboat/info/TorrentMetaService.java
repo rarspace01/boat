@@ -24,7 +24,7 @@ public class TorrentMetaService {
         return activeTorrents;
     }
 
-    private List<Torrent> activeTorrents = null;
+    private List<Torrent> activeTorrents = new ArrayList<>();
 
     @Autowired
     public TorrentMetaService(HttpHelper httpHelper, TheFilmDataBaseService theFilmDataBaseService) {
