@@ -1,5 +1,9 @@
 package pirateboat;
 
+import org.springframework.http.MediaType;
+import org.springframework.web.HttpMediaTypeNotAcceptableException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseBody;
 import pirateboat.info.TheFilmDataBaseService;
 import pirateboat.info.TorrentMetaService;
 import pirateboat.torrent.Premiumize;
@@ -52,6 +56,12 @@ public final class BoatController {
     @NonNull
     public final String index() {
         return "Greetings from Spring Boot!";
+    }
+
+    @ResponseBody
+    @ExceptionHandler(HttpMediaTypeNotAcceptableException.class)
+    public String handleHttpMediaTypeNotAcceptableException() {
+        return "acceptable MIME type:" + MediaType.TEXT_HTML;
     }
 
     @GetMapping({"/search"})
