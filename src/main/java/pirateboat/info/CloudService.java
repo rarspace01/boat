@@ -26,6 +26,7 @@ public class CloudService {
         cleanedString = cleanedString.replaceAll("(A[ .]|The[ .]|Der[ .])", "");
         //
         cleanedString = cleanedString.trim();
+        cleanedString = cleanedString.replaceAll("\"","");
         if (cleanedString.length() > 0) {
             cleanedString = cleanedString.substring(0, 1);
         }
