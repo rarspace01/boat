@@ -49,4 +49,15 @@ class CloudServiceTest {
         // Then
         assertEquals(PropertiesHelper.getProperty("rclonedir") + "/Series-Shows/T/", destinationPath);
     }
+
+    @Test
+    void buildDestinationPathForSeriesTorrentTest() {
+        // Given
+        Torrent torrentToBeDownloaded = new Torrent("test");
+        torrentToBeDownloaded.name = "Series.S01E02.480p.x264-mSD[tag].mkv";
+        // When
+        String destinationPath = cloudService.buildDestinationPath(torrentToBeDownloaded);
+        // Then
+        assertEquals(PropertiesHelper.getProperty("rclonedir") + "/Series-Shows/S/", destinationPath);
+    }
 }
