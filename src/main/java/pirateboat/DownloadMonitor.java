@@ -94,7 +94,7 @@ public class DownloadMonitor {
                         if (torrentToBeDownloaded.name.contains("magnet:?")) {
                             torrentToBeDownloaded.name = extractFileNameFromUrl(fileURLFromTorrent);
                         }
-                        rcloneDownloadFileToGdrive(fileURLFromTorrent, cloudService.buildDestinationPath(torrentToBeDownloaded)+ "/" + buildFilename(torrentToBeDownloaded.name, fileURLFromTorrent));
+                        rcloneDownloadFileToGdrive(fileURLFromTorrent, cloudService.buildDestinationPath(torrentToBeDownloaded)+ buildFilename(torrentToBeDownloaded.name, fileURLFromTorrent));
                         updateUploadStatus(torrentToBeDownloaded, 1, 1);
                     } else {
                         List<TorrentFile> filesFromTorrent = premiumize.getFilesFromTorrent(torrentToBeDownloaded);
@@ -108,7 +108,7 @@ public class DownloadMonitor {
                             if(destinationPath.contains("transfer")) {
                                 targetFilePath = PropertiesHelper.getProperty("rclonedir") + "/transfer/multipart/" + torrentToBeDownloaded.name + "/" + torrentFile.name;
                             } else {
-                                targetFilePath = destinationPath +"/"+ torrentToBeDownloaded.name + "/" + torrentFile.name;
+                                targetFilePath = destinationPath + torrentToBeDownloaded.name + "/" + torrentFile.name;
                             }
                             rcloneDownloadFileToGdrive(torrentFile.url, targetFilePath);
                             currentFileNumber++;
