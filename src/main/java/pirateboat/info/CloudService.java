@@ -29,6 +29,7 @@ public class CloudService {
         if (cleanedString.length() > 0) {
             cleanedString = cleanedString.substring(0, 1);
         }
+        cleanedString=cleanedString.toUpperCase();
         //
         return basePath + "/" + typeOfMedia + "/" + cleanedString + "/";
     }
