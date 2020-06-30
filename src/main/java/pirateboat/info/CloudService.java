@@ -26,17 +26,19 @@ public class CloudService {
         cleanedString = cleanedString.replaceAll("(A[ .]|The[ .]|Der[ .])", "");
         //
         cleanedString = cleanedString.trim();
-        cleanedString = cleanedString.replaceAll("\"","");
+        cleanedString = cleanedString.replaceAll("\"", "");
         if (cleanedString.length() > 0) {
             cleanedString = cleanedString.substring(0, 1);
         }
-        cleanedString=cleanedString.toUpperCase();
+        cleanedString = cleanedString.toUpperCase();
         //
         return basePath + "/" + typeOfMedia + "/" + cleanedString + "/";
     }
 
     private String determineTypeOfMedia(String cleanedString) {
-        if (cleanedString.matches("(.+[ .]+S[0-9]+.+)|(.+Season.+)")) {
+        if (cleanedString.matches(".*[ ._-]+[re]*dump[ ._-]+.*")) {
+            return "transfer";
+        } else if (cleanedString.matches("(.+[ .]+S[0-9]+.+)|(.+Season.+)")) {
             return "Series-Shows";
         } else if (isMovieString(cleanedString)) {
             return "Movies";
