@@ -35,11 +35,11 @@ public class TorrentMetaService {
         ArrayList<Torrent> remoteTorrents = premiumize.getRemoteTorrents();
         List<Torrent> newTorrentList = remoteTorrents.stream().peek(remoteTorrent -> activeTorrents.forEach(cachedTorrent -> {
             if(cachedTorrent.getTorrentId().equals(remoteTorrent.getTorrentId())) {
-                if (remoteTorrent.status.equals("finished")) {
+                if (List.of("finished", "seeding").stream().anyMatch(status -> remoteTorrent.status.contains(status))) {
                     remoteTorrent.status = cachedTorrent.status;
                 }
             } else {
-                if (remoteTorrent.status.equals("finished")) {
+                if (List.of("finished", "seeding").stream().anyMatch(status -> remoteTorrent.status.contains(status))) {
                     remoteTorrent.status = "ready to upload";
                 }
             }
