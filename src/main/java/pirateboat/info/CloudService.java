@@ -36,7 +36,7 @@ public class CloudService {
     }
 
     private String determineTypeOfMedia(String cleanedString) {
-        if (cleanedString.matches(".*[ ._-]+[re]*dump[ ._-]+.*")) {
+        if (cleanedString.matches(".*[ ._-]+[re]*dump[ ._-]+.*") || cleanedString.matches(".*\\s[pP][dD][fF].*")) {
             return "transfer";
         } else if (cleanedString.matches("(.+[ .]+S[0-9]+.+)|(.+Season.+)")) {
             return "Series-Shows";
