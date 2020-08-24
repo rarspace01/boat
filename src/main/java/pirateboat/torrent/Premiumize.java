@@ -103,13 +103,13 @@ public class Premiumize extends HttpUser {
     }
 
     private void extractTorrentFilesFromJSONFolder(Torrent torrent, List<TorrentFile> returnList, JsonNode jsonFolder, String prefix) {
-        String responseFiles = httpHelper.getPage("https://www.premiumize.me/api/folder/list?id=" + String.valueOf(jsonFolder.get("id").asText()) +
+        String responseFiles = httpHelper.getPage("https://www.premiumize.me/api/folder/list?id=" + jsonFolder.get("id").asText() +
                 "&customer_id=" +
                 PropertiesHelper.getProperty("customer_id") + "&pin=" + PropertiesHelper.getProperty("pin"));
-        String folderName = prefix + String.valueOf(jsonFolder.get("name").asText()) + "/";
+        String folderName = prefix + jsonFolder.get("name").asText() + "/";
 
         ObjectMapper m = new ObjectMapper();
-        JsonNode rootNode = null;
+        JsonNode rootNode;
         try {
             rootNode = m.readTree(responseFiles);
             JsonNode localNodes = rootNode.path("content");
@@ -220,14 +220,11 @@ public class Premiumize extends HttpUser {
         String collected = torrents.stream().map(Torrent::getTorrentId).collect(Collectors.joining("&items" + urlEncodedBrackets + "=", "&items" + urlEncodedBrackets + "=", ""));
         String checkUrl = String.format(requestUrl, collected);
         String pageContent = httpHelper.getPage(checkUrl);
-        JsonParser parser = new JsonParser();
-        JsonElement jsonRoot = parser.parse(pageContent);
+        JsonElement jsonRoot = JsonParser.parseString(pageContent);
         if (jsonRoot == null || !jsonRoot.isJsonObject()) {
             log.error("couldn't retrieve cache for:" + checkUrl);
             log.error(pageContent);
         } else {
-
-
             JsonElement reponse = jsonRoot.getAsJsonObject().get("response");
             JsonArray reponseArray = reponse.getAsJsonArray();
             AtomicInteger index = new AtomicInteger();
