@@ -144,6 +144,7 @@ public class TorrentHelper {
                         torrent.name.toLowerCase().contains("tscam") ||
                         torrent.name.toLowerCase().contains(".cam.") ||
                         torrent.name.toLowerCase().contains("cam-rip") ||
+                        torrent.name.toLowerCase().contains("camrip") ||
                         torrent.name.toLowerCase().contains(".hdcam.") ||
                         torrent.name.toLowerCase().contains(" hdts") ||
                         torrent.name.toLowerCase().contains(" hd-ts") ||
