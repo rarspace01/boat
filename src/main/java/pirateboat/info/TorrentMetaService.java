@@ -1,6 +1,6 @@
 package pirateboat.info;
 
-import pirateboat.torrent.Premiumize;
+import pirateboat.multifileHoster.Premiumize;
 import pirateboat.torrent.Torrent;
 import pirateboat.utilities.HttpHelper;
 import org.slf4j.Logger;

@@ -6,7 +6,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
 import pirateboat.info.TheFilmDataBaseService;
 import pirateboat.info.TorrentMetaService;
-import pirateboat.torrent.Premiumize;
+import pirateboat.multifileHoster.MultifileHosterService;
+import pirateboat.multifileHoster.Premiumize;
 import pirateboat.torrent.Torrent;
 import pirateboat.torrent.TorrentHelper;
 import pirateboat.torrent.TorrentSearchEngine;
@@ -37,6 +38,7 @@ public final class BoatController {
     private final HttpHelper httpHelper;
     private final TorrentMetaService torrentMetaService;
     private final TheFilmDataBaseService theFilmDataBaseService;
+    private final MultifileHosterService multifileHosterService;
 
     private static final Logger log = LoggerFactory.getLogger(BoatController.class);
 
@@ -45,11 +47,13 @@ public final class BoatController {
     public BoatController(TorrentSearchEngineService torrentSearchEngineService,
                           HttpHelper httpHelper,
                           TorrentMetaService torrentMetaService,
-                          TheFilmDataBaseService theFilmDataBaseService) {
+                          TheFilmDataBaseService theFilmDataBaseService,
+                          MultifileHosterService multifileHosterService) {
         this.torrentSearchEngineService = torrentSearchEngineService;
         this.httpHelper = httpHelper;
         this.torrentMetaService = torrentMetaService;
         this.theFilmDataBaseService = theFilmDataBaseService;
+        this.multifileHosterService = multifileHosterService;
     }
 
     @GetMapping({"/"})
@@ -100,17 +104,15 @@ public final class BoatController {
 
         long currentTimeMillis = System.currentTimeMillis();
 
-        final List<TorrentSearchEngine> activeSearchEngines = new ArrayList<>();
-        activeSearchEngines.addAll(torrentSearchEngineService.getActiveSearchEngines());
+        final List<TorrentSearchEngine> activeSearchEngines = new ArrayList<>(torrentSearchEngineService.getActiveSearchEngines());
         activeSearchEngines.parallelStream()
                 .forEach(torrentSearchEngine -> combineResults.addAll(torrentSearchEngine.searchTorrents(searchString)));
         List<Torrent> returnResults = new ArrayList<>(cleanDuplicates(combineResults));
         // checkAllForCache
-        List<Torrent> cacheStateOfTorrents = new Premiumize(httpHelper, theFilmDataBaseService).getCacheStateOfTorrents(returnResults);
-        List<Torrent> torrentList = cacheStateOfTorrents.stream().map(torrent -> TorrentHelper.evaluateRating(torrent, searchString)).collect(Collectors.toList());
-        torrentList.sort(TorrentHelper.torrentSorter);
+        List<Torrent> cacheStateOfTorrents = multifileHosterService.getCachedStateOfTorrents(returnResults);
+        List<Torrent> torrentList = cacheStateOfTorrents.stream().map(torrent -> TorrentHelper.evaluateRating(torrent, searchString)).sorted(TorrentHelper.torrentSorter).collect(Collectors.toList());
 
-        System.out.println(String.format("Took: [%s]ms for [%s]", (System.currentTimeMillis() - currentTimeMillis), searchString));
+        System.out.printf("Took: [%s]ms for [%s]%n found [%s]", (System.currentTimeMillis() - currentTimeMillis), searchString, torrentList.size());
 
         return "G: " + torrentList.stream().limit(25).collect(Collectors.toList());
     }
@@ -127,7 +129,7 @@ public final class BoatController {
 
     @RequestMapping({"/boat/download"})
     @NonNull
-    public final String downloadTorrentToPremiumize(@RequestParam(value = "d", required = false) String downloadUri, @RequestParam(value = "dd", required = false) String directDownloadUri) {
+    public final String downloadTorrentToMultifileHoster(@RequestParam(value = "d", required = false) String downloadUri, @RequestParam(value = "dd", required = false) String directDownloadUri) {
         List<Torrent> torrentsToBeDownloaded = new ArrayList<>();
         String decodedUri;
         if (Strings.isNotEmpty(downloadUri)) {

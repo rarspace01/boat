@@ -1,5 +1,5 @@
 buildscript {
-    ext.spring_boot_version = '2.3.1.RELEASE'
+    ext.spring_boot_version = '2.3.4.RELEASE'
     repositories {
         mavenCentral()
         maven {
@@ -8,8 +8,8 @@ buildscript {
     }
     dependencies {
         classpath("org.springframework.boot:spring-boot-gradle-plugin:$spring_boot_version")
-        classpath("org.owasp:dependency-check-gradle:5.3.2.1")
-        classpath("org.kt3k.gradle.plugin:coveralls-gradle-plugin:2.8.3")
+        classpath("org.owasp:dependency-check-gradle:6.0.2")
+        classpath("gradle.plugin.org.kt3k.gradle.plugin:coveralls-gradle-plugin:2.10.2")
     }
 }
 
@@ -23,7 +23,7 @@ apply plugin: 'jacoco'
 apply plugin: 'com.github.kt3k.coveralls'
 
 jacoco {
-    toolVersion = "0.8.5+"
+    toolVersion = "0.8.6+"
 }
 
 jacocoTestReport {
@@ -71,9 +71,9 @@ dependencies {
     testAnnotationProcessor 'org.projectlombok:lombok:1.18.12'
 
     runtimeOnly("org.springframework.boot:spring-boot-properties-migrator")
-    testCompileOnly group: 'org.mockito', name: 'mockito-core', version: '3.3.3'
-    testCompileOnly group: 'org.mockito', name: 'mockito-junit-jupiter', version: '3.3.3'
-    testImplementation('org.junit.jupiter:junit-jupiter:5.6.2')
+    testCompileOnly group: 'org.mockito', name: 'mockito-core', version: '3.5.13'
+    testCompileOnly group: 'org.mockito', name: 'mockito-junit-jupiter', version: '3.5.13'
+    testImplementation('org.junit.jupiter:junit-jupiter:5.7.0')
     testImplementation("org.springframework.boot:spring-boot-starter-test:$spring_boot_version")
 
 }

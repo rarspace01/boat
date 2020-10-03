@@ -1,6 +1,7 @@
 package pirateboat.torrent;
 
 import pirateboat.info.TheFilmDataBaseService;
+import pirateboat.multifileHoster.Premiumize;
 import pirateboat.utilities.HttpHelper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,7 +32,7 @@ class PremiumizeTest {
         // When
         List<Torrent> cacheStateOfTorrents = premiumize.getCacheStateOfTorrents(listOfTorrents);
         // Then
-        assertTrue(cacheStateOfTorrents.get(0).isCached);
+        assertTrue(cacheStateOfTorrents.get(0).cached.size()>0);
     }
 
     @Test
@@ -46,7 +47,7 @@ class PremiumizeTest {
         // When
         List<Torrent> cacheStateOfTorrents = premiumize.getCacheStateOfTorrents(listOfTorrents);
         // Then
-        assertTrue(cacheStateOfTorrents.get(0).isCached);
+        assertTrue(cacheStateOfTorrents.get(0).cached.size()>0);
     }
 
     @Test()
@@ -60,6 +61,6 @@ class PremiumizeTest {
         // When
         List<Torrent> cacheStateOfTorrents = premiumize.getCacheStateOfTorrents(listOfTorrents);
         // Then
-        assertTrue(cacheStateOfTorrents.get(0).isCached);
+        assertTrue(cacheStateOfTorrents.get(0).cached.size()>0);
     }
 }

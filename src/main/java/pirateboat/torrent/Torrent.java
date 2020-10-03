@@ -4,8 +4,10 @@ import org.apache.logging.log4j.util.Strings;
 
 import java.nio.charset.StandardCharsets;
 import java.text.DecimalFormat;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Date;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -30,7 +32,7 @@ public class Torrent {
     public String file_id;
     public String remoteUrl;
     public String source;
-    public boolean isCached = false;
+    public List<String> cached = new ArrayList<>();
 
     public Torrent(String source) {
         this.source = source;

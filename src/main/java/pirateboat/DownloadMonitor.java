@@ -3,7 +3,8 @@ package pirateboat;
 import pirateboat.info.CloudService;
 import pirateboat.info.TheFilmDataBaseService;
 import pirateboat.info.TorrentMetaService;
-import pirateboat.torrent.Premiumize;
+import pirateboat.multifileHoster.MultifileHosterService;
+import pirateboat.multifileHoster.Premiumize;
 import pirateboat.torrent.Torrent;
 import pirateboat.torrent.TorrentFile;
 import pirateboat.torrent.TorrentSearchEngineService;
@@ -32,6 +33,7 @@ public class DownloadMonitor {
     private final TorrentSearchEngineService torrentSearchEngineService;
     private final TorrentMetaService torrentMetaService;
     private final CloudService cloudService;
+    private final MultifileHosterService multifileHosterService;
 
     private static final int SECONDS_BETWEEN_DOWNLOAD_POLLING = 30;
     private static final int SECONDS_BETWEEN_SEARCH_ENGINE_POLLING = 60;
@@ -47,10 +49,12 @@ public class DownloadMonitor {
                            HttpHelper httpHelper,
                            TheFilmDataBaseService theFilmDataBaseService,
                            TorrentMetaService torrentMetaService,
-                           CloudService cloudService) {
+                           CloudService cloudService,
+                           MultifileHosterService multifileHosterService) {
         this.torrentSearchEngineService = torrentSearchEngineService;
         this.torrentMetaService = torrentMetaService;
         this.cloudService = cloudService;
+        this.multifileHosterService = multifileHosterService;
         this.premiumize = new Premiumize(httpHelper, theFilmDataBaseService);
         this.theFilmDataBaseService = theFilmDataBaseService;
     }

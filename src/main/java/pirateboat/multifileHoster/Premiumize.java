@@ -1,4 +1,4 @@
-package pirateboat.torrent;
+package pirateboat.multifileHoster;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -6,6 +6,10 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import pirateboat.info.TheFilmDataBaseService;
+import pirateboat.torrent.HttpUser;
+import pirateboat.torrent.Torrent;
+import pirateboat.torrent.TorrentFile;
+import pirateboat.torrent.TorrentHelper;
 import pirateboat.utilities.HttpHelper;
 import pirateboat.utilities.PropertiesHelper;
 import org.slf4j.Logger;
@@ -17,7 +21,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-public class Premiumize extends HttpUser {
+public class Premiumize extends HttpUser implements MultifileHoster {
 
     private final TheFilmDataBaseService theFilmDataBaseService;
 
@@ -31,8 +35,7 @@ public class Premiumize extends HttpUser {
 
     public String addTorrentToQueue(Torrent toBeAddedTorrent) {
         String response;
-        String addTorrenntUrl = "https://www.premiumize.me/api/transfer/create?customer_id=" +
-                PropertiesHelper.getProperty("customer_id") + "&pin=" + PropertiesHelper.getProperty("pin") +
+        String addTorrenntUrl = "https://www.premiumize.me/api/transfer/create?apikey=" + PropertiesHelper.getProperty("premiumize_apikey") +
                 "&type=hello.torrent&src=" + cleanMagnetUri(toBeAddedTorrent.magnetUri);
         response = httpHelper.getPage(addTorrenntUrl);
         return response;
@@ -46,8 +49,7 @@ public class Premiumize extends HttpUser {
 
         ArrayList<Torrent> remoteTorrentList;
         String responseTorrents;
-        responseTorrents = httpHelper.getPage("https://www.premiumize.me/api/transfer/list?customer_id=" +
-                PropertiesHelper.getProperty("customer_id") + "&pin=" + PropertiesHelper.getProperty("pin"));
+        responseTorrents = httpHelper.getPage("https://www.premiumize.me/api/transfer/list?apikey=" + PropertiesHelper.getProperty("premiumize_apikey"));
 
         remoteTorrentList = parseRemoteTorrents(responseTorrents);
 
@@ -74,8 +76,7 @@ public class Premiumize extends HttpUser {
         List<TorrentFile> returnList = new ArrayList<>();
 
         String responseFiles = httpHelper.getPage("https://www.premiumize.me/api/folder/list?id=" + torrent.folder_id +
-                "&customer_id=" +
-                PropertiesHelper.getProperty("customer_id") + "&pin=" + PropertiesHelper.getProperty("pin"));
+                "&apikey=" + PropertiesHelper.getProperty("premiumize_apikey"));
 
         ObjectMapper m = new ObjectMapper();
         try {
@@ -104,8 +105,7 @@ public class Premiumize extends HttpUser {
 
     private void extractTorrentFilesFromJSONFolder(Torrent torrent, List<TorrentFile> returnList, JsonNode jsonFolder, String prefix) {
         String responseFiles = httpHelper.getPage("https://www.premiumize.me/api/folder/list?id=" + jsonFolder.get("id").asText() +
-                "&customer_id=" +
-                PropertiesHelper.getProperty("customer_id") + "&pin=" + PropertiesHelper.getProperty("pin"));
+                "&apikey=" + PropertiesHelper.getProperty("premiumize_apikey"));
         String folderName = prefix + jsonFolder.get("name").asText() + "/";
 
         ObjectMapper m = new ObjectMapper();
@@ -214,8 +214,7 @@ public class Premiumize extends HttpUser {
     }
 
     public List<Torrent> getCacheStateOfTorrents(List<Torrent> torrents) {
-        String requestUrl = "https://www.premiumize.me/api/cache/check?" + "apikey=" +
-                PropertiesHelper.getProperty("pin") + "%s";
+        String requestUrl = "https://www.premiumize.me/api/cache/check?" + "apikey=" + PropertiesHelper.getProperty("premiumize_apikey") + "%s";
         String urlEncodedBrackets = TorrentHelper.urlEncode("[]");
         String collected = torrents.stream().map(Torrent::getTorrentId).collect(Collectors.joining("&items" + urlEncodedBrackets + "=", "&items" + urlEncodedBrackets + "=", ""));
         String checkUrl = String.format(requestUrl, collected);
@@ -230,7 +229,9 @@ public class Premiumize extends HttpUser {
             AtomicInteger index = new AtomicInteger();
             if (reponseArray.size() == torrents.size()) {
                 reponseArray.forEach(jsonElement -> {
-                    torrents.get(index.get()).isCached = jsonElement.getAsBoolean();
+                    if(jsonElement.getAsBoolean()){
+                    torrents.get(index.get()).cached.add(this.getClass().getSimpleName());
+                    }
                     index.getAndIncrement();
                 });
             }
