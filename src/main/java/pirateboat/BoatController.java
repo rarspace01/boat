@@ -112,7 +112,7 @@ public final class BoatController {
         List<Torrent> cacheStateOfTorrents = multifileHosterService.getCachedStateOfTorrents(returnResults);
         List<Torrent> torrentList = cacheStateOfTorrents.stream().map(torrent -> TorrentHelper.evaluateRating(torrent, searchString)).sorted(TorrentHelper.torrentSorter).collect(Collectors.toList());
 
-        System.out.printf("Took: [%s]ms for [%s]%n found [%s]", (System.currentTimeMillis() - currentTimeMillis), searchString, torrentList.size());
+        System.out.printf("Took: [%s]ms for [%s] found [%s]", (System.currentTimeMillis() - currentTimeMillis), searchString, torrentList.size());
 
         return "G: " + torrentList.stream().limit(25).collect(Collectors.toList());
     }
