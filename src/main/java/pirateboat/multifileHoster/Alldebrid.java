@@ -18,9 +18,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 public class Alldebrid extends HttpUser implements MultifileHoster {
-
     private static final Logger log = LoggerFactory.getLogger(Alldebrid.class);
-
 
     public Alldebrid(HttpHelper httpHelper) {
         super(httpHelper);
@@ -43,7 +41,7 @@ public class Alldebrid extends HttpUser implements MultifileHoster {
 
     @Override
     public void enrichCacheStateOfTorrents(List<Torrent> torrents) {
-        String requestUrl="https://api.alldebrid.com/v4/magnet/instant?agent=pirateboat&apikey="+ PropertiesHelper.getProperty("alldebrid_apikey")+"%s";
+        String requestUrl = "https://api.alldebrid.com/v4/magnet/instant?agent=pirateboat&apikey=" + PropertiesHelper.getProperty("alldebrid_apikey") + "%s";
         String urlEncodedBrackets = TorrentHelper.urlEncode("[]");
         String collected = torrents.stream().map(Torrent::getTorrentId).collect(Collectors.joining("&magnets" + urlEncodedBrackets + "=", "&magnets" + urlEncodedBrackets + "=", ""));
         String checkUrl = String.format(requestUrl, collected);
@@ -58,7 +56,7 @@ public class Alldebrid extends HttpUser implements MultifileHoster {
             AtomicInteger index = new AtomicInteger();
             if (reponseArray.size() == torrents.size()) {
                 reponseArray.forEach(jsonElement -> {
-                    if(jsonElement.getAsJsonObject().get("instant").getAsBoolean()){
+                    if (jsonElement.getAsJsonObject().get("instant").getAsBoolean()) {
                         torrents.get(index.get()).cached.add(this.getClass().getSimpleName());
                     }
                     index.getAndIncrement();
