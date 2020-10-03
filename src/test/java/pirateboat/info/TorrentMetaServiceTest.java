@@ -12,7 +12,7 @@ class TorrentMetaServiceTest {
 
     @BeforeEach
     public void beforeMethod() {
-        this.torrentMetaService = new TorrentMetaService(new HttpHelper(), new TheFilmDataBaseService(new HttpHelper()));
+        this.torrentMetaService = new TorrentMetaService(new HttpHelper());
     }
 
     @Test

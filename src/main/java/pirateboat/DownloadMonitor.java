@@ -55,7 +55,7 @@ public class DownloadMonitor {
         this.torrentMetaService = torrentMetaService;
         this.cloudService = cloudService;
         this.multifileHosterService = multifileHosterService;
-        this.premiumize = new Premiumize(httpHelper, theFilmDataBaseService);
+        this.premiumize = new Premiumize(httpHelper);
         this.theFilmDataBaseService = theFilmDataBaseService;
     }
 

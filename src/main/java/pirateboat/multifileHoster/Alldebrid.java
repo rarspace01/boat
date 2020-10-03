@@ -30,8 +30,7 @@ public class Alldebrid extends HttpUser implements MultifileHoster {
     }
 
     @Override
-    public List<Torrent> getCacheStateOfTorrents(List<Torrent> torrents) {
-        return null;
+    public void enrichCacheStateOfTorrents(List<Torrent> torrents) {
     }
 
     @Override

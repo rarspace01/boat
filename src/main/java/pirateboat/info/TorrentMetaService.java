@@ -27,8 +27,8 @@ public class TorrentMetaService {
     private List<Torrent> activeTorrents = new ArrayList<>();
 
     @Autowired
-    public TorrentMetaService(HttpHelper httpHelper, TheFilmDataBaseService theFilmDataBaseService) {
-        this.premiumize = new Premiumize(httpHelper, theFilmDataBaseService);
+    public TorrentMetaService(HttpHelper httpHelper) {
+        this.premiumize = new Premiumize(httpHelper);
     }
 
     public void refreshTorrents() {

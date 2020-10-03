@@ -11,7 +11,7 @@ public interface MultifileHoster {
     String addTorrentToQueue(Torrent toBeAddedTorrent);
     ArrayList<Torrent> getRemoteTorrents();
     boolean isSingleFileDownload(Torrent remoteTorrent);
-    List<Torrent> getCacheStateOfTorrents(List<Torrent> torrents);
+    void enrichCacheStateOfTorrents(List<Torrent> torrents);
     void delete(Torrent remoteTorrent);
     List<TorrentFile> getFilesFromTorrent(Torrent torrent);
     String getMainFileURLFromTorrent(Torrent torrent);

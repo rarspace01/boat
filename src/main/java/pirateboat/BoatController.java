@@ -146,9 +146,9 @@ public final class BoatController {
             }
         }
         if(torrentsToBeDownloaded.size()==1) {
-        return switchToProgress + (new Premiumize(httpHelper, theFilmDataBaseService)).addTorrentToQueue(torrentsToBeDownloaded.get(0));
+        return switchToProgress + (new Premiumize(httpHelper)).addTorrentToQueue(torrentsToBeDownloaded.get(0));
         } else {
-            Premiumize premiumize = new Premiumize(httpHelper, theFilmDataBaseService);
+            Premiumize premiumize = new Premiumize(httpHelper);
             torrentsToBeDownloaded.forEach(premiumize::addTorrentToQueue);
             return switchToProgress;
         }

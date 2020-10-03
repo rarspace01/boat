@@ -22,15 +22,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 public class Premiumize extends HttpUser implements MultifileHoster {
-
-    private final TheFilmDataBaseService theFilmDataBaseService;
-
     private static final Logger log = LoggerFactory.getLogger(Premiumize.class);
 
-
-    public Premiumize(HttpHelper httpHelper, TheFilmDataBaseService theFilmDataBaseService) {
+    public Premiumize(HttpHelper httpHelper) {
         super(httpHelper);
-        this.theFilmDataBaseService = theFilmDataBaseService;
     }
 
     public String addTorrentToQueue(Torrent toBeAddedTorrent) {
@@ -213,7 +208,7 @@ public class Premiumize extends HttpUser implements MultifileHoster {
         return biggestFileYet > (0.9d * sumFileSize);
     }
 
-    public List<Torrent> getCacheStateOfTorrents(List<Torrent> torrents) {
+    public void enrichCacheStateOfTorrents(List<Torrent> torrents) {
         String requestUrl = "https://www.premiumize.me/api/cache/check?" + "apikey=" + PropertiesHelper.getProperty("premiumize_apikey") + "%s";
         String urlEncodedBrackets = TorrentHelper.urlEncode("[]");
         String collected = torrents.stream().map(Torrent::getTorrentId).collect(Collectors.joining("&items" + urlEncodedBrackets + "=", "&items" + urlEncodedBrackets + "=", ""));
@@ -236,7 +231,6 @@ public class Premiumize extends HttpUser implements MultifileHoster {
                 });
             }
         }
-        return torrents;
     }
 
 }

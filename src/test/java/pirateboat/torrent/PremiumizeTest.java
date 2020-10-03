@@ -18,7 +18,7 @@ class PremiumizeTest {
 
     @BeforeEach
     void beforeEach() {
-        premiumize = new Premiumize(new HttpHelper(), new TheFilmDataBaseService(new HttpHelper()));
+        premiumize = new Premiumize(new HttpHelper());
     }
 
     @Test
@@ -30,9 +30,9 @@ class PremiumizeTest {
         listOfTorrents.add(torrentToBeChecked);
 
         // When
-        List<Torrent> cacheStateOfTorrents = premiumize.getCacheStateOfTorrents(listOfTorrents);
+        premiumize.enrichCacheStateOfTorrents(listOfTorrents);
         // Then
-        assertTrue(cacheStateOfTorrents.get(0).cached.size()>0);
+        assertTrue(listOfTorrents.get(0).cached.size()>0);
     }
 
     @Test
@@ -45,9 +45,9 @@ class PremiumizeTest {
         listOfTorrents.add(torrentToBeChecked);
 
         // When
-        List<Torrent> cacheStateOfTorrents = premiumize.getCacheStateOfTorrents(listOfTorrents);
+        premiumize.enrichCacheStateOfTorrents(listOfTorrents);
         // Then
-        assertTrue(cacheStateOfTorrents.get(0).cached.size()>0);
+        assertTrue(listOfTorrents.get(0).cached.size()>0);
     }
 
     @Test()
@@ -59,8 +59,8 @@ class PremiumizeTest {
         listOfTorrents.add(torrentToBeChecked);
 
         // When
-        List<Torrent> cacheStateOfTorrents = premiumize.getCacheStateOfTorrents(listOfTorrents);
+        premiumize.enrichCacheStateOfTorrents(listOfTorrents);
         // Then
-        assertTrue(cacheStateOfTorrents.get(0).cached.size()>0);
+        assertTrue(listOfTorrents.get(0).cached.size()>0);
     }
 }
