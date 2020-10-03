@@ -11,6 +11,6 @@ public class MultifileHosterService {
 
 
     public List<Torrent> getCachedStateOfTorrents(List<Torrent> returnResults) {
-        return null;
+        return returnResults;
     }
 }
