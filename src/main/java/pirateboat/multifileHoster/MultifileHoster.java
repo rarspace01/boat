@@ -15,6 +15,8 @@ public interface MultifileHoster {
     void delete(Torrent remoteTorrent);
     List<TorrentFile> getFilesFromTorrent(Torrent torrent);
     String getMainFileURLFromTorrent(Torrent torrent);
+    int getPrio();
+    String getName();
 //    void refreshAccountData();
 //    long getCredit();
 }

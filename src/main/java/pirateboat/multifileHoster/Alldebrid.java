@@ -79,4 +79,14 @@ public class Alldebrid extends HttpUser implements MultifileHoster {
     public String getMainFileURLFromTorrent(Torrent torrent) {
         return null;
     }
+
+    @Override
+    public int getPrio() {
+        return 0;
+    }
+
+    @Override
+    public String getName() {
+        return this.getClass().getSimpleName();
+    }
 }

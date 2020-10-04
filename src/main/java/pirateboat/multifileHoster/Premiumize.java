@@ -67,6 +67,16 @@ public class Premiumize extends HttpUser implements MultifileHoster {
         return remoteURL;
     }
 
+    @Override
+    public int getPrio() {
+        return 1;
+    }
+
+    @Override
+    public String getName() {
+        return this.getClass().getSimpleName();
+    }
+
     public List<TorrentFile> getFilesFromTorrent(Torrent torrent) {
         List<TorrentFile> returnList = new ArrayList<>();
 
