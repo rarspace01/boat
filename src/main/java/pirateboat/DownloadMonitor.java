@@ -1,5 +1,9 @@
 package pirateboat;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
 import pirateboat.info.CloudService;
 import pirateboat.info.TheFilmDataBaseService;
 import pirateboat.info.TorrentMetaService;
@@ -12,10 +16,6 @@ import pirateboat.utilities.HttpHelper;
 import pirateboat.utilities.ProcessUtil;
 import pirateboat.utilities.PropertiesHelper;
 import pirateboat.utilities.StreamGobbler;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Component;
 
 import java.io.File;
 import java.io.IOException;
@@ -89,42 +89,42 @@ public class DownloadMonitor {
 
     private void checkForDownloadableTorrentsAndDownloadTheFirst() {
         final Torrent torrentToBeDownloaded = getTorrentToBeDownloaded();
-        if(torrentToBeDownloaded != null) {
-                isDownloadInProgress = true;
-                try {
-                    if (premiumize.isSingleFileDownload(torrentToBeDownloaded)) {
-                        updateUploadStatus(torrentToBeDownloaded, 0, 1);
-                        String fileURLFromTorrent = premiumize.getMainFileURLFromTorrent(torrentToBeDownloaded);
-                        if (torrentToBeDownloaded.name.contains("magnet:?")) {
-                            torrentToBeDownloaded.name = extractFileNameFromUrl(fileURLFromTorrent);
-                        }
-                        rcloneDownloadFileToGdrive(fileURLFromTorrent, cloudService.buildDestinationPath(torrentToBeDownloaded)+ buildFilename(torrentToBeDownloaded.name, fileURLFromTorrent));
-                        updateUploadStatus(torrentToBeDownloaded, 1, 1);
-                    } else {
-                        List<TorrentFile> filesFromTorrent = premiumize.getFilesFromTorrent(torrentToBeDownloaded);
-                        int currentFileNumber = 0;
-                        int maxFileCount = filesFromTorrent.size();
-                        for (TorrentFile torrentFile : filesFromTorrent) {
-                            // check fileSize to get rid of samples and NFO files?
-                            updateUploadStatus(torrentToBeDownloaded, currentFileNumber, maxFileCount);
-                            String destinationPath = cloudService.buildDestinationPath(torrentToBeDownloaded);
-                            String targetFilePath;
-                            if(destinationPath.contains("transfer")) {
-                                targetFilePath = PropertiesHelper.getProperty("rclonedir") + "/transfer/multipart/" + torrentToBeDownloaded.name + "/" + torrentFile.name;
-                            } else {
-                                targetFilePath = destinationPath + torrentToBeDownloaded.name + "/" + torrentFile.name;
-                            }
-                            rcloneDownloadFileToGdrive(torrentFile.url, targetFilePath);
-                            currentFileNumber++;
-                            updateUploadStatus(torrentToBeDownloaded, currentFileNumber, maxFileCount);
-                        }
+        if (torrentToBeDownloaded != null) {
+            isDownloadInProgress = true;
+            try {
+                if (premiumize.isSingleFileDownload(torrentToBeDownloaded)) {
+                    updateUploadStatus(torrentToBeDownloaded, 0, 1);
+                    String fileURLFromTorrent = premiumize.getMainFileURLFromTorrent(torrentToBeDownloaded);
+                    if (torrentToBeDownloaded.name.contains("magnet:?")) {
+                        torrentToBeDownloaded.name = extractFileNameFromUrl(fileURLFromTorrent);
                     }
-                    premiumize.delete(torrentToBeDownloaded);
-                } catch (Exception exception) {
-                    log.error(String.format("Couldn't download Torrent: %s",torrentToBeDownloaded),exception);
-                } finally {
-                    isDownloadInProgress = false;
+                    rcloneDownloadFileToGdrive(fileURLFromTorrent, cloudService.buildDestinationPath(torrentToBeDownloaded) + buildFilename(torrentToBeDownloaded.name, fileURLFromTorrent));
+                    updateUploadStatus(torrentToBeDownloaded, 1, 1);
+                } else {
+                    List<TorrentFile> filesFromTorrent = premiumize.getFilesFromTorrent(torrentToBeDownloaded);
+                    int currentFileNumber = 0;
+                    int maxFileCount = filesFromTorrent.size();
+                    for (TorrentFile torrentFile : filesFromTorrent) {
+                        // check fileSize to get rid of samples and NFO files?
+                        updateUploadStatus(torrentToBeDownloaded, currentFileNumber, maxFileCount);
+                        String destinationPath = cloudService.buildDestinationPath(torrentToBeDownloaded);
+                        String targetFilePath;
+                        if (destinationPath.contains("transfer")) {
+                            targetFilePath = PropertiesHelper.getProperty("rclonedir") + "/transfer/multipart/" + torrentToBeDownloaded.name + "/" + torrentFile.name;
+                        } else {
+                            targetFilePath = destinationPath + torrentToBeDownloaded.name + "/" + torrentFile.name;
+                        }
+                        rcloneDownloadFileToGdrive(torrentFile.url, targetFilePath);
+                        currentFileNumber++;
+                        updateUploadStatus(torrentToBeDownloaded, currentFileNumber, maxFileCount);
+                    }
                 }
+                premiumize.delete(torrentToBeDownloaded);
+            } catch (Exception exception) {
+                log.error(String.format("Couldn't download Torrent: %s", torrentToBeDownloaded), exception);
+            } finally {
+                isDownloadInProgress = false;
+            }
         }
     }
 
@@ -215,7 +215,7 @@ public class DownloadMonitor {
     }
 
     private boolean checkIfTorrentCanBeDownloaded(Torrent remoteTorrent) {
-        return List.of("finished", "seeding", "ready to upload").stream().anyMatch(status -> remoteTorrent.status.contains(status));
+        return List.of("finished", "seeding", "ready to upload", "Ready").stream().anyMatch(status -> remoteTorrent.status.contains(status));
     }
 
 }

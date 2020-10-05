@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
-import pirateboat.info.TheFilmDataBaseService;
 import pirateboat.torrent.HttpUser;
 import pirateboat.torrent.Torrent;
 import pirateboat.torrent.TorrentFile;
@@ -40,9 +39,9 @@ public class Premiumize extends HttpUser implements MultifileHoster {
         return magnetUri.replaceAll(" ", "_");
     }
 
-    public ArrayList<Torrent> getRemoteTorrents() {
+    public List<Torrent> getRemoteTorrents() {
 
-        ArrayList<Torrent> remoteTorrentList;
+        List<Torrent> remoteTorrentList;
         String responseTorrents;
         responseTorrents = httpHelper.getPage("https://www.premiumize.me/api/transfer/list?apikey=" + PropertiesHelper.getProperty("premiumize_apikey"));
 
@@ -197,7 +196,7 @@ public class Premiumize extends HttpUser implements MultifileHoster {
 
     public void delete(Torrent remoteTorrent) {
         String removeTorrenntUrl = "https://www.premiumize.me/api/transfer/delete?id=" + remoteTorrent.remoteId + "&" +
-                PropertiesHelper.getProperty("customer_id") + "&pin=" + PropertiesHelper.getProperty("pin") +
+                "&apikey=" + PropertiesHelper.getProperty("premiumize_apikey")+
                 "&type=hello.torrent&src=" + remoteTorrent.magnetUri;
         httpHelper.getPage(removeTorrenntUrl);
     }

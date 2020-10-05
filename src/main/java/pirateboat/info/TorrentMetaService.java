@@ -1,12 +1,11 @@
 package pirateboat.info;
 
-import pirateboat.multifileHoster.Premiumize;
-import pirateboat.torrent.Torrent;
-import pirateboat.utilities.HttpHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import pirateboat.multifileHoster.MultifileHosterService;
+import pirateboat.torrent.Torrent;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -15,9 +14,8 @@ import java.util.stream.Collectors;
 @Service
 public class TorrentMetaService {
 
-    private final Premiumize premiumize;
-
     private static final Logger log = LoggerFactory.getLogger(TorrentMetaService.class);
+    private final MultifileHosterService multifileHosterService;
 
 
     public List<Torrent> getActiveTorrents() {
@@ -27,19 +25,19 @@ public class TorrentMetaService {
     private List<Torrent> activeTorrents = new ArrayList<>();
 
     @Autowired
-    public TorrentMetaService(HttpHelper httpHelper) {
-        this.premiumize = new Premiumize(httpHelper);
+    public TorrentMetaService(MultifileHosterService multifileHosterService) {
+        this.multifileHosterService = multifileHosterService;
     }
 
     public void refreshTorrents() {
-        ArrayList<Torrent> remoteTorrents = premiumize.getRemoteTorrents();
+        List<Torrent> remoteTorrents = multifileHosterService.getRemoteTorrents();
         List<Torrent> newTorrentList = remoteTorrents.stream().peek(remoteTorrent -> activeTorrents.forEach(cachedTorrent -> {
-            if(cachedTorrent.getTorrentId().equals(remoteTorrent.getTorrentId())) {
-                if (List.of("finished", "seeding").stream().anyMatch(status -> remoteTorrent.status.contains(status))) {
+            if (cachedTorrent.getTorrentId().equals(remoteTorrent.getTorrentId())) {
+                if (List.of("finished", "seeding", "Ready").stream().anyMatch(status -> remoteTorrent.status.contains(status))) {
                     remoteTorrent.status = cachedTorrent.status;
                 }
             } else {
-                if (List.of("finished", "seeding").stream().anyMatch(status -> remoteTorrent.status.contains(status))) {
+                if (List.of("finished", "seeding", "Ready").stream().anyMatch(status -> remoteTorrent.status.contains(status))) {
                     remoteTorrent.status = "ready to upload";
                 }
             }

@@ -9,7 +9,7 @@ import java.util.List;
 public interface MultifileHoster {
 
     String addTorrentToQueue(Torrent toBeAddedTorrent);
-    ArrayList<Torrent> getRemoteTorrents();
+    List<Torrent> getRemoteTorrents();
     boolean isSingleFileDownload(Torrent remoteTorrent);
     void enrichCacheStateOfTorrents(List<Torrent> torrents);
     void delete(Torrent remoteTorrent);

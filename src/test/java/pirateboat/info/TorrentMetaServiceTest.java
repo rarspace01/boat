@@ -1,9 +1,11 @@
 package pirateboat.info;
 
+import pirateboat.multifileHoster.MultifileHosterService;
 import pirateboat.utilities.HttpHelper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TorrentMetaServiceTest {
@@ -12,7 +14,7 @@ class TorrentMetaServiceTest {
 
     @BeforeEach
     public void beforeMethod() {
-        this.torrentMetaService = new TorrentMetaService(new HttpHelper());
+        this.torrentMetaService = new TorrentMetaService(new MultifileHosterService(new HttpHelper()));
     }
 
     @Test
@@ -21,6 +23,6 @@ class TorrentMetaServiceTest {
         // When
         torrentMetaService.refreshTorrents();
         // Then
-        assertTrue(torrentMetaService.getActiveTorrents() != null);
+        assertNotNull(torrentMetaService.getActiveTorrents());
     }
 }

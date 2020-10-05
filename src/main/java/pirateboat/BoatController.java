@@ -7,7 +7,6 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import pirateboat.info.TheFilmDataBaseService;
 import pirateboat.info.TorrentMetaService;
 import pirateboat.multifileHoster.MultifileHosterService;
-import pirateboat.multifileHoster.Premiumize;
 import pirateboat.torrent.Torrent;
 import pirateboat.torrent.TorrentHelper;
 import pirateboat.torrent.TorrentSearchEngine;
@@ -35,7 +34,6 @@ import java.util.stream.Stream;
 public final class BoatController {
     private final String switchToProgress = "<a href=\"../debug\">Show Progress</a> ";
     private final TorrentSearchEngineService torrentSearchEngineService;
-    private final HttpHelper httpHelper;
     private final TorrentMetaService torrentMetaService;
     private final TheFilmDataBaseService theFilmDataBaseService;
     private final MultifileHosterService multifileHosterService;
@@ -50,7 +48,6 @@ public final class BoatController {
                           TheFilmDataBaseService theFilmDataBaseService,
                           MultifileHosterService multifileHosterService) {
         this.torrentSearchEngineService = torrentSearchEngineService;
-        this.httpHelper = httpHelper;
         this.torrentMetaService = torrentMetaService;
         this.theFilmDataBaseService = theFilmDataBaseService;
         this.multifileHosterService = multifileHosterService;

@@ -1,5 +1,6 @@
 package pirateboat.multifileHoster;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import pirateboat.torrent.HttpUser;
 import pirateboat.torrent.Torrent;
@@ -9,12 +10,14 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class MultifileHosterService extends HttpUser {
 
     private final List<MultifileHoster> multifileHosterList = new ArrayList<>();
 
+    @Autowired
     public MultifileHosterService(HttpHelper httpHelper) {
         super(httpHelper);
         multifileHosterList.add(new Premiumize(httpHelper));
@@ -33,5 +36,11 @@ public class MultifileHosterService extends HttpUser {
                 .min(Comparator.comparingInt(MultifileHoster::getPrio))
                 .orElse(multifileHosterList.get(0))
                 .addTorrentToQueue(torrent);
+    }
+
+    public List<Torrent> getRemoteTorrents() {
+        return multifileHosterList.stream()
+                .flatMap(multifileHoster -> multifileHoster.getRemoteTorrents().stream())
+                .collect(Collectors.toList());
     }
 }
