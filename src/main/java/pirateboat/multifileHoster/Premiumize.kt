@@ -1,213 +1,182 @@
-package pirateboat.multifileHoster;
+package pirateboat.multifileHoster
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonParser;
-import pirateboat.torrent.HttpUser;
-import pirateboat.torrent.Torrent;
-import pirateboat.torrent.TorrentFile;
-import pirateboat.torrent.TorrentHelper;
-import pirateboat.utilities.HttpHelper;
-import pirateboat.utilities.PropertiesHelper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.google.gson.JsonElement
+import com.google.gson.JsonParser
+import org.slf4j.LoggerFactory
+import pirateboat.torrent.HttpUser
+import pirateboat.torrent.Torrent
+import pirateboat.torrent.TorrentFile
+import pirateboat.torrent.TorrentHelper
+import pirateboat.utilities.HttpHelper
+import pirateboat.utilities.PropertiesHelper
+import java.io.IOException
+import java.util.*
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.function.Consumer
+import java.util.stream.Collectors
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
-
-public class Premiumize extends HttpUser implements MultifileHoster {
-    private static final Logger log = LoggerFactory.getLogger(Premiumize.class);
-
-    public Premiumize(HttpHelper httpHelper) {
-        super(httpHelper);
+class Premiumize(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoster {
+    override fun addTorrentToQueue(toBeAddedTorrent: Torrent): String {
+        val response: String
+        val addTorrenntUrl = "https://www.premiumize.me/api/transfer/create?apikey=" + PropertiesHelper.getProperty("premiumize_apikey") +
+                "&type=hello.torrent&src=" + cleanMagnetUri(toBeAddedTorrent.magnetUri)
+        response = httpHelper.getPage(addTorrenntUrl)
+        return response
     }
 
-    public String addTorrentToQueue(Torrent toBeAddedTorrent) {
-        String response;
-        String addTorrenntUrl = "https://www.premiumize.me/api/transfer/create?apikey=" + PropertiesHelper.getProperty("premiumize_apikey") +
-                "&type=hello.torrent&src=" + cleanMagnetUri(toBeAddedTorrent.magnetUri);
-        response = httpHelper.getPage(addTorrenntUrl);
-        return response;
+    private fun cleanMagnetUri(magnetUri: String): String {
+        return magnetUri.replace(" ".toRegex(), "_")
     }
 
-    private String cleanMagnetUri(String magnetUri) {
-        return magnetUri.replaceAll(" ", "_");
+    override fun getRemoteTorrents(): List<Torrent> {
+        val remoteTorrentList: List<Torrent>
+        val responseTorrents: String
+        responseTorrents = httpHelper.getPage("https://www.premiumize.me/api/transfer/list?apikey=" + PropertiesHelper.getProperty("premiumize_apikey"))
+        remoteTorrentList = parseRemoteTorrents(responseTorrents)
+        return remoteTorrentList
     }
 
-    public List<Torrent> getRemoteTorrents() {
-
-        List<Torrent> remoteTorrentList;
-        String responseTorrents;
-        responseTorrents = httpHelper.getPage("https://www.premiumize.me/api/transfer/list?apikey=" + PropertiesHelper.getProperty("premiumize_apikey"));
-
-        remoteTorrentList = parseRemoteTorrents(responseTorrents);
-
-        return remoteTorrentList;
+    override fun getPrio(): Int {
+        return 1
     }
 
-    @Override
-    public int getPrio() {
-        return 1;
+    override fun getName(): String {
+        return this.javaClass.simpleName
     }
 
-    @Override
-    public String getName() {
-        return this.getClass().getSimpleName();
-    }
-
-    public List<TorrentFile> getFilesFromTorrent(Torrent torrent) {
-        List<TorrentFile> returnList = new ArrayList<>();
-
-        String responseFiles = httpHelper.getPage("https://www.premiumize.me/api/folder/list?id=" + torrent.folder_id +
-                "&apikey=" + PropertiesHelper.getProperty("premiumize_apikey"));
-
-        ObjectMapper m = new ObjectMapper();
+    override fun getFilesFromTorrent(torrent: Torrent): List<TorrentFile> {
+        val returnList: MutableList<TorrentFile> = ArrayList()
+        val responseFiles = httpHelper.getPage("https://www.premiumize.me/api/folder/list?id=" + torrent.folder_id +
+                "&apikey=" + PropertiesHelper.getProperty("premiumize_apikey"))
+        val m = ObjectMapper()
         try {
-            JsonNode rootNode = m.readTree(responseFiles);
-
-            JsonNode localNodes = rootNode.path("content");
-
-            List<JsonNode> fileList = localNodes.findParents("type");
-
-            for (JsonNode jsonFile : fileList) {
-
-                if (jsonFile.get("type").asText().equals("file")) {
-                    extractTorrentFileFromJSON(torrent, returnList, jsonFile, "");
-                } else if (jsonFile.get("type").asText().equals("folder")) {
-                    extractTorrentFilesFromJSONFolder(torrent, returnList, jsonFile, "");
+            val rootNode = m.readTree(responseFiles)
+            val localNodes = rootNode.path("content")
+            val fileList = localNodes.findParents("type")
+            for (jsonFile in fileList) {
+                if (jsonFile["type"].asText() == "file") {
+                    extractTorrentFileFromJSON(torrent, returnList, jsonFile, "")
+                } else if (jsonFile["type"].asText() == "folder") {
+                    extractTorrentFilesFromJSONFolder(torrent, returnList, jsonFile, "")
                 }
             }
-
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (e: IOException) {
+            e.printStackTrace()
         }
-
-
-        return returnList;
+        return returnList
     }
 
-    private void extractTorrentFilesFromJSONFolder(Torrent torrent, List<TorrentFile> returnList, JsonNode jsonFolder, String prefix) {
-        String responseFiles = httpHelper.getPage("https://www.premiumize.me/api/folder/list?id=" + jsonFolder.get("id").asText() +
-                "&apikey=" + PropertiesHelper.getProperty("premiumize_apikey"));
-        String folderName = prefix + jsonFolder.get("name").asText() + "/";
-
-        ObjectMapper m = new ObjectMapper();
-        JsonNode rootNode;
+    private fun extractTorrentFilesFromJSONFolder(torrent: Torrent, returnList: MutableList<TorrentFile>, jsonFolder: JsonNode, prefix: String) {
+        val responseFiles = httpHelper.getPage("https://www.premiumize.me/api/folder/list?id=" + jsonFolder["id"].asText() +
+                "&apikey=" + PropertiesHelper.getProperty("premiumize_apikey"))
+        val folderName = prefix + jsonFolder["name"].asText() + "/"
+        val m = ObjectMapper()
+        val rootNode: JsonNode
         try {
-            rootNode = m.readTree(responseFiles);
-            JsonNode localNodes = rootNode.path("content");
-            List<JsonNode> fileList = localNodes.findParents("type");
-
-            for (JsonNode jsonFile : fileList) {
-
-                if (jsonFile.get("type").asText().equals("file")) {
-                    extractTorrentFileFromJSON(torrent, returnList, jsonFile, folderName);
-                } else if (jsonFile.get("type").asText().equals("folder")) {
-                    extractTorrentFilesFromJSONFolder(torrent, returnList, jsonFile, folderName);
+            rootNode = m.readTree(responseFiles)
+            val localNodes = rootNode.path("content")
+            val fileList = localNodes.findParents("type")
+            for (jsonFile in fileList) {
+                if (jsonFile["type"].asText() == "file") {
+                    extractTorrentFileFromJSON(torrent, returnList, jsonFile, folderName)
+                } else if (jsonFile["type"].asText() == "folder") {
+                    extractTorrentFilesFromJSONFolder(torrent, returnList, jsonFile, folderName)
                 }
             }
-
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (e: IOException) {
+            e.printStackTrace()
         }
-
     }
 
-    private void extractTorrentFileFromJSON(Torrent torrent, List<TorrentFile> returnList, JsonNode jsonFile, String prefix) {
-        TorrentFile tf = new TorrentFile();
+    private fun extractTorrentFileFromJSON(torrent: Torrent, returnList: MutableList<TorrentFile>, jsonFile: JsonNode, prefix: String) {
+        val tf = TorrentFile()
         // check if hello.torrent is onefile and is located in root
         if (torrent.file_id != null && torrent.folder_id != null) {
-            if (String.valueOf(jsonFile.get("id").asText()).equals(torrent.file_id)) {
-                tf.name = prefix + jsonFile.get("name").asText();
-                tf.filesize = jsonFile.get("size").asLong();
-                tf.url = jsonFile.get("link").asText();
-                returnList.add(tf);
+            if (jsonFile["id"].asText().toString() == torrent.file_id) {
+                tf.name = prefix + jsonFile["name"].asText()
+                tf.filesize = jsonFile["size"].asLong()
+                tf.url = jsonFile["link"].asText()
+                returnList.add(tf)
             }
         } else {
-            tf.name = prefix + jsonFile.get("name").asText();
-            tf.filesize = jsonFile.get("size").asLong();
-            tf.url = jsonFile.get("link").asText();
-            returnList.add(tf);
+            tf.name = prefix + jsonFile["name"].asText()
+            tf.filesize = jsonFile["size"].asLong()
+            tf.url = jsonFile["link"].asText()
+            returnList.add(tf)
         }
     }
 
-    private ArrayList<Torrent> parseRemoteTorrents(String pageContent) {
-
-        ArrayList<Torrent> remoteTorrentList = new ArrayList<>();
-
-        ObjectMapper m = new ObjectMapper();
+    private fun parseRemoteTorrents(pageContent: String): ArrayList<Torrent> {
+        val remoteTorrentList = ArrayList<Torrent>()
+        val m = ObjectMapper()
         try {
-            JsonNode rootNode = m.readTree(pageContent);
-            JsonNode localNodes = rootNode.path("transfers");
-
-            for (JsonNode localNode : localNodes) {
-                Torrent tempTorrent = new Torrent(getName());
-                tempTorrent.name = localNode.get("name").asText();
-                tempTorrent.folder_id = localNode.get("folder_id").asText();
-                tempTorrent.file_id = localNode.get("file_id").asText();
-                tempTorrent.folder_id = cleanJsonNull(tempTorrent.folder_id);
-                tempTorrent.file_id = cleanJsonNull(tempTorrent.file_id);
-                tempTorrent.remoteId = localNode.get("id").toString().replace("\"", "");
-                tempTorrent.status = localNode.get("status").asText();
-                String src = localNode.get("src").asText();
-                if(src.contains("btih")) {
-                    tempTorrent.magnetUri = src;
+            val rootNode = m.readTree(pageContent)
+            val localNodes = rootNode.path("transfers")
+            for (localNode in localNodes) {
+                val tempTorrent = Torrent(name)
+                tempTorrent.name = localNode["name"].asText()
+                tempTorrent.folder_id = localNode["folder_id"].asText()
+                tempTorrent.file_id = localNode["file_id"].asText()
+                tempTorrent.folder_id = cleanJsonNull(tempTorrent.folder_id)
+                tempTorrent.file_id = cleanJsonNull(tempTorrent.file_id)
+                tempTorrent.remoteId = localNode["id"].toString().replace("\"", "")
+                tempTorrent.status = localNode["status"].asText()
+                val src = localNode["src"].asText()
+                if (src.contains("btih")) {
+                    tempTorrent.magnetUri = src
                 }
-                String[] messages = localNode.get("message").asText().split(",");
-                if (messages.length == 3) {
-                    tempTorrent.eta = messages[2];
+                val messages = localNode["message"].asText().split(",").toTypedArray()
+                if (messages.size == 3) {
+                    tempTorrent.eta = messages[2]
                 }
-                tempTorrent.progress = localNode.get("progress").toString();
-                remoteTorrentList.add(tempTorrent);
+                tempTorrent.progress = localNode["progress"].toString()
+                remoteTorrentList.add(tempTorrent)
             }
-
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (e: IOException) {
+            e.printStackTrace()
         }
-
-        return remoteTorrentList;
-
+        return remoteTorrentList
     }
 
-    private String cleanJsonNull(String inputString) {
-        return inputString.equals("null") ? null : inputString;
+    private fun cleanJsonNull(inputString: String): String? {
+        return if (inputString == "null") null else inputString
     }
 
-    public void delete(Torrent remoteTorrent) {
-        String removeTorrenntUrl = "https://www.premiumize.me/api/transfer/delete?id=" + remoteTorrent.remoteId + "&" +
-                "&apikey=" + PropertiesHelper.getProperty("premiumize_apikey")+
-                "&type=hello.torrent&src=" + remoteTorrent.magnetUri;
-        httpHelper.getPage(removeTorrenntUrl);
+    override fun delete(remoteTorrent: Torrent) {
+        val removeTorrenntUrl = "https://www.premiumize.me/api/transfer/delete?id=" + remoteTorrent.remoteId + "&" +
+                "&apikey=" + PropertiesHelper.getProperty("premiumize_apikey") +
+                "&type=hello.torrent&src=" + remoteTorrent.magnetUri
+        httpHelper.getPage(removeTorrenntUrl)
     }
 
-    public void enrichCacheStateOfTorrents(List<Torrent> torrents) {
-        String requestUrl = "https://www.premiumize.me/api/cache/check?" + "apikey=" + PropertiesHelper.getProperty("premiumize_apikey") + "%s";
-        String urlEncodedBrackets = TorrentHelper.urlEncode("[]");
-        String collected = torrents.stream().map(Torrent::getTorrentId).collect(Collectors.joining("&items" + urlEncodedBrackets + "=", "&items" + urlEncodedBrackets + "=", ""));
-        String checkUrl = String.format(requestUrl, collected);
-        String pageContent = httpHelper.getPage(checkUrl);
-        JsonElement jsonRoot = JsonParser.parseString(pageContent);
-        if (jsonRoot == null || !jsonRoot.isJsonObject()) {
-            log.error("couldn't retrieve cache for:" + checkUrl);
-            log.error(pageContent);
+    override fun enrichCacheStateOfTorrents(torrents: List<Torrent>) {
+        val requestUrl = "https://www.premiumize.me/api/cache/check?" + "apikey=" + PropertiesHelper.getProperty("premiumize_apikey") + "%s"
+        val urlEncodedBrackets = TorrentHelper.urlEncode("[]")
+        val collected = torrents.stream().map { obj: Torrent -> obj.torrentId }.collect(Collectors.joining("&items$urlEncodedBrackets=", "&items$urlEncodedBrackets=", ""))
+        val checkUrl = String.format(requestUrl, collected)
+        val pageContent = httpHelper.getPage(checkUrl)
+        val jsonRoot = JsonParser.parseString(pageContent)
+        if (jsonRoot == null || !jsonRoot.isJsonObject) {
+            log.error("couldn't retrieve cache for:$checkUrl")
+            log.error(pageContent)
         } else {
-            JsonElement response = jsonRoot.getAsJsonObject().get("response");
-            JsonArray responseArray = response.getAsJsonArray();
-            AtomicInteger index = new AtomicInteger();
-            if (responseArray.size() == torrents.size()) {
-                responseArray.forEach(jsonElement -> {
-                    if(jsonElement.getAsBoolean()){
-                    torrents.get(index.get()).cached.add(this.getClass().getSimpleName());
+            val response = jsonRoot.asJsonObject["response"]
+            val responseArray = response.asJsonArray
+            val index = AtomicInteger()
+            if (responseArray.size() == torrents.size) {
+                responseArray.forEach(Consumer { jsonElement: JsonElement ->
+                    if (jsonElement.asBoolean) {
+                        torrents[index.get()].cached.add(this.javaClass.simpleName)
                     }
-                    index.getAndIncrement();
-                });
+                    index.getAndIncrement()
+                })
             }
         }
     }
 
+    companion object {
+        private val log = LoggerFactory.getLogger(Premiumize::class.java)
+    }
 }

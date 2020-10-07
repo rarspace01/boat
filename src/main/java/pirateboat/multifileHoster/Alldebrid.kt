@@ -1,174 +1,157 @@
-package pirateboat.multifileHoster;
+package pirateboat.multifileHoster
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import pirateboat.torrent.HttpUser;
-import pirateboat.torrent.Torrent;
-import pirateboat.torrent.TorrentFile;
-import pirateboat.torrent.TorrentHelper;
-import pirateboat.utilities.HttpHelper;
-import pirateboat.utilities.PropertiesHelper;
+import com.google.gson.JsonArray
+import com.google.gson.JsonElement
+import com.google.gson.JsonParser
+import org.slf4j.LoggerFactory
+import pirateboat.torrent.HttpUser
+import pirateboat.torrent.Torrent
+import pirateboat.torrent.TorrentFile
+import pirateboat.torrent.TorrentHelper
+import pirateboat.utilities.HttpHelper
+import pirateboat.utilities.PropertiesHelper
+import java.time.Duration
+import java.util.*
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.function.Consumer
+import java.util.stream.Collectors
 
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
-
-import static java.lang.String.format;
-
-public class Alldebrid extends HttpUser implements MultifileHoster {
-    private static final Logger log = LoggerFactory.getLogger(Alldebrid.class);
-
-    public Alldebrid(HttpHelper httpHelper) {
-        super(httpHelper);
+class Alldebrid(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoster {
+    override fun addTorrentToQueue(toBeAddedTorrent: Torrent): String {
+        val requestUrl = "https://api.alldebrid.com/v4/magnet/upload?agent=pirateboat&apikey=" + PropertiesHelper.getProperty("alldebrid_apikey") + "%s"
+        val urlEncodedBrackets = TorrentHelper.urlEncode("[]")
+        val collected = "&magnets" + urlEncodedBrackets + "=" + TorrentHelper.urlEncode(toBeAddedTorrent.magnetUri)
+        val checkUrl = String.format(requestUrl, collected)
+        val pageContent = httpHelper.getPage(checkUrl)
+        val jsonRoot = JsonParser.parseString(pageContent)
+        val status = jsonRoot.asJsonObject["status"]
+        return if (status != null) status.asString else "error"
     }
 
-    @Override
-    public String addTorrentToQueue(Torrent toBeAddedTorrent) {
-        String requestUrl = "https://api.alldebrid.com/v4/magnet/upload?agent=pirateboat&apikey=" + PropertiesHelper.getProperty("alldebrid_apikey") + "%s";
-        String urlEncodedBrackets = TorrentHelper.urlEncode("[]");
-        final String collected = "&magnets" + urlEncodedBrackets + "=" + TorrentHelper.urlEncode(toBeAddedTorrent.magnetUri);
-        String checkUrl = format(requestUrl, collected);
-        String pageContent = httpHelper.getPage(checkUrl);
-        JsonElement jsonRoot = JsonParser.parseString(pageContent);
-        final JsonElement status = jsonRoot.getAsJsonObject().get("status");
-        return status != null ? status.getAsString() : "error";
+    override fun getRemoteTorrents(): List<Torrent> {
+        val torrents: MutableList<Torrent> = ArrayList()
+        val requestUrl = "https://api.alldebrid.com/v4/magnet/status?agent=pirateboat&apikey=" + PropertiesHelper.getProperty("alldebrid_apikey")
+        val pageContent = httpHelper.getPage(requestUrl)
+        val jsonRoot = JsonParser.parseString(pageContent)
+        val jsonMagnets = jsonRoot.asJsonObject["data"].asJsonObject["magnets"].asJsonArray
+        jsonMagnets.forEach(Consumer { jsonElement: JsonElement ->
+            val torrent = Torrent(name)
+            val jsonTorrent = jsonElement.asJsonObject
+            torrent.remoteId = jsonTorrent["id"].asString
+            torrent.name = jsonTorrent["filename"].asString
+            torrent.size = (jsonTorrent["size"].asLong / 1024 / 1024).toString() + "MB"
+            torrent.lsize = TorrentHelper.extractTorrentSizeFromString(torrent)
+            val downloaded = jsonTorrent["downloaded"].asLong.toDouble()
+            val size = jsonTorrent["size"].asLong.toDouble()
+            val downloadSpeed = jsonTorrent["downloadSpeed"].asLong.toDouble()
+            val remainingSeconds = ((size - downloaded) / downloadSpeed).toLong()
+            val duration = Duration.ofSeconds(remainingSeconds)
+            torrent.progress = String.format("%f", downloaded / size)
+            torrent.eta = String.format("ETA: %s", duration.toString())
+            torrent.status = jsonTorrent["status"].asString
+            torrents.add(torrent)
+        })
+        return torrents
     }
 
-    @Override
-    public List<Torrent> getRemoteTorrents() {
-        final List<Torrent> torrents = new ArrayList<>();
-        String requestUrl = "https://api.alldebrid.com/v4/magnet/status?agent=pirateboat&apikey=" + PropertiesHelper.getProperty("alldebrid_apikey");
-        String pageContent = httpHelper.getPage(requestUrl);
-        JsonElement jsonRoot = JsonParser.parseString(pageContent);
-        final JsonArray jsonMagnets = jsonRoot.getAsJsonObject().get("data").getAsJsonObject().get("magnets").getAsJsonArray();
-        jsonMagnets.forEach(jsonElement -> {
-            final Torrent torrent = new Torrent(getName());
-            final JsonObject jsonTorrent = jsonElement.getAsJsonObject();
-            torrent.remoteId = jsonTorrent.get("id").getAsString();
-            torrent.name = jsonTorrent.get("filename").getAsString();
-            torrent.size = (jsonTorrent.get("size").getAsLong() / 1024 / 1024) + "MB";
-            torrent.lsize = TorrentHelper.extractTorrentSizeFromString(torrent);
-            final double downloaded = jsonTorrent.get("downloaded").getAsLong();
-            final double size = jsonTorrent.get("size").getAsLong();
-            final double downloadSpeed = (jsonTorrent.get("downloadSpeed").getAsLong());
-            final long remainingSeconds = (long) ((size - downloaded) / downloadSpeed);
-            final Duration duration = Duration.ofSeconds(remainingSeconds);
-            torrent.progress = format("%f", (downloaded / size));
-            torrent.eta = format("ETA: %s", duration.toString());
-            torrent.status = jsonTorrent.get("status").getAsString();
-            torrents.add(torrent);
-        });
-        return torrents;
-    }
-
-    private Torrent getRemoteTorrentById(String remoteId) {
-        String remoteIdString = remoteId == null ? "" : "&id=" + remoteId;
-        String requestUrl = "https://api.alldebrid.com/v4/magnet/status?agent=pirateboat&apikey=" + PropertiesHelper.getProperty("alldebrid_apikey") + remoteIdString;
-        String pageContent = httpHelper.getPage(requestUrl);
-        Torrent torrent = null;
-        JsonElement jsonRoot = JsonParser.parseString(pageContent);
-        final JsonElement data = jsonRoot.getAsJsonObject().get("data");
+    private fun getRemoteTorrentById(remoteId: String?): Torrent? {
+        val remoteIdString = if (remoteId == null) "" else "&id=$remoteId"
+        val requestUrl = "https://api.alldebrid.com/v4/magnet/status?agent=pirateboat&apikey=" + PropertiesHelper.getProperty("alldebrid_apikey") + remoteIdString
+        val pageContent = httpHelper.getPage(requestUrl)
+        var torrent: Torrent? = null
+        val jsonRoot = JsonParser.parseString(pageContent)
+        val data = jsonRoot.asJsonObject["data"]
         if (data != null) {
-            torrent = new Torrent(getName());
-            final JsonObject jsonTorrent = data.getAsJsonObject().get("magnets").getAsJsonObject();
-            torrent.remoteId = jsonTorrent.get("id").getAsString();
-            torrent.name = jsonTorrent.get("filename").getAsString();
-            torrent.size = (jsonTorrent.get("size").getAsLong() / 1024 / 1024) + "MB";
-            torrent.lsize = TorrentHelper.extractTorrentSizeFromString(torrent);
-            final double downloaded = jsonTorrent.get("downloaded").getAsLong();
-            final double size = jsonTorrent.get("size").getAsLong();
-            final double downloadSpeed = (jsonTorrent.get("downloadSpeed").getAsLong());
-            final long remainingSeconds = (long) ((size - downloaded) / downloadSpeed);
-            final Duration duration = Duration.ofSeconds(remainingSeconds);
-            torrent.progress = format("%f", (downloaded / size));
-            torrent.eta = format("ETA: %s", duration.toString());
-            torrent.status = jsonTorrent.get("status").getAsString();
-            final JsonArray links = jsonTorrent.get("links").getAsJsonArray();
+            torrent = Torrent(name)
+            val jsonTorrent = data.asJsonObject["magnets"].asJsonObject
+            torrent.remoteId = jsonTorrent["id"].asString
+            torrent.name = jsonTorrent["filename"].asString
+            torrent.size = (jsonTorrent["size"].asLong / 1024 / 1024).toString() + "MB"
+            torrent.lsize = TorrentHelper.extractTorrentSizeFromString(torrent)
+            val downloaded = jsonTorrent["downloaded"].asLong.toDouble()
+            val size = jsonTorrent["size"].asLong.toDouble()
+            val downloadSpeed = jsonTorrent["downloadSpeed"].asLong.toDouble()
+            val remainingSeconds = ((size - downloaded) / downloadSpeed).toLong()
+            val duration = Duration.ofSeconds(remainingSeconds)
+            torrent.progress = String.format("%f", downloaded / size)
+            torrent.eta = String.format("ETA: %s", duration.toString())
+            torrent.status = jsonTorrent["status"].asString
+            val links = jsonTorrent["links"].asJsonArray
             if (remoteId != null) {
-                torrent.fileList.clear();
-                torrent.fileList.addAll(extractFiles(links));
+                torrent.fileList.clear()
+                torrent.fileList.addAll(extractFiles(links))
             }
         }
-        return torrent;
+        return torrent
     }
 
-    private List<TorrentFile> extractFiles(JsonArray links) {
-        final ArrayList<TorrentFile> torrentFiles = new ArrayList<>();
-        if (links != null) {
-            links.forEach(jsonElement -> {
-                final TorrentFile torrentFile = new TorrentFile();
-                torrentFile.filesize = jsonElement.getAsJsonObject().get("size").getAsLong();
-                torrentFile.name = jsonElement.getAsJsonObject().get("filename").getAsString();
-                torrentFile.url = jsonElement.getAsJsonObject().get("link").getAsString();
-                torrentFiles.add(torrentFile);
-            });
-
-        }
-        torrentFiles.forEach(this::resolveDirectLink);
-        return torrentFiles;
+    private fun extractFiles(links: JsonArray?): List<TorrentFile> {
+        val torrentFiles = ArrayList<TorrentFile>()
+        links?.forEach(Consumer { jsonElement: JsonElement ->
+            val torrentFile = TorrentFile()
+            torrentFile.filesize = jsonElement.asJsonObject["size"].asLong
+            torrentFile.name = jsonElement.asJsonObject["filename"].asString
+            torrentFile.url = jsonElement.asJsonObject["link"].asString
+            torrentFiles.add(torrentFile)
+        })
+        torrentFiles.forEach(Consumer { torrentFile: TorrentFile -> resolveDirectLink(torrentFile) })
+        return torrentFiles
     }
 
-    private void resolveDirectLink(final TorrentFile torrentFile) {
-        final String baseUrl = "https://api.alldebrid.com/v4/link/unlock?agent=pirateboat&apikey=" + PropertiesHelper.getProperty("alldebrid_apikey") + "&link=%s";
-        String requestUrl = String.format(baseUrl, TorrentHelper.urlEncode(torrentFile.url));
-        String pageContent = httpHelper.getPage(requestUrl);
-        JsonElement jsonRoot = JsonParser.parseString(pageContent);
-        final JsonElement data = jsonRoot.getAsJsonObject().get("data");
+    private fun resolveDirectLink(torrentFile: TorrentFile) {
+        val baseUrl = "https://api.alldebrid.com/v4/link/unlock?agent=pirateboat&apikey=" + PropertiesHelper.getProperty("alldebrid_apikey") + "&link=%s"
+        val requestUrl = String.format(baseUrl, TorrentHelper.urlEncode(torrentFile.url))
+        val pageContent = httpHelper.getPage(requestUrl)
+        val jsonRoot = JsonParser.parseString(pageContent)
+        val data = jsonRoot.asJsonObject["data"]
         if (data != null) {
-            torrentFile.url = data.getAsJsonObject().get("link").getAsString();
+            torrentFile.url = data.asJsonObject["link"].asString
         }
     }
 
-    @Override
-    public void enrichCacheStateOfTorrents(List<Torrent> torrents) {
-        String requestUrl = "https://api.alldebrid.com/v4/magnet/instant?agent=pirateboat&apikey=" + PropertiesHelper.getProperty("alldebrid_apikey") + "%s";
-        String urlEncodedBrackets = TorrentHelper.urlEncode("[]");
-        String collected = torrents.stream().map(Torrent::getTorrentId).collect(Collectors.joining("&magnets" + urlEncodedBrackets + "=", "&magnets" + urlEncodedBrackets + "=", ""));
-        String checkUrl = format(requestUrl, collected);
-        String pageContent = httpHelper.getPage(checkUrl);
-        JsonElement jsonRoot = JsonParser.parseString(pageContent);
-        if (jsonRoot == null || !jsonRoot.isJsonObject()) {
-            log.error("couldn't retrieve cache for:" + checkUrl);
+    override fun enrichCacheStateOfTorrents(torrents: List<Torrent>) {
+        val requestUrl = "https://api.alldebrid.com/v4/magnet/instant?agent=pirateboat&apikey=" + PropertiesHelper.getProperty("alldebrid_apikey") + "%s"
+        val urlEncodedBrackets = TorrentHelper.urlEncode("[]")
+        val collected = torrents.stream().map { obj: Torrent -> obj.torrentId }.collect(Collectors.joining("&magnets$urlEncodedBrackets=", "&magnets$urlEncodedBrackets=", ""))
+        val checkUrl = String.format(requestUrl, collected)
+        val pageContent = httpHelper.getPage(checkUrl)
+        val jsonRoot = JsonParser.parseString(pageContent)
+        if (jsonRoot == null || !jsonRoot.isJsonObject) {
+            log.error("couldn't retrieve cache for:$checkUrl")
         } else {
-            JsonElement response = jsonRoot.getAsJsonObject().get("data").getAsJsonObject().get("magnets");
-            JsonArray responseArray = response.getAsJsonArray();
-            AtomicInteger index = new AtomicInteger();
-            if (responseArray.size() == torrents.size()) {
-                responseArray.forEach(jsonElement -> {
-                    if (jsonElement.getAsJsonObject().get("instant").getAsBoolean()) {
-                        torrents.get(index.get()).cached.add(this.getClass().getSimpleName());
+            val response = jsonRoot.asJsonObject["data"].asJsonObject["magnets"]
+            val responseArray = response.asJsonArray
+            val index = AtomicInteger()
+            if (responseArray.size() == torrents.size) {
+                responseArray.forEach(Consumer { jsonElement: JsonElement ->
+                    if (jsonElement.asJsonObject["instant"].asBoolean) {
+                        torrents[index.get()].cached.add(this.javaClass.simpleName)
                     }
-                    index.getAndIncrement();
-                });
+                    index.getAndIncrement()
+                })
             }
         }
     }
 
-    @Override
-    public void delete(Torrent remoteTorrent) {
-        String requestUrl = "https://api.alldebrid.com/v4/magnet/delete?agent=pirateboat&apikey=" + PropertiesHelper.getProperty("alldebrid_apikey") + "&id=" + remoteTorrent.remoteId;
-        httpHelper.getPage(requestUrl);
+    override fun delete(remoteTorrent: Torrent) {
+        val requestUrl = "https://api.alldebrid.com/v4/magnet/delete?agent=pirateboat&apikey=" + PropertiesHelper.getProperty("alldebrid_apikey") + "&id=" + remoteTorrent.remoteId
+        httpHelper.getPage(requestUrl)
     }
 
-    @Override
-    public List<TorrentFile> getFilesFromTorrent(Torrent torrent) {
-        final Torrent remoteTorrent = getRemoteTorrentById(torrent.remoteId);
-        return remoteTorrent.fileList;
+    override fun getFilesFromTorrent(torrent: Torrent): List<TorrentFile> {
+        val remoteTorrent = getRemoteTorrentById(torrent.remoteId)
+        return remoteTorrent!!.fileList
     }
 
-    @Override
-    public int getPrio() {
-        return 0;
+    override fun getPrio(): Int {
+        return 0
     }
 
-    @Override
-    public String getName() {
-        return this.getClass().getSimpleName();
+    override fun getName(): String {
+        return this.javaClass.simpleName
+    }
+
+    companion object {
+        private val log = LoggerFactory.getLogger(Alldebrid::class.java)
     }
 }
