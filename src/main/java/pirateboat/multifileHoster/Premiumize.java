@@ -196,11 +196,11 @@ public class Premiumize extends HttpUser implements MultifileHoster {
             log.error("couldn't retrieve cache for:" + checkUrl);
             log.error(pageContent);
         } else {
-            JsonElement reponse = jsonRoot.getAsJsonObject().get("response");
-            JsonArray reponseArray = reponse.getAsJsonArray();
+            JsonElement response = jsonRoot.getAsJsonObject().get("response");
+            JsonArray responseArray = response.getAsJsonArray();
             AtomicInteger index = new AtomicInteger();
-            if (reponseArray.size() == torrents.size()) {
-                reponseArray.forEach(jsonElement -> {
+            if (responseArray.size() == torrents.size()) {
+                responseArray.forEach(jsonElement -> {
                     if(jsonElement.getAsBoolean()){
                     torrents.get(index.get()).cached.add(this.getClass().getSimpleName());
                     }

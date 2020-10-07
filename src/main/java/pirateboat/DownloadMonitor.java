@@ -41,7 +41,6 @@ public class DownloadMonitor {
     private static final Logger log = LoggerFactory.getLogger(DownloadMonitor.class);
 
     private boolean isDownloadInProgress = false;
-    private Premiumize premiumize;
     private final TheFilmDataBaseService theFilmDataBaseService;
     private Boolean isRcloneInstalled;
 
@@ -55,7 +54,6 @@ public class DownloadMonitor {
         this.torrentMetaService = torrentMetaService;
         this.cloudService = cloudService;
         this.multifileHosterService = multifileHosterService;
-        this.premiumize = new Premiumize(httpHelper);
         this.theFilmDataBaseService = theFilmDataBaseService;
     }
 
@@ -84,7 +82,7 @@ public class DownloadMonitor {
 
     @Scheduled(fixedRate = SECONDS_BETWEEN_CLEAR_TRANSFER_POLLING * 1000)
     public void clearTransferTorrents() {
-        premiumize.getRemoteTorrents().stream().filter(torrent -> torrent.status.contains("error")).forEach(torrent -> premiumize.delete(torrent));
+        multifileHosterService.getRemoteTorrents().stream().filter(torrent -> torrent.status.contains("error")).forEach(multifileHosterService::delete);
     }
 
     private void checkForDownloadableTorrentsAndDownloadTheFirst() {
@@ -119,7 +117,7 @@ public class DownloadMonitor {
                         updateUploadStatus(torrentToBeDownloaded, currentFileNumber, maxFileCount);
                     }
                 }
-                premiumize.delete(torrentToBeDownloaded);
+                multifileHosterService.delete(torrentToBeDownloaded);
             } catch (Exception exception) {
                 log.error(String.format("Couldn't download Torrent: %s", torrentToBeDownloaded), exception);
             } finally {

@@ -136,11 +136,11 @@ public class Alldebrid extends HttpUser implements MultifileHoster {
         if (jsonRoot == null || !jsonRoot.isJsonObject()) {
             log.error("couldn't retrieve cache for:" + checkUrl);
         } else {
-            JsonElement reponse = jsonRoot.getAsJsonObject().get("data").getAsJsonObject().get("magnets");
-            JsonArray reponseArray = reponse.getAsJsonArray();
+            JsonElement response = jsonRoot.getAsJsonObject().get("data").getAsJsonObject().get("magnets");
+            JsonArray responseArray = response.getAsJsonArray();
             AtomicInteger index = new AtomicInteger();
-            if (reponseArray.size() == torrents.size()) {
-                reponseArray.forEach(jsonElement -> {
+            if (responseArray.size() == torrents.size()) {
+                responseArray.forEach(jsonElement -> {
                     if (jsonElement.getAsJsonObject().get("instant").getAsBoolean()) {
                         torrents.get(index.get()).cached.add(this.getClass().getSimpleName());
                     }

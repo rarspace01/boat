@@ -1,5 +1,7 @@
 package pirateboat.multifileHoster;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import pirateboat.torrent.HttpUser;
@@ -16,6 +18,7 @@ import java.util.stream.Collectors;
 
 @Service
 public class MultifileHosterService extends HttpUser {
+    private static final Logger log = LoggerFactory.getLogger(MultifileHosterService.class);
 
     private final List<MultifileHoster> multifileHosterList = new ArrayList<>();
 
@@ -47,25 +50,25 @@ public class MultifileHosterService extends HttpUser {
     }
 
     public boolean isSingleFileDownload(Torrent torrentToBeDownloaded) {
-            List<TorrentFile> tfList = getFilesFromTorrent(torrentToBeDownloaded);
-            long sumFileSize = 0L;
-            long biggestFileYet = 0L;
-            for (TorrentFile tf : tfList) {
-                if (tf.filesize > biggestFileYet) {
-                    biggestFileYet = tf.filesize;
-                }
-                sumFileSize += tf.filesize;
+        List<TorrentFile> tfList = getFilesFromTorrent(torrentToBeDownloaded);
+        long sumFileSize = 0L;
+        long biggestFileYet = 0L;
+        for (TorrentFile tf : tfList) {
+            if (tf.filesize > biggestFileYet) {
+                biggestFileYet = tf.filesize;
             }
-            // if maxfilesize >90% sumSize --> Singlefile
-            return biggestFileYet > (0.9d * sumFileSize);
+            sumFileSize += tf.filesize;
+        }
+        // if maxfilesize >90% sumSize --> Singlefile
+        return biggestFileYet > (0.9d * sumFileSize);
     }
 
     public List<TorrentFile> getFilesFromTorrent(Torrent torrentToBeDownloaded) {
         final Optional<MultifileHoster> hoster = multifileHosterList.stream().filter(multifileHoster -> multifileHoster.getName().equals(torrentToBeDownloaded.source)).findFirst();
-        if(hoster.isPresent()) {
+        if (hoster.isPresent()) {
             return hoster.get().getFilesFromTorrent(torrentToBeDownloaded);
         } else {
-          return new ArrayList<>();
+            return new ArrayList<>();
         }
     }
 
@@ -81,5 +84,14 @@ public class MultifileHosterService extends HttpUser {
             }
         }
         return remoteURL;
+    }
+
+    public void delete(Torrent torrent) {
+        final Optional<MultifileHoster> hoster = multifileHosterList.stream().filter(multifileHoster -> multifileHoster.getName().equals(torrent.source)).findFirst();
+        if (hoster.isPresent()) {
+            hoster.get().delete(torrent);
+        } else {
+            log.error("Deletion of Torrent not possible: {}", torrent.toString());
+        }
     }
 }
