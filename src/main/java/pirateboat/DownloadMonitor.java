@@ -92,16 +92,16 @@ public class DownloadMonitor {
         if (torrentToBeDownloaded != null) {
             isDownloadInProgress = true;
             try {
-                if (premiumize.isSingleFileDownload(torrentToBeDownloaded)) {
+                if (multifileHosterService.isSingleFileDownload(torrentToBeDownloaded)) {
                     updateUploadStatus(torrentToBeDownloaded, 0, 1);
-                    String fileURLFromTorrent = premiumize.getMainFileURLFromTorrent(torrentToBeDownloaded);
+                    String fileURLFromTorrent = multifileHosterService.getMainFileURLFromTorrent(torrentToBeDownloaded);
                     if (torrentToBeDownloaded.name.contains("magnet:?")) {
                         torrentToBeDownloaded.name = extractFileNameFromUrl(fileURLFromTorrent);
                     }
                     rcloneDownloadFileToGdrive(fileURLFromTorrent, cloudService.buildDestinationPath(torrentToBeDownloaded) + buildFilename(torrentToBeDownloaded.name, fileURLFromTorrent));
                     updateUploadStatus(torrentToBeDownloaded, 1, 1);
                 } else {
-                    List<TorrentFile> filesFromTorrent = premiumize.getFilesFromTorrent(torrentToBeDownloaded);
+                    List<TorrentFile> filesFromTorrent = multifileHosterService.getFilesFromTorrent(torrentToBeDownloaded);
                     int currentFileNumber = 0;
                     int maxFileCount = filesFromTorrent.size();
                     for (TorrentFile torrentFile : filesFromTorrent) {

@@ -3,6 +3,7 @@ package pirateboat.multifileHoster;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import pirateboat.torrent.Torrent;
+import pirateboat.torrent.TorrentFile;
 import pirateboat.utilities.HttpHelper;
 
 import java.util.List;
@@ -26,4 +27,16 @@ class AlldebridTest {
         // Then
         assertTrue(remoteTorrents.size() > 0);
     }
+
+    @Test
+    void getFilesFromTorrent() {
+        // Given
+        final List<Torrent> remoteTorrents = alldebrid.getRemoteTorrents();
+        // When
+        final Torrent torrent = remoteTorrents.stream().findFirst().orElse(null);
+        final List<TorrentFile> filesFromTorrent = alldebrid.getFilesFromTorrent(torrent);
+        // Then
+        assertTrue(filesFromTorrent.size() > 0);
+    }
+
 }

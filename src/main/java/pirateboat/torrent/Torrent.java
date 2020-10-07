@@ -33,6 +33,7 @@ public class Torrent {
     public String remoteUrl;
     public String source;
     public List<String> cached = new ArrayList<>();
+    public List<TorrentFile> fileList = new ArrayList<>();
 
     public Torrent(String source) {
         this.source = source;

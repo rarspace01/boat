@@ -50,22 +50,6 @@ public class Premiumize extends HttpUser implements MultifileHoster {
         return remoteTorrentList;
     }
 
-    public String getMainFileURLFromTorrent(Torrent torrent) {
-        List<TorrentFile> tfList = getFilesFromTorrent(torrent);
-
-        String remoteURL = null;
-
-        // iterate over and check for One File Torrent
-        long biggestFileYet = 0;
-        for (TorrentFile tf : tfList) {
-            if (tf.filesize > biggestFileYet) {
-                biggestFileYet = tf.filesize;
-                remoteURL = tf.url;
-            }
-        }
-        return remoteURL;
-    }
-
     @Override
     public int getPrio() {
         return 1;
@@ -162,7 +146,7 @@ public class Premiumize extends HttpUser implements MultifileHoster {
             JsonNode localNodes = rootNode.path("transfers");
 
             for (JsonNode localNode : localNodes) {
-                Torrent tempTorrent = new Torrent(toString());
+                Torrent tempTorrent = new Torrent(getName());
                 tempTorrent.name = localNode.get("name").asText();
                 tempTorrent.folder_id = localNode.get("folder_id").asText();
                 tempTorrent.file_id = localNode.get("file_id").asText();
@@ -199,22 +183,6 @@ public class Premiumize extends HttpUser implements MultifileHoster {
                 "&apikey=" + PropertiesHelper.getProperty("premiumize_apikey")+
                 "&type=hello.torrent&src=" + remoteTorrent.magnetUri;
         httpHelper.getPage(removeTorrenntUrl);
-    }
-
-    public boolean isSingleFileDownload(Torrent remoteTorrent) {
-        List<TorrentFile> tfList = getFilesFromTorrent(remoteTorrent);
-        // getMaxFilesize
-        // getSumSize
-        long sumFileSize = 0L;
-        long biggestFileYet = 0L;
-        for (TorrentFile tf : tfList) {
-            if (tf.filesize > biggestFileYet) {
-                biggestFileYet = tf.filesize;
-            }
-            sumFileSize += tf.filesize;
-        }
-        // if maxfilesize >90% sumSize --> Singlefile
-        return biggestFileYet > (0.9d * sumFileSize);
     }
 
     public void enrichCacheStateOfTorrents(List<Torrent> torrents) {

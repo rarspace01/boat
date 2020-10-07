@@ -19,6 +19,8 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+import static java.lang.String.format;
+
 public class Alldebrid extends HttpUser implements MultifileHoster {
     private static final Logger log = LoggerFactory.getLogger(Alldebrid.class);
 
@@ -28,7 +30,14 @@ public class Alldebrid extends HttpUser implements MultifileHoster {
 
     @Override
     public String addTorrentToQueue(Torrent toBeAddedTorrent) {
-        return null;
+        String requestUrl = "https://api.alldebrid.com/v4/magnet/upload?agent=pirateboat&apikey=" + PropertiesHelper.getProperty("alldebrid_apikey") + "%s";
+        String urlEncodedBrackets = TorrentHelper.urlEncode("[]");
+        final String collected = "&magnets" + urlEncodedBrackets + "=" + TorrentHelper.urlEncode(toBeAddedTorrent.magnetUri);
+        String checkUrl = format(requestUrl, collected);
+        String pageContent = httpHelper.getPage(checkUrl);
+        JsonElement jsonRoot = JsonParser.parseString(pageContent);
+        final JsonElement status = jsonRoot.getAsJsonObject().get("status");
+        return status != null ? status.getAsString() : "error";
     }
 
     @Override
@@ -50,17 +59,70 @@ public class Alldebrid extends HttpUser implements MultifileHoster {
             final double downloadSpeed = (jsonTorrent.get("downloadSpeed").getAsLong());
             final long remainingSeconds = (long) ((size - downloaded) / downloadSpeed);
             final Duration duration = Duration.ofSeconds(remainingSeconds);
-            torrent.progress = String.format("%f", (downloaded / size));
-            torrent.eta = String.format("ETA: %s",duration.toString());
+            torrent.progress = format("%f", (downloaded / size));
+            torrent.eta = format("ETA: %s", duration.toString());
             torrent.status = jsonTorrent.get("status").getAsString();
             torrents.add(torrent);
         });
         return torrents;
     }
 
-    @Override
-    public boolean isSingleFileDownload(Torrent remoteTorrent) {
-        return false;
+    private Torrent getRemoteTorrentById(String remoteId) {
+        String remoteIdString = remoteId == null ? "" : "&id=" + remoteId;
+        String requestUrl = "https://api.alldebrid.com/v4/magnet/status?agent=pirateboat&apikey=" + PropertiesHelper.getProperty("alldebrid_apikey") + remoteIdString;
+        String pageContent = httpHelper.getPage(requestUrl);
+        Torrent torrent = null;
+        JsonElement jsonRoot = JsonParser.parseString(pageContent);
+        final JsonElement data = jsonRoot.getAsJsonObject().get("data");
+        if (data != null) {
+            torrent = new Torrent(getName());
+            final JsonObject jsonTorrent = data.getAsJsonObject().get("magnets").getAsJsonObject();
+            torrent.remoteId = jsonTorrent.get("id").getAsString();
+            torrent.name = jsonTorrent.get("filename").getAsString();
+            torrent.size = (jsonTorrent.get("size").getAsLong() / 1024 / 1024) + "MB";
+            torrent.lsize = TorrentHelper.extractTorrentSizeFromString(torrent);
+            final double downloaded = jsonTorrent.get("downloaded").getAsLong();
+            final double size = jsonTorrent.get("size").getAsLong();
+            final double downloadSpeed = (jsonTorrent.get("downloadSpeed").getAsLong());
+            final long remainingSeconds = (long) ((size - downloaded) / downloadSpeed);
+            final Duration duration = Duration.ofSeconds(remainingSeconds);
+            torrent.progress = format("%f", (downloaded / size));
+            torrent.eta = format("ETA: %s", duration.toString());
+            torrent.status = jsonTorrent.get("status").getAsString();
+            final JsonArray links = jsonTorrent.get("links").getAsJsonArray();
+            if (remoteId != null) {
+                torrent.fileList.clear();
+                torrent.fileList.addAll(extractFiles(links));
+            }
+        }
+        return torrent;
+    }
+
+    private List<TorrentFile> extractFiles(JsonArray links) {
+        final ArrayList<TorrentFile> torrentFiles = new ArrayList<>();
+        if (links != null) {
+            links.forEach(jsonElement -> {
+                final TorrentFile torrentFile = new TorrentFile();
+                torrentFile.filesize = jsonElement.getAsJsonObject().get("size").getAsLong();
+                torrentFile.name = jsonElement.getAsJsonObject().get("filename").getAsString();
+                torrentFile.url = jsonElement.getAsJsonObject().get("link").getAsString();
+                torrentFiles.add(torrentFile);
+            });
+
+        }
+        torrentFiles.forEach(this::resolveDirectLink);
+        return torrentFiles;
+    }
+
+    private void resolveDirectLink(final TorrentFile torrentFile) {
+        final String baseUrl = "https://api.alldebrid.com/v4/link/unlock?agent=pirateboat&apikey=" + PropertiesHelper.getProperty("alldebrid_apikey") + "&link=%s";
+        String requestUrl = String.format(baseUrl, TorrentHelper.urlEncode(torrentFile.url));
+        String pageContent = httpHelper.getPage(requestUrl);
+        JsonElement jsonRoot = JsonParser.parseString(pageContent);
+        final JsonElement data = jsonRoot.getAsJsonObject().get("data");
+        if (data != null) {
+            torrentFile.url = data.getAsJsonObject().get("link").getAsString();
+        }
     }
 
     @Override
@@ -68,12 +130,11 @@ public class Alldebrid extends HttpUser implements MultifileHoster {
         String requestUrl = "https://api.alldebrid.com/v4/magnet/instant?agent=pirateboat&apikey=" + PropertiesHelper.getProperty("alldebrid_apikey") + "%s";
         String urlEncodedBrackets = TorrentHelper.urlEncode("[]");
         String collected = torrents.stream().map(Torrent::getTorrentId).collect(Collectors.joining("&magnets" + urlEncodedBrackets + "=", "&magnets" + urlEncodedBrackets + "=", ""));
-        String checkUrl = String.format(requestUrl, collected);
+        String checkUrl = format(requestUrl, collected);
         String pageContent = httpHelper.getPage(checkUrl);
         JsonElement jsonRoot = JsonParser.parseString(pageContent);
         if (jsonRoot == null || !jsonRoot.isJsonObject()) {
             log.error("couldn't retrieve cache for:" + checkUrl);
-            log.error(pageContent);
         } else {
             JsonElement reponse = jsonRoot.getAsJsonObject().get("data").getAsJsonObject().get("magnets");
             JsonArray reponseArray = reponse.getAsJsonArray();
@@ -97,12 +158,8 @@ public class Alldebrid extends HttpUser implements MultifileHoster {
 
     @Override
     public List<TorrentFile> getFilesFromTorrent(Torrent torrent) {
-        return null;
-    }
-
-    @Override
-    public String getMainFileURLFromTorrent(Torrent torrent) {
-        return null;
+        final Torrent remoteTorrent = getRemoteTorrentById(torrent.remoteId);
+        return remoteTorrent.fileList;
     }
 
     @Override
