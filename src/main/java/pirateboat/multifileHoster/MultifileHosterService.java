@@ -26,7 +26,7 @@ public class MultifileHosterService extends HttpUser {
     public MultifileHosterService(HttpHelper httpHelper) {
         super(httpHelper);
         multifileHosterList.add(new Premiumize(httpHelper));
-        multifileHosterList.add(new Alldebrid(httpHelper));
+        //currently disabled multifileHosterList.add(new Alldebrid(httpHelper));
     }
 
     public List<Torrent> getCachedStateOfTorrents(List<Torrent> returnResults) {
