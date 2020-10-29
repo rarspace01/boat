@@ -67,15 +67,15 @@ dependencies {
     implementation group: 'org.springframework.boot', name: 'spring-boot-properties-migrator', version: "$spring_boot_version"
     implementation group: 'commons-io', name: 'commons-io', version: '2.6'
 
-    compileOnly 'org.projectlombok:lombok:1.18.12'
-    annotationProcessor 'org.projectlombok:lombok:1.18.12'
+    implementation 'org.projectlombok:lombok:1.18.16'
+    annotationProcessor 'org.projectlombok:lombok:1.18.16'
 
-    testCompileOnly 'org.projectlombok:lombok:1.18.12'
-    testAnnotationProcessor 'org.projectlombok:lombok:1.18.12'
+    testImplementation 'org.projectlombok:lombok:1.18.16'
+    testAnnotationProcessor 'org.projectlombok:lombok:1.18.16'
 
     runtimeOnly("org.springframework.boot:spring-boot-properties-migrator")
-    testCompileOnly group: 'org.mockito', name: 'mockito-core', version: '3.5.13'
-    testCompileOnly group: 'org.mockito', name: 'mockito-junit-jupiter', version: '3.5.13'
+    testImplementation group: 'org.mockito', name: 'mockito-core', version: '3.5.13'
+    testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: '3.5.13'
     testImplementation('org.junit.jupiter:junit-jupiter:5.7.0')
     testImplementation("org.springframework.boot:spring-boot-starter-test:$spring_boot_version")
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
