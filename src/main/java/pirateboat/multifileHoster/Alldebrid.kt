@@ -35,7 +35,7 @@ class Alldebrid(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoster
         val jsonRoot = JsonParser.parseString(pageContent)
         val jsonMagnets = jsonRoot.asJsonObject["data"].asJsonObject["magnets"].asJsonArray
         jsonMagnets.forEach(Consumer { jsonElement: JsonElement ->
-            val torrent = Torrent(name)
+            val torrent = Torrent(getName())
             val jsonTorrent = jsonElement.asJsonObject
             torrent.remoteId = jsonTorrent["id"].asString
             torrent.name = jsonTorrent["filename"].asString
@@ -62,7 +62,7 @@ class Alldebrid(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoster
         val jsonRoot = JsonParser.parseString(pageContent)
         val data = jsonRoot.asJsonObject["data"]
         if (data != null) {
-            torrent = Torrent(name)
+            torrent = Torrent(getName())
             val jsonTorrent = data.asJsonObject["magnets"].asJsonObject
             torrent.remoteId = jsonTorrent["id"].asString
             torrent.name = jsonTorrent["filename"].asString
@@ -140,7 +140,11 @@ class Alldebrid(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoster
 
     override fun getFilesFromTorrent(torrent: Torrent): List<TorrentFile> {
         val remoteTorrent = getRemoteTorrentById(torrent.remoteId)
-        return remoteTorrent!!.fileList
+        if(remoteTorrent != null) {
+            return remoteTorrent.fileList
+        } else {
+            return emptyList()
+        }
     }
 
     override fun getPrio(): Int {

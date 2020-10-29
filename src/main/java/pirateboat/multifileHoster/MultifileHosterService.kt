@@ -22,15 +22,15 @@ class MultifileHosterService @Autowired constructor(httpHelper: HttpHelper?) : H
     fun addTorrentToQueue(torrent: Torrent): String {
         val potentialCachedTorrentToDownload = getCachedStateOfTorrents(listOf(torrent)).stream().findFirst().orElse(torrent)
         return multifileHosterList.stream()
-                .filter { multifileHoster: MultifileHoster -> multifileHoster.name == potentialCachedTorrentToDownload.cached.stream().findFirst().orElse("") }
-                .min(Comparator.comparingInt { obj: MultifileHoster -> obj.prio })
+                .filter { multifileHoster: MultifileHoster -> multifileHoster.getName() == potentialCachedTorrentToDownload.cached.stream().findFirst().orElse("") }
+                .min(Comparator.comparingInt { obj: MultifileHoster -> obj.getPrio() })
                 .orElse(multifileHosterList[0])
                 .addTorrentToQueue(torrent)
     }
 
     val remoteTorrents: List<Torrent>
         get() = multifileHosterList.stream()
-                .flatMap { multifileHoster: MultifileHoster -> multifileHoster.remoteTorrents.stream() }
+                .flatMap { multifileHoster: MultifileHoster -> multifileHoster.getRemoteTorrents().stream() }
                 .collect(Collectors.toList())
 
     fun isSingleFileDownload(torrentToBeDownloaded: Torrent): Boolean {
@@ -48,7 +48,7 @@ class MultifileHosterService @Autowired constructor(httpHelper: HttpHelper?) : H
     }
 
     fun getFilesFromTorrent(torrentToBeDownloaded: Torrent): List<TorrentFile> {
-        val hoster = multifileHosterList.stream().filter { multifileHoster: MultifileHoster -> multifileHoster.name == torrentToBeDownloaded.source }.findFirst()
+        val hoster = multifileHosterList.stream().filter { multifileHoster: MultifileHoster -> multifileHoster.getName() == torrentToBeDownloaded.source }.findFirst()
         return if (hoster.isPresent) {
             hoster.get().getFilesFromTorrent(torrentToBeDownloaded)
         } else {
@@ -71,7 +71,7 @@ class MultifileHosterService @Autowired constructor(httpHelper: HttpHelper?) : H
     }
 
     fun delete(torrent: Torrent) {
-        val hoster = multifileHosterList.stream().filter { multifileHoster: MultifileHoster -> multifileHoster.name == torrent.source }.findFirst()
+        val hoster = multifileHosterList.stream().filter { multifileHoster: MultifileHoster -> multifileHoster.getName() == torrent.source }.findFirst()
         if (hoster.isPresent) {
             hoster.get().delete(torrent)
         } else {

@@ -32,8 +32,7 @@ class Premiumize(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoste
 
     override fun getRemoteTorrents(): List<Torrent> {
         val remoteTorrentList: List<Torrent>
-        val responseTorrents: String
-        responseTorrents = httpHelper.getPage("https://www.premiumize.me/api/transfer/list?apikey=" + PropertiesHelper.getProperty("premiumize_apikey"))
+        val responseTorrents: String = httpHelper.getPage("https://www.premiumize.me/api/transfer/list?apikey=" + PropertiesHelper.getProperty("premiumize_apikey"))
         remoteTorrentList = parseRemoteTorrents(responseTorrents)
         return remoteTorrentList
     }
@@ -115,7 +114,7 @@ class Premiumize(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoste
             val rootNode = m.readTree(pageContent)
             val localNodes = rootNode.path("transfers")
             for (localNode in localNodes) {
-                val tempTorrent = Torrent(name)
+                val tempTorrent = Torrent(getName())
                 tempTorrent.name = localNode["name"].asText()
                 tempTorrent.folder_id = localNode["folder_id"].asText()
                 tempTorrent.file_id = localNode["file_id"].asText()
