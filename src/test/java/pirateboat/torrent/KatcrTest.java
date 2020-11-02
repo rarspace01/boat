@@ -5,7 +5,7 @@ import pirateboat.utilities.HttpHelper;
 
 import java.util.List;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertNotNull;
 
 class KatcrTest {
 
@@ -16,6 +16,6 @@ class KatcrTest {
         // When
         List<Torrent> torrentList = new Katcr(new HttpHelper()).searchTorrents("planet");
         // Then
-        assertTrue(torrentList.size() > 0);
+        assertNotNull(torrentList);
     }
 }
