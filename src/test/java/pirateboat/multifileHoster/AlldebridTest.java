@@ -8,6 +8,7 @@ import pirateboat.utilities.HttpHelper;
 
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class AlldebridTest {
@@ -36,6 +37,7 @@ class AlldebridTest {
         final Torrent torrent = remoteTorrents.stream().findFirst().orElse(null);
         if(torrent != null) {
             final List<TorrentFile> filesFromTorrent = alldebrid.getFilesFromTorrent(torrent);
+            assertNotNull(filesFromTorrent);
         }
         assertTrue(true);
     }

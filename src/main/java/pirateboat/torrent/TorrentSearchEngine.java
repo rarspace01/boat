@@ -10,6 +10,4 @@ public interface TorrentSearchEngine {
 
     String getSearchPage();
 
-    Torrent suggestATorrent(List<Torrent> inputList);
-
 }

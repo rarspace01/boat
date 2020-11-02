@@ -85,11 +85,6 @@ public class SolidTorrents extends HttpUser implements TorrentSearchEngine {
     }
 
     @Override
-    public Torrent suggestATorrent(List<Torrent> inputList) {
-        return inputList.stream().max(TorrentHelper.torrentSorter).orElse(null);
-    }
-
-    @Override
     public String toString() {
         return this.getClass().getSimpleName();
     }

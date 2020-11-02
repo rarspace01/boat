@@ -26,7 +26,7 @@ class DownloadMonitorTest {
         // When
         downloadMonitor.refreshTorrentSearchEngines();
         // Then
-        assertThat(torrentSearchEngineService.getActiveSearchEngines().size()>0,is(true));
+        assertThat(torrentSearchEngineService.getActiveSearchEngines().size() > 0, is(true));
 
     }
 

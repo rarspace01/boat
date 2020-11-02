@@ -38,9 +38,6 @@ public final class BoatController {
     private final TheFilmDataBaseService theFilmDataBaseService;
     private final MultifileHosterService multifileHosterService;
 
-    private static final Logger log = LoggerFactory.getLogger(BoatController.class);
-
-
     @Autowired
     public BoatController(TorrentSearchEngineService torrentSearchEngineService,
                           HttpHelper httpHelper,

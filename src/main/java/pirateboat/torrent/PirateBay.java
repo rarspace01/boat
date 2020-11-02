@@ -52,11 +52,6 @@ public class PirateBay extends HttpUser implements TorrentSearchEngine {
         return buildSearchUrl("test");
     }
 
-    @Override
-    public Torrent suggestATorrent(List<Torrent> inputList) {
-        return inputList.stream().max(TorrentHelper.torrentSorter).orElse(null);
-    }
-
     private List<Torrent> parseTorrentsOnResultPage(String pageContent, String searchName) {
 
         ArrayList<Torrent> torrentList = new ArrayList<>();

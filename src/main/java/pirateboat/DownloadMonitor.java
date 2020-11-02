@@ -8,11 +8,9 @@ import pirateboat.info.CloudService;
 import pirateboat.info.TheFilmDataBaseService;
 import pirateboat.info.TorrentMetaService;
 import pirateboat.multifileHoster.MultifileHosterService;
-import pirateboat.multifileHoster.Premiumize;
 import pirateboat.torrent.Torrent;
 import pirateboat.torrent.TorrentFile;
 import pirateboat.torrent.TorrentSearchEngineService;
-import pirateboat.utilities.HttpHelper;
 import pirateboat.utilities.ProcessUtil;
 import pirateboat.utilities.PropertiesHelper;
 import pirateboat.utilities.StreamGobbler;
@@ -45,7 +43,6 @@ public class DownloadMonitor {
     private Boolean isRcloneInstalled;
 
     public DownloadMonitor(TorrentSearchEngineService torrentSearchEngineService,
-                           HttpHelper httpHelper,
                            TheFilmDataBaseService theFilmDataBaseService,
                            TorrentMetaService torrentMetaService,
                            CloudService cloudService,
@@ -198,19 +195,6 @@ public class DownloadMonitor {
         assert exitCode == 0;
     }
 
-    private void downloadFile(String fileURLFromTorrent, String localPath) throws IOException {
-        log.info("About to download:" + fileURLFromTorrent + "\nto: " + localPath);
-        HttpHelper.downloadFileToPath(fileURLFromTorrent, localPath);
-    }
-
-
-    private String addFilenameIfNotYetPresent(String name, String mainFileURLFromTorrent) {
-        if (name.matches(".+[.].*]")) {
-            return "";
-        } else {
-            return mainFileURLFromTorrent.substring(mainFileURLFromTorrent.lastIndexOf("/"));
-        }
-    }
 
     private boolean checkIfTorrentCanBeDownloaded(Torrent remoteTorrent) {
         return List.of("finished", "seeding", "ready to upload", "Ready").stream().anyMatch(status -> remoteTorrent.status.contains(status));
