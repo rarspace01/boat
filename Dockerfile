@@ -12,8 +12,8 @@ RUN curl https://rclone.org/install.sh -o install.sh && chmod +x install.sh && .
 #USER nobody
 # copy config for pirateBoat & if used rlcone
 COPY pirateboat.cfg pirateboat.cfg
-COPY rclone.conf $HOME/.config/rclone/rclone.conf
-RUN mkdir -p $HOME/.config/rclone/
+RUN mkdir -p /root/.config/rclone/
+COPY rclone.conf /root/.config/rclone/rclone.conf
 RUN wget https://github.com/rarspace01/pirateboat/releases/latest/download/pirateboat.jar -O pirateboat.jar && chmod +x pirateboat.jar
 EXPOSE 8080
 CMD ./jre/bin/java -jar pirateboat.jar
