@@ -170,8 +170,8 @@ public class DownloadMonitor {
         while (matcher.find()) {
             foundMatch = matcher.group();
         }
-
-        return foundMatch;
+        // remove quotes && .torrent
+        return foundMatch != null ? foundMatch.replaceAll("\"","").replaceAll(".torrent","") : fileURLFromTorrent;
     }
 
     private void rcloneDownloadFileToGdrive(String fileURLFromTorrent, String destinationPath) {
