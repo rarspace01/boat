@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class TorrentSearchEngineService {
@@ -18,7 +19,7 @@ public class TorrentSearchEngineService {
     @Autowired
     public TorrentSearchEngineService(HttpHelper httpHelper) {
         this.httpHelper = httpHelper;
-        this.allSearchEngines = Arrays.asList(new PirateBay(httpHelper), new NyaaSi(httpHelper), new SolidTorrents(httpHelper), new LeetxTo(httpHelper), new Katcr(httpHelper), new YTS(httpHelper));
+        this.allSearchEngines = Arrays.asList(new PirateBay(httpHelper), new NyaaSi(httpHelper), new SolidTorrents(httpHelper), new LeetxTo(httpHelper), new Katcr(httpHelper), new YTS(httpHelper), new RARBG(httpHelper));
     }
 
     public void refreshTorrentSearchEngines() {
@@ -34,5 +35,11 @@ public class TorrentSearchEngineService {
 
     public List<TorrentSearchEngine> getActiveSearchEngines() {
         return activeSearchEngines;
+    }
+
+    public List<TorrentSearchEngine> getInActiveSearchEngines() {
+        return allSearchEngines.stream()
+                .filter(torrentSearchEngine -> !activeSearchEngines.contains(torrentSearchEngine))
+                .collect(Collectors.toList());
     }
 }

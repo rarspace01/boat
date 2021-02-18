@@ -164,7 +164,10 @@ public final class BoatController {
     public final String getDebugInfo() {
         torrentMetaService.refreshTorrents();
         List<Torrent> remoteTorrents = torrentMetaService.getActiveTorrents();
-        return "v:" + PropertiesHelper.getVersion() + "<br/>ActiveSearchEngines: " + torrentSearchEngineService.getActiveSearchEngines() + "<br/>D: " + remoteTorrents;
+        return "v:" + PropertiesHelper.getVersion()
+                + "<br/>ActiveSearchEngines: " + torrentSearchEngineService.getActiveSearchEngines()
+                + "<br/>InActiveSearchEngines: " + torrentSearchEngineService.getInActiveSearchEngines()
+                + "<br/>D: " + remoteTorrents;
     }
 
     @GetMapping({"/boat/shutdown"})
