@@ -60,7 +60,7 @@ public class RARBG extends HttpUser implements TorrentSearchEngine {
 
     private Torrent parseTorrentsOnSubPage(String page, String searchName) {
         Document doc = Jsoup.parse(page);
-        final Torrent torrent = new Torrent(this.getClass().getSimpleName());
+        final Torrent torrent = new Torrent(toString());
         torrent.name = doc.title().replaceAll(" Torrent download","");
         torrent.magnetUri = doc.select("a[href*=magnet]")
                 .stream()
@@ -69,11 +69,11 @@ public class RARBG extends HttpUser implements TorrentSearchEngine {
                 .findFirst().orElse(null);
         final String text = doc.text();
 
-        torrent.size = TorrentHelper.cleanNumberString(getValueBetweenStrings(text, "Size : ","Show Files"));
+        torrent.size = TorrentHelper.cleanNumberString(getValueBetweenStrings(text, "Size : ","Show Files").trim());
         torrent.lsize = TorrentHelper.extractTorrentSizeFromString(torrent);
 
-        torrent.seeder = Integer.parseInt(getValueBetweenStrings(text, "Seeders : "," ,"));
-        torrent.leecher = Integer.parseInt(getValueBetweenStrings(text, "Leechers : "," ,"));
+        torrent.seeder = Integer.parseInt(getValueBetweenStrings(text, "Seeders : "," ,").trim());
+        torrent.leecher = Integer.parseInt(getValueBetweenStrings(text, "Leechers : "," ,").trim());
         TorrentHelper.evaluateRating(torrent, searchName);
         return torrent;
     }
@@ -95,5 +95,11 @@ public class RARBG extends HttpUser implements TorrentSearchEngine {
         }
         return "";
     }
+
+    @Override
+    public String toString() {
+        return this.getClass().getSimpleName();
+    }
+
 
 }
