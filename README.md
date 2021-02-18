@@ -11,5 +11,5 @@ openjdk version "14 2020-03-17"
 ```
 
 Build Status:
-[![Build Status](https://travis-ci.org/rarspace01/pirateboat.svg?branch=master)](https://travis-ci.org/rarspace01/pirateboat)
+[![Build Status](https://travis-ci.com/rarspace01/pirateboat.svg?branch=master)](https://travis-ci.org/rarspace01/pirateboat)
 [![Coverage Status](https://coveralls.io/repos/github/rarspace01/pirateboat/badge.svg?branch=master)](https://coveralls.io/github/rarspace01/pirateboat?branch=master)
