@@ -16,26 +16,27 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static pirateboat.torrent.TorrentHelper.MOVIES;
+import static pirateboat.torrent.TorrentHelper.SERIES_SHOWS;
+import static pirateboat.torrent.TorrentHelper.TRANSFER;
+
 @Log4j2
 @Service
 public class CloudService {
 
-    public static final String MOVIES = "Movies";
-    public static final String SERIES_SHOWS = "Series-Shows";
-    public static final String TRANSFER = "transfer";
     final TorrentService torrentService = new TorrentService();
 
     public String buildDestinationPath(final String torrentName) {
         String basePath = PropertiesHelper.getProperty("rclonedir");
-        String preparedTorrentName = prepareTorrentName(torrentName);
-        final String typeOfMedia = determineTypeOfMedia(preparedTorrentName);
+        String preparedTorrentName = TorrentHelper.prepareTorrentName(torrentName);
+        final String typeOfMedia = TorrentHelper.determineTypeOfMedia(preparedTorrentName);
         preparedTorrentName = deductFirstTorrentLetter(preparedTorrentName);
         return basePath + "/" + typeOfMedia + "/" + preparedTorrentName + "/";
     }
 
     public String buildDestinationPathWithTypeOfMedia(final String torrentName, String typeOfMedia) {
         String basePath = PropertiesHelper.getProperty("rclonedir");
-        String preparedTorrentName = prepareTorrentName(torrentName);
+        String preparedTorrentName = TorrentHelper.prepareTorrentName(torrentName);
         preparedTorrentName = deductFirstTorrentLetter(preparedTorrentName);
         return basePath + "/" + typeOfMedia + "/" + preparedTorrentName + "/";
     }
@@ -58,38 +59,6 @@ public class CloudService {
         preparedTorrentName = preparedTorrentName.toUpperCase();
         //
         return preparedTorrentName;
-    }
-
-    @NotNull
-    private String prepareTorrentName(String torrentName) {
-        String normalizedTorrentStringWithSpaces = TorrentHelper.getNormalizedTorrentStringWithSpacesKeepCase(torrentName);
-        String cleanedString = removeReleaseTags(normalizedTorrentStringWithSpaces);
-        return cleanedString;
-    }
-
-    private String determineTypeOfMedia(String cleanedString) {
-        if (cleanedString.matches(".*[ ._-]+[re]*dump[ ._-]+.*") || cleanedString.matches(".*\\s[pP][dD][fF].*") || cleanedString.matches(".*\\s[eE][pP][uU][bB].*")) {
-            return TRANSFER;
-        } else if (cleanedString.matches("(.+[ .]+S[0-9]+.+)|(.+Season.+)")) {
-            return SERIES_SHOWS;
-        } else if (isMovieString(cleanedString)) {
-            return MOVIES;
-        }
-        return TRANSFER;
-    }
-
-    private boolean isMovieString(String string) {
-        return string.matches(".*([xXhH]26[4-5]|[xX][vV][iI][dD]|[1-2][0-9]{3}[^0-9p\\/M\\@]*).*");
-    }
-
-    private String removeReleaseTags(final String string) {
-        StringBuilder releaseTagsRemoved = new StringBuilder(string);
-        torrentService.getReleaseTags().forEach(tag -> {
-            String temporaryString = releaseTagsRemoved.toString().replaceAll("\\s(?i)" + tag + "\\s", " ");
-            releaseTagsRemoved.setLength(0);
-            releaseTagsRemoved.append(temporaryString);
-        });
-        return releaseTagsRemoved.toString();
     }
 
     public List<String> findExistingFiles(String searchName) {

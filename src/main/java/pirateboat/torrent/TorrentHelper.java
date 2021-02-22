@@ -12,6 +12,10 @@ import java.util.stream.Collectors;
 public class TorrentHelper {
     private static TorrentService torrentService = new TorrentService();
 
+    public static final String MOVIES = "Movies";
+    public static final String SERIES_SHOWS = "Series-Shows";
+    public static final String TRANSFER = "transfer";
+
     public static final double SIZE_UPPER_LIMIT = 15000.0;
     public static final double SEED_RATIO_UPPER_LIMIT = 5.0;
     public static final Comparator<Torrent> torrentSorter = (o1, o2) -> {
@@ -90,6 +94,12 @@ public class TorrentHelper {
         } else {
             seedRatioOptimized = seedRatio;
         }
+        // if movie or Series patter +1
+        final String name = tempTorrent.name;
+        final String typeOfMedia = determineTypeOfMedia(prepareTorrentName(name));
+        if(MOVIES.equals(typeOfMedia) || SERIES_SHOWS.equals(typeOfMedia)) {
+            tempTorrent.searchRating += 2;
+        }
         if (tempTorrent.cached.size()>0) {
             tempTorrent.searchRating += 2;
             tempTorrent.debugRating += "🚄: "+String.join("|",tempTorrent.cached);
@@ -125,6 +135,7 @@ public class TorrentHelper {
     }
 
     public static String getNormalizedTorrentStringWithSpacesKeepCase(String name) {
+        if(name == null) return null;
         String string = name.replaceAll("(-[A-Z]+)", "");
         return string.trim()
                 .replaceAll("[()]+", "")
@@ -183,6 +194,36 @@ public class TorrentHelper {
     public static String buildMagnetUriFromHash(final String hash, final String torrentName) {
         return String.format("magnet:?xt=urn:btih:%s&dn=%s", hash, urlEncode(torrentName))
                 + torrentService.getTrackerUrls().stream().map(TorrentHelper::urlEncode).collect(Collectors.joining("&tr=", "&tr=", ""));
+    }
+
+    public static String determineTypeOfMedia(String cleanedString) {
+        if (cleanedString.matches(".*[ ._-]+[re]*dump[ ._-]+.*") || cleanedString.matches(".*\\s[pP][dD][fF].*") || cleanedString.matches(".*\\s[eE][pP][uU][bB].*")) {
+            return TRANSFER;
+        } else if (cleanedString.matches("(.+[ .]+S[0-9]+.+)|(.+Season.+)")) {
+            return SERIES_SHOWS;
+        } else if (isMovieString(cleanedString)) {
+            return MOVIES;
+        }
+        return TRANSFER;
+    }
+
+    public static boolean isMovieString(String string) {
+        return string.matches(".*([xXhH]26[4-5]|[xX][vV][iI][dD]|[1-2][0-9]{3}[^0-9p\\/M\\@]*).*");
+    }
+
+    public static String prepareTorrentName(String torrentName) {
+        String normalizedTorrentStringWithSpaces = getNormalizedTorrentStringWithSpacesKeepCase(torrentName);
+        return removeReleaseTags(normalizedTorrentStringWithSpaces);
+    }
+
+    private static String removeReleaseTags(final String string) {
+        StringBuilder releaseTagsRemoved = new StringBuilder(string);
+        torrentService.getReleaseTags().forEach(tag -> {
+            String temporaryString = releaseTagsRemoved.toString().replaceAll("\\s(?i)" + tag + "\\s", " ");
+            releaseTagsRemoved.setLength(0);
+            releaseTagsRemoved.append(temporaryString);
+        });
+        return releaseTagsRemoved.toString();
     }
 
 }
