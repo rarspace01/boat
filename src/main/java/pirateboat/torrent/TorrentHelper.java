@@ -99,6 +99,7 @@ public class TorrentHelper {
         final String typeOfMedia = determineTypeOfMedia(prepareTorrentName(name));
         if(MOVIES.equals(typeOfMedia) || SERIES_SHOWS.equals(typeOfMedia)) {
             tempTorrent.searchRating += 2;
+            tempTorrent.debugRating += "🎬";
         }
         if (tempTorrent.cached.size()>0) {
             tempTorrent.searchRating += 2;
