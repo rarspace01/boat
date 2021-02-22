@@ -93,7 +93,7 @@ public class DownloadMonitor {
                     if (torrentToBeDownloaded.name.contains("magnet:?")) {
                         torrentToBeDownloaded.name = extractFileNameFromUrl(fileURLFromTorrent);
                     }
-                    rcloneDownloadFileToGdrive(fileURLFromTorrent, cloudService.buildDestinationPath(torrentToBeDownloaded) + buildFilename(torrentToBeDownloaded.name, fileURLFromTorrent));
+                    rcloneDownloadFileToGdrive(fileURLFromTorrent, cloudService.buildDestinationPath(torrentToBeDownloaded.name) + buildFilename(torrentToBeDownloaded.name, fileURLFromTorrent));
                     updateUploadStatus(torrentToBeDownloaded, 1, 1);
                 } else {
                     List<TorrentFile> filesFromTorrent = multifileHosterService.getFilesFromTorrent(torrentToBeDownloaded);
@@ -102,7 +102,7 @@ public class DownloadMonitor {
                     for (TorrentFile torrentFile : filesFromTorrent) {
                         // check fileSize to get rid of samples and NFO files?
                         updateUploadStatus(torrentToBeDownloaded, currentFileNumber, maxFileCount);
-                        String destinationPath = cloudService.buildDestinationPath(torrentToBeDownloaded);
+                        String destinationPath = cloudService.buildDestinationPath(torrentToBeDownloaded.name);
                         String targetFilePath;
                         if (destinationPath.contains("transfer")) {
                             targetFilePath = PropertiesHelper.getProperty("rclonedir") + "/transfer/multipart/" + torrentToBeDownloaded.name + "/" + torrentFile.name;

@@ -1,10 +1,17 @@
 package pirateboat.info;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import pirateboat.torrent.Torrent;
 import pirateboat.utilities.PropertiesHelper;
 
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class CloudServiceTest {
@@ -16,14 +23,52 @@ class CloudServiceTest {
         cloudService = new CloudService();
     }
 
+    @EnabledIfEnvironmentVariable(named = "DISABLE_UPDATE_PROMPT",matches = "true")
+    @Test
+    void searchForFilesWithYear() {
+        // Given
+        // When
+        List<String> files = cloudService.findExistingFiles("Test 1997");
+        // Then
+        assertTrue(files.size() > 0);
+    }
+
+    @EnabledIfEnvironmentVariable(named = "DISABLE_UPDATE_PROMPT",matches = "true")
+    @Test
+    void searchForFiles() {
+        // Given
+        // When
+        List<String> files = cloudService.findExistingFiles("Test1");
+        // Then
+        assertTrue(files.size() > 0);
+    }
+
+    @Test
+    void buildDestinationPathForSingleFileTorrentNoMatch() {
+        // Given
+        Torrent torrentToBeDownloaded = new Torrent("test");
+        // When
+        String destinationPath = cloudService.buildDestinationPath("Movie");
+        // Then
+        assertEquals(PropertiesHelper.getProperty("rclonedir") + "/transfer/M/", destinationPath);
+    }
 
     @Test
     void buildDestinationPathForSingleFileTorrent() {
         // Given
         Torrent torrentToBeDownloaded = new Torrent("test");
-        torrentToBeDownloaded.name = "Movie Title 2008 2160p US BluRay REMUX HEVC DTS HD MA TrueHD 7 1 Atmos FGT";
         // When
-        String destinationPath = cloudService.buildDestinationPath(torrentToBeDownloaded);
+        String destinationPath = cloudService.buildDestinationPath("Movie Title Xvid");
+        // Then
+        assertEquals(PropertiesHelper.getProperty("rclonedir") + "/Movies/M/", destinationPath);
+    }
+
+    @Test
+    void buildDestinationPathForSingleFileTorrentExtended() {
+        // Given
+        Torrent torrentToBeDownloaded = new Torrent("test");
+        // When
+        String destinationPath = cloudService.buildDestinationPath("Movie Title 2008 2160p US BluRay REMUX HEVC DTS HD MA TrueHD 7 1 Atmos FGT");
         // Then
         assertEquals(PropertiesHelper.getProperty("rclonedir") + "/Movies/M/", destinationPath);
     }
@@ -31,10 +76,8 @@ class CloudServiceTest {
     @Test
     void buildDestinationPathForSingleFileTorrentWithArticles() {
         // Given
-        Torrent torrentToBeDownloaded = new Torrent("test");
-        torrentToBeDownloaded.name = "A Movie Title 2008 2160p US BluRay REMUX HEVC DTS HD MA TrueHD 7 1 Atmos FGT";
         // When
-        String destinationPath = cloudService.buildDestinationPath(torrentToBeDownloaded);
+        String destinationPath = cloudService.buildDestinationPath("A Movie Title 2008 2160p US BluRay REMUX HEVC DTS HD MA TrueHD 7 1 Atmos FGT");
         // Then
         assertEquals(PropertiesHelper.getProperty("rclonedir") + "/Movies/M/", destinationPath);
     }
@@ -42,10 +85,8 @@ class CloudServiceTest {
     @Test
     void buildDestinationPathForMultiFileTorrentTest() {
         // Given
-        Torrent torrentToBeDownloaded = new Torrent("test");
-        torrentToBeDownloaded.name = "Test and Test [UNCENSORED] Season 1-3 [1080p] [5.1 MP3] [x265][FINAL]";
         // When
-        String destinationPath = cloudService.buildDestinationPath(torrentToBeDownloaded);
+        String destinationPath = cloudService.buildDestinationPath("Test and Test [UNCENSORED] Season 1-3 [1080p] [5.1 MP3] [x265][FINAL]");
         // Then
         assertEquals(PropertiesHelper.getProperty("rclonedir") + "/Series-Shows/T/", destinationPath);
     }
@@ -53,10 +94,8 @@ class CloudServiceTest {
     @Test
     void buildDestinationPathForSeriesTorrentTest() {
         // Given
-        Torrent torrentToBeDownloaded = new Torrent("test");
-        torrentToBeDownloaded.name = "Series.S01E02.480p.x264-mSD[tag].mkv";
         // When
-        String destinationPath = cloudService.buildDestinationPath(torrentToBeDownloaded);
+        String destinationPath = cloudService.buildDestinationPath("Series.S01E02.480p.x264-mSD[tag].mkv");
         // Then
         assertEquals(PropertiesHelper.getProperty("rclonedir") + "/Series-Shows/S/", destinationPath);
     }
@@ -64,10 +103,8 @@ class CloudServiceTest {
     @Test
     void buildDestinationPathForSeriesLowerCaseTorrentTest() {
         // Given
-        Torrent torrentToBeDownloaded = new Torrent("test");
-        torrentToBeDownloaded.name = "series.S01E02.480p.x264-mSD[tag].mkv";
         // When
-        String destinationPath = cloudService.buildDestinationPath(torrentToBeDownloaded);
+        String destinationPath = cloudService.buildDestinationPath("series.S01E02.480p.x264-mSD[tag].mkv");
         // Then
         assertEquals(PropertiesHelper.getProperty("rclonedir") + "/Series-Shows/S/", destinationPath);
     }
@@ -75,10 +112,8 @@ class CloudServiceTest {
     @Test
     void buildDestinationPathWithQuoteTest() {
         // Given
-        Torrent torrentToBeDownloaded = new Torrent("test");
-        torrentToBeDownloaded.name = "\"series.S01E02.480p.x264-mSD[tag].mkv";
         // When
-        String destinationPath = cloudService.buildDestinationPath(torrentToBeDownloaded);
+        String destinationPath = cloudService.buildDestinationPath("\"series.S01E02.480p.x264-mSD[tag].mkv");
         // Then
         assertEquals(PropertiesHelper.getProperty("rclonedir") + "/Series-Shows/S/", destinationPath);
     }
@@ -86,10 +121,8 @@ class CloudServiceTest {
     @Test
     void buildDestinationPathWithPDFTest() {
         // Given
-        Torrent torrentToBeDownloaded = new Torrent("test");
-        torrentToBeDownloaded.name = "series.S01E02.480p.x264-mSD[tag].pdf";
         // When
-        String destinationPath = cloudService.buildDestinationPath(torrentToBeDownloaded);
+        String destinationPath = cloudService.buildDestinationPath("series.S01E02.480p.x264-mSD[tag].pdf");
         // Then
         assertEquals(PropertiesHelper.getProperty("rclonedir") + "/transfer/S/", destinationPath);
     }

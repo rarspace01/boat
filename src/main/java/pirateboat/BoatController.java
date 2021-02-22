@@ -1,9 +1,18 @@
 package pirateboat;
 
+import lombok.NonNull;
+import org.apache.logging.log4j.util.Strings;
+import org.jetbrains.annotations.NotNull;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.web.HttpMediaTypeNotAcceptableException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
+import pirateboat.info.CloudService;
 import pirateboat.info.TheFilmDataBaseService;
 import pirateboat.info.TorrentMetaService;
 import pirateboat.multifileHoster.MultifileHosterService;
@@ -11,18 +20,8 @@ import pirateboat.torrent.Torrent;
 import pirateboat.torrent.TorrentHelper;
 import pirateboat.torrent.TorrentSearchEngine;
 import pirateboat.torrent.TorrentSearchEngineService;
-import pirateboat.utilities.HttpHelper;
 import pirateboat.utilities.PropertiesHelper;
-import org.apache.logging.log4j.util.Strings;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
 
-import lombok.NonNull;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -34,17 +33,19 @@ import java.util.stream.Stream;
 public final class BoatController {
     private final String switchToProgress = "<a href=\"../debug\">Show Progress</a> ";
     private final TorrentSearchEngineService torrentSearchEngineService;
+    private final CloudService cloudService;
     private final TorrentMetaService torrentMetaService;
     private final TheFilmDataBaseService theFilmDataBaseService;
     private final MultifileHosterService multifileHosterService;
 
     @Autowired
     public BoatController(TorrentSearchEngineService torrentSearchEngineService,
-                          HttpHelper httpHelper,
+                          CloudService cloudService,
                           TorrentMetaService torrentMetaService,
                           TheFilmDataBaseService theFilmDataBaseService,
                           MultifileHosterService multifileHosterService) {
         this.torrentSearchEngineService = torrentSearchEngineService;
+        this.cloudService = cloudService;
         this.torrentMetaService = torrentMetaService;
         this.theFilmDataBaseService = theFilmDataBaseService;
         this.multifileHosterService = multifileHosterService;
@@ -73,7 +74,7 @@ public final class BoatController {
                 "\n" +
                 "<form action=\"../boat\" target=\"_blank\" method=\"GET\">\n" +
                 "  Title:<br>\n" +
-                "  <input type=\"text\" name=\"q\" value=\"\" style=\"font-size: 2em; \">\n" +
+                "  <input type=\"text\" name=\"qq\" value=\"\" style=\"font-size: 2em; \">\n" +
                 "  <br>\n" +
                 "  <input type=\"submit\" value=\"Search\" style=\"font-size: 2em; \">\n" +
                 "</form>\n" +
@@ -93,21 +94,19 @@ public final class BoatController {
 
     @GetMapping({"/boat"})
     @NonNull
-    public final String getTorrents(@RequestParam("q") @NonNull String searchString) {
-        List<Torrent> combineResults = new ArrayList<>();
+    public final String getTorrents(@RequestParam(value = "q", required = false) String searchString, @RequestParam(value = "qq", required = false) String localSearchString) {
 
+        if(Strings.isNotEmpty(localSearchString)) {
+            final List<String> existingFiles = cloudService.findExistingFiles(localSearchString);
+            if(!existingFiles.isEmpty()) {
+                return "We already found some files:<br/>" + String.join("<br/>",existingFiles)+"<br/>Still want to search? <a href=\"?q="+localSearchString+"\">Yes</a>";
+            } else {
+                searchString = localSearchString;
+            }
+        }
         long currentTimeMillis = System.currentTimeMillis();
-
-        final List<TorrentSearchEngine> activeSearchEngines = new ArrayList<>(torrentSearchEngineService.getActiveSearchEngines());
-        activeSearchEngines.parallelStream()
-                .forEach(torrentSearchEngine -> combineResults.addAll(torrentSearchEngine.searchTorrents(searchString)));
-        List<Torrent> returnResults = new ArrayList<>(cleanDuplicates(combineResults));
-        // checkAllForCache
-        List<Torrent> cacheStateOfTorrents = multifileHosterService.getCachedStateOfTorrents(returnResults);
-        List<Torrent> torrentList = cacheStateOfTorrents.stream().map(torrent -> TorrentHelper.evaluateRating(torrent, searchString)).sorted(TorrentHelper.torrentSorter).collect(Collectors.toList());
-
+        List<Torrent> torrentList = searchTorrents(searchString);
         System.out.printf("Took: [%s]ms for [%s] found [%s]", (System.currentTimeMillis() - currentTimeMillis), searchString, torrentList.size());
-
         return "G: " + torrentList.stream().limit(25).collect(Collectors.toList());
     }
 
@@ -174,5 +173,18 @@ public final class BoatController {
     @NonNull
     public final void shutdownServer() {
         System.exit(0);
+    }
+
+    @NotNull
+    private List<Torrent> searchTorrents(String searchString) {
+        List<Torrent> combineResults = new ArrayList<>();
+        final List<TorrentSearchEngine> activeSearchEngines = new ArrayList<>(torrentSearchEngineService.getActiveSearchEngines());
+        activeSearchEngines.parallelStream()
+                .forEach(torrentSearchEngine -> combineResults.addAll(torrentSearchEngine.searchTorrents(searchString)));
+        List<Torrent> returnResults = new ArrayList<>(cleanDuplicates(combineResults));
+        // checkAllForCache
+        List<Torrent> cacheStateOfTorrents = multifileHosterService.getCachedStateOfTorrents(returnResults);
+        List<Torrent> torrentList = cacheStateOfTorrents.stream().map(torrent -> TorrentHelper.evaluateRating(torrent, searchString)).sorted(TorrentHelper.torrentSorter).collect(Collectors.toList());
+        return torrentList;
     }
 }
