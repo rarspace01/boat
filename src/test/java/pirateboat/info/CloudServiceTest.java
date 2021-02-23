@@ -1,18 +1,15 @@
 package pirateboat.info;
 
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import pirateboat.torrent.Torrent;
 import pirateboat.utilities.PropertiesHelper;
 
 import java.util.List;
-import java.util.Map;
 
-import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class CloudServiceTest {
 
