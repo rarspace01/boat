@@ -72,7 +72,7 @@ public class TorrentHelper {
         });
         double matchScore = (double) matches.get() / (double) searchMaxScore;
         tempTorrent.searchRating += matchScore;
-        tempTorrent.debugRating += String.format("🔍:%.2f", matchScore);
+        tempTorrent.debugRating += String.format("🔍:%.2f (%d/%d)", matchScore, matches.get(), searchMaxScore);
 
         // calc first range
         double rangeRating = Math.min(tempTorrent.lsize, SIZE_UPPER_LIMIT) / SIZE_UPPER_LIMIT;
@@ -95,7 +95,7 @@ public class TorrentHelper {
         }
         if (tempTorrent.cached.size()>0) {
             tempTorrent.searchRating += 2;
-            tempTorrent.debugRating += "🚄: ⚡"+String.join("|",tempTorrent.cached);
+            tempTorrent.debugRating += "🚄: ⚡";
         } else if (seedRatio > 1.0) {
             double seedRating = Math.min(seedRatioOptimized, SEED_RATIO_UPPER_LIMIT) / SEED_RATIO_UPPER_LIMIT;
             tempTorrent.searchRating += seedRating;
