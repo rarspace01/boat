@@ -61,8 +61,50 @@ class TorrentHelperTest {
         torrent2.leecher = 1;
         torrent2.lsize = 2000;
         // When
-        TorrentHelper.evaluateRating(torrent1, "Test Movie");
-        TorrentHelper.evaluateRating(torrent2, "Test Movie");
+        TorrentHelper.evaluateRating(torrent1, "Planet Movie");
+        TorrentHelper.evaluateRating(torrent2, "Planet Movie");
+        // Then
+        assertTrue(torrent1.searchRating < torrent2.searchRating);
+    }
+
+    @Test
+    void shouldRateTorrentContainsMoreVsLess() {
+        // Given
+        Torrent torrent1 = new Torrent("Test");
+        Torrent torrent2 = new Torrent("Test");
+        torrent1.name = "Test Title Planet S01E01 (2019) [WEBRip] [1080p] [GROUP] [GROUP]";
+        torrent1.seeder = 2;
+        torrent1.leecher = 1;
+        torrent1.lsize = 2000;
+
+        torrent2.name = "Test Planet (2019) [WEBRip] [1080p] [GROUP] [GROUP]";
+        torrent2.seeder = 2;
+        torrent2.leecher = 1;
+        torrent2.lsize = 2000;
+        // When
+        TorrentHelper.evaluateRating(torrent1, "Test Title");
+        TorrentHelper.evaluateRating(torrent2, "Test Title");
+        // Then
+        assertTrue(torrent1.searchRating > torrent2.searchRating);
+    }
+
+    @Test
+    void shouldRateTorrentContainsMoreThanSearchVsLess() {
+        // Given
+        Torrent torrent1 = new Torrent("Test");
+        Torrent torrent2 = new Torrent("Test");
+        torrent1.name = "Test Title Planet (2019) [WEBRip] [1080p] [GROUP] [GROUP]";
+        torrent1.seeder = 2;
+        torrent1.leecher = 1;
+        torrent1.lsize = 2000;
+
+        torrent2.name = "Test Title (2019) [WEBRip] [1080p] [GROUP] [GROUP]";
+        torrent2.seeder = 2;
+        torrent2.leecher = 1;
+        torrent2.lsize = 2000;
+        // When
+        TorrentHelper.evaluateRating(torrent1, "Test Title");
+        TorrentHelper.evaluateRating(torrent2, "Test Title");
         // Then
         assertTrue(torrent1.searchRating < torrent2.searchRating);
     }
