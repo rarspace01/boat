@@ -4,6 +4,8 @@ import org.junit.jupiter.api.Test;
 
 import static org.hamcrest.Matchers.any;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+
 
 class TorrentTest {
 
@@ -25,6 +27,6 @@ class TorrentTest {
         // When
         String torrentTorrentId = torrent.getTorrentId();
         // Then
-        assertEquals(torrentTorrentId, any(String.class));
+        assertThat(torrentTorrentId, any(String.class));
     }
 }
