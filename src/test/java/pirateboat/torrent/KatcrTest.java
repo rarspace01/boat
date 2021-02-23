@@ -5,7 +5,7 @@ import pirateboat.utilities.HttpHelper;
 
 import java.util.List;
 
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class KatcrTest {
 

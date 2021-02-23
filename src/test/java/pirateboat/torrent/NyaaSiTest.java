@@ -5,7 +5,7 @@ import pirateboat.utilities.HttpHelper;
 
 import java.util.List;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class NyaaSiTest {
 

@@ -7,10 +7,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SpringBootTest
 class DownloadMonitorTest {
@@ -26,7 +24,7 @@ class DownloadMonitorTest {
         // When
         downloadMonitor.refreshTorrentSearchEngines();
         // Then
-        assertThat(torrentSearchEngineService.getActiveSearchEngines().size() > 0, is(true));
+        assertTrue(torrentSearchEngineService.getActiveSearchEngines().size() > 0);
 
     }
 

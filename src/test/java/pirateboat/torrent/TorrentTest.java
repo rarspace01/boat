@@ -2,9 +2,8 @@ package pirateboat.torrent;
 
 import org.junit.jupiter.api.Test;
 
-import static junit.framework.TestCase.assertEquals;
 import static org.hamcrest.Matchers.any;
-import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class TorrentTest {
 
@@ -26,6 +25,6 @@ class TorrentTest {
         // When
         String torrentTorrentId = torrent.getTorrentId();
         // Then
-        assertThat(torrentTorrentId, any(String.class));
+        assertEquals(torrentTorrentId, any(String.class));
     }
 }

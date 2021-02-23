@@ -5,7 +5,7 @@ import pirateboat.utilities.HttpHelper;
 
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 class RARBGTest {
