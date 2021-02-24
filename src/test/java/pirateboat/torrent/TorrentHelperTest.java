@@ -3,6 +3,7 @@ package pirateboat.torrent;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TorrentHelperTest {
@@ -127,19 +128,37 @@ class TorrentHelperTest {
     //
 
     @Test
-    void shouldRateTorrentNameShouldDetectAllWords() {
+    void shouldRateTorrentNameShouldDetectAllWordsIncludingYear() {
         // Given
         Torrent torrent1 = new Torrent("Test");
-        torrent1.name = "Iron Man And Captain America Heroes United (2014) [1080p] [WEBRip] [5.1] [YTS.MX]";
+        torrent1.name = "Movie.Title.2020.2160p.AMZN.WEB-DL.x265.10bit.HDR10plus.DDP5.1-SWTYBLZ";
         torrent1.seeder = 1;
         torrent1.leecher = 1;
         torrent1.lsize = 1000;
 
 
         // When
-        TorrentHelper.evaluateRating(torrent1, "iron man");
+        TorrentHelper.evaluateRating(torrent1, "movie title");
         // Then
         assertTrue(torrent1.searchRating > 0);
+        assertTrue(torrent1.debugRating.contains("📅"));
+    }
+
+    @Test
+    void shouldRateTorrentNameShouldDetectAllWordsWithoutYear() {
+        // Given
+        Torrent torrent1 = new Torrent("Test");
+        torrent1.name = "Movie.Title.2160p.AMZN.WEB-DL.x265.10bit.HDR10plus.DDP5.1-SWTYBLZ";
+        torrent1.seeder = 1;
+        torrent1.leecher = 1;
+        torrent1.lsize = 1000;
+
+
+        // When
+        TorrentHelper.evaluateRating(torrent1, "movie title");
+        // Then
+        assertTrue(torrent1.searchRating > 0);
+        assertFalse(torrent1.debugRating.contains("📅"));
     }
 
 }

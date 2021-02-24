@@ -74,6 +74,12 @@ public class TorrentHelper {
         tempTorrent.searchRating += matchScore;
         tempTorrent.debugRating += String.format("🔍:%.2f (%d/%d)", matchScore, matches.get(), searchMaxScore);
 
+        // bonus for year in torrentName
+        if(normalizedTorrentNameWithSpaces.matches(".*[1-2][09][0-9][0-9].*")) {
+            tempTorrent.searchRating += 0.5;
+            tempTorrent.debugRating += "📅";
+        }
+
         // calc first range
         double rangeRating = Math.min(tempTorrent.lsize, SIZE_UPPER_LIMIT) / SIZE_UPPER_LIMIT;
         tempTorrent.searchRating += rangeRating;

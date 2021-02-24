@@ -88,7 +88,8 @@ web
 2160p
 4k
 10bit
-DD5.1
+HDR10plus
+DDP5.1
 6CH
 uhd
 bluray
