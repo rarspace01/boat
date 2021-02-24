@@ -87,6 +87,9 @@ web
 1080p
 2160p
 4k
+10bit
+DD5.1
+6CH
 uhd
 bluray
 dts
@@ -102,3 +105,5 @@ DE
 FR
 RU
 ES
+AMZN
+Hindi
