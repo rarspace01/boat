@@ -107,4 +107,7 @@ FR
 RU
 ES
 AMZN
+DSNP
+NF
+ATVP
 Hindi
