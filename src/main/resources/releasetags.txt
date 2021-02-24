@@ -88,6 +88,7 @@ web
 2160p
 4k
 10bit
+HDR
 HDR10plus
 DDP5.1
 6CH

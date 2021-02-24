@@ -143,6 +143,22 @@ class TorrentHelperTest {
         assertTrue(torrent1.searchRating > 0);
         assertTrue(torrent1.debugRating.contains("📅"));
     }
+    @Test
+    void shouldRateTorrentNameShouldDetectAllWordsIncludingYear2() {
+        // Given
+        Torrent torrent1 = new Torrent("Test");
+        torrent1.name = "Movie.Title.2020.2160p.DSNP.WEBRip.x265.10bit.HDR.DDP5.1.Atmos-SEMANTiCS";
+        torrent1.seeder = 1;
+        torrent1.leecher = 1;
+        torrent1.lsize = 1000;
+
+
+        // When
+        TorrentHelper.evaluateRating(torrent1, "movie title");
+        // Then
+        assertTrue(torrent1.searchRating > 0);
+        assertTrue(torrent1.debugRating.contains("📅"));
+    }
 
     @Test
     void shouldRateTorrentNameShouldDetectAllWordsWithoutYear() {

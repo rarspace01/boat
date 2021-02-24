@@ -10,6 +10,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 public class TorrentHelper {
+    public static final String REGEX_RELEASE_GROUP = "(-[A-Za-z]+$)";
     private static TorrentService torrentService = new TorrentService();
 
     public static final String MOVIES = "Movies";
@@ -30,7 +31,7 @@ public class TorrentHelper {
     public static final String TAG_REGEX = "(" + listOfReleaseTagsPiped() + ")";
 
     private static String listOfReleaseTagsPiped() {
-        return String.join("($|[ .]+)|[ .]", torrentService.getReleaseTags());
+        return String.join("($|[ .-]+)|[ .]", torrentService.getReleaseTags());
     }
 
     public static double extractTorrentSizeFromString(Torrent tempTorrent) {
@@ -117,8 +118,9 @@ public class TorrentHelper {
     }
 
     public static String getNormalizedTorrentString(String name) {
-        String lowerCase = name.replaceAll("(-[A-Z]+)", "").toLowerCase();
+        String lowerCase = name.replaceAll(REGEX_RELEASE_GROUP, "").toLowerCase();
         return lowerCase.trim()
+                .replaceAll(TAG_REGEX, ".")
                 .replaceAll(TAG_REGEX, ".")
                 .replaceAll(TAG_REGEX, ".")
                 .replaceAll(TAG_REGEX, ".")
@@ -130,8 +132,9 @@ public class TorrentHelper {
     }
 
     public static String getNormalizedTorrentStringWithSpaces(String name) {
-        String lowerCase = name.replaceAll("(-[A-Z]+)", "").toLowerCase();
+        String lowerCase = name.replaceAll(REGEX_RELEASE_GROUP, "").toLowerCase();
         return lowerCase.trim()
+                .replaceAll(TAG_REGEX, ".")
                 .replaceAll(TAG_REGEX, ".")
                 .replaceAll(TAG_REGEX, ".")
                 .replaceAll(TAG_REGEX, ".")
@@ -142,7 +145,7 @@ public class TorrentHelper {
 
     public static String getNormalizedTorrentStringWithSpacesKeepCase(String name) {
         if(name == null) return null;
-        String string = name.replaceAll("(-[A-Z]+)", "");
+        String string = name.replaceAll(REGEX_RELEASE_GROUP, "").toLowerCase();
         return string.trim()
                 .replaceAll("[()]+", "")
                 .replaceAll("\\[[A-Za-z0-9. -]*\\]", "")
