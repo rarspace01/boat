@@ -49,7 +49,7 @@ public class CloudService {
             preparedTorrentName = split[0];
         }
         // remove articles
-        preparedTorrentName = preparedTorrentName.replaceAll("(A[ .]|The[ .]|Der[ .])", "");
+        preparedTorrentName = preparedTorrentName.replaceAll("(a[ .]|the[ .]|der[ .])", "");
         //
         preparedTorrentName = preparedTorrentName.trim();
         preparedTorrentName = preparedTorrentName.replaceAll("\"", "");
