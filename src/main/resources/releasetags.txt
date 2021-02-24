@@ -112,3 +112,5 @@ DSNP
 NF
 ATVP
 Hindi
+German
+French
