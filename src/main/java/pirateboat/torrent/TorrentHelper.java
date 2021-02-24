@@ -208,7 +208,7 @@ public class TorrentHelper {
     public static String determineTypeOfMedia(String cleanedString) {
         if (cleanedString.matches(".*[ ._-]+[re]*dump[ ._-]+.*") || cleanedString.matches(".*\\s[pP][dD][fF].*") || cleanedString.matches(".*\\s[eE][pP][uU][bB].*")) {
             return TRANSFER;
-        } else if (cleanedString.matches("(.+[ .]+S[0-9]+.+)|(.+Season.+)")) {
+        } else if (cleanedString.matches("(.+[ .]+s[0-9]+.+)|(.+season.+)")) {
             return SERIES_SHOWS;
         } else if (isMovieString(cleanedString)) {
             return MOVIES;
