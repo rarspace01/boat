@@ -1,6 +1,7 @@
 package pirateboat;
 
 import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.logging.log4j.util.Strings;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,18 +21,22 @@ import pirateboat.torrent.Torrent;
 import pirateboat.torrent.TorrentHelper;
 import pirateboat.torrent.TorrentSearchEngine;
 import pirateboat.torrent.TorrentSearchEngineService;
+import pirateboat.utilities.HttpHelper;
 import pirateboat.utilities.PropertiesHelper;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+@Slf4j
 @RestController
 public final class BoatController {
     private final String switchToProgress = "<a href=\"../debug\">Show Progress</a> ";
+    private final HttpHelper httpHelper;
     private final TorrentSearchEngineService torrentSearchEngineService;
     private final CloudService cloudService;
     private final TorrentMetaService torrentMetaService;
@@ -39,11 +44,14 @@ public final class BoatController {
     private final MultifileHosterService multifileHosterService;
 
     @Autowired
-    public BoatController(TorrentSearchEngineService torrentSearchEngineService,
+    public BoatController(
+            HttpHelper httpHelper,
+            TorrentSearchEngineService torrentSearchEngineService,
                           CloudService cloudService,
                           TorrentMetaService torrentMetaService,
                           TheFilmDataBaseService theFilmDataBaseService,
                           MultifileHosterService multifileHosterService) {
+        this.httpHelper = httpHelper;
         this.torrentSearchEngineService = torrentSearchEngineService;
         this.cloudService = cloudService;
         this.torrentMetaService = torrentMetaService;
@@ -94,7 +102,7 @@ public final class BoatController {
 
     @GetMapping({"/boat"})
     @NonNull
-    public final String getTorrents(@RequestParam(value = "q", required = false) String searchString, @RequestParam(value = "qq", required = false) String localSearchString) {
+    public final String getTorrents(@RequestParam(value = "q", required = false) String searchString, @RequestParam(value = "qq", required = false) String localSearchString, @RequestParam(value = "qqq", required = false) String luckySearchUrl) {
 
         if(Strings.isNotEmpty(localSearchString)) {
             final List<String> existingFiles = cloudService.findExistingFiles(localSearchString);
@@ -104,10 +112,33 @@ public final class BoatController {
                 searchString = localSearchString;
             }
         }
-        long currentTimeMillis = System.currentTimeMillis();
-        List<Torrent> torrentList = searchTorrents(searchString);
-        System.out.printf("Took: [%s]ms for [%s] found [%s]", (System.currentTimeMillis() - currentTimeMillis), searchString, torrentList.size());
-        return "G: " + torrentList.stream().limit(25).collect(Collectors.toList());
+        if(Strings.isNotEmpty(localSearchString) || Strings.isNotEmpty(searchString)) {
+            long currentTimeMillis = System.currentTimeMillis();
+            List<Torrent> torrentList = searchTorrents(searchString);
+            System.out.printf("Took: [%s]ms for [%s] found [%s]", (System.currentTimeMillis() - currentTimeMillis), searchString, torrentList.size());
+            return "G: " + torrentList.stream().limit(25).collect(Collectors.toList());
+        } else if(Strings.isNotEmpty(luckySearchUrl)) {
+            StringBuilder response = new StringBuilder();
+            final String pageWithEntries = httpHelper.getPage(luckySearchUrl);
+            if(Strings.isNotEmpty(pageWithEntries)) {
+                final String[] titles = pageWithEntries.split("\n");
+                Arrays.stream(titles).forEach(title ->
+                        searchTorrents(title).stream().findFirst().ifPresentOrElse(torrent -> {
+                            log.info("Download {} with {}", title,torrent.magnetUri);
+                            downloadTorrentToMultifileHoster(null, torrent.magnetUri);
+                            response.append(title).append("✅ <br/>");
+                        },() -> {
+                            log.warn("Couldn't Download {}", title);
+                            response.append(title).append("❌ <br/>");
+                        })
+                );
+                return response.toString();
+            } else {
+                return "Error: nothing in remote url";
+            }
+        } else {
+            return "Error: nothing to search";
+        }
     }
 
     private List<Torrent> cleanDuplicates(List<Torrent> combineResults) {
