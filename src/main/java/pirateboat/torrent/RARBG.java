@@ -72,10 +72,18 @@ public class RARBG extends HttpUser implements TorrentSearchEngine {
         torrent.size = TorrentHelper.cleanNumberString(getValueBetweenStrings(text, "Size : ","Show Files").trim());
         torrent.lsize = TorrentHelper.extractTorrentSizeFromString(torrent);
 
-        torrent.seeder = Integer.parseInt(getValueBetweenStrings(text, "Seeders : "," ,").trim());
-        torrent.leecher = Integer.parseInt(getValueBetweenStrings(text, "Leechers : "," ,").trim());
+        try{
+            torrent.seeder = Integer.parseInt(getValueBetweenStrings(text, "Seeders : "," ,").trim());
+            torrent.leecher = Integer.parseInt(getValueBetweenStrings(text, "Leechers : "," ,").trim());
+        } catch (Exception ignored){
+
+        }
         TorrentHelper.evaluateRating(torrent, searchName);
-        return torrent;
+        if (TorrentHelper.isValidTorrent(torrent)) {
+            return torrent;
+        } else {
+            return null;
+        }
     }
 
     private String extractSubUrl(String elementString) {
