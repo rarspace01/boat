@@ -156,7 +156,7 @@ public class TorrentHelper {
         return value.replaceAll(",", "");
     }
 
-    public static boolean isBlacklisted(Torrent torrent) {
+    public static boolean isBlocklisted(Torrent torrent) {
         return torrent.name != null && (
                 torrent.name.toLowerCase().contains("telesync") ||
                         torrent.name.toLowerCase().contains("telecine") ||
@@ -183,13 +183,13 @@ public class TorrentHelper {
         return torrent.name != null &&
                 torrent.magnetUri != null &&
                 torrent.seeder > 0 &&
-                !isBlacklisted(torrent);
+                !isBlocklisted(torrent);
     }
 
     public static boolean isValidMetaTorrent(Torrent torrent) {
         return torrent.name != null &&
                 torrent.seeder > 0 &&
-                !isBlacklisted(torrent);
+                !isBlocklisted(torrent);
     }
 
     public static String urlEncode(final String string) {
