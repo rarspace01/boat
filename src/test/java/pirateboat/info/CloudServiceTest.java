@@ -61,6 +61,16 @@ class CloudServiceTest {
     }
 
     @Test
+    void buildDestinationPathForSingleFileTorrentWithNumber() {
+        // Given
+        Torrent torrentToBeDownloaded = new Torrent("test");
+        // When
+        String destinationPath = cloudService.buildDestinationPath("A 12 Number Title Xvid");
+        // Then
+        assertEquals(PropertiesHelper.getProperty("rclonedir") + "/Movies/0-9/", destinationPath);
+    }
+
+    @Test
     void buildDestinationPathForSingleFileTorrentExtended() {
         // Given
         Torrent torrentToBeDownloaded = new Torrent("test");
