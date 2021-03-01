@@ -53,8 +53,10 @@ public class RARBG extends HttpUser implements TorrentSearchEngine {
         Elements torrentsOnPage = doc.select(".lista2");
         return torrentsOnPage.stream()
                 .map(Node::toString)
-                .map(elementString -> extractSubUrl(elementString))
+                .map(this::extractSubUrl)
+                .filter(Objects::nonNull)
                 .map(url -> parseTorrentsOnSubPage(httpHelper.getPage(url), searchName))
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
@@ -76,7 +78,6 @@ public class RARBG extends HttpUser implements TorrentSearchEngine {
             torrent.seeder = Integer.parseInt(getValueBetweenStrings(text, "Seeders : "," ,").trim());
             torrent.leecher = Integer.parseInt(getValueBetweenStrings(text, "Leechers : "," ,").trim());
         } catch (Exception ignored){
-
         }
         TorrentHelper.evaluateRating(torrent, searchName);
         if (TorrentHelper.isValidTorrent(torrent)) {

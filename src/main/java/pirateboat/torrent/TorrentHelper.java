@@ -36,10 +36,14 @@ public class TorrentHelper {
 
     public static double extractTorrentSizeFromString(Torrent tempTorrent) {
         long torrentSize = 0;
-        if (tempTorrent.size.contains("GiB") || tempTorrent.size.contains("GB")) {
-            torrentSize = (long) (Double.parseDouble(trimSizeStringToValue(tempTorrent)) * 1024);
-        } else if (tempTorrent.size.contains("MiB") || tempTorrent.size.contains("MB")) {
-            torrentSize = (long) (Double.parseDouble(trimSizeStringToValue(tempTorrent)));
+        try{
+            if (tempTorrent.size.contains("GiB") || tempTorrent.size.contains("GB")) {
+                torrentSize = (long) (Double.parseDouble(trimSizeStringToValue(tempTorrent)) * 1024);
+            } else if (tempTorrent.size.contains("MiB") || tempTorrent.size.contains("MB")) {
+                torrentSize = (long) (Double.parseDouble(trimSizeStringToValue(tempTorrent)));
+            }
+        } catch (Exception ignored) {
+
         }
         return torrentSize;
     }
