@@ -104,7 +104,7 @@ public class CloudService {
             } else {
                 fileList.add(destinationPath + jsonElement.getAsJsonObject().get("Path").getAsString());
             }
-        } catch (IOException | InterruptedException e) {
+        } catch (Exception e) {
             log.error(e.getMessage());
             e.printStackTrace();
         }
