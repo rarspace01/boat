@@ -13,10 +13,6 @@ public class TorrentHelper {
     public static final String REGEX_RELEASE_GROUP = "(-[A-Za-z]+)";
     private static TorrentService torrentService = new TorrentService();
 
-    public static final String MOVIES = "Movies";
-    public static final String SERIES_SHOWS = "Series-Shows";
-    public static final String TRANSFER = "transfer";
-
     public static final double SIZE_UPPER_LIMIT = 15000.0;
     public static final double SEED_RATIO_UPPER_LIMIT = 5.0;
     public static final Comparator<Torrent> torrentSorter = (o1, o2) -> {
@@ -99,8 +95,9 @@ public class TorrentHelper {
         }
         // if movie or Series patter +1
         final String name = tempTorrent.name;
-        final String typeOfMedia = determineTypeOfMedia(prepareTorrentName(name));
-        if(MOVIES.equals(typeOfMedia) || SERIES_SHOWS.equals(typeOfMedia)) {
+        final TorrentType typeOfMedia = determineTypeOfMedia(prepareTorrentName(name));
+        if(TorrentType.MOVIES.equals(typeOfMedia)
+                || TorrentType.SERIES_SHOWS.equals(typeOfMedia)) {
             tempTorrent.searchRating += 2;
             tempTorrent.debugRating += "🎬";
         }
@@ -209,15 +206,15 @@ public class TorrentHelper {
                 + torrentService.getTrackerUrls().stream().map(TorrentHelper::urlEncode).collect(Collectors.joining("&tr=", "&tr=", ""));
     }
 
-    public static String determineTypeOfMedia(String cleanedString) {
+    public static TorrentType determineTypeOfMedia(String cleanedString) {
         if (cleanedString.matches(".*[ ._-]+[re]*dump[ ._-]+.*") || cleanedString.matches(".*\\s[pP][dD][fF].*") || cleanedString.matches(".*\\s[eE][pP][uU][bB].*")) {
-            return TRANSFER;
+            return TorrentType.TRANSFER;
         } else if (cleanedString.matches("(.+[ .]+s[0-9]+.+)|(.+season.+)")) {
-            return SERIES_SHOWS;
+            return TorrentType.SERIES_SHOWS;
         } else if (isMovieString(cleanedString)) {
-            return MOVIES;
+            return TorrentType.MOVIES;
         }
-        return TRANSFER;
+        return TorrentType.TRANSFER;
     }
 
     public static boolean isMovieString(String string) {

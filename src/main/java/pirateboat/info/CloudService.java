@@ -6,39 +6,34 @@ import lombok.extern.log4j.Log4j2;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
 import pirateboat.torrent.TorrentHelper;
-import pirateboat.torrent.TorrentService;
+import pirateboat.torrent.TorrentType;
 import pirateboat.utilities.PropertiesHelper;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
-
-import static pirateboat.torrent.TorrentHelper.MOVIES;
-import static pirateboat.torrent.TorrentHelper.SERIES_SHOWS;
-import static pirateboat.torrent.TorrentHelper.TRANSFER;
 
 @Log4j2
 @Service
 public class CloudService {
 
-    final TorrentService torrentService = new TorrentService();
-
     public String buildDestinationPath(final String torrentName) {
         String basePath = PropertiesHelper.getProperty("rclonedir");
         String preparedTorrentName = TorrentHelper.prepareTorrentName(torrentName);
-        final String typeOfMedia = TorrentHelper.determineTypeOfMedia(preparedTorrentName);
+        final TorrentType typeOfMedia = TorrentHelper.determineTypeOfMedia(preparedTorrentName);
         preparedTorrentName = deductFirstTorrentLetter(preparedTorrentName);
-        return basePath + "/" + typeOfMedia + "/" + preparedTorrentName + "/";
+        return basePath + "/" + typeOfMedia.getType() + "/" + preparedTorrentName + "/";
     }
 
-    public String buildDestinationPathWithTypeOfMedia(final String torrentName, String typeOfMedia) {
+    public String buildDestinationPathWithTypeOfMedia(final String torrentName, TorrentType typeOfMedia) {
         String basePath = PropertiesHelper.getProperty("rclonedir");
         String preparedTorrentName = TorrentHelper.prepareTorrentName(torrentName);
         preparedTorrentName = deductFirstTorrentLetter(preparedTorrentName);
-        return basePath + "/" + typeOfMedia + "/" + preparedTorrentName + "/";
+        return basePath + "/" + typeOfMedia.getType() + "/" + preparedTorrentName + "/";
     }
 
     @NotNull
@@ -64,18 +59,23 @@ public class CloudService {
 
     public List<String> findExistingFiles(String searchName) {
         final String[] strings = searchName.split(" ");
-        final List<String> foundFilesMovies = findFilesBasedOnStringsAndMediaType(searchName, strings, MOVIES);
-        if (!foundFilesMovies.isEmpty()) return foundFilesMovies;
-        // check series
-        final List<String> foundFilesSeries = findFilesBasedOnStringsAndMediaType(searchName, strings, SERIES_SHOWS);
-        if (!foundFilesSeries.isEmpty()) return foundFilesSeries;
-        // check transfer
-        return findFilesBasedOnStringsAndMediaType(searchName, strings, TRANSFER);
+
+        ForkJoinPool customThreadPool = new ForkJoinPool();
+        try {
+            return customThreadPool.submit(() -> Arrays.asList(TorrentType.values()).parallelStream()
+                    .map(torrentType -> findFilesBasedOnStringsAndMediaType(searchName, strings, torrentType))
+                    .flatMap(List::stream)
+                    .collect(Collectors.toList())
+            ).get();
+        } catch (Exception exception) {
+            return Collections.emptyList();
+        }
     }
 
-    private List<String> findFilesBasedOnStringsAndMediaType(String searchName, String[] strings, String movies) {
+
+    private List<String> findFilesBasedOnStringsAndMediaType(String searchName, String[] strings, TorrentType torrentType) {
         log.info("Searching for: {}", searchName);
-        return getFilesInPath(buildDestinationPathWithTypeOfMedia(searchName, movies)).stream()
+        return getFilesInPath(buildDestinationPathWithTypeOfMedia(searchName, torrentType)).stream()
                 .filter(fileName -> Arrays.stream(strings).allMatch(searchStringPart -> fileName.toLowerCase().matches(".*" + searchStringPart.toLowerCase() + ".*")))
                 .collect(Collectors.toList());
     }
