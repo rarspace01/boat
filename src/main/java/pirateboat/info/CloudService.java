@@ -91,11 +91,9 @@ public class CloudService {
         log.info(commandToRun);
         builder.command("bash", "-c", commandToRun);
         builder.directory(new File(System.getProperty("user.home")));
-        Process process = null;
-        boolean exitCode = true;
         try {
-            process = builder.start();
-            exitCode = process.waitFor(10, TimeUnit.SECONDS);
+            Process process = builder.start();
+            process.waitFor(10, TimeUnit.SECONDS);
             String output = new String(process.getInputStream().readAllBytes());
             final JsonElement jsonElement = JsonParser.parseString(output);
             if (jsonElement.isJsonArray()) {
