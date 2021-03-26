@@ -103,7 +103,7 @@ public final class BoatController {
     @GetMapping({"/boat"})
     @NonNull
     public final String getTorrents(@RequestParam(value = "q", required = false) String searchString, @RequestParam(value = "qq", required = false) String localSearchString, @RequestParam(value = "qqq", required = false) String luckySearchUrl) {
-
+        long currentTimeMillis = System.currentTimeMillis();
         if(Strings.isNotEmpty(localSearchString)) {
             final List<String> existingFiles = cloudService.findExistingFiles(localSearchString);
             if(!existingFiles.isEmpty()) {
@@ -113,7 +113,6 @@ public final class BoatController {
             }
         }
         if(Strings.isNotEmpty(localSearchString) || Strings.isNotEmpty(searchString)) {
-            long currentTimeMillis = System.currentTimeMillis();
             List<Torrent> torrentList = searchTorrents(searchString);
             System.out.printf("Took: [%s]ms for [%s] found [%s]", (System.currentTimeMillis() - currentTimeMillis), searchString, torrentList.size());
             return "G: " + torrentList.stream().limit(25).collect(Collectors.toList());
