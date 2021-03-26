@@ -12,9 +12,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-public class Katcr extends HttpUser implements TorrentSearchEngine {
+public class Kat extends HttpUser implements TorrentSearchEngine {
 
-    Katcr(HttpHelper httpHelper) {
+    Kat(HttpHelper httpHelper) {
         super(httpHelper);
     }
 
@@ -32,12 +32,12 @@ public class Katcr extends HttpUser implements TorrentSearchEngine {
     }
 
     private String buildSearchUrl(String searchName) {
-        return String.format(getBaseUrl() + "/katsearch/page/1/%s", URLEncoder.encode(searchName, StandardCharsets.UTF_8));
+        return String.format(getBaseUrl() + "/usearch/%s/1/?field=seeders&sorder=desc", URLEncoder.encode(searchName, StandardCharsets.UTF_8));
     }
 
     @Override
     public String getBaseUrl() {
-        return "https://katcr.co";
+        return "https://kat.rip";
     }
 
     @Override
