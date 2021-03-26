@@ -10,11 +10,13 @@ import pirateboat.torrent.TorrentType;
 import pirateboat.utilities.PropertiesHelper;
 
 import java.io.File;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Log4j2
@@ -90,10 +92,10 @@ public class CloudService {
         builder.command("bash", "-c", commandToRun);
         builder.directory(new File(System.getProperty("user.home")));
         Process process = null;
-        int exitCode = -1;
+        boolean exitCode = true;
         try {
             process = builder.start();
-            exitCode = process.waitFor();
+            exitCode = process.waitFor(10, TimeUnit.SECONDS);
             String output = new String(process.getInputStream().readAllBytes());
             final JsonElement jsonElement = JsonParser.parseString(output);
             if (jsonElement.isJsonArray()) {
@@ -108,8 +110,7 @@ public class CloudService {
             log.error(e.getMessage());
             e.printStackTrace();
         }
-        assert exitCode == 0;
-        log.info("Took {}ms", System.currentTimeMillis() - startCounter);
+        log.info("Took {}ms with [{}]", System.currentTimeMillis() - startCounter, destinationPath);
         return fileList;
     }
 
