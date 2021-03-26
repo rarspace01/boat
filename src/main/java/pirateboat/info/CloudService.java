@@ -60,7 +60,7 @@ public class CloudService {
     public List<String> findExistingFiles(String searchName) {
         final String[] strings = searchName.split(" ");
 
-        ForkJoinPool customThreadPool = new ForkJoinPool();
+        ForkJoinPool customThreadPool = new ForkJoinPool(TorrentType.values().length);
         try {
             return customThreadPool.submit(() -> Arrays.asList(TorrentType.values()).parallelStream()
                     .map(torrentType -> findFilesBasedOnStringsAndMediaType(searchName, strings, torrentType))
