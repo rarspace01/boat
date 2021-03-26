@@ -15,12 +15,4 @@ public enum TorrentType {
         this.type = type;
     }
 
-    public static TorrentType valueOfType(String type) {
-        for (TorrentType torrentType : values()) {
-            if (torrentType.type.equals(type)) {
-                return torrentType;
-            }
-        }
-        return null;
-    }
 }
