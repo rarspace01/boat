@@ -107,6 +107,7 @@ DE
 FR
 RU
 ES
+ITA
 AMZN
 DSNP
 NF
@@ -114,3 +115,4 @@ ATVP
 Hindi
 German
 French
+Italian
