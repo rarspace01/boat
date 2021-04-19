@@ -82,10 +82,11 @@ public class DownloadMonitor {
         multifileHosterService.getRemoteTorrents().stream().filter(torrent -> torrent.status.contains("error")).forEach(multifileHosterService::delete);
     }
 
-    private void checkForDownloadableTorrentsAndDownloadTheFirst() {
+    private boolean checkForDownloadableTorrentsAndDownloadTheFirst() {
         final Torrent torrentToBeDownloaded = getTorrentToBeDownloaded();
         if (torrentToBeDownloaded != null) {
             isDownloadInProgress = true;
+            boolean wasDownloadSuccessful = false;
             try {
                 if (multifileHosterService.isSingleFileDownload(torrentToBeDownloaded)) {
                     updateUploadStatus(torrentToBeDownloaded, 0, 1);
@@ -93,8 +94,11 @@ public class DownloadMonitor {
                     if (torrentToBeDownloaded.name.contains("magnet:?")) {
                         torrentToBeDownloaded.name = extractFileNameFromUrl(fileURLFromTorrent);
                     }
-                    rcloneDownloadFileToGdrive(fileURLFromTorrent, cloudService.buildDestinationPath(torrentToBeDownloaded.name) + buildFilename(torrentToBeDownloaded.name, fileURLFromTorrent));
-                    updateUploadStatus(torrentToBeDownloaded, 1, 1);
+                    if(rcloneDownloadFileToGdrive(fileURLFromTorrent, cloudService.buildDestinationPath(torrentToBeDownloaded.name) + buildFilename(torrentToBeDownloaded.name, fileURLFromTorrent))) {
+                        updateUploadStatus(torrentToBeDownloaded, 1, 1);
+                        multifileHosterService.delete(torrentToBeDownloaded);
+                        wasDownloadSuccessful = true;
+                    }
                 } else {
                     List<TorrentFile> filesFromTorrent = multifileHosterService.getFilesFromTorrent(torrentToBeDownloaded);
                     int currentFileNumber = 0;
@@ -109,17 +113,24 @@ public class DownloadMonitor {
                         } else {
                             targetFilePath = destinationPath + torrentToBeDownloaded.name + "/" + torrentFile.name;
                         }
-                        rcloneDownloadFileToGdrive(torrentFile.url, targetFilePath);
-                        currentFileNumber++;
-                        updateUploadStatus(torrentToBeDownloaded, currentFileNumber, maxFileCount);
+                        if(rcloneDownloadFileToGdrive(torrentFile.url, targetFilePath)) {
+                            currentFileNumber++;
+                            updateUploadStatus(torrentToBeDownloaded, currentFileNumber, maxFileCount);
+                        } else {
+                            return false;
+                        }
                     }
+                    multifileHosterService.delete(torrentToBeDownloaded);
                 }
-                multifileHosterService.delete(torrentToBeDownloaded);
             } catch (Exception exception) {
                 log.error(String.format("Couldn't download Torrent: %s", torrentToBeDownloaded), exception);
             } finally {
                 isDownloadInProgress = false;
             }
+            log.error(String.format("Couldn't download Torrent: %s", torrentToBeDownloaded));
+            return wasDownloadSuccessful;
+        } else {
+            return true;
         }
     }
 
@@ -174,8 +185,8 @@ public class DownloadMonitor {
         return foundMatch != null ? foundMatch.replaceAll("\"","").replaceAll(".torrent","") : fileURLFromTorrent;
     }
 
-    private void rcloneDownloadFileToGdrive(String fileURLFromTorrent, String destinationPath) {
-        log.info("D>[" + destinationPath + "]");
+    private boolean rcloneDownloadFileToGdrive(String fileURLFromTorrent, String destinationPath) {
+        log.info(String.format("D>[%s]", destinationPath));
         ProcessBuilder builder = new ProcessBuilder();
         final String commandToRun = String.format("rclone copyurl '%s' '%s'", fileURLFromTorrent, destinationPath);
         builder.command("bash", "-c", commandToRun);
@@ -192,7 +203,12 @@ public class DownloadMonitor {
             log.error(e.getMessage());
             e.printStackTrace();
         }
-        assert exitCode == 0;
+        if(exitCode != 0) {
+            log.error("upload failed");
+            return false;
+        } else {
+            return true;
+        }
     }
 
 
