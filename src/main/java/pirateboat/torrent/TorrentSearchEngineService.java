@@ -27,7 +27,7 @@ public class TorrentSearchEngineService {
         final List<TorrentSearchEngine> tempActiveSearchEngines = new ArrayList<>();
         allSearchEngines.parallelStream().forEach(torrentSearchEngine -> {
             final List<Torrent> torrents = torrentSearchEngine.searchTorrents("blue");
-            if (torrents.isEmpty()) {
+            if (!torrents.isEmpty()) {
                 tempActiveSearchEngines.add(torrentSearchEngine);
             }
         });
