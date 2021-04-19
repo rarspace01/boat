@@ -7,6 +7,5 @@ public abstract class HttpUser {
 
     public HttpUser(HttpHelper httpHelper) {
         this.httpHelper = httpHelper;
-
     }
 }

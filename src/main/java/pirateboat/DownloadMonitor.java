@@ -34,7 +34,7 @@ public class DownloadMonitor {
     private final MultifileHosterService multifileHosterService;
 
     private static final int SECONDS_BETWEEN_DOWNLOAD_POLLING = 30;
-    private static final int SECONDS_BETWEEN_SEARCH_ENGINE_POLLING = 60;
+    private static final int SECONDS_BETWEEN_SEARCH_ENGINE_POLLING = 240;
     private static final int SECONDS_BETWEEN_CLEAR_TRANSFER_POLLING = 3600;
     private static final Logger log = LoggerFactory.getLogger(DownloadMonitor.class);
 

@@ -20,12 +20,14 @@ public class TorrentSearchEngineService {
     public TorrentSearchEngineService(HttpHelper httpHelper) {
         this.httpHelper = httpHelper;
         this.allSearchEngines = Arrays.asList(new PirateBay(httpHelper), new NyaaSi(httpHelper), new SolidTorrents(httpHelper), new LeetxTo(httpHelper), new YTS(httpHelper), new RARBG(httpHelper));
+        this.activeSearchEngines.addAll(allSearchEngines);
     }
 
     public void refreshTorrentSearchEngines() {
         final List<TorrentSearchEngine> tempActiveSearchEngines = new ArrayList<>();
         allSearchEngines.parallelStream().forEach(torrentSearchEngine -> {
-            if (httpHelper.isWebsiteResponding(torrentSearchEngine.getSearchPage(), 10000)) {
+            final List<Torrent> torrents = torrentSearchEngine.searchTorrents("blue");
+            if (torrents.isEmpty()) {
                 tempActiveSearchEngines.add(torrentSearchEngine);
             }
         });
