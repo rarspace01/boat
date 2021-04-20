@@ -140,11 +140,18 @@ public final class BoatController {
         }
     }
 
-    private List<Torrent> cleanDuplicates(List<Torrent> combineResults) {
+    public List<Torrent> cleanDuplicates(List<Torrent> combineResults) {
         ArrayList<Torrent> cleanedTorrents = new ArrayList<>();
         combineResults.forEach(result -> {
             if (!cleanedTorrents.contains(result)) {
                 cleanedTorrents.add(result);
+            } else {
+                final int existingTorrentIndex = cleanedTorrents.indexOf(result);
+                final Torrent existingTorrent = cleanedTorrents.get(existingTorrentIndex);
+                if(existingTorrent.searchRating<result.searchRating) {
+                    cleanedTorrents.remove(existingTorrent);
+                    cleanedTorrents.add(result);
+                }
             }
         });
         return cleanedTorrents;
