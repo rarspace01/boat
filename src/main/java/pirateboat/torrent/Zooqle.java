@@ -1,22 +1,20 @@
 package pirateboat.torrent;
 
-import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.select.Elements;
 import pirateboat.utilities.HttpHelper;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.atomic.AtomicReference;
 
-public class YTS extends HttpUser implements TorrentSearchEngine {
+public class Zooqle extends HttpUser implements TorrentSearchEngine {
 
-    YTS(HttpHelper httpHelper) {
+    Zooqle(HttpHelper httpHelper) {
         super(httpHelper);
     }
 
@@ -34,39 +32,41 @@ public class YTS extends HttpUser implements TorrentSearchEngine {
     }
 
     private String buildSearchUrl(String searchName) {
-        return String.format(getBaseUrl() + "/api/v2/list_movies.json?limit=50&query_term=%s&sort_by=seeds", URLEncoder.encode(searchName, StandardCharsets.UTF_8));
+        return String.format("%s/search?q=%s&fmt=rss", getBaseUrl(), URLEncoder.encode(searchName, StandardCharsets.UTF_8));
     }
 
     @Override
     public String getBaseUrl() {
-        return "https://yts.mx";
+        return "https://zooqle.com";
     }
 
     private List<Torrent> parseTorrentsOnResultPage(String pageContent, String searchName) {
         ArrayList<Torrent> torrentList = new ArrayList<>();
 
-        JsonElement jsonRoot = JsonParser.parseString(pageContent);
-        JsonElement data = jsonRoot.getAsJsonObject().get("data");
-        if (data == null) {
+        Document doc = Jsoup.parse(pageContent);
+        Elements torrentListOnPage = doc.select("item");
+
+        if (torrentListOnPage == null) {
             return torrentList;
         }
-        JsonElement results = data.getAsJsonObject().get("movies");
+        JsonElement results = null;
         if (results == null) {
             return torrentList;
         }
-        JsonArray jsonArray = results.getAsJsonArray();
-        jsonArray.forEach(jsonTorrentElement -> {
+
+
+        torrentListOnPage.forEach(torrentElement -> {
             Torrent tempTorrent = new Torrent(toString());
-            final JsonObject jsonTorrent = jsonTorrentElement.getAsJsonObject();
-            tempTorrent.name = jsonTorrent.get("title").getAsString() + " " + jsonTorrent.get("year").getAsInt();
+            /*tempTorrent.name = jsonTorrent.get("title").getAsString() + " " + jsonTorrent.get("year").getAsInt();
             JsonObject bestTorrentSource = retrieveBestTorrent(jsonTorrent.get("torrents").getAsJsonArray());
 
+            //tempTorrent.magnetUri = bestTorrentSource.get("url").getAsString();
             tempTorrent.magnetUri = TorrentHelper.buildMagnetUriFromHash(bestTorrentSource.get("hash").getAsString().toLowerCase(), tempTorrent.name);
             tempTorrent.seeder = bestTorrentSource.get("seeds").getAsInt();
             tempTorrent.leecher = bestTorrentSource.get("peers").getAsInt();
             tempTorrent.size = bestTorrentSource.get("size").getAsString();
             tempTorrent.lsize = bestTorrentSource.get("size_bytes").getAsLong() / 1024.0f / 1024.0f;
-            tempTorrent.date = new Date(bestTorrentSource.get("date_uploaded_unix").getAsLong() * 1000);
+            tempTorrent.date = new Date(bestTorrentSource.get("date_uploaded_unix").getAsLong() * 1000);*/
 
             TorrentHelper.evaluateRating(tempTorrent, searchName);
             if (TorrentHelper.isValidTorrent(tempTorrent)) {
@@ -75,16 +75,6 @@ public class YTS extends HttpUser implements TorrentSearchEngine {
         });
 
         return torrentList;
-    }
-
-    private JsonObject retrieveBestTorrent(JsonArray torrentElements) {
-        AtomicReference<JsonObject> bestTorrent = new AtomicReference<>();
-        torrentElements.forEach(torrentElement -> {
-            if (bestTorrent.get() == null || bestTorrent.get().get("size_bytes").getAsLong() < torrentElement.getAsJsonObject().get("size_bytes").getAsLong()) {
-                bestTorrent.set(torrentElement.getAsJsonObject());
-            }
-        });
-        return bestTorrent.get();
     }
 
     @Override

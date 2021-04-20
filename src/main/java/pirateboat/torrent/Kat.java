@@ -1,10 +1,10 @@
 package pirateboat.torrent;
 
-import pirateboat.utilities.HttpHelper;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import pirateboat.utilities.HttpHelper;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -38,11 +38,6 @@ public class Kat extends HttpUser implements TorrentSearchEngine {
     @Override
     public String getBaseUrl() {
         return "https://kat.rip";
-    }
-
-    @Override
-    public String getSearchPage() {
-        return buildSearchUrl("test");
     }
 
     private List<Torrent> parseTorrentsOnResultPage(String pageContent, String searchName) {

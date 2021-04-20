@@ -8,6 +8,4 @@ public interface TorrentSearchEngine {
 
     String getBaseUrl();
 
-    String getSearchPage();
-
 }

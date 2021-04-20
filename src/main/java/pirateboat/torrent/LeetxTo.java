@@ -41,11 +41,6 @@ public class LeetxTo extends HttpUser implements TorrentSearchEngine {
         return "https://1337x.to";
     }
 
-    @Override
-    public String getSearchPage() {
-        return buildSearchUrl("test");
-    }
-
     private List<Torrent> parseTorrentsOnResultPage(String pageContent, String searchName) {
         ArrayList<Torrent> torrentList = new ArrayList<>();
 

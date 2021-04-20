@@ -1,21 +1,19 @@
 package pirateboat.torrent;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
+import com.google.gson.JsonSyntaxException;
+import lombok.extern.slf4j.Slf4j;
 import pirateboat.utilities.HttpHelper;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+@Slf4j
 public class PirateBay extends HttpUser implements TorrentSearchEngine {
 
     PirateBay(HttpHelper httpHelper) {
@@ -39,84 +37,38 @@ public class PirateBay extends HttpUser implements TorrentSearchEngine {
     }
 
     private String buildSearchUrl(String searchName) {
-        return String.format(getBaseUrl() + "/search/%s/%d/99/200", URLEncoder.encode(searchName, StandardCharsets.UTF_8), 0);
+        return String.format(getBaseUrl() + "/q.php?q=%s&cat=", URLEncoder.encode(searchName, StandardCharsets.UTF_8));
     }
 
     @Override
     public String getBaseUrl() {
-        return "https://thepiratebay.org";
-    }
-
-    @Override
-    public String getSearchPage() {
-        return buildSearchUrl("test");
+        return "https://apibay.org";
     }
 
     private List<Torrent> parseTorrentsOnResultPage(String pageContent, String searchName) {
 
         ArrayList<Torrent> torrentList = new ArrayList<>();
 
-        Document doc = Jsoup.parse(pageContent);
+        try {
+            JsonElement jsonRoot = JsonParser.parseString(pageContent);
+            JsonArray listOfTorrents = jsonRoot.getAsJsonArray();
 
-        Elements torrentListOnPage = doc.select("tr:not(.header)");
-
-        if (torrentListOnPage != null) {
-            for (Element torrent : torrentListOnPage) {
+            listOfTorrents.forEach(jsonElement -> {
                 Torrent tempTorrent = new Torrent(toString());
-                // extract ahref for title
-                Elements nameElements = torrent.select("a[title~=Details for]");
-                if (nameElements.size() > 0) {
-                    tempTorrent.name = nameElements.get(0).text();
-                }
-
-                // extract uri for magnetlink
-                Elements uriElements = torrent.select("a[title~=using magnet]");
-                if (uriElements.size() > 0) {
-                    tempTorrent.magnetUri = uriElements.get(0).attributes().get("href");
-                }
-
-                // extract date
-
-                String inputDateString = torrent.select("td").get(2).text().replace("\u00a0", " ");
-                SimpleDateFormat formatter = new SimpleDateFormat("MM-dd yyyy");
-                if (inputDateString.matches("Today.*")) {
-                    tempTorrent.date = new Date();
-                } else if (inputDateString.matches("Y-day.*")) {
-                    Calendar constructedDate = Calendar.getInstance();
-                    constructedDate.add(Calendar.DAY_OF_MONTH, -1);
-                    tempTorrent.date = constructedDate.getTime();
-                } else {
-                    try {
-                        tempTorrent.date = formatter.parse(inputDateString);
-                    } catch (ParseException e) {
-                        e.printStackTrace();
-                    }
-                }
-
-                // extract size
-                tempTorrent.size = TorrentHelper.cleanNumberString(torrent.select("td").get(4).text().replace("\u00a0", " "));
-
-                tempTorrent.lsize = TorrentHelper.extractTorrentSizeFromString(tempTorrent);
-
-
-                // extract seeder
-                tempTorrent.seeder = Integer.parseInt(TorrentHelper.cleanNumberString(torrent.select("td").get(5).text()));
-
-                // extract leecher
-                tempTorrent.leecher = Integer.parseInt(TorrentHelper.cleanNumberString(torrent.select("td").get(6).text()));
-
-                // evaluate result
+                tempTorrent.name = jsonElement.getAsJsonObject().get("name").getAsString();
+                tempTorrent.magnetUri = TorrentHelper.buildMagnetUriFromHash(jsonElement.getAsJsonObject().get("info_hash").getAsString(), tempTorrent.name);
+                tempTorrent.seeder = jsonElement.getAsJsonObject().get("seeders").getAsInt();
+                tempTorrent.leecher = jsonElement.getAsJsonObject().get("leechers").getAsInt();
+                tempTorrent.lsize = jsonElement.getAsJsonObject().get("size").getAsLong() / 1024.0f / 1024.0f;
                 TorrentHelper.evaluateRating(tempTorrent, searchName);
-
-                // filter torrents without any seeders
                 if (TorrentHelper.isValidTorrent(tempTorrent)) {
                     torrentList.add(tempTorrent);
                 }
-            }
+            });
+        } catch (JsonSyntaxException e) {
+            log.error("coudn't extract torrent ", e);
         }
-
         return torrentList;
-
     }
 
     @Override

@@ -14,12 +14,18 @@ public class TorrentSearchEngineService {
 
     private final List<TorrentSearchEngine> activeSearchEngines = new ArrayList<>();
     private final List<TorrentSearchEngine> allSearchEngines;
-    private final HttpHelper httpHelper;
 
     @Autowired
     public TorrentSearchEngineService(HttpHelper httpHelper) {
-        this.httpHelper = httpHelper;
-        this.allSearchEngines = Arrays.asList(new PirateBay(httpHelper), new NyaaSi(httpHelper), new SolidTorrents(httpHelper), new LeetxTo(httpHelper), new YTS(httpHelper), new RARBG(httpHelper));
+        this.allSearchEngines = Arrays.asList(
+                new PirateBay(httpHelper),
+                new NyaaSi(httpHelper),
+                new SolidTorrents(httpHelper),
+                new LeetxTo(httpHelper),
+                new YTS(httpHelper),
+                new RARBG(httpHelper),
+                new Zooqle(httpHelper)
+        );
         this.activeSearchEngines.addAll(allSearchEngines);
     }
 

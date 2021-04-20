@@ -41,11 +41,6 @@ public class NyaaSi extends HttpUser implements TorrentSearchEngine {
         return "https://nyaa.si";
     }
 
-    @Override
-    public String getSearchPage() {
-        return buildSearchUrl("test");
-    }
-
     private List<Torrent> parseTorrentsOnResultPage(String pageContent, String searchName) {
         ArrayList<Torrent> torrentList = new ArrayList<>();
 

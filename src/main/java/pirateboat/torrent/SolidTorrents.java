@@ -3,8 +3,8 @@ package pirateboat.torrent;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import pirateboat.utilities.HttpHelper;
 import org.jsoup.Jsoup;
+import pirateboat.utilities.HttpHelper;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -39,11 +39,6 @@ public class SolidTorrents extends HttpUser implements TorrentSearchEngine {
     @Override
     public String getBaseUrl() {
         return "https://solidtorrents.net";
-    }
-
-    @Override
-    public String getSearchPage() {
-        return buildSearchUrl("test");
     }
 
     private List<Torrent> parseTorrentsOnResultPage(String pageContent, String searchName) {
