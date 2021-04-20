@@ -191,7 +191,7 @@ public class DownloadMonitor {
     private boolean rcloneDownloadFileToGdrive(String fileURLFromTorrent, String destinationPath) {
         log.info(String.format("D>[%s]", destinationPath));
         ProcessBuilder builder = new ProcessBuilder();
-        final String commandToRun = String.format("rclone copyurl '%s' '%s'", fileURLFromTorrent, destinationPath);
+        final String commandToRun = String.format("rclone copyurl '%s' '%s'", fileURLFromTorrent, destinationPath.replaceAll("'",""));
         builder.command("bash", "-c", commandToRun);
         builder.directory(new File(System.getProperty("user.home")));
         Process process = null;
