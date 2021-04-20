@@ -4,6 +4,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import lombok.extern.log4j.Log4j2;
 import org.jetbrains.annotations.NotNull;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import pirateboat.torrent.TorrentHelper;
 import pirateboat.torrent.TorrentType;
@@ -82,7 +83,8 @@ public class CloudService {
                 .collect(Collectors.toList());
     }
 
-    List<String> getFilesInPath(String destinationPath) {
+    @Cacheable
+    public List<String> getFilesInPath(String destinationPath) {
         final List<String> fileList = new ArrayList<>();
         final long startCounter = System.currentTimeMillis();
         log.info("Search in [" + destinationPath + "]");

@@ -94,14 +94,15 @@ public class DownloadMonitor {
                     if (torrentToBeDownloaded.name.contains("magnet:?")) {
                         torrentToBeDownloaded.name = extractFileNameFromUrl(fileURLFromTorrent);
                     }
-                    if(rcloneDownloadFileToGdrive(fileURLFromTorrent, cloudService.buildDestinationPath(torrentToBeDownloaded.name) + buildFilename(torrentToBeDownloaded.name, fileURLFromTorrent))) {
-                        updateUploadStatus(torrentToBeDownloaded, 1, 1);
-                        multifileHosterService.delete(torrentToBeDownloaded);
-                        wasDownloadSuccessful = true;
-                    }
+                    wasDownloadSuccessful = rcloneDownloadFileToGdrive(fileURLFromTorrent,
+                            cloudService.buildDestinationPath(torrentToBeDownloaded.name) + buildFilename(torrentToBeDownloaded.name, fileURLFromTorrent)
+                    );
+                    updateUploadStatus(torrentToBeDownloaded, 1, 1);
+                    multifileHosterService.delete(torrentToBeDownloaded);
                 } else {
                     List<TorrentFile> filesFromTorrent = multifileHosterService.getFilesFromTorrent(torrentToBeDownloaded);
                     int currentFileNumber = 0;
+                    int failedUploads = 0;
                     int maxFileCount = filesFromTorrent.size();
                     for (TorrentFile torrentFile : filesFromTorrent) {
                         // check fileSize to get rid of samples and NFO files?
@@ -113,13 +114,13 @@ public class DownloadMonitor {
                         } else {
                             targetFilePath = destinationPath + torrentToBeDownloaded.name + "/" + torrentFile.name;
                         }
-                        if(rcloneDownloadFileToGdrive(torrentFile.url, targetFilePath)) {
-                            currentFileNumber++;
-                            updateUploadStatus(torrentToBeDownloaded, currentFileNumber, maxFileCount);
-                        } else {
-                            return false;
+                        if (!rcloneDownloadFileToGdrive(torrentFile.url, targetFilePath)) {
+                            failedUploads++;
                         }
+                        currentFileNumber++;
+                        updateUploadStatus(torrentToBeDownloaded, currentFileNumber, maxFileCount);
                     }
+                    wasDownloadSuccessful = failedUploads > 0;
                     multifileHosterService.delete(torrentToBeDownloaded);
                 }
             } catch (Exception exception) {
@@ -127,7 +128,9 @@ public class DownloadMonitor {
             } finally {
                 isDownloadInProgress = false;
             }
-            log.error(String.format("Couldn't download Torrent: %s", torrentToBeDownloaded));
+            if (!wasDownloadSuccessful) {
+                log.error(String.format("Couldn't download Torrent: %s", torrentToBeDownloaded));
+            }
             return wasDownloadSuccessful;
         } else {
             return true;
@@ -182,7 +185,7 @@ public class DownloadMonitor {
             foundMatch = matcher.group();
         }
         // remove quotes && .torrent
-        return foundMatch != null ? foundMatch.replaceAll("\"","").replaceAll(".torrent","") : fileURLFromTorrent;
+        return foundMatch != null ? foundMatch.replaceAll("\"", "").replaceAll(".torrent", "") : fileURLFromTorrent;
     }
 
     private boolean rcloneDownloadFileToGdrive(String fileURLFromTorrent, String destinationPath) {
@@ -203,8 +206,8 @@ public class DownloadMonitor {
             log.error(e.getMessage());
             e.printStackTrace();
         }
-        if(exitCode != 0) {
-            log.error("upload failed");
+        if (exitCode != 0) {
+            log.error("upload failed: " + destinationPath);
             return false;
         } else {
             return true;
