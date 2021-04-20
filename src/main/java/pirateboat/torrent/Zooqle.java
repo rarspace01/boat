@@ -49,24 +49,16 @@ public class Zooqle extends HttpUser implements TorrentSearchEngine {
         if (torrentListOnPage == null) {
             return torrentList;
         }
-        JsonElement results = null;
-        if (results == null) {
-            return torrentList;
-        }
-
 
         torrentListOnPage.forEach(torrentElement -> {
             Torrent tempTorrent = new Torrent(toString());
-            /*tempTorrent.name = jsonTorrent.get("title").getAsString() + " " + jsonTorrent.get("year").getAsInt();
-            JsonObject bestTorrentSource = retrieveBestTorrent(jsonTorrent.get("torrents").getAsJsonArray());
 
-            //tempTorrent.magnetUri = bestTorrentSource.get("url").getAsString();
-            tempTorrent.magnetUri = TorrentHelper.buildMagnetUriFromHash(bestTorrentSource.get("hash").getAsString().toLowerCase(), tempTorrent.name);
-            tempTorrent.seeder = bestTorrentSource.get("seeds").getAsInt();
-            tempTorrent.leecher = bestTorrentSource.get("peers").getAsInt();
-            tempTorrent.size = bestTorrentSource.get("size").getAsString();
-            tempTorrent.lsize = bestTorrentSource.get("size_bytes").getAsLong() / 1024.0f / 1024.0f;
-            tempTorrent.date = new Date(bestTorrentSource.get("date_uploaded_unix").getAsLong() * 1000);*/
+            tempTorrent.name = torrentElement.getElementsByTag("title").text();
+            tempTorrent.magnetUri = TorrentHelper.buildMagnetUriFromHash(torrentElement.getElementsByTag("torrent").first().getElementsByTag("infohash").text(), tempTorrent.name);
+            tempTorrent.seeder = Integer.parseInt(torrentElement.getElementsByTag("torrent:seeds").text());
+            tempTorrent.leecher = Integer.parseInt(torrentElement.getElementsByTag("torrent:peers").text());
+            tempTorrent.lsize = Long.parseLong(torrentElement.getElementsByTag("torrent:contentlength").text()) / 1024.0f / 1024.0f;
+            tempTorrent.size = String.format("%.2fMB",tempTorrent.lsize);
 
             TorrentHelper.evaluateRating(tempTorrent, searchName);
             if (TorrentHelper.isValidTorrent(tempTorrent)) {

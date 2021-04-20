@@ -2,6 +2,7 @@ package pirateboat.torrent;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
 import lombok.extern.slf4j.Slf4j;
@@ -55,11 +56,12 @@ public class PirateBay extends HttpUser implements TorrentSearchEngine {
 
             listOfTorrents.forEach(jsonElement -> {
                 Torrent tempTorrent = new Torrent(toString());
-                tempTorrent.name = jsonElement.getAsJsonObject().get("name").getAsString();
-                tempTorrent.magnetUri = TorrentHelper.buildMagnetUriFromHash(jsonElement.getAsJsonObject().get("info_hash").getAsString(), tempTorrent.name);
-                tempTorrent.seeder = jsonElement.getAsJsonObject().get("seeders").getAsInt();
-                tempTorrent.leecher = jsonElement.getAsJsonObject().get("leechers").getAsInt();
-                tempTorrent.lsize = jsonElement.getAsJsonObject().get("size").getAsLong() / 1024.0f / 1024.0f;
+                final JsonObject jsonObject = jsonElement.getAsJsonObject();
+                tempTorrent.name = jsonObject.get("name").getAsString();
+                tempTorrent.magnetUri = TorrentHelper.buildMagnetUriFromHash(jsonObject.get("info_hash").getAsString(), tempTorrent.name);
+                tempTorrent.seeder = jsonObject.get("seeders").getAsInt();
+                tempTorrent.leecher = jsonObject.get("leechers").getAsInt();
+                tempTorrent.lsize = jsonObject.get("size").getAsLong() / 1024.0f / 1024.0f;
                 TorrentHelper.evaluateRating(tempTorrent, searchName);
                 if (TorrentHelper.isValidTorrent(tempTorrent)) {
                     torrentList.add(tempTorrent);
