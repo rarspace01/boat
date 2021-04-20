@@ -11,7 +11,6 @@ import pirateboat.torrent.TorrentType;
 import pirateboat.utilities.PropertiesHelper;
 
 import java.io.File;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -23,6 +22,12 @@ import java.util.stream.Collectors;
 @Log4j2
 @Service
 public class CloudService {
+
+    private final CloudFileSerrvice cloudFileSerrvice;
+
+    CloudService(CloudFileSerrvice cloudFileSerrvice){
+        this.cloudFileSerrvice = cloudFileSerrvice;
+    }
 
     public String buildDestinationPath(final String torrentName) {
         String basePath = PropertiesHelper.getProperty("rclonedir");
@@ -77,41 +82,11 @@ public class CloudService {
 
 
     private List<String> findFilesBasedOnStringsAndMediaType(String searchName, String[] strings, TorrentType torrentType) {
-        log.info("Searching for: {}", searchName);
-        return getFilesInPath(buildDestinationPathWithTypeOfMedia(searchName, torrentType)).stream()
+        log.info("Searching for: {} with {}", searchName,torrentType.getType());
+        return cloudFileSerrvice.getFilesInPath(buildDestinationPathWithTypeOfMedia(searchName, torrentType)).stream()
                 .filter(fileName -> Arrays.stream(strings).allMatch(searchStringPart -> fileName.toLowerCase().matches(".*" + searchStringPart.toLowerCase() + ".*")))
                 .collect(Collectors.toList());
     }
 
-    @Cacheable
-    public List<String> getFilesInPath(String destinationPath) {
-        final List<String> fileList = new ArrayList<>();
-        final long startCounter = System.currentTimeMillis();
-        log.info("Search in [" + destinationPath + "]");
-        ProcessBuilder builder = new ProcessBuilder();
-        final String commandToRun = String.format("rclone lsjson '%s'", destinationPath);
-        log.info(commandToRun);
-        builder.command("bash", "-c", commandToRun);
-        builder.directory(new File(System.getProperty("user.home")));
-        try {
-            Process process = builder.start();
-            process.waitFor(10, TimeUnit.SECONDS);
-            String output = new String(process.getInputStream().readAllBytes());
-            final JsonElement jsonElement = JsonParser.parseString(output);
-            if (jsonElement.isJsonArray()) {
-                jsonElement.getAsJsonArray()
-                        .forEach(jsonElement1 -> {
-                            fileList.add(destinationPath + jsonElement1.getAsJsonObject().get("Path").getAsString());
-                        });
-            } else {
-                fileList.add(destinationPath + jsonElement.getAsJsonObject().get("Path").getAsString());
-            }
-        } catch (Exception e) {
-            log.error(e.getMessage());
-            e.printStackTrace();
-        }
-        log.info("Took {}ms with [{}]", System.currentTimeMillis() - startCounter, destinationPath);
-        return fileList;
-    }
 
 }
