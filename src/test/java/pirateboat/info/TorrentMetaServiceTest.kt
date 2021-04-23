@@ -40,7 +40,7 @@ internal class TorrentMetaServiceTest {
     }
 
     @Test
-    fun `should refreshTorrents multiple times and have local State afterr`() {
+    fun `should refreshTorrents multiple times and have local State after`() {
         // Given
         val remoteTorrentDownloading = Torrent("Remote")
         remoteTorrentDownloading.magnetUri = "btih:123&"
