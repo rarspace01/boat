@@ -1,59 +1,37 @@
-package pirateboat.info;
+package pirateboat.info
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import pirateboat.multifileHoster.MultifileHosterService;
-import pirateboat.torrent.Torrent;
+import lombok.extern.slf4j.Slf4j
+import org.springframework.stereotype.Service
+import pirateboat.multifileHoster.MultifileHosterService
+import pirateboat.torrent.Torrent
+import java.util.function.Consumer
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
-
+@Slf4j
 @Service
-public class TorrentMetaService {
+class TorrentMetaService(private val multifileHosterService: MultifileHosterService) {
+    private val localStatusStorage = HashMap<String, String>()
 
-    private static final Logger log = LoggerFactory.getLogger(TorrentMetaService.class);
-    private final MultifileHosterService multifileHosterService;
+    var activeTorrents: MutableList<Torrent> = ArrayList()
 
-
-    public List<Torrent> getActiveTorrents() {
-        return activeTorrents;
-    }
-
-    private List<Torrent> activeTorrents = new ArrayList<>();
-
-    @Autowired
-    public TorrentMetaService(MultifileHosterService multifileHosterService) {
-        this.multifileHosterService = multifileHosterService;
-    }
-
-    public void refreshTorrents() {
-        List<Torrent> remoteTorrents = multifileHosterService.getRemoteTorrents();
-        List<Torrent> newTorrentList = remoteTorrents.stream().peek(remoteTorrent -> activeTorrents.forEach(cachedTorrent -> {
-            if (cachedTorrent.getTorrentId().equals(remoteTorrent.getTorrentId())) {
-                if (List.of("finished", "seeding", "Ready").stream().anyMatch(status -> remoteTorrent.status.contains(status))) {
-                    remoteTorrent.status = cachedTorrent.status;
-                }
+    fun refreshTorrents() {
+        val remoteTorrents = multifileHosterService.remoteTorrents
+        remoteTorrents.forEach(Consumer { torrent: Torrent ->
+            if (isReadyForDownloadStatus(torrent.status)) {
+                val localStatus = localStatusStorage[torrent.torrentId]
+                torrent.status = localStatus ?: torrent.status
             } else {
-                if (List.of("finished", "seeding", "Ready").stream().anyMatch(status -> remoteTorrent.status.contains(status))) {
-                    remoteTorrent.status = "ready to upload";
-                }
+                localStatusStorage.remove(torrent.torrentId)
             }
-        })).collect(Collectors.toList());
-        activeTorrents = new ArrayList<>();
-        activeTorrents.addAll(newTorrentList);
+        })
+        activeTorrents = ArrayList()
+        activeTorrents.addAll(remoteTorrents)
     }
 
-    public void updateTorrent(Torrent torrentUpdate) {
-        if (torrentUpdate != null) {
-            activeTorrents.forEach(torrent -> {
-                if (torrentUpdate.getTorrentId().equals(torrent.getTorrentId())) {
-                    torrent.status = torrentUpdate.status;
-                }
-            });
-        }
+    private fun isReadyForDownloadStatus(status: String?): Boolean {
+        return status != null && status.toLowerCase().matches(Regex("finished|seeding|ready"))
     }
 
+    fun updateTorrent(torrentUpdate: Torrent) {
+        localStatusStorage[torrentUpdate.torrentId] = torrentUpdate.status
+    }
 }
