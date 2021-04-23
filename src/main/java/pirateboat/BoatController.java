@@ -203,7 +203,9 @@ public final class BoatController {
         return "v:" + PropertiesHelper.getVersion()
                 + "<br/>ActiveSearchEngines: " + torrentSearchEngineService.getActiveSearchEngines()
                 + "<br/>InActiveSearchEngines: " + torrentSearchEngineService.getInActiveSearchEngines()
-                + "<br/>D: " + remoteTorrents;
+                + "<br/>D: " + remoteTorrents
+                + "<br/>Cache: " + torrentMetaService.getLocalStatusStorage()
+                ;
     }
 
     @GetMapping({"/boat/shutdown"})

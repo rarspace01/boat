@@ -4,12 +4,16 @@ import lombok.extern.slf4j.Slf4j
 import org.springframework.stereotype.Service
 import pirateboat.multifileHoster.MultifileHosterService
 import pirateboat.torrent.Torrent
+import pirateboat.utilities.LoggerDelegate
 import java.util.function.Consumer
 
-@Slf4j
 @Service
 class TorrentMetaService(private val multifileHosterService: MultifileHosterService) {
-    private val localStatusStorage = HashMap<String, String>()
+    companion object {
+        private val logger by LoggerDelegate()
+    }
+
+    val localStatusStorage = HashMap<String, String>()
 
     var activeTorrents: MutableList<Torrent> = ArrayList()
 
@@ -18,6 +22,7 @@ class TorrentMetaService(private val multifileHosterService: MultifileHosterServ
         remoteTorrents.forEach(Consumer { torrent: Torrent ->
             if (isReadyForDownloadStatus(torrent.status)) {
                 val localStatus = localStatusStorage[torrent.torrentId]
+                logger.info("previous: ${torrent.status} after ${localStatus ?: torrent.status}")
                 torrent.status = localStatus ?: torrent.status
             } else {
                 localStatusStorage.remove(torrent.torrentId)
