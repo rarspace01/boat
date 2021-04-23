@@ -1,32 +1,26 @@
 package pirateboat.info;
 
-import com.google.gson.JsonElement;
-import com.google.gson.JsonParser;
 import lombok.extern.log4j.Log4j2;
 import org.jetbrains.annotations.NotNull;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import pirateboat.torrent.TorrentHelper;
 import pirateboat.torrent.TorrentType;
 import pirateboat.utilities.PropertiesHelper;
 
-import java.io.File;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ForkJoinPool;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Log4j2
 @Service
 public class CloudService {
 
-    private final CloudFileSerrvice cloudFileSerrvice;
+    private final CloudFileService cloudFileService;
 
-    CloudService(CloudFileSerrvice cloudFileSerrvice){
-        this.cloudFileSerrvice = cloudFileSerrvice;
+    CloudService(CloudFileService cloudFileService) {
+        this.cloudFileService = cloudFileService;
     }
 
     public String buildDestinationPath(final String torrentName) {
@@ -59,7 +53,7 @@ public class CloudService {
         if (preparedTorrentName.length() > 0) {
             preparedTorrentName = preparedTorrentName.substring(0, 1);
         }
-        preparedTorrentName = preparedTorrentName.replaceAll("[0-9]","0-9");
+        preparedTorrentName = preparedTorrentName.replaceAll("[0-9]", "0-9");
         preparedTorrentName = preparedTorrentName.toUpperCase();
         //
         return preparedTorrentName;
@@ -82,8 +76,8 @@ public class CloudService {
 
 
     private List<String> findFilesBasedOnStringsAndMediaType(String searchName, String[] strings, TorrentType torrentType) {
-        log.info("Searching for: {} with {}", searchName,torrentType.getType());
-        return cloudFileSerrvice.getFilesInPath(buildDestinationPathWithTypeOfMedia(searchName, torrentType)).stream()
+        log.info("Searching for: {} with {}", searchName, torrentType.getType());
+        return cloudFileService.getFilesInPath(buildDestinationPathWithTypeOfMedia(searchName, torrentType)).stream()
                 .filter(fileName -> Arrays.stream(strings).allMatch(searchStringPart -> fileName.toLowerCase().matches(".*" + searchStringPart.toLowerCase() + ".*")))
                 .collect(Collectors.toList());
     }

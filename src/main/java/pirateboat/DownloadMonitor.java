@@ -2,8 +2,11 @@ package pirateboat;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import pirateboat.info.CloudFileService;
 import pirateboat.info.CloudService;
 import pirateboat.info.TheFilmDataBaseService;
 import pirateboat.info.TorrentMetaService;
@@ -11,6 +14,7 @@ import pirateboat.multifileHoster.MultifileHosterService;
 import pirateboat.torrent.Torrent;
 import pirateboat.torrent.TorrentFile;
 import pirateboat.torrent.TorrentSearchEngineService;
+import pirateboat.torrent.TorrentType;
 import pirateboat.utilities.ProcessUtil;
 import pirateboat.utilities.PropertiesHelper;
 import pirateboat.utilities.StreamGobbler;
@@ -21,10 +25,12 @@ import java.net.URLDecoder;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -39,28 +45,52 @@ public class DownloadMonitor {
     private static final int SECONDS_BETWEEN_DOWNLOAD_POLLING = 30;
     private static final int SECONDS_BETWEEN_SEARCH_ENGINE_POLLING = 240;
     private static final int SECONDS_BETWEEN_CLEAR_TRANSFER_POLLING = 3600;
+    private static final int SECONDS_BETWEEN_FILE_CACHE_REFRESH = 60 * 60 * 6;
     private static final Logger log = LoggerFactory.getLogger(DownloadMonitor.class);
 
     private boolean isDownloadInProgress = false;
     private final TheFilmDataBaseService theFilmDataBaseService;
+    private final CloudFileService cloudFileService;
+    private final CacheManager cacheManager;
     private Boolean isRcloneInstalled;
 
     public DownloadMonitor(TorrentSearchEngineService torrentSearchEngineService,
                            TheFilmDataBaseService theFilmDataBaseService,
                            TorrentMetaService torrentMetaService,
                            CloudService cloudService,
-                           MultifileHosterService multifileHosterService) {
+                           MultifileHosterService multifileHosterService,
+                           CloudFileService cloudFileService,
+                           CacheManager cacheManager
+    ) {
         this.torrentSearchEngineService = torrentSearchEngineService;
         this.torrentMetaService = torrentMetaService;
         this.cloudService = cloudService;
         this.multifileHosterService = multifileHosterService;
         this.theFilmDataBaseService = theFilmDataBaseService;
+        this.cloudFileService = cloudFileService;
+        this.cacheManager = cacheManager;
     }
 
     @Scheduled(fixedRate = SECONDS_BETWEEN_SEARCH_ENGINE_POLLING * 1000)
     public void refreshTorrentSearchEngines() {
         log.debug("refreshTorrentSearchEngines()");
         torrentSearchEngineService.refreshTorrentSearchEngines();
+    }
+
+    @Scheduled(fixedRate = SECONDS_BETWEEN_FILE_CACHE_REFRESH * 1000)
+    public void refreshCloudFileServiceCache() {
+        log.info("refreshCloudFileServiceCache()");
+        final Cache filesCache = cacheManager.getCache("filesCache");
+        Arrays.stream("abcdefghijklmnopqrstuvwxyzöäü0".split("")).forEach(searchName -> {
+            Stream.of(TorrentType.values()).forEach(torrentType -> {
+                final String destinationPath = cloudService.buildDestinationPathWithTypeOfMedia(searchName, torrentType);
+                if (filesCache != null) {
+                    filesCache.evictIfPresent(destinationPath);
+                }
+                cloudFileService.getFilesInPath(destinationPath);
+            });
+            log.info("Cache refresh done for: {}", searchName);
+        });
     }
 
     @Scheduled(fixedRate = SECONDS_BETWEEN_DOWNLOAD_POLLING * 1000)
@@ -161,7 +191,7 @@ public class DownloadMonitor {
         if (startTime == null || currentFileNumber == 0) {
             return String.format("Uploading: %d/%d done", currentFileNumber, fileCount);
         } else {
-            long diffTime = Instant.now().toEpochMilli()-startTime.toEpochMilli();
+            long diffTime = Instant.now().toEpochMilli() - startTime.toEpochMilli();
             final long milliPerFile = diffTime / (long) currentFileNumber;
             final int remainingFileCount = fileCount - currentFileNumber;
             final long expectedMilliRemaining = milliPerFile * remainingFileCount;

@@ -13,16 +13,16 @@ import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
-public class CloudFileSerrvice {
+public class CloudFileService {
 
     @Cacheable("filesCache")
     public List<String> getFilesInPath(String destinationPath) {
         final List<String> fileList = new ArrayList<>();
         final long startCounter = System.currentTimeMillis();
-        log.info("Search in [" + destinationPath + "]");
+        log.debug("Search in [" + destinationPath + "]");
         ProcessBuilder builder = new ProcessBuilder();
         final String commandToRun = String.format("rclone lsjson '%s'", destinationPath);
-        log.info(commandToRun);
+        log.debug(commandToRun);
         builder.command("bash", "-c", commandToRun);
         builder.directory(new File(System.getProperty("user.home")));
         try {

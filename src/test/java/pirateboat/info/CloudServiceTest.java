@@ -17,7 +17,7 @@ class CloudServiceTest {
 
     @BeforeEach
     public void beforeMethod() {
-        cloudService = new CloudService(new CloudFileSerrvice());
+        cloudService = new CloudService(new CloudFileService());
     }
 
     @EnabledIfEnvironmentVariable(named = "DISABLE_UPDATE_PROMPT",matches = "true")

@@ -47,10 +47,10 @@ public final class BoatController {
     public BoatController(
             HttpHelper httpHelper,
             TorrentSearchEngineService torrentSearchEngineService,
-                          CloudService cloudService,
-                          TorrentMetaService torrentMetaService,
-                          TheFilmDataBaseService theFilmDataBaseService,
-                          MultifileHosterService multifileHosterService) {
+            CloudService cloudService,
+            TorrentMetaService torrentMetaService,
+            TheFilmDataBaseService theFilmDataBaseService,
+            MultifileHosterService multifileHosterService) {
         this.httpHelper = httpHelper;
         this.torrentSearchEngineService = torrentSearchEngineService;
         this.cloudService = cloudService;
@@ -103,7 +103,7 @@ public final class BoatController {
     @GetMapping({"/boat"})
     @NonNull
     public final String getTorrents(@RequestParam(value = "q", required = false) String searchString, @RequestParam(value = "qq", required = false) String localSearchString, @RequestParam(value = "qqq", required = false) String luckySearchUrl) {
-        long currentTimeMillis = System.currentTimeMillis();
+        long startTime = System.currentTimeMillis();
         if(Strings.isNotEmpty(localSearchString)) {
             final List<String> existingFiles = cloudService.findExistingFiles(localSearchString);
             if(!existingFiles.isEmpty()) {
@@ -114,7 +114,7 @@ public final class BoatController {
         }
         if(Strings.isNotEmpty(localSearchString) || Strings.isNotEmpty(searchString)) {
             List<Torrent> torrentList = searchTorrents(searchString);
-            System.out.printf("Took: [%s]ms for [%s] found [%s]", (System.currentTimeMillis() - currentTimeMillis), searchString, torrentList.size());
+            log.info("Took: [{}]ms for [{}] found [{}]", (System.currentTimeMillis() - startTime), searchString, torrentList.size());
             return "G: " + torrentList.stream().limit(25).collect(Collectors.toList());
         } else if(Strings.isNotEmpty(luckySearchUrl)) {
             StringBuilder response = new StringBuilder();

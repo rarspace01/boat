@@ -73,9 +73,9 @@ public class Torrent {
         }
 
 
-        if (getTorrentId() != null) {
+        /*        if (getTorrentId() != null) {
             stringBuilder.append(" TID:" + getTorrentId());
-        }
+        }*/
         if (this.status != null && this.progress != null) {
             String progress = "/" + this.progress;
             if (status.contains("Uploading")) {
