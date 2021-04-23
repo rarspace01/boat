@@ -38,5 +38,6 @@ class TorrentMetaService(private val multifileHosterService: MultifileHosterServ
 
     fun updateTorrent(torrentUpdate: Torrent) {
         localStatusStorage[torrentUpdate.torrentId] = torrentUpdate.status
+        localStatusStorage[torrentUpdate.remoteId] = torrentUpdate.status
     }
 }

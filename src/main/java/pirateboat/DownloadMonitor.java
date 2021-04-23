@@ -18,6 +18,9 @@ import pirateboat.utilities.StreamGobbler;
 import java.io.File;
 import java.io.IOException;
 import java.net.URLDecoder;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
@@ -104,9 +107,10 @@ public class DownloadMonitor {
                     int currentFileNumber = 0;
                     int failedUploads = 0;
                     int maxFileCount = filesFromTorrent.size();
+                    Instant startTime = Instant.now();
                     for (TorrentFile torrentFile : filesFromTorrent) {
                         // check fileSize to get rid of samples and NFO files?
-                        updateUploadStatus(torrentToBeDownloaded, currentFileNumber, maxFileCount);
+                        updateUploadStatus(torrentToBeDownloaded, currentFileNumber, maxFileCount, startTime);
                         String destinationPath = cloudService.buildDestinationPath(torrentToBeDownloaded.name);
                         String targetFilePath;
                         if (destinationPath.contains("transfer")) {
@@ -118,7 +122,7 @@ public class DownloadMonitor {
                             failedUploads++;
                         }
                         currentFileNumber++;
-                        updateUploadStatus(torrentToBeDownloaded, currentFileNumber, maxFileCount);
+                        updateUploadStatus(torrentToBeDownloaded, currentFileNumber, maxFileCount, startTime);
                     }
                     wasDownloadSuccessful = failedUploads > 0;
                     multifileHosterService.delete(torrentToBeDownloaded);
@@ -144,12 +148,31 @@ public class DownloadMonitor {
     }
 
     private void updateUploadStatus(Torrent torrentToBeDownloaded, int currentFileNumber, int fileCount) {
-        torrentToBeDownloaded.status = getUploadStatusString(currentFileNumber, fileCount);
+        torrentToBeDownloaded.status = getUploadStatusString(currentFileNumber, fileCount, null);
         torrentMetaService.updateTorrent(torrentToBeDownloaded);
     }
 
-    private String getUploadStatusString(int currentFileNumber, int fileCount) {
-        return String.format("Uploading: %d/%d done", currentFileNumber, fileCount);
+    private void updateUploadStatus(Torrent torrentToBeDownloaded, int currentFileNumber, int fileCount, Instant startTime) {
+        torrentToBeDownloaded.status = getUploadStatusString(currentFileNumber, fileCount, startTime);
+        torrentMetaService.updateTorrent(torrentToBeDownloaded);
+    }
+
+    private String getUploadStatusString(int currentFileNumber, int fileCount, Instant startTime) {
+        if (startTime == null || currentFileNumber == 0) {
+            return String.format("Uploading: %d/%d done", currentFileNumber, fileCount);
+        } else {
+            long diffTime = Instant.now().toEpochMilli()-startTime.toEpochMilli();
+            final long milliPerFile = diffTime / (long) currentFileNumber;
+            final int remainingFileCount = fileCount - currentFileNumber;
+            final long expectedMilliRemaining = milliPerFile * remainingFileCount;
+            final Duration remainingDuration = Duration.of(expectedMilliRemaining, ChronoUnit.MILLIS);
+            return String.format("Uploading: %d/%d done ETA: %02d:%02d:%02d",
+                    currentFileNumber,
+                    fileCount,
+                    remainingDuration.toHours(),
+                    remainingDuration.toMinutesPart(),
+                    remainingDuration.toSecondsPart());
+        }
     }
 
     private String buildFilename(String name, String fileURLFromTorrent) {
@@ -189,9 +212,9 @@ public class DownloadMonitor {
     }
 
     private boolean rcloneDownloadFileToGdrive(String fileURLFromTorrent, String destinationPath) {
-        log.info(String.format("D>[%s]", destinationPath));
+        log.info("D>[{}]", destinationPath);
         ProcessBuilder builder = new ProcessBuilder();
-        final String commandToRun = String.format("rclone copyurl '%s' '%s'", fileURLFromTorrent, destinationPath.replaceAll("'",""));
+        final String commandToRun = String.format("rclone copyurl '%s' '%s'", fileURLFromTorrent, destinationPath.replaceAll("'", ""));
         builder.command("bash", "-c", commandToRun);
         builder.directory(new File(System.getProperty("user.home")));
         Process process = null;
@@ -204,10 +227,9 @@ public class DownloadMonitor {
             exitCode = process.waitFor();
         } catch (IOException | InterruptedException e) {
             log.error(e.getMessage());
-            e.printStackTrace();
         }
         if (exitCode != 0) {
-            log.error("upload failed: " + destinationPath);
+            log.error("upload failed: {}", destinationPath);
             return false;
         } else {
             return true;

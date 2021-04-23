@@ -1,6 +1,7 @@
 package pirateboat.torrent;
 
 import org.apache.logging.log4j.util.Strings;
+import org.jetbrains.annotations.NotNull;
 
 import java.nio.charset.StandardCharsets;
 import java.text.DecimalFormat;
@@ -8,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -71,9 +73,9 @@ public class Torrent {
         }
 
 
-//        if (remoteId != null) {
-//            stringBuilder.append(" RID:" + remoteId);
-//        }
+        if (getTorrentId() != null) {
+            stringBuilder.append(" TID:" + getTorrentId());
+        }
         if (this.status != null && this.progress != null) {
             String progress = "/" + this.progress;
             if (status.contains("Uploading")) {
@@ -92,19 +94,24 @@ public class Torrent {
 
     @Override
     public boolean equals(Object obj) {
-        return this.getTorrentId().equals(((Torrent) obj).getTorrentId());
+        return Objects.equals(this.getTorrentId(), obj != null ? ((Torrent)obj).getTorrentId():null);
     }
 
     public String getTorrentId() {
         if (this.magnetUri == null) {
-            return String.valueOf(this.hashCode());
+            return getRemoteIdOrHash();
         }
-        Pattern magnetPattern = Pattern.compile("(btih:)([a-zA-Z0-9]*)(&)");
+        Pattern magnetPattern = Pattern.compile("(btih:)([a-zA-Z0-9]*)&*");
         Matcher matcher = magnetPattern.matcher(this.magnetUri);
         if (matcher.find()) {
             return matcher.group(2).toLowerCase();
         } else {
-            return String.valueOf(this.hashCode());
+            return getRemoteIdOrHash();
         }
+    }
+
+    @NotNull
+    private String getRemoteIdOrHash() {
+        return Objects.requireNonNullElseGet(this.remoteId, () -> String.valueOf(this.hashCode()));
     }
 }
