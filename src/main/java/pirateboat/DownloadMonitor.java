@@ -80,17 +80,21 @@ public class DownloadMonitor {
     @Scheduled(fixedRate = SECONDS_BETWEEN_FILE_CACHE_REFRESH * 1000)
     public void refreshCloudFileServiceCache() {
         log.info("refreshCloudFileServiceCache()");
-        final Cache filesCache = cacheManager.getCache("filesCache");
-        Arrays.stream("abcdefghijklmnopqrstuvwxyzöäü0".split("")).forEach(searchName -> {
-            Stream.of(TorrentType.values()).forEach(torrentType -> {
-                final String destinationPath = cloudService.buildDestinationPathWithTypeOfMedia(searchName, torrentType);
-                if (filesCache != null) {
-                    filesCache.evictIfPresent(destinationPath);
-                }
-                cloudFileService.getFilesInPath(destinationPath);
+        if(isRcloneInstalled()){
+            final Cache filesCache = cacheManager.getCache("filesCache");
+            Arrays.stream("abcdefghijklmnopqrstuvwxyzöäü0".split("")).forEach(searchName -> {
+                Stream.of(TorrentType.values()).forEach(torrentType -> {
+                    final String destinationPath = cloudService.buildDestinationPathWithTypeOfMedia(searchName, torrentType);
+                    if (filesCache != null) {
+                        filesCache.evictIfPresent(destinationPath);
+                    }
+                    cloudFileService.getFilesInPath(destinationPath);
+                });
+                log.info("Cache refresh done for: {}", searchName);
             });
-            log.info("Cache refresh done for: {}", searchName);
-        });
+        } else {
+            log.warn("rclone not installed");
+        }
     }
 
     @Scheduled(fixedRate = SECONDS_BETWEEN_DOWNLOAD_POLLING * 1000)
