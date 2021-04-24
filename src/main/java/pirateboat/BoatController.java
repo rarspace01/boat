@@ -25,6 +25,7 @@ import pirateboat.utilities.HttpHelper;
 import pirateboat.utilities.PropertiesHelper;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
@@ -220,11 +221,18 @@ public final class BoatController {
         List<Torrent> combineResults = new ArrayList<>();
         final List<TorrentSearchEngine> activeSearchEngines = new ArrayList<>(torrentSearchEngineService.getActiveSearchEngines());
         activeSearchEngines.parallelStream()
-                .forEach(torrentSearchEngine -> combineResults.addAll(torrentSearchEngine.searchTorrents(searchString)));
+                .forEach(torrentSearchEngine -> {
+                    final Instant start = Instant.now();
+                    combineResults.addAll(torrentSearchEngine.searchTorrents(searchString));
+                    log.info("{} took {}ms", torrentSearchEngine,Instant.now().toEpochMilli()-start.toEpochMilli());
+                });
         List<Torrent> returnResults = new ArrayList<>(cleanDuplicates(combineResults));
         // checkAllForCache
         List<Torrent> cacheStateOfTorrents = multifileHosterService.getCachedStateOfTorrents(returnResults);
-        List<Torrent> torrentList = cacheStateOfTorrents.stream().map(torrent -> TorrentHelper.evaluateRating(torrent, searchString)).sorted(TorrentHelper.torrentSorter).collect(Collectors.toList());
-        return torrentList;
+        return cacheStateOfTorrents
+                .stream()
+                .map(torrent -> TorrentHelper.evaluateRating(torrent, searchString))
+                .sorted(TorrentHelper.torrentSorter)
+                .collect(Collectors.toList());
     }
 }
