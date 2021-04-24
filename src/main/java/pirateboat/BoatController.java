@@ -84,6 +84,7 @@ public final class BoatController {
                 "  Title:<br>\n" +
                 "  <input type=\"text\" name=\"qq\" value=\"\" style=\"font-size: 2em; \">\n" +
                 "  <br>\n" +
+                "  <input type=\"reset\" value=\"Reset\" style=\"font-size: 2em; \">\n" +
                 "  <input type=\"submit\" value=\"Search\" style=\"font-size: 2em; \">\n" +
                 "</form>\n" +
                 "  <br>\n" +
@@ -92,6 +93,7 @@ public final class BoatController {
                 "  Direct download URL (multiple seperate by comma):<br>\n" +
                 "  <input type=\"text\" name=\"dd\" value=\"\" style=\"font-size: 2em; \">\n" +
                 "  <br>\n" +
+                "  <input type=\"reset\" value=\"Reset\" style=\"font-size: 2em; \">\n" +
                 "  <input type=\"submit\" value=\"Download\" style=\"font-size: 2em; \">\n" +
                 "</form>\n" +
                 "<br/>\n" +
@@ -102,7 +104,7 @@ public final class BoatController {
 
     @GetMapping({"/boat"})
     @NonNull
-    public final String getTorrents(@RequestParam(value = "q", required = false) String searchString, @RequestParam(value = "qq", required = false) String localSearchString, @RequestParam(value = "qqq", required = false) String luckySearchUrl) {
+    public final String searchTorrents(@RequestParam(value = "q", required = false) String searchString, @RequestParam(value = "qq", required = false) String localSearchString, @RequestParam(value = "qqq", required = false) String luckySearchUrl) {
         long startTime = System.currentTimeMillis();
         if(Strings.isNotEmpty(localSearchString)) {
             final List<String> existingFiles = cloudService.findExistingFiles(localSearchString);
