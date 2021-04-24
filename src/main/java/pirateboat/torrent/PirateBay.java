@@ -24,12 +24,9 @@ public class PirateBay extends HttpUser implements TorrentSearchEngine {
     @Override
     public List<Torrent> searchTorrents(String searchName) {
 
-        CopyOnWriteArrayList<Torrent> torrentList = new CopyOnWriteArrayList<>();
+        String resultString = httpHelper.getPage(buildSearchUrl(searchName), null, "lw=s");
 
-        String resultString = null;
-        resultString = httpHelper.getPage(buildSearchUrl(searchName), null, "lw=s");
-
-        torrentList.addAll(parseTorrentsOnResultPage(resultString, searchName));
+        CopyOnWriteArrayList<Torrent> torrentList = new CopyOnWriteArrayList<>(parseTorrentsOnResultPage(resultString, searchName));
 
         // sort the findings
         torrentList.sort(TorrentHelper.torrentSorter);
@@ -38,7 +35,7 @@ public class PirateBay extends HttpUser implements TorrentSearchEngine {
     }
 
     private String buildSearchUrl(String searchName) {
-        return String.format(getBaseUrl() + "/q.php?q=%s&cat=", URLEncoder.encode(searchName, StandardCharsets.UTF_8));
+        return String.format("%s/q.php?q=%s&cat=", getBaseUrl(), URLEncoder.encode(searchName, StandardCharsets.UTF_8));
     }
 
     @Override
@@ -52,23 +49,25 @@ public class PirateBay extends HttpUser implements TorrentSearchEngine {
 
         try {
             JsonElement jsonRoot = JsonParser.parseString(pageContent);
-            JsonArray listOfTorrents = jsonRoot.getAsJsonArray();
+            if (jsonRoot.isJsonArray()) {
+                JsonArray listOfTorrents = jsonRoot.getAsJsonArray();
+                listOfTorrents.forEach(jsonElement -> {
+                    Torrent tempTorrent = new Torrent(toString());
+                    final JsonObject jsonObject = jsonElement.getAsJsonObject();
+                    tempTorrent.name = jsonObject.get("name").getAsString();
+                    tempTorrent.magnetUri = TorrentHelper.buildMagnetUriFromHash(jsonObject.get("info_hash").getAsString(), tempTorrent.name);
+                    tempTorrent.seeder = jsonObject.get("seeders").getAsInt();
+                    tempTorrent.leecher = jsonObject.get("leechers").getAsInt();
+                    tempTorrent.lsize = jsonObject.get("size").getAsLong() / 1024.0f / 1024.0f;
+                    TorrentHelper.evaluateRating(tempTorrent, searchName);
+                    if (TorrentHelper.isValidTorrent(tempTorrent)) {
+                        torrentList.add(tempTorrent);
+                    }
+                });
+            }
 
-            listOfTorrents.forEach(jsonElement -> {
-                Torrent tempTorrent = new Torrent(toString());
-                final JsonObject jsonObject = jsonElement.getAsJsonObject();
-                tempTorrent.name = jsonObject.get("name").getAsString();
-                tempTorrent.magnetUri = TorrentHelper.buildMagnetUriFromHash(jsonObject.get("info_hash").getAsString(), tempTorrent.name);
-                tempTorrent.seeder = jsonObject.get("seeders").getAsInt();
-                tempTorrent.leecher = jsonObject.get("leechers").getAsInt();
-                tempTorrent.lsize = jsonObject.get("size").getAsLong() / 1024.0f / 1024.0f;
-                TorrentHelper.evaluateRating(tempTorrent, searchName);
-                if (TorrentHelper.isValidTorrent(tempTorrent)) {
-                    torrentList.add(tempTorrent);
-                }
-            });
-        } catch (JsonSyntaxException e) {
-            log.error("coudn't extract torrent ", e);
+        } catch (JsonSyntaxException | IllegalStateException e) {
+            log.error("[{}] couldn't extract torrent: {} ", this, e.getStackTrace());
         }
         return torrentList;
     }
