@@ -204,7 +204,6 @@ public final class BoatController {
                 + "<br/>ActiveSearchEngines: " + torrentSearchEngineService.getActiveSearchEngines()
                 + "<br/>InActiveSearchEngines: " + torrentSearchEngineService.getInActiveSearchEngines()
                 + "<br/>D: " + remoteTorrents
-                + "<br/>Cache: " + torrentMetaService.getLocalStatusStorage()
                 ;
     }
 
