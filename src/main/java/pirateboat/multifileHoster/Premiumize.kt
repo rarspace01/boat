@@ -150,11 +150,12 @@ class Premiumize(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoste
     }
 
     override fun enrichCacheStateOfTorrents(torrents: List<Torrent>) {
-        if (torrents.size <= 25) {
+        val maximumQueryCacheSize = 150
+        if (torrents.size <= maximumQueryCacheSize) {
             enrichCacheStatusForGivenTorrents(torrents)
         } else {
-            for (i in torrents.indices step 25) {
-                enrichCacheStatusForGivenTorrents(torrents.subList(i, (i + 25).coerceAtMost(torrents.size - 1)))
+            for (i in torrents.indices step maximumQueryCacheSize) {
+                enrichCacheStatusForGivenTorrents(torrents.subList(i, (i + maximumQueryCacheSize).coerceAtMost(torrents.size - 1)))
             }
         }
     }
