@@ -9,6 +9,7 @@ import pirateboat.utilities.HttpHelper;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class MultihosterTest {
@@ -33,7 +34,7 @@ class MultihosterTest {
         // When
         premiumize.enrichCacheStateOfTorrents(listOfTorrents);
         // Then
-        assertTrue(listOfTorrents.get(0).cached.size() > 0);
+        assertThat(listOfTorrents).allMatch(torrent -> torrent.cached.size() > 0);
     }
 
     @Test
@@ -42,13 +43,31 @@ class MultihosterTest {
         List<Torrent> listOfTorrents = new ArrayList<>();
         Torrent torrentToBeChecked = new Torrent("Test");
         torrentToBeChecked.magnetUri = "magnet:?xt=urn:btih:e2467cbf021192c241367b892230dc1e05c0580e&dn=test";
-        listOfTorrents.add(torrentToBeChecked);
-        listOfTorrents.add(torrentToBeChecked);
+        for (int i = 0; i < 2; i++) {
+            listOfTorrents.add(torrentToBeChecked);
+        }
 
         // When
         premiumize.enrichCacheStateOfTorrents(listOfTorrents);
         // Then
-        assertTrue(listOfTorrents.get(0).cached.size() > 0);
+        assertThat(listOfTorrents).allMatch(torrent -> torrent.cached.size() > 0);
+    }
+
+    @Test
+    void getCacheStateOfALotOfTorrents() {
+        // Given
+        List<Torrent> listOfTorrents = new ArrayList<>();
+        Torrent torrentToBeChecked = new Torrent("Test");
+        torrentToBeChecked.magnetUri = "magnet:?xt=urn:btih:e2467cbf021192c241367b892230dc1e05c0580e&dn=test";
+
+        for (int i = 0; i < 100; i++) {
+            listOfTorrents.add(torrentToBeChecked);
+        }
+
+        // When
+        premiumize.enrichCacheStateOfTorrents(listOfTorrents);
+        // Then
+        assertThat(listOfTorrents).allMatch(torrent -> torrent.cached.size() > 0);
     }
 
     @Test()

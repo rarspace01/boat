@@ -12,7 +12,6 @@ import pirateboat.torrent.TorrentHelper
 import pirateboat.utilities.HttpHelper
 import pirateboat.utilities.PropertiesHelper
 import java.io.IOException
-import java.util.*
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.function.Consumer
 import java.util.stream.Collectors
@@ -151,6 +150,16 @@ class Premiumize(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoste
     }
 
     override fun enrichCacheStateOfTorrents(torrents: List<Torrent>) {
+        if (torrents.size <= 25) {
+            enrichCacheStatusForGivenTorrents(torrents)
+        } else {
+            for (i in torrents.indices step 25) {
+                enrichCacheStatusForGivenTorrents(torrents.subList(i, (i + 25).coerceAtMost(torrents.size - 1)))
+            }
+        }
+    }
+
+    private fun enrichCacheStatusForGivenTorrents(torrents: List<Torrent>) {
         val requestUrl = "https://www.premiumize.me/api/cache/check?" + "apikey=" + PropertiesHelper.getProperty("premiumize_apikey") + "%s"
         val urlEncodedBrackets = TorrentHelper.urlEncode("[]")
         val collected = torrents.stream().map { obj: Torrent -> obj.torrentId }.collect(Collectors.joining("&items$urlEncodedBrackets=", "&items$urlEncodedBrackets=", ""))
