@@ -1,17 +1,18 @@
 package pirateboat.info;
 
-import lombok.extern.log4j.Log4j2;
-import org.jetbrains.annotations.NotNull;
-import org.springframework.stereotype.Service;
-import pirateboat.torrent.TorrentHelper;
-import pirateboat.torrent.TorrentType;
-import pirateboat.utilities.PropertiesHelper;
-
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+
+import lombok.extern.log4j.Log4j2;
+import org.jetbrains.annotations.NotNull;
+import pirateboat.torrent.TorrentHelper;
+import pirateboat.torrent.TorrentType;
+import pirateboat.utilities.PropertiesHelper;
 
 @Log4j2
 @Service
@@ -21,6 +22,10 @@ public class CloudService {
 
     CloudService(CloudFileService cloudFileService) {
         this.cloudFileService = cloudFileService;
+    }
+
+    public boolean isCloudTokenValid() {
+        return cloudFileService.getFilesInPath(PropertiesHelper.getProperty("rclonedir")).size() > 0;
     }
 
     public String buildDestinationPath(final String torrentName) {

@@ -1,24 +1,5 @@
 package pirateboat;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.cache.Cache;
-import org.springframework.cache.CacheManager;
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Component;
-import pirateboat.info.CloudFileService;
-import pirateboat.info.CloudService;
-import pirateboat.info.TheFilmDataBaseService;
-import pirateboat.info.TorrentMetaService;
-import pirateboat.multifileHoster.MultifileHosterService;
-import pirateboat.torrent.Torrent;
-import pirateboat.torrent.TorrentFile;
-import pirateboat.torrent.TorrentSearchEngineService;
-import pirateboat.torrent.TorrentType;
-import pirateboat.utilities.ProcessUtil;
-import pirateboat.utilities.PropertiesHelper;
-import pirateboat.utilities.StreamGobbler;
-
 import java.io.File;
 import java.io.IOException;
 import java.net.URLDecoder;
@@ -31,6 +12,26 @@ import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
+
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import pirateboat.info.CloudFileService;
+import pirateboat.info.CloudService;
+import pirateboat.info.TheFilmDataBaseService;
+import pirateboat.info.TorrentMetaService;
+import pirateboat.multifileHoster.MultifileHosterService;
+import pirateboat.torrent.Torrent;
+import pirateboat.torrent.TorrentFile;
+import pirateboat.torrent.TorrentSearchEngineService;
+import pirateboat.torrent.TorrentType;
+import pirateboat.utilities.ProcessUtil;
+import pirateboat.utilities.PropertiesHelper;
+import pirateboat.utilities.StreamGobbler;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -99,7 +100,7 @@ public class DownloadMonitor {
 
     @Scheduled(fixedRate = SECONDS_BETWEEN_DOWNLOAD_POLLING * 1000)
     public void checkForDownloadableTorrents() {
-        if (!isDownloadInProgress && isRcloneInstalled()) {
+        if (!isDownloadInProgress && isRcloneInstalled() && cloudService.isCloudTokenValid()) {
             checkForDownloadableTorrentsAndDownloadTheFirst();
         }
     }

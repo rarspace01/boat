@@ -1,9 +1,14 @@
 package pirateboat;
 
-import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.logging.log4j.util.Strings;
-import org.jetbrains.annotations.NotNull;
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Base64;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.web.HttpMediaTypeNotAcceptableException;
@@ -13,6 +18,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
+
+import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.logging.log4j.util.Strings;
+import org.jetbrains.annotations.NotNull;
 import pirateboat.info.CloudService;
 import pirateboat.info.TheFilmDataBaseService;
 import pirateboat.info.TorrentMetaService;
@@ -23,15 +33,6 @@ import pirateboat.torrent.TorrentSearchEngine;
 import pirateboat.torrent.TorrentSearchEngineService;
 import pirateboat.utilities.HttpHelper;
 import pirateboat.utilities.PropertiesHelper;
-
-import java.nio.charset.StandardCharsets;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Base64;
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Slf4j
 @RestController
@@ -204,9 +205,10 @@ public final class BoatController {
         torrentMetaService.refreshTorrents();
         List<Torrent> remoteTorrents = torrentMetaService.getActiveTorrents();
         return "v:" + PropertiesHelper.getVersion()
-                + "<br/>ActiveSearchEngines: " + torrentSearchEngineService.getActiveSearchEngines()
-                + "<br/>InActiveSearchEngines: " + torrentSearchEngineService.getInActiveSearchEngines()
-                + "<br/>D: " + remoteTorrents
+            + "<br/>rclone token valid: " + cloudService.isCloudTokenValid()
+            + "<br/>ActiveSearchEngines: " + torrentSearchEngineService.getActiveSearchEngines()
+            + "<br/>InActiveSearchEngines: " + torrentSearchEngineService.getInActiveSearchEngines()
+            + "<br/>D: " + remoteTorrents
                 ;
     }
 
