@@ -71,6 +71,9 @@ public class Kat extends HttpUser implements TorrentSearchEngine {
                         if (element.getElementsByAttributeValueMatching("data-title", "Leech").size() > 0) {
                             tempTorrent.leecher = Integer.parseInt(TorrentHelper.cleanNumberString(element.getElementsByAttributeValueMatching("data-title", "Leech").text().trim()));
                         }
+                        if (element.getElementsByClass("ka ka16 ka-verify ka-green").size() > 0) {
+                            tempTorrent.isVerified = true;
+                        }
                     });
                 }
 

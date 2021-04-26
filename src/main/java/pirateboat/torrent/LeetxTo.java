@@ -1,10 +1,10 @@
 package pirateboat.torrent;
 
-import pirateboat.utilities.HttpHelper;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import pirateboat.utilities.HttpHelper;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -57,6 +57,7 @@ public class LeetxTo extends HttpUser implements TorrentSearchEngine {
                         if (element.attr("class").contains("name")) {
                             //extract name
                             tempTorrent.name = element.getElementsByAttributeValueContaining("class", "name").get(0).getElementsByAttributeValueContaining("href", "torrent").get(0).html();
+                            tempTorrent.isVerified = tempTorrent.name.contains("⭐");
                             //save remote url for later
                             tempTorrent.remoteUrl = getBaseUrl() + element.getElementsByAttributeValueContaining("class", "name").get(0).getElementsByAttributeValueContaining("href", "torrent").get(0).attr("href").trim();
                         }

@@ -36,6 +36,7 @@ public class Torrent {
     public String source;
     public List<String> cached = new ArrayList<>();
     public List<TorrentFile> fileList = new ArrayList<>();
+    public boolean isVerified = false;
 
     public Torrent(String source) {
         this.source = source;

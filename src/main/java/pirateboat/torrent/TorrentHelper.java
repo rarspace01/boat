@@ -96,12 +96,16 @@ public class TorrentHelper {
         // if movie or Series patter +1
         final String name = tempTorrent.name;
         final TorrentType typeOfMedia = determineTypeOfMedia(prepareTorrentName(name));
-        if(TorrentType.MOVIES.equals(typeOfMedia)
+        if (TorrentType.MOVIES.equals(typeOfMedia)
                 || TorrentType.SERIES_SHOWS.equals(typeOfMedia)) {
             tempTorrent.searchRating += 2;
             tempTorrent.debugRating += "🎬";
         }
-        if (tempTorrent.cached.size()>0) {
+        if (tempTorrent.isVerified) {
+            tempTorrent.searchRating += 1;
+            tempTorrent.debugRating += "☑";
+        }
+        if (tempTorrent.cached.size() > 0) {
             tempTorrent.searchRating += 2;
             tempTorrent.debugRating += "🚄: ⚡";
         } else if (seedRatio > 1.0) {

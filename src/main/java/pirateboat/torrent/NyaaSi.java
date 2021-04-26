@@ -1,10 +1,11 @@
 package pirateboat.torrent;
 
-import pirateboat.utilities.HttpHelper;
 import org.jsoup.Jsoup;
+import org.jsoup.nodes.Attributes;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import pirateboat.utilities.HttpHelper;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -51,6 +52,7 @@ public class NyaaSi extends HttpUser implements TorrentSearchEngine {
         if (torrentListOnPage != null) {
             for (Element torrent : torrentListOnPage) {
                 Torrent tempTorrent = new Torrent(toString());
+                final Attributes attributesOnTableRecord = torrent.attributes();
                 if (torrent.childNodeSize() > 0) {
                     torrent.children().forEach(element -> {
 
@@ -58,6 +60,9 @@ public class NyaaSi extends HttpUser implements TorrentSearchEngine {
                                 && getTorrentTitle(element).length() > 0) {
                             //extract name
                             tempTorrent.name = getTorrentTitle(element);
+                        }
+                        if (attributesOnTableRecord.size() > 0 && "success".equals(attributesOnTableRecord.get("class"))) {
+                            tempTorrent.isVerified = true;
                         }
                         if (elementContainsMagnetUri(element)) {
                             //extract magneturi

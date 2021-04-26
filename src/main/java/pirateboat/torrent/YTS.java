@@ -60,7 +60,7 @@ public class YTS extends HttpUser implements TorrentSearchEngine {
             final JsonObject jsonTorrent = jsonTorrentElement.getAsJsonObject();
             tempTorrent.name = jsonTorrent.get("title").getAsString() + " " + jsonTorrent.get("year").getAsInt();
             JsonObject bestTorrentSource = retrieveBestTorrent(jsonTorrent.get("torrents").getAsJsonArray());
-
+            tempTorrent.isVerified = true;
             tempTorrent.magnetUri = TorrentHelper.buildMagnetUriFromHash(bestTorrentSource.get("hash").getAsString().toLowerCase(), tempTorrent.name);
             tempTorrent.seeder = bestTorrentSource.get("seeds").getAsInt();
             tempTorrent.leecher = bestTorrentSource.get("peers").getAsInt();

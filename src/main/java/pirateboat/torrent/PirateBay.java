@@ -58,6 +58,7 @@ public class PirateBay extends HttpUser implements TorrentSearchEngine {
                     tempTorrent.magnetUri = TorrentHelper.buildMagnetUriFromHash(jsonObject.get("info_hash").getAsString(), tempTorrent.name);
                     tempTorrent.seeder = jsonObject.get("seeders").getAsInt();
                     tempTorrent.leecher = jsonObject.get("leechers").getAsInt();
+                    tempTorrent.isVerified = "vip".equals(jsonObject.get("status").getAsString());
                     tempTorrent.lsize = jsonObject.get("size").getAsLong() / 1024.0f / 1024.0f;
                     TorrentHelper.evaluateRating(tempTorrent, searchName);
                     if (TorrentHelper.isValidTorrent(tempTorrent)) {
