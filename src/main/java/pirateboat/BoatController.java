@@ -205,7 +205,7 @@ public final class BoatController {
         torrentMetaService.refreshTorrents();
         List<Torrent> remoteTorrents = torrentMetaService.getActiveTorrents();
         return "v:" + PropertiesHelper.getVersion()
-            + "<br/>rclone token valid: " + cloudService.isCloudTokenValid()
+            + "<br/>cloud token valid: " + cloudService.isCloudTokenValid()
             + "<br/>ActiveSearchEngines: " + torrentSearchEngineService.getActiveSearchEngines()
             + "<br/>InActiveSearchEngines: " + torrentSearchEngineService.getInActiveSearchEngines()
             + "<br/>D: " + remoteTorrents
