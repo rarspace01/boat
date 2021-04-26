@@ -253,7 +253,7 @@ public class TorrentHelper {
             ci.next();
         }
         value *= Long.signum(bytes);
-        return String.format("%.1f %ciB", value / 1024.0, ci.current());
+        return String.format("%.2f %ciB", value / 1024.0, ci.current());
     }
 
 }
