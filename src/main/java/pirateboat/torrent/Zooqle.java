@@ -1,16 +1,15 @@
 package pirateboat.torrent;
 
-import com.google.gson.JsonElement;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.select.Elements;
-import pirateboat.utilities.HttpHelper;
-
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.select.Elements;
+import pirateboat.utilities.HttpHelper;
 
 public class Zooqle extends HttpUser implements TorrentSearchEngine {
 
@@ -57,8 +56,9 @@ public class Zooqle extends HttpUser implements TorrentSearchEngine {
             tempTorrent.magnetUri = TorrentHelper.buildMagnetUriFromHash(torrentElement.getElementsByTag("torrent").first().getElementsByTag("infohash").text(), tempTorrent.name);
             tempTorrent.seeder = Integer.parseInt(torrentElement.getElementsByTag("torrent:seeds").text());
             tempTorrent.leecher = Integer.parseInt(torrentElement.getElementsByTag("torrent:peers").text());
-            tempTorrent.lsize = Long.parseLong(torrentElement.getElementsByTag("torrent:contentlength").text()) / 1024.0f / 1024.0f;
-            tempTorrent.size = String.format("%.2fMB",tempTorrent.lsize);
+            tempTorrent.lsize =
+                Long.parseLong(torrentElement.getElementsByTag("torrent:contentlength").text()) / 1024.0f / 1024.0f;
+            tempTorrent.size = TorrentHelper.humanReadableByteCountBinary((long) (tempTorrent.lsize * 1024.0 * 1024.0));
 
             TorrentHelper.evaluateRating(tempTorrent, searchName);
             if (TorrentHelper.isValidTorrent(tempTorrent)) {

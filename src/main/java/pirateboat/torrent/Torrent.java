@@ -1,10 +1,6 @@
 package pirateboat.torrent;
 
-import org.apache.logging.log4j.util.Strings;
-import org.jetbrains.annotations.NotNull;
-
 import java.nio.charset.StandardCharsets;
-import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Date;
@@ -12,6 +8,9 @@ import java.util.List;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import org.apache.logging.log4j.util.Strings;
+import org.jetbrains.annotations.NotNull;
 
 public class Torrent {
 
@@ -45,7 +44,6 @@ public class Torrent {
     @Override
     public String toString() {
         StringBuilder stringBuilder = new StringBuilder();
-        DecimalFormat df = new DecimalFormat("#.##");
         double seedRatio;
 
         if (this.leecher > 0) {
@@ -58,11 +56,10 @@ public class Torrent {
             magnetUriBase64 = Base64.getUrlEncoder().encodeToString(magnetUri.getBytes(StandardCharsets.UTF_8));
         }
 
-
         stringBuilder.append("[" + this.name + "]");
-        if (this.size != null) {
-            stringBuilder.append("[" + this.size + "][" + this.leecher + "/" + this.seeder + "@" + df.format(seedRatio) + "]");
-            stringBuilder.append("R:" + df.format(this.searchRating) + " ");
+        if (!"Premiumize".equals(source)) {
+            stringBuilder.append(String.format("[%s][%s/%s@%.2f]", size, leecher, seeder, seedRatio));
+            stringBuilder.append(String.format("R: %.2f ", this.searchRating));
         }
 
         if (magnetUriBase64 != null && magnetUriBase64.length() > 0 && this.status == null) {
@@ -95,7 +92,7 @@ public class Torrent {
 
     @Override
     public boolean equals(Object obj) {
-        return Objects.equals(this.getTorrentId(), obj != null ? ((Torrent)obj).getTorrentId():null);
+        return Objects.equals(this.getTorrentId(), obj != null ? ((Torrent) obj).getTorrentId() : null);
     }
 
     public String getTorrentId() {

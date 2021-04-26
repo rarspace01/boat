@@ -1,17 +1,16 @@
 package pirateboat.torrent;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.jsoup.Jsoup;
-import pirateboat.utilities.HttpHelper;
-
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import pirateboat.utilities.HttpHelper;
 
 public class SolidTorrents extends HttpUser implements TorrentSearchEngine {
 
@@ -59,8 +58,7 @@ public class SolidTorrents extends HttpUser implements TorrentSearchEngine {
                     Torrent tempTorrent = new Torrent(toString());
                     //extract Size & S/L
                     tempTorrent.name = jsonTorrent.get("title").asText();
-                    String sizeString = jsonTorrent.get("size").asLong() / 1024 / 1024 + "MB";
-                    tempTorrent.size = TorrentHelper.cleanNumberString(Jsoup.parse(sizeString).text().trim());
+                    tempTorrent.size = TorrentHelper.humanReadableByteCountBinary(jsonTorrent.get("size").asLong());
                     tempTorrent.lsize = TorrentHelper.extractTorrentSizeFromString(tempTorrent);
                     tempTorrent.seeder = jsonTorrent.get("swarm").get("seeders").asInt();
                     tempTorrent.leecher = jsonTorrent.get("swarm").get("leechers").asInt();

@@ -1,5 +1,11 @@
 package pirateboat.torrent;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -7,12 +13,6 @@ import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
 import lombok.extern.slf4j.Slf4j;
 import pirateboat.utilities.HttpHelper;
-
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 @Slf4j
 public class PirateBay extends HttpUser implements TorrentSearchEngine {
@@ -26,7 +26,8 @@ public class PirateBay extends HttpUser implements TorrentSearchEngine {
 
         String resultString = httpHelper.getPage(buildSearchUrl(searchName), null, "lw=s");
 
-        CopyOnWriteArrayList<Torrent> torrentList = new CopyOnWriteArrayList<>(parseTorrentsOnResultPage(resultString, searchName));
+        CopyOnWriteArrayList<Torrent> torrentList = new CopyOnWriteArrayList<>(
+            parseTorrentsOnResultPage(resultString, searchName));
 
         // sort the findings
         torrentList.sort(TorrentHelper.torrentSorter);
@@ -55,11 +56,14 @@ public class PirateBay extends HttpUser implements TorrentSearchEngine {
                     Torrent tempTorrent = new Torrent(toString());
                     final JsonObject jsonObject = jsonElement.getAsJsonObject();
                     tempTorrent.name = jsonObject.get("name").getAsString();
-                    tempTorrent.magnetUri = TorrentHelper.buildMagnetUriFromHash(jsonObject.get("info_hash").getAsString(), tempTorrent.name);
+                    tempTorrent.magnetUri = TorrentHelper
+                        .buildMagnetUriFromHash(jsonObject.get("info_hash").getAsString(), tempTorrent.name);
                     tempTorrent.seeder = jsonObject.get("seeders").getAsInt();
                     tempTorrent.leecher = jsonObject.get("leechers").getAsInt();
                     tempTorrent.isVerified = "vip".equals(jsonObject.get("status").getAsString());
-                    tempTorrent.lsize = jsonObject.get("size").getAsLong() / 1024.0f / 1024.0f;
+                    final long size = jsonObject.get("size").getAsLong();
+                    tempTorrent.lsize = size / 1024.0f / 1024.0f;
+                    tempTorrent.size = String.format("%s", TorrentHelper.humanReadableByteCountBinary(size));
                     TorrentHelper.evaluateRating(tempTorrent, searchName);
                     if (TorrentHelper.isValidTorrent(tempTorrent)) {
                         torrentList.add(tempTorrent);
