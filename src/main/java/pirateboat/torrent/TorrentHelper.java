@@ -10,7 +10,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 public class TorrentHelper {
-    public static final String REGEX_RELEASE_GROUP = "(-[A-Za-z]+)";
+    public static final String REGEX_RELEASE_GROUP = "(-[A-Za-z\\s]+)";
     private static TorrentService torrentService = new TorrentService();
 
     public static final double SIZE_UPPER_LIMIT = 15000.0;

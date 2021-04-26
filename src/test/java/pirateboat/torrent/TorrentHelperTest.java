@@ -177,4 +177,19 @@ class TorrentHelperTest {
         assertFalse(torrent1.debugRating.contains("📅"));
     }
 
+    @Test
+    void shouldRateTorrentEqually() {
+        // Given
+        Torrent torrent1 = new Torrent("Test");
+        Torrent torrent2 = new Torrent("Test");
+        torrent1.name = "Test Title S03E01 720p WEBRip x264-WAKETHEFUP [eztv]";
+
+        torrent2.name = "Test Title S03E01 1080p WEBRip x264-WAKETHEFUP[rarbg]";
+        // When
+        TorrentHelper.evaluateRating(torrent1, "Test Title S03E01");
+        TorrentHelper.evaluateRating(torrent2, "Test Title S03E01");
+        // Then
+        assertEquals(torrent1.searchRating, torrent2.searchRating);
+    }
+
 }
