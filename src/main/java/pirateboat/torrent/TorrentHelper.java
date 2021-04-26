@@ -102,7 +102,7 @@ public class TorrentHelper {
             tempTorrent.debugRating += "🎬";
         }
         if (tempTorrent.isVerified) {
-            tempTorrent.searchRating += 1;
+            tempTorrent.searchRating += 0.25;
             tempTorrent.debugRating += "✅";
         }
         if (tempTorrent.cached.size() > 0) {
