@@ -135,12 +135,11 @@ public class TorrentHelper {
     public static String getNormalizedTorrentStringWithSpaces(String name) {
         String lowerCase = name.replaceAll(REGEX_RELEASE_GROUP, "").toLowerCase();
         return lowerCase.trim()
+                .replaceAll("\\[[a-z0-9. -]*\\]", "")
                 .replaceAll(TAG_REGEX, ".")
                 .replaceAll(TAG_REGEX, ".")
                 .replaceAll(TAG_REGEX, ".")
                 .replaceAll(TAG_REGEX, ".")
-                .replaceAll("[()]+", "")
-                .replaceAll("\\[[A-Za-z0-9. -]*\\]", "")
                 .replaceAll("\\.", " ").trim();
     }
 
