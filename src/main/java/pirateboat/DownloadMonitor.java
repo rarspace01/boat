@@ -81,11 +81,12 @@ public class DownloadMonitor {
     @Scheduled(fixedRate = SECONDS_BETWEEN_FILE_CACHE_REFRESH * 1000)
     public void refreshCloudFileServiceCache() {
         log.info("refreshCloudFileServiceCache()");
-        if(isRcloneInstalled()){
+        if (isRcloneInstalled()) {
             final Cache filesCache = cacheManager.getCache("filesCache");
             Arrays.stream("abcdefghijklmnopqrstuvwxyzöäü0".split("")).forEach(searchName -> {
                 Stream.of(TorrentType.values()).forEach(torrentType -> {
-                    final String destinationPath = cloudService.buildDestinationPathWithTypeOfMedia(searchName, torrentType);
+                    final String destinationPath = cloudService
+                        .buildDestinationPathWithTypeOfMedia(searchName, torrentType);
                     if (filesCache != null) {
                         filesCache.evictIfPresent(destinationPath);
                     }
@@ -117,7 +118,8 @@ public class DownloadMonitor {
 
     @Scheduled(fixedRate = SECONDS_BETWEEN_CLEAR_TRANSFER_POLLING * 1000)
     public void clearTransferTorrents() {
-        multifileHosterService.getRemoteTorrents().stream().filter(torrent -> torrent.status.contains("error")).forEach(multifileHosterService::delete);
+        multifileHosterService.getRemoteTorrents().stream().filter(torrent -> torrent.status.contains("error"))
+            .forEach(multifileHosterService::delete);
     }
 
     private boolean checkForDownloadableTorrentsAndDownloadTheFirst() {
@@ -127,18 +129,20 @@ public class DownloadMonitor {
             boolean wasDownloadSuccessful = false;
             try {
                 if (multifileHosterService.isSingleFileDownload(torrentToBeDownloaded)) {
-                    updateUploadStatus(torrentToBeDownloaded, 0, 1);
+                    updateUploadStatus(torrentToBeDownloaded, 0, 1, null);
                     String fileURLFromTorrent = multifileHosterService.getMainFileURLFromTorrent(torrentToBeDownloaded);
                     if (torrentToBeDownloaded.name.contains("magnet:?")) {
                         torrentToBeDownloaded.name = extractFileNameFromUrl(fileURLFromTorrent);
                     }
                     wasDownloadSuccessful = rcloneDownloadFileToGdrive(fileURLFromTorrent,
-                            cloudService.buildDestinationPath(torrentToBeDownloaded.name) + buildFilename(torrentToBeDownloaded.name, fileURLFromTorrent)
+                        cloudService.buildDestinationPath(torrentToBeDownloaded.name) + buildFilename(
+                            torrentToBeDownloaded.name, fileURLFromTorrent)
                     );
-                    updateUploadStatus(torrentToBeDownloaded, 1, 1);
+                    updateUploadStatus(torrentToBeDownloaded, 1, 1, null);
                     multifileHosterService.delete(torrentToBeDownloaded);
                 } else {
-                    List<TorrentFile> filesFromTorrent = multifileHosterService.getFilesFromTorrent(torrentToBeDownloaded);
+                    List<TorrentFile> filesFromTorrent = multifileHosterService
+                        .getFilesFromTorrent(torrentToBeDownloaded);
                     int currentFileNumber = 0;
                     int failedUploads = 0;
                     int maxFileCount = filesFromTorrent.size();
@@ -149,7 +153,8 @@ public class DownloadMonitor {
                         String destinationPath = cloudService.buildDestinationPath(torrentToBeDownloaded.name);
                         String targetFilePath;
                         if (destinationPath.contains("transfer")) {
-                            targetFilePath = PropertiesHelper.getProperty("rclonedir") + "/transfer/multipart/" + torrentToBeDownloaded.name + "/" + torrentFile.name;
+                            targetFilePath = PropertiesHelper.getProperty("rclonedir") + "/transfer/multipart/"
+                                + torrentToBeDownloaded.name + "/" + torrentFile.name;
                         } else {
                             targetFilePath = destinationPath + torrentToBeDownloaded.name + "/" + torrentFile.name;
                         }
@@ -182,32 +187,32 @@ public class DownloadMonitor {
         return activeTorrents.stream().filter(this::checkIfTorrentCanBeDownloaded).findFirst().orElse(null);
     }
 
-    private void updateUploadStatus(Torrent torrentToBeDownloaded, int currentFileNumber, int fileCount) {
-        torrentToBeDownloaded.status = getUploadStatusString(currentFileNumber, fileCount, null);
+    private void updateUploadStatus(Torrent torrentToBeDownloaded, int currentFileNumber, int fileCount,
+                                    Instant startTime) {
+        torrentToBeDownloaded.status = getUploadStatusString(torrentToBeDownloaded, currentFileNumber, fileCount,
+            startTime);
         torrentMetaService.updateTorrent(torrentToBeDownloaded);
     }
 
-    private void updateUploadStatus(Torrent torrentToBeDownloaded, int currentFileNumber, int fileCount, Instant startTime) {
-        torrentToBeDownloaded.status = getUploadStatusString(currentFileNumber, fileCount, startTime);
-        torrentMetaService.updateTorrent(torrentToBeDownloaded);
-    }
-
-    private String getUploadStatusString(int currentFileNumber, int fileCount, Instant startTime) {
+    private String getUploadStatusString(Torrent torrentToBeDownloaded, int currentFileNumber,
+                                         int fileCount, Instant startTime) {
+        Duration remainingDuration;
         if (startTime == null || currentFileNumber == 0) {
-            return String.format("Uploading: %d/%d done", currentFileNumber, fileCount);
+            long expectedSecondsRemaining = (long) (torrentToBeDownloaded.lsize / 10.0);
+            remainingDuration = Duration.of(expectedSecondsRemaining, ChronoUnit.SECONDS);
         } else {
             long diffTime = Instant.now().toEpochMilli() - startTime.toEpochMilli();
             final long milliPerFile = diffTime / (long) currentFileNumber;
             final int remainingFileCount = fileCount - currentFileNumber;
             final long expectedMilliRemaining = milliPerFile * remainingFileCount;
-            final Duration remainingDuration = Duration.of(expectedMilliRemaining, ChronoUnit.MILLIS);
-            return String.format("Uploading: %d/%d done ETA: %02d:%02d:%02d",
-                    currentFileNumber,
-                    fileCount,
-                    remainingDuration.toHours(),
-                    remainingDuration.toMinutesPart(),
-                    remainingDuration.toSecondsPart());
+            remainingDuration = Duration.of(expectedMilliRemaining, ChronoUnit.MILLIS);
         }
+        return String.format("Uploading: %d/%d done ETA: %02d:%02d:%02d",
+            currentFileNumber,
+            fileCount,
+            remainingDuration.toHours(),
+            remainingDuration.toMinutesPart(),
+            remainingDuration.toSecondsPart());
     }
 
     private String buildFilename(String name, String fileURLFromTorrent) {
@@ -249,7 +254,8 @@ public class DownloadMonitor {
     private boolean rcloneDownloadFileToGdrive(String fileURLFromTorrent, String destinationPath) {
         log.info("D>[{}]", destinationPath);
         ProcessBuilder builder = new ProcessBuilder();
-        final String commandToRun = String.format("rclone copyurl '%s' '%s'", fileURLFromTorrent, destinationPath.replaceAll("'", ""));
+        final String commandToRun = String
+            .format("rclone copyurl '%s' '%s'", fileURLFromTorrent, destinationPath.replaceAll("'", ""));
         builder.command("bash", "-c", commandToRun);
         builder.directory(new File(System.getProperty("user.home")));
         Process process = null;
@@ -257,7 +263,7 @@ public class DownloadMonitor {
         try {
             process = builder.start();
             StreamGobbler streamGobbler =
-                    new StreamGobbler(process.getInputStream(), System.out::println);
+                new StreamGobbler(process.getInputStream(), System.out::println);
             Executors.newSingleThreadExecutor().submit(streamGobbler);
             exitCode = process.waitFor();
         } catch (IOException | InterruptedException e) {
@@ -273,7 +279,8 @@ public class DownloadMonitor {
 
 
     private boolean checkIfTorrentCanBeDownloaded(Torrent remoteTorrent) {
-        return List.of("finished", "seeding", "ready to upload", "Ready").stream().anyMatch(status -> remoteTorrent.status.contains(status));
+        return List.of("finished", "seeding", "ready to upload", "Ready").stream()
+            .anyMatch(status -> remoteTorrent.status.contains(status));
     }
 
 }
