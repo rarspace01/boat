@@ -10,5 +10,6 @@ interface MultifileHoster {
     fun delete(remoteTorrent: Torrent)
     fun getFilesFromTorrent(torrent: Torrent): List<TorrentFile>
     fun getPrio(): Int
+    fun getRemainingTrafficInMB(): Double
     fun getName(): String
 }

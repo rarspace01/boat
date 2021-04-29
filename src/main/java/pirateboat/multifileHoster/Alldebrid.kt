@@ -11,7 +11,6 @@ import pirateboat.torrent.TorrentHelper
 import pirateboat.utilities.HttpHelper
 import pirateboat.utilities.PropertiesHelper
 import java.time.Duration
-import java.util.*
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.function.Consumer
 import java.util.stream.Collectors
@@ -140,7 +139,7 @@ class Alldebrid(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoster
 
     override fun getFilesFromTorrent(torrent: Torrent): List<TorrentFile> {
         val remoteTorrent = getRemoteTorrentById(torrent.remoteId)
-        if(remoteTorrent != null) {
+        if (remoteTorrent != null) {
             return remoteTorrent.fileList
         } else {
             return emptyList()
@@ -149,6 +148,10 @@ class Alldebrid(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoster
 
     override fun getPrio(): Int {
         return 0
+    }
+
+    override fun getRemainingTrafficInMB(): Double {
+        return Double.MAX_VALUE
     }
 
     override fun getName(): String {

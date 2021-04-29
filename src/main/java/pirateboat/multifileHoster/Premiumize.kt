@@ -19,8 +19,9 @@ import java.util.stream.Collectors
 class Premiumize(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoster {
     override fun addTorrentToQueue(toBeAddedTorrent: Torrent): String {
         val response: String
-        val addTorrenntUrl = "https://www.premiumize.me/api/transfer/create?apikey=" + PropertiesHelper.getProperty("premiumize_apikey") +
-                "&type=hello.torrent&src=" + cleanMagnetUri(toBeAddedTorrent.magnetUri)
+        val addTorrenntUrl =
+            "https://www.premiumize.me/api/transfer/create?apikey=" + PropertiesHelper.getProperty("premiumize_apikey") +
+                    "&type=hello.torrent&src=" + cleanMagnetUri(toBeAddedTorrent.magnetUri)
         response = httpHelper.getPage(addTorrenntUrl)
         return response
     }
@@ -31,7 +32,8 @@ class Premiumize(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoste
 
     override fun getRemoteTorrents(): List<Torrent> {
         val remoteTorrentList: List<Torrent>
-        val responseTorrents: String = httpHelper.getPage("https://www.premiumize.me/api/transfer/list?apikey=" + PropertiesHelper.getProperty("premiumize_apikey"))
+        val responseTorrents: String =
+            httpHelper.getPage("https://www.premiumize.me/api/transfer/list?apikey=" + PropertiesHelper.getProperty("premiumize_apikey"))
         remoteTorrentList = parseRemoteTorrents(responseTorrents)
         return remoteTorrentList
     }
@@ -40,14 +42,32 @@ class Premiumize(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoste
         return 1
     }
 
+    override fun getRemainingTrafficInMB(): Double {
+        val responseAccount: String =
+            httpHelper.getPage("https://www.premiumize.me/api/account/info?apikey=" + PropertiesHelper.getProperty("premiumize_apikey"))
+        return parseRemainingTrafficInMB(responseAccount)
+    }
+
+    private fun parseRemainingTrafficInMB(responseAccount: String): Double {
+        val mapper = ObjectMapper()
+        try {
+            val jsonNode = mapper.readTree(responseAccount)
+            return (1.0 - jsonNode.get("limit_used").asDouble()) * 1000.00
+        } catch (exception: Exception) {
+        }
+        return 0.0
+    }
+
     override fun getName(): String {
         return this.javaClass.simpleName
     }
 
     override fun getFilesFromTorrent(torrent: Torrent): List<TorrentFile> {
         val returnList: MutableList<TorrentFile> = ArrayList()
-        val responseFiles = httpHelper.getPage("https://www.premiumize.me/api/folder/list?id=" + torrent.folder_id +
-                "&apikey=" + PropertiesHelper.getProperty("premiumize_apikey"))
+        val responseFiles = httpHelper.getPage(
+            "https://www.premiumize.me/api/folder/list?id=" + torrent.folder_id +
+                    "&apikey=" + PropertiesHelper.getProperty("premiumize_apikey")
+        )
         val m = ObjectMapper()
         try {
             val rootNode = m.readTree(responseFiles)
@@ -66,9 +86,16 @@ class Premiumize(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoste
         return returnList
     }
 
-    private fun extractTorrentFilesFromJSONFolder(torrent: Torrent, returnList: MutableList<TorrentFile>, jsonFolder: JsonNode, prefix: String) {
-        val responseFiles = httpHelper.getPage("https://www.premiumize.me/api/folder/list?id=" + jsonFolder["id"].asText() +
-                "&apikey=" + PropertiesHelper.getProperty("premiumize_apikey"))
+    private fun extractTorrentFilesFromJSONFolder(
+        torrent: Torrent,
+        returnList: MutableList<TorrentFile>,
+        jsonFolder: JsonNode,
+        prefix: String
+    ) {
+        val responseFiles = httpHelper.getPage(
+            "https://www.premiumize.me/api/folder/list?id=" + jsonFolder["id"].asText() +
+                    "&apikey=" + PropertiesHelper.getProperty("premiumize_apikey")
+        )
         val folderName = prefix + jsonFolder["name"].asText() + "/"
         val m = ObjectMapper()
         val rootNode: JsonNode
@@ -88,7 +115,12 @@ class Premiumize(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoste
         }
     }
 
-    private fun extractTorrentFileFromJSON(torrent: Torrent, returnList: MutableList<TorrentFile>, jsonFile: JsonNode, prefix: String) {
+    private fun extractTorrentFileFromJSON(
+        torrent: Torrent,
+        returnList: MutableList<TorrentFile>,
+        jsonFile: JsonNode,
+        prefix: String
+    ) {
         val tf = TorrentFile()
         // check if hello.torrent is onefile and is located in root
         if (torrent.file_id != null && torrent.folder_id != null) {
@@ -155,15 +187,22 @@ class Premiumize(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoste
             enrichCacheStatusForGivenTorrents(torrents)
         } else {
             for (i in torrents.indices step maximumQueryCacheSize) {
-                enrichCacheStatusForGivenTorrents(torrents.subList(i, (i + maximumQueryCacheSize).coerceAtMost(torrents.size - 1)))
+                enrichCacheStatusForGivenTorrents(
+                    torrents.subList(
+                        i,
+                        (i + maximumQueryCacheSize).coerceAtMost(torrents.size - 1)
+                    )
+                )
             }
         }
     }
 
     private fun enrichCacheStatusForGivenTorrents(torrents: List<Torrent>) {
-        val requestUrl = "https://www.premiumize.me/api/cache/check?" + "apikey=" + PropertiesHelper.getProperty("premiumize_apikey") + "%s"
+        val requestUrl =
+            "https://www.premiumize.me/api/cache/check?" + "apikey=" + PropertiesHelper.getProperty("premiumize_apikey") + "%s"
         val urlEncodedBrackets = TorrentHelper.urlEncode("[]")
-        val collected = torrents.stream().map { obj: Torrent -> obj.torrentId }.collect(Collectors.joining("&items$urlEncodedBrackets=", "&items$urlEncodedBrackets=", ""))
+        val collected = torrents.stream().map { obj: Torrent -> obj.torrentId }
+            .collect(Collectors.joining("&items$urlEncodedBrackets=", "&items$urlEncodedBrackets=", ""))
         val checkUrl = String.format(requestUrl, collected)
         val pageContent = httpHelper.getPage(checkUrl)
         val jsonRoot = JsonParser.parseString(pageContent)
