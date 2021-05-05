@@ -53,9 +53,9 @@ class Premiumize(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoste
         try {
             val jsonNode = mapper.readTree(responseAccount)
             return (1.0 - jsonNode.get("limit_used").asDouble()) * 1000.00
-        } catch (exception: Exception) {
+        } catch (ignored: Exception) {
+            return 0.0
         }
-        return 0.0
     }
 
     override fun getName(): String {
