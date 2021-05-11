@@ -25,7 +25,7 @@ before_deploy:
 deploy:
   - provider: releases
     token: $GITHUB_APIKEY
-    file: "./build/libs/pirateboat.jar"
+    file: "./build/libs/boat.jar"
     skip_cleanup: true
     on:
       branch: master

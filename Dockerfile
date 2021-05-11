@@ -9,9 +9,9 @@ RUN apt-get update && apt-get install -y curl wget unzip \
 && curl https://rclone.org/install.sh -o install.sh && chmod +x install.sh && ./install.sh && rm -rf /tmp/*
 ENV PATH="${PATH}:./jre/bin"
 #USER nobody
-# copy config for pirateBoat & if used rlcone
-COPY pirateboat.cfg pirateboat.cfg
+# copy config for boat & if used rlcone
+COPY boat.cfg boat.cfg
 RUN mkdir -p /root/.config/rclone/
 COPY rclone.conf /root/.config/rclone/rclone.conf
 EXPOSE 8080
-CMD wget https://github.com/rarspace01/pirateboat/releases/latest/download/pirateboat.jar -O pirateboat.jar && chmod +x pirateboat.jar && ./jre/bin/java -jar pirateboat.jar
+CMD wget https://github.com/rarspace01/boat/releases/latest/download/boat.jar -O boat.jar && chmod +x boat.jar && ./jre/bin/java -jar boat.jar

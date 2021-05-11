@@ -39,8 +39,8 @@ jacocoTestReport {
 
 //runtime("org.springframework.boot:spring-boot-properties-migrator")
 jar {
-    archivesBaseName = 'pirateboat'
-    archiveVersion = '0.8.0'
+    archivesBaseName = 'boat'
+    archiveVersion = '0.8.1'
 }
 
 repositories {
