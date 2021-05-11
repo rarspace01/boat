@@ -12,7 +12,7 @@ class BoatControllerTest {
     @Test
     void cleanDuplicates() {
         // Given
-        final BoatController boatController = new BoatController(null, null, null, null, null, null, null);
+        final BoatController boatController = new BoatController(null, null, null, null, null, null, null, null);
 
         final Torrent s1 = new Torrent("S1");
         final Torrent s2 = new Torrent("S2");
