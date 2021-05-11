@@ -119,6 +119,7 @@ public class DownloadMonitor {
                 });
                 log.info("Cache refresh done for: {}", searchName);
             });
+            cloudFileService.setCacheFilled(true);
         } else {
             log.warn("rclone not installed");
         }

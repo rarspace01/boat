@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import boat.info.CloudFileService;
 import boat.info.CloudService;
 import boat.info.QueueService;
 import boat.info.TheFilmDataBaseService;
@@ -49,6 +50,7 @@ public final class BoatController {
     private final TheFilmDataBaseService theFilmDataBaseService;
     private final MultifileHosterService multifileHosterService;
     private final QueueService queueService;
+    private final CloudFileService cloudFileService;
 
     @Autowired
     public BoatController(
@@ -58,7 +60,8 @@ public final class BoatController {
         TorrentMetaService torrentMetaService,
         TheFilmDataBaseService theFilmDataBaseService,
         MultifileHosterService multifileHosterService,
-        QueueService queueService) {
+        QueueService queueService,
+        CloudFileService cloudFileService) {
         this.httpHelper = httpHelper;
         this.torrentSearchEngineService = torrentSearchEngineService;
         this.cloudService = cloudService;
@@ -66,6 +69,7 @@ public final class BoatController {
         this.theFilmDataBaseService = theFilmDataBaseService;
         this.multifileHosterService = multifileHosterService;
         this.queueService = queueService;
+        this.cloudFileService = cloudFileService;
     }
 
     @GetMapping({"/"})
@@ -219,6 +223,7 @@ public final class BoatController {
         List<Torrent> remoteTorrents = torrentMetaService.getActiveTorrents();
         return "v:" + PropertiesHelper.getVersion()
             + "<br/>cloud token valid: " + cloudService.isCloudTokenValid()
+            + "<br/>search Cache filled: " + cloudFileService.isCacheFilled()
             + "<br/>ActiveSearchEngines: " + torrentSearchEngineService.getActiveSearchEngines()
             + "<br/>InActiveSearchEngines: " + torrentSearchEngineService.getInActiveSearchEngines()
             + "<br/>D: " + remoteTorrents

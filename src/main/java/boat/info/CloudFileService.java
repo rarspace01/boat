@@ -10,11 +10,17 @@ import org.springframework.stereotype.Service;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
 public class CloudFileService {
+
+    @Getter
+    @Setter
+    private boolean isCacheFilled = false;
 
     @Cacheable("filesCache")
     public List<String> getFilesInPath(String destinationPath) {
