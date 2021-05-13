@@ -39,7 +39,8 @@ public class RARBG extends HttpUser implements TorrentSearchEngine {
     }
 
     private String buildSearchUrl(String searchName) {
-        return String.format(getBaseUrl() + "/torrents.php?search=%s&order=seeders&by=DESC", URLEncoder.encode(searchName, StandardCharsets.UTF_8));
+        return String.format("%s/torrents.php?search=%s&order=seeders&by=DESC", getBaseUrl(),
+            URLEncoder.encode(searchName, StandardCharsets.UTF_8));
     }
 
     private List<Torrent> parseTorrentsOnResultPage(String pageContent, String searchName) {
@@ -67,7 +68,7 @@ public class RARBG extends HttpUser implements TorrentSearchEngine {
                 .findFirst().orElse(null);
         final String text = doc.text();
 
-        torrent.size = TorrentHelper.cleanNumberString(getValueBetweenStrings(text, "Size : ", "Show Files").trim());
+        torrent.size = TorrentHelper.cleanNumberString(getValueBetweenStrings(text, "Size: ", "Show Files").trim());
         torrent.lsize = TorrentHelper.extractTorrentSizeFromString(torrent);
 
         try {
@@ -96,7 +97,7 @@ public class RARBG extends HttpUser implements TorrentSearchEngine {
         Pattern betweenPattern = Pattern.compile(firstString + "(.*)" + secondString);
         Matcher matcher = betweenPattern.matcher(input);
         while (matcher.find()) {
-            return getBaseUrl() + matcher.group(1);
+            return matcher.group(1);
         }
         return "";
     }
