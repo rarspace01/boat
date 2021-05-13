@@ -95,7 +95,7 @@ class CloudServiceTest {
         // When
         String destinationPath = cloudService.buildDestinationPath("Test and Test [UNCENSORED] Season 1-3 [1080p] [5.1 MP3] [x265][FINAL]");
         // Then
-        assertEquals(PropertiesHelper.getProperty("rclonedir") + "/Series-Shows/T/", destinationPath);
+        assertEquals(PropertiesHelper.getProperty("rclonedir") + "/Series-Shows/T/Test.And.Test/", destinationPath);
     }
 
     @Test
@@ -104,7 +104,7 @@ class CloudServiceTest {
         // When
         String destinationPath = cloudService.buildDestinationPath("Series.S01E02.480p.x264-mSD[tag].mkv");
         // Then
-        assertEquals(PropertiesHelper.getProperty("rclonedir") + "/Series-Shows/S/", destinationPath);
+        assertEquals(PropertiesHelper.getProperty("rclonedir") + "/Series-Shows/S/Series/", destinationPath);
     }
 
     @Test
@@ -113,7 +113,7 @@ class CloudServiceTest {
         // When
         String destinationPath = cloudService.buildDestinationPath("series.S01E02.480p.x264-mSD[tag].mkv");
         // Then
-        assertEquals(PropertiesHelper.getProperty("rclonedir") + "/Series-Shows/S/", destinationPath);
+        assertEquals(PropertiesHelper.getProperty("rclonedir") + "/Series-Shows/S/Series/", destinationPath);
     }
 
     @Test
@@ -122,7 +122,16 @@ class CloudServiceTest {
         // When
         String destinationPath = cloudService.buildDestinationPath("\"series.S01E02.480p.x264-mSD[tag].mkv");
         // Then
-        assertEquals(PropertiesHelper.getProperty("rclonedir") + "/Series-Shows/S/", destinationPath);
+        assertEquals(PropertiesHelper.getProperty("rclonedir") + "/Series-Shows/S/Series/", destinationPath);
+    }
+
+    @Test
+    void buildDestinationPathForSeriesTorrentTestSubFolders() {
+        // Given
+        // When
+        String destinationPath = cloudService.buildDestinationPath("Series.Name.S01E02.480p.x264-mSD[tag].mkv");
+        // Then
+        assertEquals(PropertiesHelper.getProperty("rclonedir") + "/Series-Shows/S/Series.Name/", destinationPath);
     }
 
     @Test

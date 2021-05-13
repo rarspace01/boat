@@ -7,6 +7,7 @@ import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import boat.torrent.TorrentHelper;
 import boat.torrent.TorrentType;
@@ -31,16 +32,38 @@ public class CloudService {
     public String buildDestinationPath(final String torrentName) {
         String basePath = PropertiesHelper.getProperty("rclonedir");
         String preparedTorrentName = TorrentHelper.prepareTorrentName(torrentName);
-        final TorrentType typeOfMedia = TorrentHelper.determineTypeOfMedia(preparedTorrentName);
-        preparedTorrentName = deductFirstTorrentLetter(preparedTorrentName);
-        return basePath + "/" + typeOfMedia.getType() + "/" + preparedTorrentName + "/";
+        final TorrentType typeOfMedia = TorrentHelper.determineTypeOfMedia(torrentName);
+        String torrentNameFirstLetterDeducted = deductFirstTorrentLetter(preparedTorrentName);
+        String optionalSeriesString = "";
+        if (TorrentType.SERIES_SHOWS.equals(typeOfMedia)) {
+            optionalSeriesString = deductSeriesNameFrom(preparedTorrentName) + "/";
+        }
+        return basePath + "/" + typeOfMedia.getType() + "/" + torrentNameFirstLetterDeducted + "/"
+            + optionalSeriesString;
+    }
+
+    private String deductSeriesNameFrom(String preparedTorrentName) {
+        return Arrays.stream(preparedTorrentName
+            .toLowerCase()
+            .trim()
+            .replaceAll("s[0-9]+e[0-9]+", "")
+            .replaceAll("season[.\\s]?[0-9-]+", "")
+            .trim()
+            .replaceAll("\\s+", ".")
+            .split("\\."))
+            .map(StringUtils::capitalize)
+            .collect(Collectors.joining("."));
     }
 
     public String buildDestinationPathWithTypeOfMedia(final String torrentName, TorrentType typeOfMedia) {
         String basePath = PropertiesHelper.getProperty("rclonedir");
         String preparedTorrentName = TorrentHelper.prepareTorrentName(torrentName);
         preparedTorrentName = deductFirstTorrentLetter(preparedTorrentName);
-        return basePath + "/" + typeOfMedia.getType() + "/" + preparedTorrentName + "/";
+        String optionalSeriesString = "";
+        if (TorrentType.SERIES_SHOWS.equals(typeOfMedia)) {
+            optionalSeriesString = deductSeriesNameFrom(preparedTorrentName) + "/";
+        }
+        return basePath + "/" + typeOfMedia.getType() + "/" + preparedTorrentName + "/" + optionalSeriesString;
     }
 
     @NotNull
@@ -70,9 +93,9 @@ public class CloudService {
         ForkJoinPool customThreadPool = new ForkJoinPool(TorrentType.values().length);
         try {
             return customThreadPool.submit(() -> Arrays.asList(TorrentType.values()).parallelStream()
-                    .map(torrentType -> findFilesBasedOnStringsAndMediaType(searchName, strings, torrentType))
-                    .flatMap(List::stream)
-                    .collect(Collectors.toList())
+                .map(torrentType -> findFilesBasedOnStringsAndMediaType(searchName, strings, torrentType))
+                .flatMap(List::stream)
+                .collect(Collectors.toList())
             ).get();
         } catch (Exception exception) {
             return Collections.emptyList();
@@ -80,11 +103,13 @@ public class CloudService {
     }
 
 
-    private List<String> findFilesBasedOnStringsAndMediaType(String searchName, String[] strings, TorrentType torrentType) {
+    private List<String> findFilesBasedOnStringsAndMediaType(String searchName, String[] strings,
+                                                             TorrentType torrentType) {
         log.info("Searching for: {} with {}", searchName, torrentType.getType());
         return cloudFileService.getFilesInPath(buildDestinationPathWithTypeOfMedia(searchName, torrentType)).stream()
-                .filter(fileName -> Arrays.stream(strings).allMatch(searchStringPart -> fileName.toLowerCase().matches(".*" + searchStringPart.toLowerCase() + ".*")))
-                .collect(Collectors.toList());
+            .filter(fileName -> Arrays.stream(strings).allMatch(
+                searchStringPart -> fileName.toLowerCase().matches(".*" + searchStringPart.toLowerCase() + ".*")))
+            .collect(Collectors.toList());
     }
 
 

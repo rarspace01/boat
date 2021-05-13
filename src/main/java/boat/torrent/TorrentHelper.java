@@ -139,7 +139,7 @@ public class TorrentHelper {
     }
 
     public static String getNormalizedTorrentStringWithSpaces(String name) {
-        String lowerCase = name.replaceAll(REGEX_RELEASE_GROUP, "").toLowerCase();
+        String lowerCase = name.replaceAll(REGEX_RELEASE_GROUP, "").toLowerCase().replaceAll("\"", "");
         return lowerCase.trim()
                 .replaceAll("\\[[a-z0-9. -]*\\]", "")
                 .replaceAll(TAG_REGEX, ".")
@@ -151,10 +151,13 @@ public class TorrentHelper {
 
     public static String getNormalizedTorrentStringWithSpacesKeepCase(String name) {
         if(name == null) return null;
-        String string = name.replaceAll(REGEX_RELEASE_GROUP, "").toLowerCase();
+        String string = name.replaceAll(REGEX_RELEASE_GROUP, "").toLowerCase().replaceAll("\"", "");
         return string.trim()
-                .replaceAll("[()]+", "")
-                .replaceAll("\\[[A-Za-z0-9. -]*\\]", "")
+            .replaceAll("\\[[A-Za-z0-9. -]*\\]", "")
+            .replaceAll(TAG_REGEX, ".")
+            .replaceAll(TAG_REGEX, ".")
+            .replaceAll(TAG_REGEX, ".")
+            .replaceAll(TAG_REGEX, ".")
                 .replaceAll("\\.", " ").trim();
     }
 
@@ -208,11 +211,14 @@ public class TorrentHelper {
 
     public static String buildMagnetUriFromHash(final String hash, final String torrentName) {
         return String.format("magnet:?xt=urn:btih:%s&dn=%s", hash, urlEncode(torrentName))
-                + torrentService.getTrackerUrls().stream().map(TorrentHelper::urlEncode).collect(Collectors.joining("&tr=", "&tr=", ""));
+            + torrentService.getTrackerUrls().stream().map(TorrentHelper::urlEncode)
+            .collect(Collectors.joining("&tr=", "&tr=", ""));
     }
 
-    public static TorrentType determineTypeOfMedia(String cleanedString) {
-        if (cleanedString.matches(".*[ ._-]+[re]*dump[ ._-]+.*") || cleanedString.matches(".*\\s[pP][dD][fF].*") || cleanedString.matches(".*\\s[eE][pP][uU][bB].*")) {
+    public static TorrentType determineTypeOfMedia(String string) {
+        String cleanedString = string.toLowerCase();
+        if (cleanedString.matches(".*[ ._-]+[re]*dump[ ._-]+.*") || cleanedString.matches(".*\\.[pP][dD][fF].*")
+            || cleanedString.matches(".*\\.[eE][pP][uU][bB].*")) {
             return TorrentType.TRANSFER;
         } else if (cleanedString.matches("(.+[ .]+s[0-9]+.+)|(.+season.+)")) {
             return TorrentType.SERIES_SHOWS;
