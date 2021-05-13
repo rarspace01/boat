@@ -182,7 +182,7 @@ public class DownloadMonitor {
                             targetFilePath = PropertiesHelper.getProperty("rclonedir") + "/transfer/multipart/"
                                 + torrentToBeDownloaded.name + "/" + torrentFile.name;
                         } else {
-                            if (destinationPath.contains(TorrentType.SERIES_SHOWS.toString())) {
+                            if (destinationPath.contains(TorrentType.SERIES_SHOWS.getType())) {
                                 targetFilePath = destinationPath + torrentFile.name;
                             } else {
                                 targetFilePath = destinationPath + torrentToBeDownloaded.name + "/" + torrentFile.name;
