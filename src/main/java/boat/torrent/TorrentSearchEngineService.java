@@ -19,13 +19,15 @@ public class TorrentSearchEngineService {
     @Autowired
     public TorrentSearchEngineService(HttpHelper httpHelper) {
         this.allSearchEngines = Arrays.asList(
-                new PirateBay(httpHelper),
-                new NyaaSi(httpHelper),
-                new SolidTorrents(httpHelper),
-                new LeetxTo(httpHelper),
-                new YTS(httpHelper),
-                new RARBG(httpHelper),
-                new Zooqle(httpHelper)
+            new PirateBay(httpHelper),
+            new NyaaSi(httpHelper),
+            new SolidTorrents(httpHelper),
+            new LeetxTo(httpHelper),
+            new YTS(httpHelper),
+            new RARBG(httpHelper),
+            new Torrentz(httpHelper),
+            new MagnetDL(httpHelper),
+            new Zooqle(httpHelper)
         );
         this.activeSearchEngines.addAll(allSearchEngines);
     }
