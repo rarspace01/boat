@@ -7,7 +7,11 @@ import java.text.CharacterIterator;
 import java.text.StringCharacterIterator;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -262,4 +266,14 @@ public class TorrentHelper {
         return String.format("%.2f %ciB", value / 1024.0, ci.current());
     }
 
+    public static TorrentType determineTypeOfMedia(List<TorrentFile> filesFromTorrent) {
+        Map<TorrentType, Integer> countMap = new HashMap<>();
+        filesFromTorrent
+            .forEach(torrentFile -> countMap.compute(determineTypeOfMedia(torrentFile.name), (torrentType, integer) ->
+                integer == null ? 1 : integer + 1));
+        final Optional<Entry<TorrentType, Integer>> maxEntry = countMap.entrySet()
+            .stream()
+            .max(Entry.comparingByValue());
+        return maxEntry.isPresent() ? maxEntry.get().getKey() : TorrentType.TRANSFER;
+    }
 }

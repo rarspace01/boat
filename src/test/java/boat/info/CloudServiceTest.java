@@ -3,6 +3,7 @@ package boat.info;
 import java.util.List;
 
 import boat.torrent.Torrent;
+import boat.torrent.TorrentFile;
 import boat.utilities.PropertiesHelper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -141,6 +142,22 @@ class CloudServiceTest {
         String destinationPath = cloudService.buildDestinationPath("series.S01E02.480p.x264-mSD[tag].pdf");
         // Then
         assertEquals(PropertiesHelper.getProperty("rclonedir") + "/transfer/S/", destinationPath);
+    }
+
+    @Test
+    void buildDestinationPathSeriesWithFileListAndNonSeriesTorrentName() {
+        // Given
+        TorrentFile tf1 = new TorrentFile();
+        tf1.name = "Series Name S01E01";
+        TorrentFile tf2 = new TorrentFile();
+        tf2.name = "Series Name S01E02";
+        final Torrent torrent = new Torrent("Test");
+        torrent.name = "Could be a movie but is a series";
+        // When
+        String destinationPath = cloudService.buildDestinationPath(torrent.name, List.of(tf1, tf2));
+        // Then
+        assertEquals(PropertiesHelper.getProperty("rclonedir") + "/Series-Shows/C/Could.Be.A.Movie.But.Is.A.Series/",
+            destinationPath);
     }
 
 }

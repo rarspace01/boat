@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import boat.torrent.TorrentFile;
 import boat.torrent.TorrentHelper;
 import boat.torrent.TorrentType;
 import boat.utilities.PropertiesHelper;
@@ -55,7 +56,8 @@ public class CloudService {
             .collect(Collectors.joining("."));
     }
 
-    public String buildDestinationPathWithTypeOfMedia(final String torrentName, TorrentType typeOfMedia) {
+    public String buildDestinationPathWithTypeOfMediaWithoutSubFolders(final String torrentName,
+                                                                       TorrentType typeOfMedia) {
         String basePath = PropertiesHelper.getProperty("rclonedir");
         String preparedTorrentName = TorrentHelper.prepareTorrentName(torrentName);
         String firstTorrentLetter = deductFirstTorrentLetter(preparedTorrentName);
@@ -101,7 +103,7 @@ public class CloudService {
 
     private List<String> findFilesBasedOnStringsAndMediaType(String searchName, String[] strings,
                                                              TorrentType torrentType) {
-        final String destinationPath = buildDestinationPathWithTypeOfMedia(searchName, torrentType);
+        final String destinationPath = buildDestinationPathWithTypeOfMediaWithoutSubFolders(searchName, torrentType);
         log.info("Searching for: {} with {} in {}", searchName, torrentType.getType(), destinationPath);
         return cloudFileService.getFilesInPath(destinationPath).stream()
             .filter(fileName -> Arrays.stream(strings).allMatch(
@@ -110,4 +112,25 @@ public class CloudService {
     }
 
 
+    public String buildDestinationPath(String name, List<TorrentFile> filesFromTorrent) {
+        final TorrentType typeOfMedia = TorrentHelper.determineTypeOfMedia(name);
+        if (TorrentType.TRANSFER.equals(typeOfMedia)) {
+            final TorrentType torrentType = TorrentHelper.determineTypeOfMedia(filesFromTorrent);
+            return buildDestinationPathWithTypeOfMedia(name, torrentType);
+        } else {
+            return buildDestinationPath(name);
+        }
+    }
+
+    private String buildDestinationPathWithTypeOfMedia(String name, TorrentType torrentType) {
+        String basePath = PropertiesHelper.getProperty("rclonedir");
+        String preparedTorrentName = TorrentHelper.prepareTorrentName(name);
+        String torrentNameFirstLetterDeducted = deductFirstTorrentLetter(preparedTorrentName);
+        String optionalSeriesString = "";
+        if (TorrentType.SERIES_SHOWS.equals(torrentType)) {
+            optionalSeriesString = deductSeriesNameFrom(preparedTorrentName) + "/";
+        }
+        return basePath + "/" + torrentType.getType() + "/" + torrentNameFirstLetterDeducted + "/"
+            + optionalSeriesString;
+    }
 }

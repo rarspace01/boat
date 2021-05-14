@@ -113,7 +113,7 @@ public class DownloadMonitor {
                     .parallel()
                     .forEach(torrentType -> {
                         final String destinationPath = cloudService
-                            .buildDestinationPathWithTypeOfMedia(searchName, torrentType);
+                            .buildDestinationPathWithTypeOfMediaWithoutSubFolders(searchName, torrentType);
                         if (filesCache != null) {
                             filesCache.evictIfPresent(destinationPath);
                         }
@@ -178,7 +178,8 @@ public class DownloadMonitor {
                     for (TorrentFile torrentFile : filesFromTorrent) {
                         // check fileSize to get rid of samples and NFO files?
                         updateUploadStatus(torrentToBeDownloaded, currentFileNumber, maxFileCount, startTime);
-                        String destinationPath = cloudService.buildDestinationPath(torrentToBeDownloaded.name);
+                        String destinationPath = cloudService
+                            .buildDestinationPath(torrentToBeDownloaded.name, filesFromTorrent);
                         String targetFilePath;
                         if (destinationPath.contains("transfer")) {
                             targetFilePath = PropertiesHelper.getProperty("rclonedir") + "/transfer/multipart/"
