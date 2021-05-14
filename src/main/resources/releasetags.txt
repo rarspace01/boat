@@ -122,3 +122,5 @@ Hindi
 German
 French
 Italian
+Complete
+Subtitles
