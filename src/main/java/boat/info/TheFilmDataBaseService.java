@@ -49,8 +49,7 @@ public class TheFilmDataBaseService {
         if (pageContent == null)
             return null;
         List<MediaItem> mediaItems = new ArrayList<>();
-        JsonParser parser = new JsonParser();
-        JsonElement jsonRoot = parser.parse(pageContent);
+        JsonElement jsonRoot = JsonParser.parseString(pageContent);
         JsonElement results = jsonRoot.getAsJsonObject().get("results");
         JsonArray jsonArray = results.getAsJsonArray();
         jsonArray.forEach(jsonMedia -> {
