@@ -27,6 +27,7 @@ public class TorrentSearchEngineService {
             new RARBG(httpHelper),
             new Torrentz(httpHelper),
             new MagnetDL(httpHelper),
+            new LimeTorrents(httpHelper),
             new Zooqle(httpHelper)
         );
         this.activeSearchEngines.addAll(allSearchEngines);
