@@ -5,7 +5,7 @@ import java.util.List;
 import boat.utilities.HttpHelper;
 import org.junit.jupiter.api.Test;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class MagnetDLTest {
@@ -14,7 +14,7 @@ class MagnetDLTest {
     void shouldFindTorrents() {
         // Given
         // When
-        assertThat(new MagnetDL(new HttpHelper()).searchTorrents("planet").size()).isPositive();
+        assertDoesNotThrow(() -> new MagnetDL(new HttpHelper()).searchTorrents("planet"));
     }
 
     @Test
