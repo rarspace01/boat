@@ -253,7 +253,8 @@ public final class BoatController {
                     .forEach(torrentSearchEngine -> {
                         final Instant start = Instant.now();
                         combineResults.addAll(torrentSearchEngine.searchTorrents(searchString));
-                        //log.info("{} took {}ms", torrentSearchEngine,Instant.now().toEpochMilli() - start.toEpochMilli());
+                        log.info("{} took {}ms", torrentSearchEngine,
+                            Instant.now().toEpochMilli() - start.toEpochMilli());
                     })
             ).get();
         } catch (InterruptedException | ExecutionException e) {

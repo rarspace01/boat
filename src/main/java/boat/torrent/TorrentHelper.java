@@ -95,12 +95,15 @@ public class TorrentHelper {
                 matches.getAndIncrement();
             }
         });
-        double matchScore = (double) matches.get() / (double) searchMaxScore;
-        tempTorrent.searchRating += matchScore;
-        tempTorrent.debugRating += String.format("🔍:%.2f (%d/%d)", matchScore, matches.get(), searchMaxScore);
+        double matchedScoreOfTorrent = (double) matches.get() / (double) searchMaxScore;
+        double matchedScoreOfSearch = (double) matches.get() / (double) searchWords.size();
+        final double searchRating = matchedScoreOfTorrent * matchedScoreOfSearch * 2;
+        tempTorrent.searchRating += searchRating;
+        tempTorrent.debugRating += String
+            .format("🔍:%.2f (%d^2/(%d*%d))", searchRating, matches.get(), searchMaxScore, searchWords.size());
 
         // bonus for year in torrentName
-        if(normalizedTorrentNameWithSpaces.matches(".*[1-2][09][0-9][0-9].*")) {
+        if (normalizedTorrentNameWithSpaces.matches(".*[1-2][09][0-9][0-9].*")) {
             tempTorrent.searchRating += 0.5;
             tempTorrent.debugRating += "📅";
         }
