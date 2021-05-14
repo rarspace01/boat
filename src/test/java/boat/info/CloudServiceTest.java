@@ -25,7 +25,7 @@ class CloudServiceTest {
     void searchForFilesWithYear() {
         // Given
         // When
-        List<String> files = cloudService.findExistingFiles("Test 1997");
+        List<String> files = cloudService.findExistingFiles("Plan 9 1959");
         // Then
         assertTrue(files.size() > 0);
     }
@@ -35,7 +35,7 @@ class CloudServiceTest {
     void searchForFiles() {
         // Given
         // When
-        List<String> files = cloudService.findExistingFiles("Test1");
+        List<String> files = cloudService.findExistingFiles("Plan 9");
         // Then
         assertTrue(files.size() > 0);
     }

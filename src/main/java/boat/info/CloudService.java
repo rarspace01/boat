@@ -39,7 +39,7 @@ public class CloudService {
             optionalSeriesString = deductSeriesNameFrom(preparedTorrentName) + "/";
         }
         return basePath + "/" + typeOfMedia.getType() + "/" + torrentNameFirstLetterDeducted + "/"
-            + optionalSeriesString + "/";
+            + optionalSeriesString;
     }
 
     private String deductSeriesNameFrom(String preparedTorrentName) {
@@ -59,7 +59,7 @@ public class CloudService {
         String basePath = PropertiesHelper.getProperty("rclonedir");
         String preparedTorrentName = TorrentHelper.prepareTorrentName(torrentName);
         String firstTorrentLetter = deductFirstTorrentLetter(preparedTorrentName);
-        return basePath + "/" + typeOfMedia + "/" + firstTorrentLetter + "/";
+        return basePath + "/" + typeOfMedia.getType() + "/" + firstTorrentLetter + "/";
     }
 
     @NotNull
