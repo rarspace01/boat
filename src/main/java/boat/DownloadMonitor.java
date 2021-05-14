@@ -109,14 +109,16 @@ public class DownloadMonitor {
         if (isRcloneInstalled()) {
             final Cache filesCache = cacheManager.getCache("filesCache");
             Arrays.stream("abcdefghijklmnopqrstuvwxyzöäü0".split("")).forEach(searchName -> {
-                Stream.of(TorrentType.values()).forEach(torrentType -> {
-                    final String destinationPath = cloudService
-                        .buildDestinationPathWithTypeOfMedia(searchName, torrentType);
-                    if (filesCache != null) {
-                        filesCache.evictIfPresent(destinationPath);
-                    }
-                    cloudFileService.getFilesInPath(destinationPath);
-                });
+                Stream.of(TorrentType.values())
+                    .parallel()
+                    .forEach(torrentType -> {
+                        final String destinationPath = cloudService
+                            .buildDestinationPathWithTypeOfMedia(searchName, torrentType);
+                        if (filesCache != null) {
+                            filesCache.evictIfPresent(destinationPath);
+                        }
+                        cloudFileService.getFilesInPath(destinationPath);
+                    });
                 log.info("Cache refresh done for: {}", searchName);
             });
             cloudFileService.setCacheFilled(true);
