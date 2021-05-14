@@ -58,8 +58,8 @@ public class CloudService {
     public String buildDestinationPathWithTypeOfMedia(final String torrentName, TorrentType typeOfMedia) {
         String basePath = PropertiesHelper.getProperty("rclonedir");
         String preparedTorrentName = TorrentHelper.prepareTorrentName(torrentName);
-        preparedTorrentName = deductFirstTorrentLetter(preparedTorrentName);
-        return basePath + "/" + typeOfMedia + "/" + preparedTorrentName + "/";
+        String firstTorrentLetter = deductFirstTorrentLetter(preparedTorrentName);
+        return basePath + "/" + typeOfMedia + "/" + firstTorrentLetter + "/";
     }
 
     @NotNull
@@ -101,8 +101,9 @@ public class CloudService {
 
     private List<String> findFilesBasedOnStringsAndMediaType(String searchName, String[] strings,
                                                              TorrentType torrentType) {
-        log.info("Searching for: {} with {}", searchName, torrentType.getType());
-        return cloudFileService.getFilesInPath(buildDestinationPathWithTypeOfMedia(searchName, torrentType)).stream()
+        final String destinationPath = buildDestinationPathWithTypeOfMedia(searchName, torrentType);
+        log.info("Searching for: {} with {} in {}", searchName, torrentType.getType(), destinationPath);
+        return cloudFileService.getFilesInPath(destinationPath).stream()
             .filter(fileName -> Arrays.stream(strings).allMatch(
                 searchStringPart -> fileName.toLowerCase().matches(".*" + searchStringPart.toLowerCase() + ".*")))
             .collect(Collectors.toList());
