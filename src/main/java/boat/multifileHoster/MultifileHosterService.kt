@@ -55,18 +55,17 @@ class MultifileHosterService @Autowired constructor(httpHelper: HttpHelper?) : H
         }
     }
 
-    fun getMainFileURLFromTorrent(torrentToBeDownloaded: Torrent): String? {
+    fun getMainFileURLFromTorrent(torrentToBeDownloaded: Torrent): TorrentFile {
         val tfList = getFilesFromTorrent(torrentToBeDownloaded)
         var remoteURL: String? = null
         // iterate over and check for One File Torrent
-        var biggestFileYet: Long = 0
+        var biggestFileYet: TorrentFile = tfList[0]
         for (tf in tfList) {
-            if (tf.filesize > biggestFileYet) {
-                biggestFileYet = tf.filesize
-                remoteURL = tf.url
+            if (tf.filesize > biggestFileYet.filesize) {
+                biggestFileYet = tf
             }
         }
-        return remoteURL
+        return biggestFileYet
     }
 
     fun delete(torrent: Torrent) {

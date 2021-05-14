@@ -157,16 +157,17 @@ public class DownloadMonitor {
             boolean wasDownloadSuccessful = false;
             try {
                 if (multifileHosterService.isSingleFileDownload(torrentToBeDownloaded)) {
-                    updateUploadStatus(torrentToBeDownloaded, 0, 1, null);
-                    String fileURLFromTorrent = multifileHosterService.getMainFileURLFromTorrent(torrentToBeDownloaded);
+                    TorrentFile fileToDownload = multifileHosterService
+                        .getMainFileURLFromTorrent(torrentToBeDownloaded);
+                    updateUploadStatus(torrentToBeDownloaded, List.of(fileToDownload), 0, null);
                     if (torrentToBeDownloaded.name.contains("magnet:?")) {
-                        torrentToBeDownloaded.name = extractFileNameFromUrl(fileURLFromTorrent);
+                        torrentToBeDownloaded.name = extractFileNameFromUrl(fileToDownload.url);
                     }
-                    wasDownloadSuccessful = rcloneDownloadFileToGdrive(fileURLFromTorrent,
+                    wasDownloadSuccessful = rcloneDownloadFileToGdrive(fileToDownload.url,
                         cloudService.buildDestinationPath(torrentToBeDownloaded.name) + buildFilename(
-                            torrentToBeDownloaded.name, fileURLFromTorrent)
+                            torrentToBeDownloaded.name, fileToDownload.url)
                     );
-                    updateUploadStatus(torrentToBeDownloaded, 1, 1, null);
+                    updateUploadStatus(torrentToBeDownloaded, List.of(fileToDownload), 1, null);
                     multifileHosterService.delete(torrentToBeDownloaded);
                 } else {
                     List<TorrentFile> filesFromTorrent = multifileHosterService
@@ -177,7 +178,7 @@ public class DownloadMonitor {
                     Instant startTime = Instant.now();
                     for (TorrentFile torrentFile : filesFromTorrent) {
                         // check fileSize to get rid of samples and NFO files?
-                        updateUploadStatus(torrentToBeDownloaded, currentFileNumber, maxFileCount, startTime);
+                        updateUploadStatus(torrentToBeDownloaded, filesFromTorrent, currentFileNumber, startTime);
                         String destinationPath = cloudService
                             .buildDestinationPath(torrentToBeDownloaded.name, filesFromTorrent);
                         String targetFilePath;
@@ -195,7 +196,7 @@ public class DownloadMonitor {
                             failedUploads++;
                         }
                         currentFileNumber++;
-                        updateUploadStatus(torrentToBeDownloaded, currentFileNumber, maxFileCount, startTime);
+                        updateUploadStatus(torrentToBeDownloaded, filesFromTorrent, currentFileNumber, startTime);
                     }
                     wasDownloadSuccessful = failedUploads > 0;
                     multifileHosterService.delete(torrentToBeDownloaded);
@@ -220,18 +221,23 @@ public class DownloadMonitor {
         return activeTorrents.stream().filter(this::checkIfTorrentCanBeDownloaded).findFirst().orElse(null);
     }
 
-    private void updateUploadStatus(Torrent torrentToBeDownloaded, int currentFileNumber, int fileCount,
+    private void updateUploadStatus(Torrent torrentToBeDownloaded, List<TorrentFile> listOfFiles, int currentFileNumber,
                                     Instant startTime) {
-        torrentToBeDownloaded.status = getUploadStatusString(torrentToBeDownloaded, currentFileNumber, fileCount,
+        torrentToBeDownloaded.status = getUploadStatusString(torrentToBeDownloaded, listOfFiles, currentFileNumber,
             startTime);
         torrentMetaService.updateTorrent(torrentToBeDownloaded);
     }
 
-    private String getUploadStatusString(Torrent torrentToBeDownloaded, int currentFileNumber,
-                                         int fileCount, Instant startTime) {
+    public String getUploadStatusString(Torrent torrentToBeDownloaded, List<TorrentFile> listOfFiles,
+                                        int currentFileNumber, Instant startTime) {
         Duration remainingDuration;
+        int fileCount = listOfFiles.size();
         if (startTime == null || currentFileNumber == 0) {
-            long expectedSecondsRemaining = (long) (torrentToBeDownloaded.lsize / 10.0);
+            final long size = listOfFiles.stream()
+                .map(torrentFile -> torrentFile.filesize)
+                .reduce(Long.valueOf(0), Long::sum);
+            double lsize = (double) size / 1024.0 / 1024.0;
+            long expectedSecondsRemaining = (long) (lsize / 10.0);
             remainingDuration = Duration.of(expectedSecondsRemaining, ChronoUnit.SECONDS);
         } else {
             long diffTime = Instant.now().toEpochMilli() - startTime.toEpochMilli();
