@@ -50,8 +50,26 @@ public class TorrentHelper {
         return torrentSize;
     }
 
+    public static double extractTorrentSizeFromString(String sizeString) {
+        long torrentSize = 0;
+        try {
+            if (sizeString.contains("GiB") || sizeString.contains("GB")) {
+                torrentSize = (long) (Double.parseDouble(trimSizeStringToValue(sizeString)) * 1024);
+            } else if (sizeString.contains("MiB") || sizeString.contains("MB")) {
+                torrentSize = (long) (Double.parseDouble(trimSizeStringToValue(sizeString)));
+            }
+        } catch (Exception ignored) {
+
+        }
+        return torrentSize;
+    }
+
     private static String trimSizeStringToValue(Torrent tempTorrent) {
         return tempTorrent.size.replaceAll("(GiB)|(GB)|(MiB)|(MB)|(<.*?>)", "").trim();
+    }
+
+    private static String trimSizeStringToValue(String stringValue) {
+        return stringValue.replaceAll("(GiB)|(GB)|(MiB)|(MB)|(<.*?>)", "").trim();
     }
 
     public static Torrent evaluateRating(Torrent tempTorrent, String searchName) {
