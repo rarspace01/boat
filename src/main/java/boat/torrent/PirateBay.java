@@ -24,7 +24,7 @@ public class PirateBay extends HttpUser implements TorrentSearchEngine {
     @Override
     public List<Torrent> searchTorrents(String searchName) {
 
-        String resultString = httpHelper.getPage(buildSearchUrl(searchName), null, "lw=s");
+        String resultString = httpHelper.getPageWithShortTimeout(buildSearchUrl(searchName), null, "lw=s");
 
         CopyOnWriteArrayList<Torrent> torrentList = new CopyOnWriteArrayList<>(
             parseTorrentsOnResultPage(resultString, searchName));

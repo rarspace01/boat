@@ -38,14 +38,18 @@ public class HttpHelper {
                         java.security.cert.X509Certificate[] certs, String authType) {
                 }
 
-                public void checkServerTrusted(
-                        java.security.cert.X509Certificate[] certs, String authType) {
-                }
+            public void checkServerTrusted(
+                java.security.cert.X509Certificate[] certs, String authType) {
             }
+        }
     };
 
     public String getPage(String url, List<String> params, String cookies) {
         return getPage(url, params, cookies, 30 * 1000);
+    }
+
+    public String getPageWithShortTimeout(String url, List<String> params, String cookies) {
+        return getPage(url, params, cookies, 10 * 1000);
     }
 
     public String getPage(String url, List<String> params, String cookies, int timeout) {
@@ -106,6 +110,10 @@ public class HttpHelper {
 
     public String getPage(String url) {
         return getPage(url, null, null);
+    }
+
+    public String getPageWithShortTimeout(String url) {
+        return getPage(url, null, null, 10 * 1000);
     }
 
     public String getPage(String url, int timeout) {
