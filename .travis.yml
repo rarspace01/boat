@@ -3,7 +3,7 @@ os: linux
 arch:
 #  - arm64 - doesnt work for now
   - ppc64le
-  - s390x
+#  - s390x
 notifications:
   email: false
 before_script:
