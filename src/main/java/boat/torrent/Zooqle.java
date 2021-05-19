@@ -59,7 +59,7 @@ public class Zooqle extends HttpUser implements TorrentSearchEngine {
             tempTorrent.lsize =
                 Long.parseLong(torrentElement.getElementsByTag("torrent:contentlength").text()) / 1024.0f / 1024.0f;
             tempTorrent.size = TorrentHelper.humanReadableByteCountBinary((long) (tempTorrent.lsize * 1024.0 * 1024.0));
-
+            tempTorrent.isVerified = "1".equals(torrentElement.getElementsByTag("torrent:verified").text());
             TorrentHelper.evaluateRating(tempTorrent, searchName);
             if (TorrentHelper.isValidTorrent(tempTorrent)) {
                 torrentList.add(tempTorrent);

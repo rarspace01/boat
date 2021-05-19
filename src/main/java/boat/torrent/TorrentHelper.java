@@ -215,15 +215,11 @@ public class TorrentHelper {
 
     public static boolean isValidTorrent(Torrent torrent) {
         return torrent.name != null &&
-                torrent.magnetUri != null &&
-                torrent.seeder > 0 &&
-                !isBlocklisted(torrent);
-    }
-
-    public static boolean isValidMetaTorrent(Torrent torrent) {
-        return torrent.name != null &&
-                torrent.seeder > 0 &&
-                !isBlocklisted(torrent);
+            torrent.magnetUri != null &&
+            torrent.seeder > 0 &&
+            !isBlocklisted(torrent) &&
+            torrent.lsize > 0
+            ;
     }
 
     public static String urlEncode(final String string) {
