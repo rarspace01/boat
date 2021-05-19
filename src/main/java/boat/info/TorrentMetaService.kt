@@ -4,6 +4,7 @@ import boat.multifileHoster.MultifileHosterService
 import boat.torrent.Torrent
 import boat.utilities.LoggerDelegate
 import org.springframework.stereotype.Service
+import java.util.*
 import java.util.function.Consumer
 
 @Service
@@ -32,7 +33,7 @@ class TorrentMetaService(private val multifileHosterService: MultifileHosterServ
     }
 
     private fun isReadyForDownloadStatus(status: String?): Boolean {
-        return status != null && status.toLowerCase().matches(Regex("finished|seeding|ready"))
+        return status != null && status.lowercase(Locale.getDefault()).matches(Regex("finished|seeding|ready"))
     }
 
     fun updateTorrent(torrentUpdate: Torrent) {

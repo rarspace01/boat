@@ -160,4 +160,22 @@ class CloudServiceTest {
             destinationPath);
     }
 
+    @Test
+    void buildDestinationPathWithSeriesAndExtraTextAfterSeriesName() {
+        // Given
+        // When
+        String destinationPath = cloudService.buildDestinationPath("series.S01E02.480p.x264-mSD[tag]");
+        // Then
+        assertEquals(PropertiesHelper.getProperty("rclonedir") + "/Series-Shows/S/Series/", destinationPath);
+    }
+
+    @Test
+    void buildDestinationPathWithSeriesAndExtraTextAfterSeriesNameExtended() {
+        // Given
+        // When
+        String destinationPath = cloudService.buildDestinationPath("series.S01E02.Test.480p.x264-mSD[tag]");
+        // Then
+        assertEquals(PropertiesHelper.getProperty("rclonedir") + "/Series-Shows/S/Series/", destinationPath);
+    }
+
 }

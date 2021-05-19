@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import org.jsoup.Jsoup
 import org.jsoup.nodes.DataNode
 import org.springframework.stereotype.Service
+import java.util.*
 import java.util.regex.Pattern
 
 @Service
@@ -30,7 +31,7 @@ class BluRayComService(private val httpHelper: HttpHelper) {
                     val year = jsonNode.get("year").asText().toInt()
                     val yearOptional = if (year > 1900) year else null
                     var type = MediaType.Movie
-                    if (title.toLowerCase().contains("season")) {
+                    if (title.lowercase(Locale.getDefault()).contains("season")) {
                         type = MediaType.Series
                     }
                     listOfMediaItems.add(

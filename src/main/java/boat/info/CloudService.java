@@ -47,8 +47,8 @@ public class CloudService {
         return Arrays.stream(preparedTorrentName
             .toLowerCase()
             .trim()
-            .replaceAll("s[0-9]+e[0-9]+", "")
-            .replaceAll("season[.\\s]?[0-9-]+", "")
+            .replaceAll("s[0-9]+e[0-9]+.*", "")
+            .replaceAll("season[.\\s]?[0-9-]+.*", "")
             .trim()
             .replaceAll("\\s+", ".")
             .split("\\."))
