@@ -97,10 +97,10 @@ public class TorrentHelper {
         });
         double matchedScoreOfTorrent = (double) matches.get() / (double) searchMaxScore;
         double matchedScoreOfSearch = (double) matches.get() / (double) searchWords.size();
-        final double searchRating = matchedScoreOfTorrent * matchedScoreOfSearch * 2;
+        final double searchRating = matchedScoreOfTorrent * matchedScoreOfSearch * 3;
         tempTorrent.searchRating += searchRating;
         tempTorrent.debugRating += String
-            .format("🔍:%.2f (%d^2/(%d*%d))", searchRating, matches.get(), searchMaxScore, searchWords.size());
+            .format("🔍:%.2f (%d^2/(%d*%d)*3)", searchRating, matches.get(), searchMaxScore, searchWords.size());
 
         // bonus for year in torrentName
         if (normalizedTorrentNameWithSpaces.matches(".*[1-2][09][0-9][0-9].*")) {
