@@ -18,13 +18,6 @@ class ZooqleTest {
     }
 
     @Test
-    void shouldExtractSize() {
-        // Given
-        // When
-        assertDoesNotThrow(() -> new Zooqle(new HttpHelper()).searchTorrents("blackish+s02e09"));
-    }
-
-    @Test
     void shouldFindNoTorrents() {
         // Given
         // When
