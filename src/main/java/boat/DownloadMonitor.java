@@ -219,7 +219,11 @@ public class DownloadMonitor {
     public Torrent getTorrentToBeDownloaded() {
         torrentMetaService.refreshTorrents();
         List<Torrent> activeTorrents = torrentMetaService.getActiveTorrents();
-        return activeTorrents.stream().filter(this::checkIfTorrentCanBeDownloaded).findFirst().orElse(null);
+        return activeTorrents
+            .stream()
+            .filter(this::checkIfTorrentCanBeDownloaded)
+            .filter(multifileHosterService::isTrafficLeftForDownloadingTorrent)
+            .findFirst().orElse(null);
     }
 
     private void updateUploadStatus(Torrent torrentToBeDownloaded, List<TorrentFile> listOfFiles, int currentFileNumber,
