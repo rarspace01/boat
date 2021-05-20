@@ -22,7 +22,6 @@ class TorrentMetaService(private val multifileHosterService: MultifileHosterServ
         remoteTorrents.forEach(Consumer { torrent: Torrent ->
             if (isReadyForDownloadStatus(torrent.status)) {
                 val localStatus = localStatusStorage[torrent.torrentId]
-                logger.info("previous: ${torrent.status} after ${localStatus ?: torrent.status}")
                 torrent.status = localStatus ?: torrent.status
             } else {
                 localStatusStorage.remove(torrent.torrentId)
