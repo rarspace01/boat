@@ -152,7 +152,8 @@ public class DownloadMonitor {
 
     private boolean checkForDownloadableTorrentsAndDownloadTheFirst() {
         final Torrent torrentToBeDownloaded = getTorrentToBeDownloaded();
-        if (torrentToBeDownloaded != null) {
+        if (torrentToBeDownloaded != null && multifileHosterService
+            .isTrafficLeftForDownloadingTorrent(torrentToBeDownloaded)) {
             isDownloadInProgress = true;
             boolean wasDownloadSuccessful = false;
             try {

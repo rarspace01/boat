@@ -9,28 +9,36 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import java.util.function.Consumer
 import java.util.stream.Collectors
+import kotlin.streams.toList
 
 @Service
 class MultifileHosterService @Autowired constructor(httpHelper: HttpHelper?) : HttpUser(httpHelper) {
     private val multifileHosterList: MutableList<MultifileHoster> = ArrayList()
     fun getCachedStateOfTorrents(returnResults: List<Torrent>): List<Torrent> {
-        multifileHosterList.forEach(Consumer { multifileHoster: MultifileHoster -> multifileHoster.enrichCacheStateOfTorrents(returnResults) })
+        multifileHosterList.forEach(Consumer { multifileHoster: MultifileHoster ->
+            multifileHoster.enrichCacheStateOfTorrents(
+                returnResults
+            )
+        })
         return returnResults
     }
 
     fun addTorrentToQueue(torrent: Torrent): String {
-        val potentialCachedTorrentToDownload = getCachedStateOfTorrents(listOf(torrent)).stream().findFirst().orElse(torrent)
+        val potentialCachedTorrentToDownload =
+            getCachedStateOfTorrents(listOf(torrent)).stream().findFirst().orElse(torrent)
         return multifileHosterList.stream()
-                .filter { multifileHoster: MultifileHoster -> multifileHoster.getName() == potentialCachedTorrentToDownload.cached.stream().findFirst().orElse("") }
-                .min(Comparator.comparingInt { obj: MultifileHoster -> obj.getPrio() })
-                .orElse(multifileHosterList[0])
-                .addTorrentToQueue(torrent)
+            .filter { multifileHoster: MultifileHoster ->
+                multifileHoster.getName() == potentialCachedTorrentToDownload.cached.stream().findFirst().orElse("")
+            }
+            .min(Comparator.comparingInt { obj: MultifileHoster -> obj.getPrio() })
+            .orElse(multifileHosterList[0])
+            .addTorrentToQueue(torrent)
     }
 
     val remoteTorrents: List<Torrent>
         get() = multifileHosterList.stream()
-                .flatMap { multifileHoster: MultifileHoster -> multifileHoster.getRemoteTorrents().stream() }
-                .collect(Collectors.toList())
+            .flatMap { multifileHoster: MultifileHoster -> multifileHoster.getRemoteTorrents().stream() }
+            .collect(Collectors.toList())
 
     fun isSingleFileDownload(torrentToBeDownloaded: Torrent): Boolean {
         val tfList = getFilesFromTorrent(torrentToBeDownloaded)
@@ -46,8 +54,36 @@ class MultifileHosterService @Autowired constructor(httpHelper: HttpHelper?) : H
         return biggestFileYet > 0.9 * sumFileSize
     }
 
+    fun isTrafficLeftForDownloadingTorrent(torrent: Torrent): Boolean {
+        val hoster = multifileHosterList.stream()
+            .filter { multifileHoster: MultifileHoster -> multifileHoster.getName() == torrent.source }.findFirst()
+        return if (hoster.isPresent) {
+            log.warn("Download of Torrent not possible, not enough Traffic left: {}", torrent.toString())
+            getSizeOfTorrentInMB(torrent) < hoster.get().getRemainingTrafficInMB()
+        } else {
+            false
+        }
+    }
+
+    fun getSizeOfTorrentInMB(torrent: Torrent): Double {
+        val size: Long = getFilesFromTorrent(torrent).stream()
+            .map { torrentFile: TorrentFile -> torrentFile.filesize }
+            .toList()
+            .sum()
+        return size.toDouble() / 1024.0 / 1024.0
+    }
+
+    fun getRemainingTrafficInMB(): Double {
+        return multifileHosterList
+            .map { multifileHoster: MultifileHoster -> multifileHoster.getRemainingTrafficInMB() }
+            .toList()
+            .sum()
+    }
+
     fun getFilesFromTorrent(torrentToBeDownloaded: Torrent): List<TorrentFile> {
-        val hoster = multifileHosterList.stream().filter { multifileHoster: MultifileHoster -> multifileHoster.getName() == torrentToBeDownloaded.source }.findFirst()
+        val hoster = multifileHosterList.stream()
+            .filter { multifileHoster: MultifileHoster -> multifileHoster.getName() == torrentToBeDownloaded.source }
+            .findFirst()
         return if (hoster.isPresent) {
             hoster.get().getFilesFromTorrent(torrentToBeDownloaded)
         } else {
@@ -68,7 +104,8 @@ class MultifileHosterService @Autowired constructor(httpHelper: HttpHelper?) : H
     }
 
     fun delete(torrent: Torrent) {
-        val hoster = multifileHosterList.stream().filter { multifileHoster: MultifileHoster -> multifileHoster.getName() == torrent.source }.findFirst()
+        val hoster = multifileHosterList.stream()
+            .filter { multifileHoster: MultifileHoster -> multifileHoster.getName() == torrent.source }.findFirst()
         if (hoster.isPresent) {
             hoster.get().delete(torrent)
         } else {
