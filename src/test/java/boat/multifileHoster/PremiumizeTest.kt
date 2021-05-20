@@ -1,8 +1,8 @@
 package boat.multifileHoster
 
 import boat.utilities.HttpHelper
-import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertDoesNotThrow
 
 class PremiumizeTest {
 
@@ -12,8 +12,7 @@ class PremiumizeTest {
     fun getRemainingTrafficInMB() {
         // Given
         // When
-        val remainingTrafficInMB = premiumize.getRemainingTrafficInMB()
         // Then
-        assertThat(remainingTrafficInMB).isNotEqualTo(0.0)
+        assertDoesNotThrow { premiumize.getRemainingTrafficInMB() }
     }
 }
