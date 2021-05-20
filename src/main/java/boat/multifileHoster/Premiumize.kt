@@ -52,7 +52,7 @@ class Premiumize(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoste
         val mapper = ObjectMapper()
         try {
             val jsonNode = mapper.readTree(responseAccount)
-            return (1.0 - jsonNode.get("limit_used").asDouble()) * 1000.00
+            return (1.0 - jsonNode.get("limit_used").asDouble()) * 1024.0 * 1024.0
         } catch (ignored: Exception) {
             return 0.0
         }
