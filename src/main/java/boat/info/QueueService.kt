@@ -49,7 +49,7 @@ class QueueService {
             .map { mutableEntry ->
                 MediaItem(
                     title = mutableEntry.key.toString(),
-                    year = mutableEntry.value.toString().toInt()
+                    year = mutableEntry.value.toString().toIntOrNull()
                 )
             }
     }
