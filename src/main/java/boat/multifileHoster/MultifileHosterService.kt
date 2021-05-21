@@ -9,7 +9,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import java.util.function.Consumer
 import java.util.stream.Collectors
-import kotlin.streams.toList
 
 @Service
 class MultifileHosterService @Autowired constructor(httpHelper: HttpHelper?) : HttpUser(httpHelper) {
@@ -66,18 +65,12 @@ class MultifileHosterService @Autowired constructor(httpHelper: HttpHelper?) : H
     }
 
     fun getSizeOfTorrentInMB(torrent: Torrent): Double {
-        val size: Long = getFilesFromTorrent(torrent).stream()
-            .map { torrentFile: TorrentFile -> torrentFile.filesize }
-            .toList()
-            .sum()
+        val size: Long = getFilesFromTorrent(torrent).sumOf { torrentFile: TorrentFile -> torrentFile.filesize }
         return size.toDouble() / 1024.0 / 1024.0
     }
 
     fun getRemainingTrafficInMB(): Double {
-        return multifileHosterList
-            .map { multifileHoster: MultifileHoster -> multifileHoster.getRemainingTrafficInMB() }
-            .toList()
-            .sum()
+        return multifileHosterList.sumOf { multifileHoster: MultifileHoster -> multifileHoster.getRemainingTrafficInMB() }
     }
 
     fun getFilesFromTorrent(torrentToBeDownloaded: Torrent): List<TorrentFile> {
