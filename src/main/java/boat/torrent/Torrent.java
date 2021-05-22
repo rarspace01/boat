@@ -79,7 +79,7 @@ public class Torrent implements Comparable<Torrent> {
             if (status.contains("Uploading")) {
                 progress = "";
             }
-            stringBuilder.append(" " + this.status + progress);
+            stringBuilder.append(" " + this.status.replaceAll("finished", "Waiting for Upload") + progress);
         }
         if (eta != null) {
             stringBuilder.append(" ETA:" + this.eta);
