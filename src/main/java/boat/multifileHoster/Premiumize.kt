@@ -10,10 +10,13 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.google.gson.JsonElement
 import com.google.gson.JsonParser
+import org.jsoup.Jsoup
+import org.jsoup.nodes.Element
 import org.slf4j.LoggerFactory
 import java.io.IOException
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.function.Consumer
+import java.util.regex.Pattern
 import java.util.stream.Collectors
 
 class Premiumize(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoster {
@@ -45,7 +48,25 @@ class Premiumize(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoste
     override fun getRemainingTrafficInMB(): Double {
         val responseAccount: String =
             httpHelper.getPage("https://www.premiumize.me/api/account/info?apikey=" + PropertiesHelper.getProperty("premiumize_apikey"))
-        return parseRemainingTrafficInMB(responseAccount)
+        val boostAccount: String =
+            httpHelper.getPage("https://www.premiumize.me/account?apikey=" + PropertiesHelper.getProperty("premiumize_apikey"))
+        return parseRemainingTrafficInMB(responseAccount) + parseRemainingBoostTrafficInMB(boostAccount)
+    }
+
+    private fun parseRemainingBoostTrafficInMB(boostAccount: String): Double {
+        val document = Jsoup.parse(boostAccount)
+        return document.getElementsByClass("col-md-12")
+            .filter { element -> element.text().matches(Regex(".*Booster Points .* points available learn more.*")) }
+            .filterNotNull()
+            .map { element: Element ->
+                var boosterPoints = 0.0
+                val matcher =
+                    Pattern.compile(".*Booster Points (.*) points available learn more.*").matcher(element.text())
+                while (matcher.find()) {
+                    boosterPoints = matcher.group(1).toDouble()
+                }
+                boosterPoints * 1024.0
+            }.getOrElse(0, defaultValue = { 0.0 })
     }
 
     private fun parseRemainingTrafficInMB(responseAccount: String): Double {

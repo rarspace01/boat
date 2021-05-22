@@ -53,17 +53,6 @@ class MultifileHosterService @Autowired constructor(httpHelper: HttpHelper?) : H
         return biggestFileYet > 0.9 * sumFileSize
     }
 
-    fun isTrafficLeftForDownloadingTorrent(torrent: Torrent): Boolean {
-        val hoster = multifileHosterList.stream()
-            .filter { multifileHoster: MultifileHoster -> multifileHoster.getName() == torrent.source }.findFirst()
-        return if (hoster.isPresent) {
-            log.warn("Download of Torrent not possible, not enough Traffic left: {}", torrent.toString())
-            getSizeOfTorrentInMB(torrent) < hoster.get().getRemainingTrafficInMB()
-        } else {
-            false
-        }
-    }
-
     fun getSizeOfTorrentInMB(torrent: Torrent): Double {
         val size: Long = getFilesFromTorrent(torrent).sumOf { torrentFile: TorrentFile -> torrentFile.filesize }
         return size.toDouble() / 1024.0 / 1024.0

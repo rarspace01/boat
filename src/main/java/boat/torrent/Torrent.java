@@ -12,7 +12,7 @@ import java.util.regex.Pattern;
 import org.apache.logging.log4j.util.Strings;
 import org.jetbrains.annotations.NotNull;
 
-public class Torrent {
+public class Torrent implements Comparable<Torrent> {
 
     public String name;
     public Date date;
@@ -111,5 +111,10 @@ public class Torrent {
     @NotNull
     private String getRemoteIdOrHash() {
         return Objects.requireNonNullElseGet(this.remoteId, () -> String.valueOf(this.hashCode()));
+    }
+
+    @Override
+    public int compareTo(@NotNull Torrent o) {
+        return this.lsize < o.lsize ? -1 : 1;
     }
 }

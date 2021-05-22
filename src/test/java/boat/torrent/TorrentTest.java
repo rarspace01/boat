@@ -1,9 +1,11 @@
 package boat.torrent;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.junit.jupiter.api.Test;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.any;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 
@@ -27,6 +29,20 @@ class TorrentTest {
         // When
         String torrentTorrentId = torrent.getTorrentId();
         // Then
-        assertThat(torrentTorrentId, any(String.class));
+        assertThat(torrentTorrentId).isOfAnyClassIn(String.class);
+    }
+
+    @Test
+    void shouldSortTorrent() {
+        // Given
+        Torrent torrent1 = new Torrent("Test1");
+        Torrent torrent2 = new Torrent("Test2");
+        torrent1.lsize = 1.0;
+        torrent2.lsize = 2.0;
+        // When
+        final List<Torrent> list = List.of(torrent1, torrent2).stream().sorted().collect(Collectors.toList());
+        // Then
+        assertThat(list.get(0)).isEqualTo(torrent1);
+
     }
 }

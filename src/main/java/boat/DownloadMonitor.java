@@ -152,8 +152,7 @@ public class DownloadMonitor {
 
     private boolean checkForDownloadableTorrentsAndDownloadTheFirst() {
         final Torrent torrentToBeDownloaded = getTorrentToBeDownloaded();
-        if (torrentToBeDownloaded != null && multifileHosterService
-            .isTrafficLeftForDownloadingTorrent(torrentToBeDownloaded)) {
+        if (torrentToBeDownloaded != null) {
             isDownloadInProgress = true;
             boolean wasDownloadSuccessful = false;
             try {
@@ -219,10 +218,12 @@ public class DownloadMonitor {
     public Torrent getTorrentToBeDownloaded() {
         torrentMetaService.refreshTorrents();
         List<Torrent> activeTorrents = torrentMetaService.getActiveTorrents();
+        final double remainingTrafficInMB = multifileHosterService.getRemainingTrafficInMB();
         return activeTorrents
             .stream()
             .filter(this::checkIfTorrentCanBeDownloaded)
-            .filter(multifileHosterService::isTrafficLeftForDownloadingTorrent)
+            .filter(torrent -> multifileHosterService.getSizeOfTorrentInMB(torrent) < remainingTrafficInMB)
+            .sorted()
             .findFirst().orElse(null);
     }
 
@@ -312,6 +313,7 @@ public class DownloadMonitor {
             exitCode = process.waitFor();
         } catch (IOException | InterruptedException e) {
             log.error(e.getMessage());
+            return false;
         }
         if (exitCode != 0) {
             log.error("upload failed: {}", destinationPath);
