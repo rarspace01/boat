@@ -1,13 +1,10 @@
 package boat;
 
 import java.nio.charset.StandardCharsets;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -23,20 +20,19 @@ import org.springframework.web.bind.annotation.RestController;
 
 import boat.info.CloudFileService;
 import boat.info.CloudService;
+import boat.info.MediaItem;
 import boat.info.QueueService;
 import boat.info.TheFilmDataBaseService;
 import boat.info.TorrentMetaService;
 import boat.multifileHoster.MultifileHosterService;
 import boat.torrent.Torrent;
 import boat.torrent.TorrentHelper;
-import boat.torrent.TorrentSearchEngine;
 import boat.torrent.TorrentSearchEngineService;
 import boat.utilities.HttpHelper;
 import boat.utilities.PropertiesHelper;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.logging.log4j.util.Strings;
-import org.jetbrains.annotations.NotNull;
 
 @Slf4j
 @RestController
@@ -131,7 +127,7 @@ public final class BoatController {
             }
         }
         if (Strings.isNotEmpty(localSearchString) || Strings.isNotEmpty(searchString)) {
-            List<Torrent> torrentList = searchTorrents(searchString);
+            List<Torrent> torrentList = torrentSearchEngineService.searchTorrents(searchString);
             log.info("Took: [{}]ms for [{}] found [{}]", (System.currentTimeMillis() - startTime), searchString,
                 torrentList.size());
             return "G: " + torrentList.stream().limit(25).collect(Collectors.toList());
@@ -140,16 +136,10 @@ public final class BoatController {
             final String pageWithEntries = httpHelper.getPage(luckySearchUrl);
             if (Strings.isNotEmpty(pageWithEntries)) {
                 final String[] titles = pageWithEntries.split("\n");
-                Arrays.stream(titles).forEach(title ->
-                    searchTorrents(title).stream().findFirst().ifPresentOrElse(torrent -> {
-                        log.info("Download {} with {}", title, torrent.magnetUri);
-                        downloadTorrentToMultifileHoster(null, torrent.magnetUri);
-                        response.append(title).append("✅ <br/>");
-                    }, () -> {
-                        log.warn("Couldn't Download {}", title);
-                        response.append(title).append("❌ <br/>");
-                    })
-                );
+                queueService.addAll(Arrays.stream(titles).map(title ->
+                    new MediaItem(title, title, null, boat.info.MediaType.Other)
+                ).collect(Collectors.toList()));
+                queueService.saveQueue();
                 return response.toString();
             } else {
                 return "Error: nothing in remote url";
@@ -159,22 +149,6 @@ public final class BoatController {
         }
     }
 
-    public List<Torrent> cleanDuplicates(List<Torrent> combineResults) {
-        ArrayList<Torrent> cleanedTorrents = new ArrayList<>();
-        combineResults.forEach(result -> {
-            if (!cleanedTorrents.contains(result)) {
-                cleanedTorrents.add(result);
-            } else {
-                final int existingTorrentIndex = cleanedTorrents.indexOf(result);
-                final Torrent existingTorrent = cleanedTorrents.get(existingTorrentIndex);
-                if (existingTorrent.searchRating < result.searchRating) {
-                    cleanedTorrents.remove(existingTorrent);
-                    cleanedTorrents.add(result);
-                }
-            }
-        });
-        return cleanedTorrents;
-    }
 
     @RequestMapping({"/boat/download"})
     @NonNull
@@ -239,47 +213,5 @@ public final class BoatController {
         System.exit(0);
     }
 
-    @NotNull
-    private List<Torrent> searchTorrents(String searchString) {
-        //final Instant startRemoteSearch = Instant.now();
-        List<Torrent> combineResults = new ArrayList<>();
-        final List<TorrentSearchEngine> activeSearchEngines = new ArrayList<>(
-            torrentSearchEngineService.getActiveSearchEngines());
 
-        final int parallelism = activeSearchEngines.size();
-        ForkJoinPool forkJoinPool = null;
-        try {
-            forkJoinPool = new ForkJoinPool(parallelism);
-            forkJoinPool.submit(() ->
-                activeSearchEngines.parallelStream()
-                    .forEach(torrentSearchEngine -> {
-                        final Instant start = Instant.now();
-                        combineResults.addAll(torrentSearchEngine.searchTorrents(searchString));
-                        log.info("{} took {}ms", torrentSearchEngine,
-                            Instant.now().toEpochMilli() - start.toEpochMilli());
-                    })
-            ).get();
-        } catch (InterruptedException | ExecutionException e) {
-            log.error("Parallel search execution failed", e);
-        } finally {
-            if (forkJoinPool != null) {
-                forkJoinPool.shutdown();
-            }
-        }
-
-        //log.info("RemoteSearch took {}ms", Instant.now().toEpochMilli() - startRemoteSearch.toEpochMilli());
-        //final Instant afterRemoteSearch = Instant.now();
-
-        List<Torrent> returnResults = new ArrayList<>(cleanDuplicates(combineResults));
-        //log.info("Cleanup took {}ms", Instant.now().toEpochMilli() - afterRemoteSearch.toEpochMilli());
-        //final Instant afterCleanup = Instant.now();
-        List<Torrent> cacheStateOfTorrents = multifileHosterService.getCachedStateOfTorrents(returnResults);
-        //log.info("Cache info took {}ms", Instant.now().toEpochMilli() - afterCleanup.toEpochMilli());
-
-        return cacheStateOfTorrents
-            .stream()
-            .map(torrent -> TorrentHelper.evaluateRating(torrent, searchString))
-            .sorted(TorrentHelper.torrentSorter)
-            .collect(Collectors.toList());
-    }
 }

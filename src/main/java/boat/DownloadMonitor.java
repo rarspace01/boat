@@ -21,6 +21,7 @@ import org.springframework.stereotype.Component;
 import boat.info.BluRayComService;
 import boat.info.CloudFileService;
 import boat.info.CloudService;
+import boat.info.MediaItem;
 import boat.info.QueueService;
 import boat.info.TheFilmDataBaseService;
 import boat.info.TorrentMetaService;
@@ -131,6 +132,28 @@ public class DownloadMonitor {
     public void checkForDownloadableTorrents() {
         if (!isDownloadInProgress && isRcloneInstalled() && cloudService.isCloudTokenValid()) {
             checkForDownloadableTorrentsAndDownloadTheFirst();
+            checkForQueueEntryAndAddToDownloads();
+        }
+    }
+
+    private void checkForQueueEntryAndAddToDownloads() {
+        final long numberOfActiveRemoteTorrents = multifileHosterService.getRemoteTorrents()
+            .stream().filter(torrent -> !torrent.status.equals("finished"))
+            .count();
+        if (numberOfActiveRemoteTorrents < 25) {
+            final MediaItem mediaItem = queueService.getQueue().stream().findFirst().orElse(null);
+            if (mediaItem != null) {
+                final Integer year = mediaItem.getYear();
+                final String searchName = mediaItem.getTitle() + (year != null ? " " + year : "");
+                final List<String> existingFiles = cloudService
+                    .findExistingFiles(searchName);
+                if (existingFiles.isEmpty()) {
+                    torrentSearchEngineService.searchTorrents(searchName)
+                        .stream().findFirst().ifPresent(multifileHosterService::addTorrentToQueue);
+                }
+                queueService.remove(mediaItem);
+                queueService.saveQueue();
+            }
         }
     }
 

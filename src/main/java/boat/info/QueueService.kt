@@ -27,7 +27,7 @@ class QueueService {
 
     fun addAll(listOfMediaItems: List<MediaItem>) {
         listOfMediaItems.forEach(Consumer { t -> add(t) })
-        saveProperties()
+        saveQueue()
     }
 
     fun add(mediaItem: MediaItem) {
@@ -36,7 +36,7 @@ class QueueService {
 
     fun addAndSave(mediaItem: MediaItem) {
         properties.setProperty(mediaItem.title, mediaItem.year.toString())
-        saveProperties()
+        saveQueue()
     }
 
     fun remove(mediaItem: MediaItem) {
@@ -54,7 +54,7 @@ class QueueService {
             }
     }
 
-    fun saveProperties() {
+    fun saveQueue() {
         try {
             val queueListFile: OutputStream = FileOutputStream("queue.list")
             properties.store(queueListFile, null)
