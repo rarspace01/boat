@@ -140,7 +140,7 @@ public class DownloadMonitor {
         final long numberOfActiveRemoteTorrents = multifileHosterService.getRemoteTorrents()
             .stream().filter(torrent -> !torrent.status.equals("finished"))
             .count();
-        if (numberOfActiveRemoteTorrents < 25) {
+        if (numberOfActiveRemoteTorrents < 20) {
             final MediaItem mediaItem = queueService.getQueue().stream().findFirst().orElse(null);
             if (mediaItem != null) {
                 final Integer year = mediaItem.getYear();
