@@ -169,8 +169,13 @@ public class DownloadMonitor {
 
     @Scheduled(fixedRate = SECONDS_BETWEEN_CLEAR_TRANSFER_POLLING * 1000)
     public void clearTransferTorrents() {
-        multifileHosterService.getRemoteTorrents().stream().filter(torrent -> torrent.status.contains("error"))
+        multifileHosterService.getRemoteTorrents().stream()
+            .filter(torrent -> isTorrentStuckOnErrror(torrent))
             .forEach(multifileHosterService::delete);
+    }
+
+    private boolean isTorrentStuckOnErrror(Torrent torrent) {
+        return torrent.status.contains("error");
     }
 
     private boolean checkForDownloadableTorrentsAndDownloadTheFirst() {

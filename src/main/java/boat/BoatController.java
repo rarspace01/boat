@@ -211,6 +211,7 @@ public final class BoatController {
     @NonNull
     public final void shutdownServer() {
         System.exit(0);
+        return "off we go";
     }
 
 
