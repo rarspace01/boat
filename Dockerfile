@@ -1,5 +1,6 @@
 FROM debian:stable-slim
 HEALTHCHECK CMD curl -f http://localhost:8080/ || exit 1
+VOLUME /app
 ENV JAVA_HOME="./jdk"
 RUN apt-get update && apt-get install -y curl wget unzip \
 && curl https://raw.githubusercontent.com/sormuras/bach/master/install-jdk.sh -o install-jdk.sh && chmod +x install-jdk.sh;./install-jdk.sh -f 16 --target ./jdk \
