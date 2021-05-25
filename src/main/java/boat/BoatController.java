@@ -196,14 +196,14 @@ public final class BoatController {
         torrentMetaService.refreshTorrents();
         List<Torrent> remoteTorrents = torrentMetaService.getActiveTorrents();
         return "v:" + PropertiesHelper.getVersion()
-            + "<br/>cloud token valid: " + cloudService.isCloudTokenValid()
-            + "<br/>search Cache filled: " + cloudFileService.isCacheFilled()
+            + "<br/>cloud token: " + (cloudService.isCloudTokenValid() ? "✅" : "❌")
+            + "<br/>search Cache: " + (cloudFileService.isCacheFilled() ? "✅" : "❌")
             + "<br/>ActiveSearchEngines: " + torrentSearchEngineService.getActiveSearchEngines()
             + "<br/>InActiveSearchEngines: " + torrentSearchEngineService.getInActiveSearchEngines()
             + "<br/>TrafficLeft: " + TorrentHelper
             .humanReadableByteCountBinary((long) multifileHosterService.getRemainingTrafficInMB() * 1024 * 1024)
             + "<br/>D: " + remoteTorrents
-            + "<br/>Queue: " + queueService.getQueue()
+            + String.format("<br/>Queue [%d]: %s", queueService.getQueue().size(), queueService.getQueue())
             ;
     }
 
