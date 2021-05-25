@@ -209,7 +209,7 @@ public final class BoatController {
 
     @GetMapping({"/boat/shutdown"})
     @NonNull
-    public final void shutdownServer() {
+    public final String shutdownServer() {
         System.exit(0);
         return "off we go";
     }
