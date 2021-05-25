@@ -17,7 +17,7 @@ class QueueService {
     private fun initQueue(): Properties {
         val propertiesInit = Properties()
         return try {
-            val queueListFile: InputStream = FileInputStream("queue.list")
+            val queueListFile: InputStream = FileInputStream("/tmp/boat/queue.list")
             propertiesInit.load(queueListFile)
             propertiesInit
         } catch (exception: FileNotFoundException) {
