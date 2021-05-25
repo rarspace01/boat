@@ -41,6 +41,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 @Component
 public class DownloadMonitor {
 
+    public static final int MIN_GB_FOR_QUEUE = 200;
     private final TorrentSearchEngineService torrentSearchEngineService;
     private final TorrentMetaService torrentMetaService;
     private final CloudService cloudService;
@@ -140,7 +141,8 @@ public class DownloadMonitor {
         final long numberOfActiveRemoteTorrents = multifileHosterService.getRemoteTorrents()
             .stream().filter(torrent -> !torrent.status.equals("finished"))
             .count();
-        if (numberOfActiveRemoteTorrents < 20) {
+        if (numberOfActiveRemoteTorrents < 20
+            && multifileHosterService.getRemainingTrafficInMB() > MIN_GB_FOR_QUEUE * 1024) {
             final MediaItem mediaItem = queueService.getQueue().stream().findFirst().orElse(null);
             if (mediaItem != null) {
                 final Integer year = mediaItem.getYear();
