@@ -56,7 +56,7 @@ class QueueService {
 
     fun saveQueue() {
         try {
-            val queueListFile: OutputStream = FileOutputStream("queue.list")
+            val queueListFile: OutputStream = FileOutputStream("/tmp/boat/queue.list")
             properties.store(queueListFile, null)
         } catch (exception: Exception) {
 
