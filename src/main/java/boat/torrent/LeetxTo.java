@@ -79,7 +79,7 @@ public class LeetxTo extends HttpUser implements TorrentSearchEngine {
 
                 // evaluate result
                 TorrentHelper.evaluateRating(tempTorrent, searchName);
-                if (TorrentHelper.isValidTorrent(tempTorrent)) {
+                if (TorrentHelper.isValidTorrent(tempTorrent, false)) {
                     torrentList.add(tempTorrent);
                 }
             }

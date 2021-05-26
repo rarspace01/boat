@@ -16,6 +16,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 public class TorrentHelper {
+
     public static final String REGEX_RELEASE_GROUP = "(-[A-Za-z\\s]+)";
     private static TorrentService torrentService = new TorrentService();
 
@@ -38,7 +39,7 @@ public class TorrentHelper {
 
     public static double extractTorrentSizeFromString(Torrent tempTorrent) {
         long torrentSize = 0;
-        try{
+        try {
             if (tempTorrent.size.contains("GiB") || tempTorrent.size.contains("GB")) {
                 torrentSize = (long) (Double.parseDouble(trimSizeStringToValue(tempTorrent)) * 1024);
             } else if (tempTorrent.size.contains("MiB") || tempTorrent.size.contains("MB")) {
@@ -124,7 +125,7 @@ public class TorrentHelper {
         final String name = tempTorrent.name;
         final TorrentType typeOfMedia = determineTypeOfMedia(prepareTorrentName(name));
         if (TorrentType.MOVIES.equals(typeOfMedia)
-                || TorrentType.SERIES_SHOWS.equals(typeOfMedia)) {
+            || TorrentType.SERIES_SHOWS.equals(typeOfMedia)) {
             tempTorrent.searchRating += 2;
             tempTorrent.debugRating += "🎬";
         }
@@ -154,14 +155,14 @@ public class TorrentHelper {
         return lowerCase.trim()
             .replaceAll(",", ".")
             .replaceAll("\\[[A-Za-z0-9. -]*\\]", "")
-                .replaceAll(TAG_REGEX, ".")
-                .replaceAll(TAG_REGEX, ".")
-                .replaceAll(TAG_REGEX, ".")
-                .replaceAll(TAG_REGEX, ".")
-                .replaceAll("[()]+", "")
-                .replaceAll("\\s", "")
-                .replaceAll("\\.", "")
-                ;
+            .replaceAll(TAG_REGEX, ".")
+            .replaceAll(TAG_REGEX, ".")
+            .replaceAll(TAG_REGEX, ".")
+            .replaceAll(TAG_REGEX, ".")
+            .replaceAll("[()]+", "")
+            .replaceAll("\\s", "")
+            .replaceAll("\\.", "")
+            ;
     }
 
     public static String getNormalizedTorrentStringWithSpaces(String name) {
@@ -174,11 +175,13 @@ public class TorrentHelper {
             .replaceAll(TAG_REGEX, ".")
             .replaceAll(TAG_REGEX, ".")
             .replaceAll("[()]+", "")
-                .replaceAll("\\.", " ").trim();
+            .replaceAll("\\.", " ").trim();
     }
 
     public static String getNormalizedTorrentStringWithSpacesKeepCase(String name) {
-        if(name == null) return null;
+        if (name == null) {
+            return null;
+        }
         String string = name.replaceAll(REGEX_RELEASE_GROUP, "").toLowerCase().replaceAll("\"", "");
         return string.trim()
             .replaceAll("\\[[A-Za-z0-9. -]*\\]", "")
@@ -186,7 +189,7 @@ public class TorrentHelper {
             .replaceAll(TAG_REGEX, ".")
             .replaceAll(TAG_REGEX, ".")
             .replaceAll(TAG_REGEX, ".")
-                .replaceAll("\\.", " ").trim();
+            .replaceAll("\\.", " ").trim();
     }
 
     public static String cleanNumberString(String value) {
@@ -195,34 +198,38 @@ public class TorrentHelper {
 
     public static boolean isBlocklisted(Torrent torrent) {
         return torrent.name != null && (
-                torrent.name.toLowerCase().contains("telesync") ||
-                        torrent.name.toLowerCase().contains("telecine") ||
-                        torrent.name.toLowerCase().contains(" hdcam") ||
-                        torrent.name.toLowerCase().contains("tscam") ||
-                        torrent.name.toLowerCase().contains(".cam.") ||
-                        torrent.name.toLowerCase().contains("cam-rip") ||
-                        torrent.name.toLowerCase().contains("camrip") ||
-                        torrent.name.toLowerCase().contains(".hdcam.") ||
-                        torrent.name.toLowerCase().contains(" hdts") ||
-                        torrent.name.toLowerCase().contains(" hd-ts") ||
-                        torrent.name.toLowerCase().contains(".hd-ts") ||
-                        torrent.name.toLowerCase().contains(".hdtc.") ||
-                        torrent.name.toLowerCase().contains(".ts.") ||
-                        torrent.name.toLowerCase().contains("[ts]") ||
-                        torrent.name.toLowerCase().contains("pdvd") ||
-                        torrent.name.toLowerCase().contains("predvdrip") ||
-                        torrent.name.toLowerCase().contains("workprint") ||
-                        torrent.name.toLowerCase().contains(".hdts.")
+            torrent.name.toLowerCase().contains("telesync") ||
+                torrent.name.toLowerCase().contains("telecine") ||
+                torrent.name.toLowerCase().contains(" hdcam") ||
+                torrent.name.toLowerCase().contains("tscam") ||
+                torrent.name.toLowerCase().contains(".cam.") ||
+                torrent.name.toLowerCase().contains("cam-rip") ||
+                torrent.name.toLowerCase().contains("camrip") ||
+                torrent.name.toLowerCase().contains(".hdcam.") ||
+                torrent.name.toLowerCase().contains(" hdts") ||
+                torrent.name.toLowerCase().contains(" hd-ts") ||
+                torrent.name.toLowerCase().contains(".hd-ts") ||
+                torrent.name.toLowerCase().contains(".hdtc.") ||
+                torrent.name.toLowerCase().contains(".ts.") ||
+                torrent.name.toLowerCase().contains("[ts]") ||
+                torrent.name.toLowerCase().contains("pdvd") ||
+                torrent.name.toLowerCase().contains("predvdrip") ||
+                torrent.name.toLowerCase().contains("workprint") ||
+                torrent.name.toLowerCase().contains(".hdts.")
         );
     }
 
-    public static boolean isValidTorrent(Torrent torrent) {
+    public static boolean isValidTorrent(Torrent torrent, boolean validateUri) {
         return torrent.name != null &&
-            torrent.magnetUri != null &&
+            (validateUri ? torrent.magnetUri != null : true) &&
             torrent.seeder > 0 &&
             !isBlocklisted(torrent) &&
             torrent.lsize > 0
             ;
+    }
+
+    public static boolean isValidTorrent(Torrent torrent) {
+        return isValidTorrent(torrent, true);
     }
 
     public static String urlEncode(final String string) {
