@@ -169,12 +169,27 @@ class TorrentHelperTest {
         torrent1.leecher = 1;
         torrent1.lsize = 1000;
 
-
         // When
         TorrentHelper.evaluateRating(torrent1, "movie title");
         // Then
         assertTrue(torrent1.searchRating > 0);
         assertFalse(torrent1.debugRating.contains("📅"));
+    }
+
+    @Test
+    void shouldRateTorrentNameShouldDetectAllWordsWithExtraGarbage() {
+        // Given
+        Torrent torrent1 = new Torrent("Test");
+        torrent1.name = "The.Movie.Of.books.2014.1080p,BluRay.H264.AAC.5.1.BADASSMEDIA";
+        torrent1.seeder = 1;
+        torrent1.leecher = 1;
+        torrent1.lsize = 1000;
+
+        // When
+        TorrentHelper.evaluateRating(torrent1, "the movie of books");
+        // Then
+        assertTrue(torrent1.searchRating > 0);
+        assertFalse(torrent1.debugRating.contains("\uD83D\uDD0D:2.40"));
     }
 
     @Test

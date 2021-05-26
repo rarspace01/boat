@@ -74,6 +74,7 @@ BD50
 BD5
 BD9
 ac3
+aac
 x264
 h264
 h265
@@ -95,6 +96,7 @@ web
 HDR
 HDR10plus
 DDP5.1
+5.1
 6CH
 uhd
 bluray
