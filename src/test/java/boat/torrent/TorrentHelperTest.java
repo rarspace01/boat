@@ -193,6 +193,22 @@ class TorrentHelperTest {
     }
 
     @Test
+    void shouldRateTorrentNameShouldDetectAllWordsWithSpacingChallenge() {
+        // Given
+        Torrent torrent1 = new Torrent("Test");
+        torrent1.name = "The Movie of Books (2014) 3D BrRip x264 - YIFY";
+        torrent1.seeder = 1;
+        torrent1.leecher = 1;
+        torrent1.lsize = 1000;
+
+        // When
+        TorrentHelper.evaluateRating(torrent1, "the movie of books");
+        // Then
+        assertTrue(torrent1.searchRating > 0);
+        assertFalse(torrent1.debugRating.contains("\uD83D\uDD0D:2.40"));
+    }
+
+    @Test
     void shouldRateTorrentEqually() {
         // Given
         Torrent torrent1 = new Torrent("Test");

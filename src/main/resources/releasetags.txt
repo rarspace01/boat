@@ -63,7 +63,6 @@ HC
 HD-Rip
 Blu-Ray
 BluRay
-BLURAY
 BDRip
 BRip
 BRRip
@@ -73,6 +72,7 @@ BD25
 BD50
 BD5
 BD9
+3D
 ac3
 aac
 x264
