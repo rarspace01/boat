@@ -23,7 +23,6 @@ import boat.info.CloudFileService;
 import boat.info.CloudService;
 import boat.info.MediaItem;
 import boat.info.QueueService;
-import boat.info.TheFilmDataBaseService;
 import boat.info.TorrentMetaService;
 import boat.multifileHoster.MultifileHosterService;
 import boat.torrent.Torrent;
@@ -41,7 +40,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 @Component
 public class DownloadMonitor {
 
-    public static final int MIN_GB_FOR_QUEUE = 200;
+    public static final int MIN_GB_FOR_QUEUE = 150;
     private final TorrentSearchEngineService torrentSearchEngineService;
     private final TorrentMetaService torrentMetaService;
     private final CloudService cloudService;
@@ -54,7 +53,6 @@ public class DownloadMonitor {
     private static final Logger log = LoggerFactory.getLogger(DownloadMonitor.class);
 
     private boolean isDownloadInProgress = false;
-    private final TheFilmDataBaseService theFilmDataBaseService;
     private final CloudFileService cloudFileService;
     private final CacheManager cacheManager;
     private final QueueService queueService;
@@ -62,7 +60,6 @@ public class DownloadMonitor {
     private Boolean isRcloneInstalled;
 
     public DownloadMonitor(TorrentSearchEngineService torrentSearchEngineService,
-                           TheFilmDataBaseService theFilmDataBaseService,
                            TorrentMetaService torrentMetaService,
                            CloudService cloudService,
                            MultifileHosterService multifileHosterService,
@@ -75,7 +72,6 @@ public class DownloadMonitor {
         this.torrentMetaService = torrentMetaService;
         this.cloudService = cloudService;
         this.multifileHosterService = multifileHosterService;
-        this.theFilmDataBaseService = theFilmDataBaseService;
         this.cloudFileService = cloudFileService;
         this.cacheManager = cacheManager;
         this.queueService = queueService;
