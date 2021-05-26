@@ -201,11 +201,17 @@ class TorrentHelperTest {
         torrent1.leecher = 1;
         torrent1.lsize = 1000;
 
+        Torrent torrent2 = new Torrent("Test");
+        torrent2.name = "The Movie of Books (2014) 3D BrRip x264-YIFY";
+        torrent2.seeder = 1;
+        torrent2.leecher = 1;
+        torrent2.lsize = 1000;
+
         // When
         TorrentHelper.evaluateRating(torrent1, "the movie of books");
+        TorrentHelper.evaluateRating(torrent2, "the movie of books");
         // Then
-        assertTrue(torrent1.searchRating > 0);
-        assertFalse(torrent1.debugRating.contains(":2.40"));
+        assertTrue(torrent1.searchRating == torrent2.searchRating);
     }
 
     @Test
