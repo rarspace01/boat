@@ -205,8 +205,7 @@ class TorrentHelperTest {
         TorrentHelper.evaluateRating(torrent1, "the movie of books");
         // Then
         assertTrue(torrent1.searchRating > 0);
-        System.out.println(torrent1.debugRating);
-        assertFalse(torrent1.debugRating.contains("\uD83D\uDD0D:2.40"));
+        assertFalse(torrent1.debugRating.contains(":2.40"));
     }
 
     @Test
