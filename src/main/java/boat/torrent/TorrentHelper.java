@@ -197,26 +197,30 @@ public class TorrentHelper {
     }
 
     public static boolean isBlocklisted(Torrent torrent) {
-        return torrent.name != null && (
-            torrent.name.toLowerCase().contains("telesync") ||
-                torrent.name.toLowerCase().contains("telecine") ||
-                torrent.name.toLowerCase().contains(" hdcam") ||
-                torrent.name.toLowerCase().contains("tscam") ||
-                torrent.name.toLowerCase().contains(".cam.") ||
-                torrent.name.toLowerCase().contains("cam-rip") ||
-                torrent.name.toLowerCase().contains("camrip") ||
-                torrent.name.toLowerCase().contains(".hdcam.") ||
-                torrent.name.toLowerCase().contains(" hdts") ||
-                torrent.name.toLowerCase().contains(" hd-ts") ||
-                torrent.name.toLowerCase().contains(".hd-ts") ||
-                torrent.name.toLowerCase().contains(".hdtc.") ||
-                torrent.name.toLowerCase().contains(".ts.") ||
-                torrent.name.toLowerCase().contains("[ts]") ||
-                torrent.name.toLowerCase().contains("pdvd") ||
-                torrent.name.toLowerCase().contains("predvdrip") ||
-                torrent.name.toLowerCase().contains("workprint") ||
-                torrent.name.toLowerCase().contains(".hdts.")
-        );
+        if (torrent.name == null) {
+            return false;
+        }
+        final String torrentNameLowerCased = torrent.name.toLowerCase();
+        return torrentNameLowerCased.contains("telesync") ||
+            torrentNameLowerCased.contains("telecine") ||
+            torrentNameLowerCased.contains(" hdcam") ||
+            torrentNameLowerCased.contains("tscam") ||
+            torrentNameLowerCased.contains(".cam.") ||
+            torrentNameLowerCased.contains("cam-rip") ||
+            torrentNameLowerCased.contains("camrip") ||
+            torrentNameLowerCased.contains(".hdcam.") ||
+            torrentNameLowerCased.contains(" hdts") ||
+            torrentNameLowerCased.contains(" hd-ts") ||
+            torrentNameLowerCased.contains(".hd-ts") ||
+            torrentNameLowerCased.contains(".hdtc.") ||
+            torrentNameLowerCased.contains(".ts.") ||
+            torrentNameLowerCased.contains("[ts]") ||
+            torrentNameLowerCased.contains("pdvd") ||
+            torrentNameLowerCased.contains("predvdrip") ||
+            torrentNameLowerCased.contains("workprint") ||
+            torrentNameLowerCased.contains("xxx") ||
+            torrentNameLowerCased.contains("porn") ||
+            torrentNameLowerCased.contains(".hdts.");
     }
 
     public static boolean isValidTorrent(Torrent torrent, boolean validateUri) {
