@@ -38,6 +38,7 @@ import org.apache.logging.log4j.util.Strings;
 @RestController
 public final class BoatController {
 
+    public static final String BREAK_LINK_HTML = "  <br>\n";
     private final String switchToProgress = "<a href=\"../debug\">Show Progress</a> ";
     private final HttpHelper httpHelper;
     private final TorrentSearchEngineService torrentSearchEngineService;
@@ -92,16 +93,16 @@ public final class BoatController {
             "<form action=\"../boat\" target=\"_blank\" method=\"GET\">\n" +
             "  Title:<br>\n" +
             "  <input type=\"text\" name=\"qq\" value=\"\" style=\"font-size: 2em; \">\n" +
-            "  <br>\n" +
+            BREAK_LINK_HTML +
             "  <input type=\"reset\" value=\"Reset\" style=\"font-size: 2em; \">\n" +
             "  <input type=\"submit\" value=\"Search\" style=\"font-size: 2em; \">\n" +
             "</form>\n" +
-            "  <br>\n" +
-            "  <br>\n" +
+            BREAK_LINK_HTML +
+            BREAK_LINK_HTML +
             "<form action=\"../boat/download/\" target=\"_blank\" method=\"POST\">\n" +
             "  Direct download URL (multiple seperate by comma):<br>\n" +
             "  <input type=\"text\" name=\"dd\" value=\"\" style=\"font-size: 2em; \">\n" +
-            "  <br>\n" +
+            BREAK_LINK_HTML +
             "  <input type=\"reset\" value=\"Reset\" style=\"font-size: 2em; \">\n" +
             "  <input type=\"submit\" value=\"Download\" style=\"font-size: 2em; \">\n" +
             "</form>\n" +

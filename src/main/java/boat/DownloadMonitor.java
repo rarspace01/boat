@@ -27,6 +27,7 @@ import boat.info.TorrentMetaService;
 import boat.multifileHoster.MultifileHosterService;
 import boat.torrent.Torrent;
 import boat.torrent.TorrentFile;
+import boat.torrent.TorrentHelper;
 import boat.torrent.TorrentSearchEngineService;
 import boat.torrent.TorrentType;
 import boat.utilities.ProcessUtil;
@@ -142,7 +143,8 @@ public class DownloadMonitor {
             final MediaItem mediaItem = queueService.getQueue().stream().findFirst().orElse(null);
             if (mediaItem != null) {
                 final Integer year = mediaItem.getYear();
-                final String searchName = mediaItem.getTitle() + (year != null ? " " + year : "");
+                String searchName = mediaItem.getTitle() + (year != null ? " " + year : "");
+                searchName = TorrentHelper.getNormalizedTorrentStringWithSpaces(searchName);
                 final List<String> existingFiles = cloudService
                     .findExistingFiles(searchName);
                 if (existingFiles.isEmpty()) {
