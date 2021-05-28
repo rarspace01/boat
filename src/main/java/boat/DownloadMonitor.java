@@ -48,6 +48,7 @@ public class DownloadMonitor {
     private final MultifileHosterService multifileHosterService;
 
     private static final int SECONDS_BETWEEN_DOWNLOAD_POLLING = 30;
+    private static final int SECONDS_BETWEEN_QUEUE_POLLING = 30;
     private static final int SECONDS_BETWEEN_SEARCH_ENGINE_POLLING = 240;
     private static final int SECONDS_BETWEEN_CLEAR_TRANSFER_POLLING = 3600;
     private static final int SECONDS_BETWEEN_FILE_CACHE_REFRESH = 60 * 60 * 6;
@@ -130,6 +131,12 @@ public class DownloadMonitor {
     public void checkForDownloadableTorrents() {
         if (!isDownloadInProgress && isRcloneInstalled() && cloudService.isCloudTokenValid()) {
             checkForDownloadableTorrentsAndDownloadTheFirst();
+        }
+    }
+
+    @Scheduled(fixedRate = SECONDS_BETWEEN_QUEUE_POLLING * 1000)
+    public void checkForQueueEntries() {
+        if (isRcloneInstalled() && cloudService.isCloudTokenValid()) {
             checkForQueueEntryAndAddToDownloads();
         }
     }
