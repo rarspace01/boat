@@ -23,7 +23,7 @@ class Premiumize(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoste
     override fun addTorrentToQueue(toBeAddedTorrent: Torrent): String {
         val response: String
         val addTorrenntUrl =
-            "https://www.premiumize.me/api/transfer/create?apikey=" + PropertiesHelper.getProperty("premiumize_apikey") +
+            "https://www.premiumize.me/api/transfer/create?apikey=" + PropertiesHelper.getProperty("PREMIUMIZE_APIKEY") +
                     "&type=hello.torrent&src=" + cleanMagnetUri(toBeAddedTorrent.magnetUri)
         response = httpHelper.getPage(addTorrenntUrl)
         return response
@@ -36,7 +36,7 @@ class Premiumize(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoste
     override fun getRemoteTorrents(): List<Torrent> {
         val remoteTorrentList: List<Torrent>
         val responseTorrents: String =
-            httpHelper.getPage("https://www.premiumize.me/api/transfer/list?apikey=" + PropertiesHelper.getProperty("premiumize_apikey"))
+            httpHelper.getPage("https://www.premiumize.me/api/transfer/list?apikey=" + PropertiesHelper.getProperty("PREMIUMIZE_APIKEY"))
         remoteTorrentList = parseRemoteTorrents(responseTorrents)
         return remoteTorrentList
     }
@@ -47,9 +47,9 @@ class Premiumize(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoste
 
     override fun getRemainingTrafficInMB(): Double {
         val responseAccount: String =
-            httpHelper.getPage("https://www.premiumize.me/api/account/info?apikey=" + PropertiesHelper.getProperty("premiumize_apikey"))
+            httpHelper.getPage("https://www.premiumize.me/api/account/info?apikey=" + PropertiesHelper.getProperty("PREMIUMIZE_APIKEY"))
         val boostAccount: String =
-            httpHelper.getPage("https://www.premiumize.me/account?apikey=" + PropertiesHelper.getProperty("premiumize_apikey"))
+            httpHelper.getPage("https://www.premiumize.me/account?apikey=" + PropertiesHelper.getProperty("PREMIUMIZE_APIKEY"))
         return parseRemainingTrafficInMB(responseAccount) + parseRemainingBoostTrafficInMB(boostAccount)
     }
 
@@ -87,7 +87,7 @@ class Premiumize(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoste
         val returnList: MutableList<TorrentFile> = ArrayList()
         val responseFiles = httpHelper.getPage(
             "https://www.premiumize.me/api/folder/list?id=" + torrent.folder_id +
-                    "&apikey=" + PropertiesHelper.getProperty("premiumize_apikey")
+                    "&apikey=" + PropertiesHelper.getProperty("PREMIUMIZE_APIKEY")
         )
         val m = ObjectMapper()
         try {
@@ -115,7 +115,7 @@ class Premiumize(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoste
     ) {
         val responseFiles = httpHelper.getPage(
             "https://www.premiumize.me/api/folder/list?id=" + jsonFolder["id"].asText() +
-                    "&apikey=" + PropertiesHelper.getProperty("premiumize_apikey")
+                    "&apikey=" + PropertiesHelper.getProperty("PREMIUMIZE_APIKEY")
         )
         val folderName = prefix + jsonFolder["name"].asText() + "/"
         val m = ObjectMapper()
@@ -197,7 +197,7 @@ class Premiumize(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoste
 
     override fun delete(remoteTorrent: Torrent) {
         val removeTorrenntUrl = "https://www.premiumize.me/api/transfer/delete?id=" + remoteTorrent.remoteId + "&" +
-                "&apikey=" + PropertiesHelper.getProperty("premiumize_apikey") +
+                "&apikey=" + PropertiesHelper.getProperty("PREMIUMIZE_APIKEY") +
                 "&type=hello.torrent&src=" + remoteTorrent.magnetUri
         httpHelper.getPage(removeTorrenntUrl)
     }
@@ -220,7 +220,7 @@ class Premiumize(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoste
 
     private fun enrichCacheStatusForGivenTorrents(torrents: List<Torrent>) {
         val requestUrl =
-            "https://www.premiumize.me/api/cache/check?" + "apikey=" + PropertiesHelper.getProperty("premiumize_apikey") + "%s"
+            "https://www.premiumize.me/api/cache/check?" + "apikey=" + PropertiesHelper.getProperty("PREMIUMIZE_APIKEY") + "%s"
         val urlEncodedBrackets = TorrentHelper.urlEncode("[]")
         val collected = torrents.stream().map { obj: Torrent -> obj.torrentId }
             .collect(Collectors.joining("&items$urlEncodedBrackets=", "&items$urlEncodedBrackets=", ""))

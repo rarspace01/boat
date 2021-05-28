@@ -211,7 +211,7 @@ public class DownloadMonitor {
                             .buildDestinationPath(torrentToBeDownloaded.name, filesFromTorrent);
                         String targetFilePath;
                         if (destinationPath.contains("transfer")) {
-                            targetFilePath = PropertiesHelper.getProperty("rclonedir") + "/transfer/multipart/"
+                            targetFilePath = PropertiesHelper.getProperty("RCLONEDIR") + "/transfer/multipart/"
                                 + torrentToBeDownloaded.name + "/" + torrentFile.name;
                         } else {
                             if (destinationPath.contains(TorrentType.SERIES_SHOWS.getType())) {

@@ -48,7 +48,7 @@ class CloudServiceTest {
         // When
         String destinationPath = cloudService.buildDestinationPath("Movie");
         // Then
-        assertEquals(PropertiesHelper.getProperty("rclonedir") + "/transfer/M/", destinationPath);
+        assertEquals(PropertiesHelper.getProperty("RCLONEDIR") + "/transfer/M/", destinationPath);
     }
 
     @Test
@@ -58,7 +58,7 @@ class CloudServiceTest {
         // When
         String destinationPath = cloudService.buildDestinationPath("Movie Title Xvid");
         // Then
-        assertEquals(PropertiesHelper.getProperty("rclonedir") + "/Movies/M/", destinationPath);
+        assertEquals(PropertiesHelper.getProperty("RCLONEDIR") + "/Movies/M/", destinationPath);
     }
 
     @Test
@@ -68,7 +68,7 @@ class CloudServiceTest {
         // When
         String destinationPath = cloudService.buildDestinationPath("A 12 Number Title Xvid");
         // Then
-        assertEquals(PropertiesHelper.getProperty("rclonedir") + "/Movies/0-9/", destinationPath);
+        assertEquals(PropertiesHelper.getProperty("RCLONEDIR") + "/Movies/0-9/", destinationPath);
     }
 
     @Test
@@ -78,7 +78,7 @@ class CloudServiceTest {
         // When
         String destinationPath = cloudService.buildDestinationPath("Movie Title 2008 2160p US BluRay REMUX HEVC DTS HD MA TrueHD 7 1 Atmos FGT");
         // Then
-        assertEquals(PropertiesHelper.getProperty("rclonedir") + "/Movies/M/", destinationPath);
+        assertEquals(PropertiesHelper.getProperty("RCLONEDIR") + "/Movies/M/", destinationPath);
     }
 
     @Test
@@ -87,7 +87,7 @@ class CloudServiceTest {
         // When
         String destinationPath = cloudService.buildDestinationPath("A Movie Title 2008 2160p US BluRay REMUX HEVC DTS HD MA TrueHD 7 1 Atmos FGT");
         // Then
-        assertEquals(PropertiesHelper.getProperty("rclonedir") + "/Movies/M/", destinationPath);
+        assertEquals(PropertiesHelper.getProperty("RCLONEDIR") + "/Movies/M/", destinationPath);
     }
 
     @Test
@@ -96,7 +96,7 @@ class CloudServiceTest {
         // When
         String destinationPath = cloudService.buildDestinationPath("Test and Test [UNCENSORED] Season 1-3 [1080p] [5.1 MP3] [x265][FINAL]");
         // Then
-        assertEquals(PropertiesHelper.getProperty("rclonedir") + "/Series-Shows/T/Test.And.Test/", destinationPath);
+        assertEquals(PropertiesHelper.getProperty("RCLONEDIR") + "/Series-Shows/T/Test.And.Test/", destinationPath);
     }
 
     @Test
@@ -105,7 +105,7 @@ class CloudServiceTest {
         // When
         String destinationPath = cloudService.buildDestinationPath("Series.S01E02.480p.x264-mSD[tag].mkv");
         // Then
-        assertEquals(PropertiesHelper.getProperty("rclonedir") + "/Series-Shows/S/Series/", destinationPath);
+        assertEquals(PropertiesHelper.getProperty("RCLONEDIR") + "/Series-Shows/S/Series/", destinationPath);
     }
 
     @Test
@@ -114,7 +114,7 @@ class CloudServiceTest {
         // When
         String destinationPath = cloudService.buildDestinationPath("series.S01E02.480p.x264-mSD[tag].mkv");
         // Then
-        assertEquals(PropertiesHelper.getProperty("rclonedir") + "/Series-Shows/S/Series/", destinationPath);
+        assertEquals(PropertiesHelper.getProperty("RCLONEDIR") + "/Series-Shows/S/Series/", destinationPath);
     }
 
     @Test
@@ -123,7 +123,7 @@ class CloudServiceTest {
         // When
         String destinationPath = cloudService.buildDestinationPath("\"series.S01E02.480p.x264-mSD[tag].mkv");
         // Then
-        assertEquals(PropertiesHelper.getProperty("rclonedir") + "/Series-Shows/S/Series/", destinationPath);
+        assertEquals(PropertiesHelper.getProperty("RCLONEDIR") + "/Series-Shows/S/Series/", destinationPath);
     }
 
     @Test
@@ -132,7 +132,7 @@ class CloudServiceTest {
         // When
         String destinationPath = cloudService.buildDestinationPath("Series.Name.S01E02.480p.x264-mSD[tag].mkv");
         // Then
-        assertEquals(PropertiesHelper.getProperty("rclonedir") + "/Series-Shows/S/Series.Name/", destinationPath);
+        assertEquals(PropertiesHelper.getProperty("RCLONEDIR") + "/Series-Shows/S/Series.Name/", destinationPath);
     }
 
     @Test
@@ -141,7 +141,7 @@ class CloudServiceTest {
         // When
         String destinationPath = cloudService.buildDestinationPath("series.S01E02.480p.x264-mSD[tag].pdf");
         // Then
-        assertEquals(PropertiesHelper.getProperty("rclonedir") + "/transfer/S/", destinationPath);
+        assertEquals(PropertiesHelper.getProperty("RCLONEDIR") + "/transfer/S/", destinationPath);
     }
 
     @Test
@@ -156,7 +156,7 @@ class CloudServiceTest {
         // When
         String destinationPath = cloudService.buildDestinationPath(torrent.name, List.of(tf1, tf2));
         // Then
-        assertEquals(PropertiesHelper.getProperty("rclonedir") + "/Series-Shows/C/Could.Be.A.Movie.But.Is.A.Series/",
+        assertEquals(PropertiesHelper.getProperty("RCLONEDIR") + "/Series-Shows/C/Could.Be.A.Movie.But.Is.A.Series/",
             destinationPath);
     }
 
@@ -166,7 +166,7 @@ class CloudServiceTest {
         // When
         String destinationPath = cloudService.buildDestinationPath("series.S01E02.480p.x264-mSD[tag]");
         // Then
-        assertEquals(PropertiesHelper.getProperty("rclonedir") + "/Series-Shows/S/Series/", destinationPath);
+        assertEquals(PropertiesHelper.getProperty("RCLONEDIR") + "/Series-Shows/S/Series/", destinationPath);
     }
 
     @Test
@@ -175,7 +175,7 @@ class CloudServiceTest {
         // When
         String destinationPath = cloudService.buildDestinationPath("series.S01E02.Test.480p.x264-mSD[tag]");
         // Then
-        assertEquals(PropertiesHelper.getProperty("rclonedir") + "/Series-Shows/S/Series/", destinationPath);
+        assertEquals(PropertiesHelper.getProperty("RCLONEDIR") + "/Series-Shows/S/Series/", destinationPath);
     }
 
 }

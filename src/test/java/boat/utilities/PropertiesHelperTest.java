@@ -20,7 +20,7 @@ class PropertiesHelperTest {
     void getProperty() {
         // Given
         // When
-        String property = PropertiesHelper.getProperty("rclonedir");
+        String property = PropertiesHelper.getProperty("RCLONEDIR");
         // Then
         assertNotNull(property);
         assertTrue(property.length() > 0);

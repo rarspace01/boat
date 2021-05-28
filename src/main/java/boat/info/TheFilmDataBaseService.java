@@ -26,7 +26,7 @@ public class TheFilmDataBaseService {
 
     private final HttpHelper httpHelper;
     private final String baseUrl = String.format("https://api.themoviedb.org/3/search/multi?api_key=%s",
-        PropertiesHelper.getProperty("tfdb_apikey"));
+        PropertiesHelper.getProperty("TFDB_APIKEY"));
 
     @Autowired
     public TheFilmDataBaseService(HttpHelper httpHelper) {
