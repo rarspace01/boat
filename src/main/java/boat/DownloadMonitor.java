@@ -144,7 +144,7 @@ public class DownloadMonitor {
             if (mediaItem != null) {
                 final Integer year = mediaItem.getYear();
                 String searchName = mediaItem.getTitle() + (year != null ? " " + year : "");
-                searchName = TorrentHelper.getNormalizedTorrentStringWithSpaces(searchName);
+                searchName = TorrentHelper.getNormalizedTorrentStringWithSpaces(searchName).replaceAll("['!]", "");
                 final List<String> existingFiles = cloudService
                     .findExistingFiles(searchName);
                 if (existingFiles.isEmpty()) {
