@@ -206,6 +206,7 @@ public class TorrentHelper {
             torrentNameLowerCased.contains(" hdcam") ||
             torrentNameLowerCased.contains("tscam") ||
             torrentNameLowerCased.contains(".cam.") ||
+            torrentNameLowerCased.contains(" cam ") ||
             torrentNameLowerCased.contains("cam-rip") ||
             torrentNameLowerCased.contains("camrip") ||
             torrentNameLowerCased.contains(".hdcam.") ||
