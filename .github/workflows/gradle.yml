@@ -24,4 +24,9 @@ jobs:
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
     - name: Build with Gradle
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        TFDB_APIKEY: ${{ secrets.TFDB_APIKEY }}
+        PREMIUMIZE_APIKEY: ${{ secrets.PREMIUMIZE_APIKEY }}
+        ALLDEBRID_APIKEY: ${{ secrets.ALLDEBRID_APIKEY }}
       run: ./gradlew build
