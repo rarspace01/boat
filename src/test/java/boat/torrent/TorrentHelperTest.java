@@ -154,8 +154,8 @@ class TorrentHelperTest {
         // When
         TorrentHelper.evaluateRating(torrent1, "movie title");
         // Then
-        assertTrue(torrent1.searchRatingOld > 0);
-        assertTrue(torrent1.debugRatingOld.contains("📅"));
+        assertTrue(torrent1.searchRating > 0);
+        assertTrue(torrent1.debugRating.contains("📅"));
     }
 
     @Test
