@@ -116,7 +116,7 @@ public class TorrentSearchEngineService {
             } else {
                 final int existingTorrentIndex = cleanedTorrents.indexOf(result);
                 final Torrent existingTorrent = cleanedTorrents.get(existingTorrentIndex);
-                if (existingTorrent.searchRating < result.searchRating) {
+                if (existingTorrent.searchRatingOld < result.searchRatingOld) {
                     cleanedTorrents.remove(existingTorrent);
                     cleanedTorrents.add(result);
                 }

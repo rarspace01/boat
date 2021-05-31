@@ -74,6 +74,13 @@ public class TorrentHelper {
     }
 
     public static Torrent evaluateRating(Torrent tempTorrent, String searchName) {
+        tempTorrent.debugRatingOld = "";
+        tempTorrent.debugRating = "";
+        tempTorrent.searchRatingOld = 0.0;
+        tempTorrent.searchRating = 0.0;
+
+        String debugAdditional = "";
+
         String torrentName = tempTorrent.name;
 
         double additionalRating = 0.0;
@@ -100,21 +107,18 @@ public class TorrentHelper {
         double matchedScoreOfTorrent = (double) matches.get() / (double) torrentWordCount;
         double matchedScoreOfSearch = (double) matches.get() / (double) searchWords.size();
         final double searchRating = matchedScoreOfTorrent * matchedScoreOfSearch * 3;
-        tempTorrent.searchRating += searchRating;
-        tempTorrent.debugRating += String
-            .format("🔍:%.2f (%d^2/(%d*%d)*3)", searchRating, matches.get(), torrentWordCount, searchWords.size());
+        tempTorrent.searchRatingOld += searchRating;
 
         // bonus for year in torrentName
         if (normalizedTorrentNameWithSpaces.matches(".*[1-2][09][0-9][0-9].*")) {
             additionalRating += 0.5;
-            tempTorrent.searchRating += 0.5;
-            tempTorrent.debugRating += "📅";
+            tempTorrent.searchRatingOld += 0.5;
+            debugAdditional += "📅";
         }
 
         // calc first range
         double sizeRating = Math.min(tempTorrent.lsize, SIZE_UPPER_LIMIT) / SIZE_UPPER_LIMIT;
-        tempTorrent.searchRating += sizeRating;
-        tempTorrent.debugRating += String.format("📦:%.2f", sizeRating);
+        tempTorrent.searchRatingOld += sizeRating;
         // calculate seeder ratio
         double seedRatio = (double) tempTorrent.seeder / Math.max((double) tempTorrent.leecher, 0.1);
         double seedRatioOptimized;
@@ -129,40 +133,38 @@ public class TorrentHelper {
         if (TorrentType.MOVIES.equals(typeOfMedia)
             || TorrentType.SERIES_SHOWS.equals(typeOfMedia)) {
             additionalRating += 1;
-            tempTorrent.searchRating += 2;
-            tempTorrent.debugRating += "🎬";
+            tempTorrent.searchRatingOld += 1;
+            debugAdditional += "🎬";
         }
         if (tempTorrent.isVerified) {
             additionalRating += 0.25;
-            tempTorrent.searchRating += 0.25;
-            tempTorrent.debugRating += "✅";
+            tempTorrent.searchRatingOld += 0.25;
+            debugAdditional += "✅";
         }
-        double speedRating = 0.0;
+        double speedRating;
         if (tempTorrent.cached.size() > 0) {
-            tempTorrent.searchRating += 2;
-            tempTorrent.debugRating += "🚄: ⚡";
+            tempTorrent.searchRatingOld += 2;
+            debugAdditional += "⚡";
             speedRating = 2;
         } else if (seedRatio > 1.0) {
             speedRating = Math.min(seedRatioOptimized, SEED_RATIO_UPPER_LIMIT) / SEED_RATIO_UPPER_LIMIT;
-            tempTorrent.searchRating += speedRating;
-            tempTorrent.debugRating += String.format("🚄:%.2f", speedRating);
+            tempTorrent.searchRatingOld += speedRating;
         } else if (tempTorrent.seeder == 1) {
-            speedRating = tempTorrent.searchRating / 10.0;
-            tempTorrent.searchRating = speedRating;
-            tempTorrent.debugRating += String.format("🚄: 🐌 %.2f", speedRating);
+            speedRating = seedRatioOptimized / 10.0;
+            tempTorrent.searchRatingOld = speedRating;
         } else {
             speedRating = seedRatioOptimized;
-            tempTorrent.searchRating += seedRatioOptimized;
-            tempTorrent.debugRating += String.format("🚄: %.2f", seedRatioOptimized);
+            tempTorrent.searchRatingOld += seedRatioOptimized;
         }
 
         // searchRatingNew Calc
-
-        tempTorrent.searchRatingNew =
+        tempTorrent.searchRating =
             matchedScoreOfSearch * (matchedScoreOfTorrent + sizeRating + speedRating + additionalRating);
-        tempTorrent.debugRatingNew = String
-            .format("%.2f * (%.2f + %.2f + %.2f + %.2f)", matchedScoreOfSearch, matchedScoreOfTorrent, sizeRating,
-                speedRating, additionalRating);
+
+        tempTorrent.debugRating = String
+            .format("🔍%.2f * (🔦%.2f + 📦%.2f + 🚄%.2f + 🧮%.2f - %s)", matchedScoreOfSearch, matchedScoreOfTorrent,
+                sizeRating,
+                speedRating, additionalRating, debugAdditional);
 
         return tempTorrent;
     }

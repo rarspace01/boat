@@ -17,8 +17,8 @@ class TorrentSearchEngineServiceTest {
         final Torrent s2 = new Torrent("S2");
         s1.magnetUri = "btih:ABC&";
         s2.magnetUri = "btih:ABC&";
-        s1.searchRating = 1;
-        s2.searchRating = 2;
+        s1.searchRatingOld = 1;
+        s2.searchRatingOld = 2;
         // When
         final List<Torrent> torrentList = tse.cleanDuplicates(List.of(s1, s2));
         // Then
