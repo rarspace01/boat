@@ -24,7 +24,9 @@ public class Torrent implements Comparable<Torrent> {
     public String magnetUri;
     public String category;
     public double searchRating = 0.0;
+    public double searchRatingNew = 0.0;
     public String debugRating = "";
+    public String debugRatingNew = "";
     public String status;
     public String progress;
     public String eta;
@@ -59,7 +61,7 @@ public class Torrent implements Comparable<Torrent> {
         stringBuilder.append("[" + this.name + "]");
         if (!"Premiumize".equals(source)) {
             stringBuilder.append(String.format("[%s][%s/%s@%.2f]", size, leecher, seeder, seedRatio));
-            stringBuilder.append(String.format("R: %.2f ", this.searchRating));
+            stringBuilder.append(String.format("R: %.2f NR: %.2f ", this.searchRating, this.searchRatingNew));
         }
 
         if (magnetUriBase64 != null && magnetUriBase64.length() > 0 && this.status == null) {
@@ -67,7 +69,7 @@ public class Torrent implements Comparable<Torrent> {
         }
 
         if (Strings.isNotEmpty(this.debugRating)) {
-            stringBuilder.append(" 🏭" + this.debugRating + " \uD83C\uDFE0" + this.source);
+            stringBuilder.append(" 🏭" + this.debugRating + "{}" + this.debugRatingNew + " \uD83C\uDFE0" + this.source);
         }
 
 

@@ -74,11 +74,12 @@ public class TorrentHelper {
     }
 
     public static Torrent evaluateRating(Torrent tempTorrent, String searchName) {
-        tempTorrent.searchRating = 0;
-        tempTorrent.debugRating = "";
         String torrentName = tempTorrent.name;
+
+        double additionalRating = 0.0;
+
         if (torrentName == null || torrentName.trim().length() == 0) {
-            return tempTorrent;
+            torrentName = "";
         }
 
         String normalizedTorrentName = getNormalizedTorrentString(torrentName);
@@ -89,32 +90,33 @@ public class TorrentHelper {
         //check individual words
         List<String> searchWords = Arrays.asList(normalizedSearchNameWithSpaces.split(" "));
         List<String> torrentWords = Arrays.asList(normalizedTorrentNameWithSpaces.split(" "));
-        int searchMaxScore = torrentWords.size();
+        int torrentWordCount = torrentWords.size();
         AtomicInteger matches = new AtomicInteger();
         searchWords.forEach(searchWord -> {
             if (normalizedTorrentName.contains(searchWord)) {
                 matches.getAndIncrement();
             }
         });
-        double matchedScoreOfTorrent = (double) matches.get() / (double) searchMaxScore;
+        double matchedScoreOfTorrent = (double) matches.get() / (double) torrentWordCount;
         double matchedScoreOfSearch = (double) matches.get() / (double) searchWords.size();
         final double searchRating = matchedScoreOfTorrent * matchedScoreOfSearch * 3;
         tempTorrent.searchRating += searchRating;
         tempTorrent.debugRating += String
-            .format("🔍:%.2f (%d^2/(%d*%d)*3)", searchRating, matches.get(), searchMaxScore, searchWords.size());
+            .format("🔍:%.2f (%d^2/(%d*%d)*3)", searchRating, matches.get(), torrentWordCount, searchWords.size());
 
         // bonus for year in torrentName
         if (normalizedTorrentNameWithSpaces.matches(".*[1-2][09][0-9][0-9].*")) {
+            additionalRating += 0.5;
             tempTorrent.searchRating += 0.5;
             tempTorrent.debugRating += "📅";
         }
 
         // calc first range
-        double rangeRating = Math.min(tempTorrent.lsize, SIZE_UPPER_LIMIT) / SIZE_UPPER_LIMIT;
-        tempTorrent.searchRating += rangeRating;
-        tempTorrent.debugRating += String.format("📦:%.2f", rangeRating);
+        double sizeRating = Math.min(tempTorrent.lsize, SIZE_UPPER_LIMIT) / SIZE_UPPER_LIMIT;
+        tempTorrent.searchRating += sizeRating;
+        tempTorrent.debugRating += String.format("📦:%.2f", sizeRating);
         // calculate seeder ratio
-        double seedRatio = (double) tempTorrent.seeder / (double) tempTorrent.leecher;
+        double seedRatio = (double) tempTorrent.seeder / Math.max((double) tempTorrent.leecher, 0.1);
         double seedRatioOptimized;
         if (tempTorrent.seeder >= 1 && tempTorrent.seeder <= 3) {
             seedRatioOptimized = 1.0;
@@ -126,33 +128,49 @@ public class TorrentHelper {
         final TorrentType typeOfMedia = determineTypeOfMedia(prepareTorrentName(name));
         if (TorrentType.MOVIES.equals(typeOfMedia)
             || TorrentType.SERIES_SHOWS.equals(typeOfMedia)) {
+            additionalRating += 1;
             tempTorrent.searchRating += 2;
             tempTorrent.debugRating += "🎬";
         }
         if (tempTorrent.isVerified) {
+            additionalRating += 0.25;
             tempTorrent.searchRating += 0.25;
             tempTorrent.debugRating += "✅";
         }
+        double speedRating = 0.0;
         if (tempTorrent.cached.size() > 0) {
             tempTorrent.searchRating += 2;
             tempTorrent.debugRating += "🚄: ⚡";
+            speedRating = 2;
         } else if (seedRatio > 1.0) {
-            double seedRating = Math.min(seedRatioOptimized, SEED_RATIO_UPPER_LIMIT) / SEED_RATIO_UPPER_LIMIT;
-            tempTorrent.searchRating += seedRating;
-            tempTorrent.debugRating += String.format("🚄:%.2f", seedRating);
+            speedRating = Math.min(seedRatioOptimized, SEED_RATIO_UPPER_LIMIT) / SEED_RATIO_UPPER_LIMIT;
+            tempTorrent.searchRating += speedRating;
+            tempTorrent.debugRating += String.format("🚄:%.2f", speedRating);
         } else if (tempTorrent.seeder == 1) {
-            tempTorrent.searchRating = tempTorrent.searchRating / 10;
-            tempTorrent.debugRating += String.format("🚄: 🐌 %.2f", tempTorrent.searchRating / 10);
+            speedRating = tempTorrent.searchRating / 10.0;
+            tempTorrent.searchRating = speedRating;
+            tempTorrent.debugRating += String.format("🚄: 🐌 %.2f", speedRating);
         } else {
+            speedRating = seedRatioOptimized;
             tempTorrent.searchRating += seedRatioOptimized;
             tempTorrent.debugRating += String.format("🚄: %.2f", seedRatioOptimized);
         }
+
+        // searchRatingNew Calc
+
+        tempTorrent.searchRatingNew =
+            matchedScoreOfSearch * (matchedScoreOfTorrent + sizeRating + speedRating + additionalRating);
+        tempTorrent.debugRatingNew = String
+            .format("%.2f * (%.2f + %.2f + %.2f + %.2f)", matchedScoreOfSearch, matchedScoreOfTorrent, sizeRating,
+                speedRating, additionalRating);
+
         return tempTorrent;
     }
 
     public static String getNormalizedTorrentString(String name) {
         String lowerCase = name.replaceAll(REGEX_RELEASE_GROUP, "").toLowerCase();
         return lowerCase.trim()
+            .replaceAll("['`´!]", "")
             .replaceAll(",", ".")
             .replaceAll("\\[[A-Za-z0-9. -]*\\]", "")
             .replaceAll(TAG_REGEX, ".")
@@ -168,6 +186,7 @@ public class TorrentHelper {
     public static String getNormalizedTorrentStringWithSpaces(String name) {
         String lowerCase = name.replaceAll(REGEX_RELEASE_GROUP, "").toLowerCase().replaceAll("\"", "");
         return lowerCase.trim()
+            .replaceAll("['`´!]", "")
             .replaceAll("\\[[a-z0-9. -]*\\]", "")
             .replaceAll(",", ".")
             .replaceAll(TAG_REGEX, ".")
