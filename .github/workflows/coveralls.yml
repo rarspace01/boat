@@ -34,7 +34,7 @@ jobs:
       - name: Build with Gradle
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: ./gradlew assemble coveralls
+        run: ./gradlew jacocoTestReport assemble coveralls
       - name: Coveralls GitHub Action
         # You may pin to the exact commit or the version.
         # uses: coverallsapp/github-action@8cbef1dea373ebce56de0a14c68d6267baa10b44
