@@ -44,7 +44,7 @@ class TorrentHelperTest {
         TorrentHelper.evaluateRating(torrent1, "Test Movie");
         TorrentHelper.evaluateRating(torrent2, "Test Movie");
         // Then
-        assertTrue(torrent1.searchRatingOld < torrent2.searchRatingOld);
+        assertTrue(torrent1.searchRating < torrent2.searchRating);
     }
 
     @Test
@@ -65,7 +65,7 @@ class TorrentHelperTest {
         TorrentHelper.evaluateRating(torrent1, "Planet Movie");
         TorrentHelper.evaluateRating(torrent2, "Planet Movie");
         // Then
-        assertTrue(torrent1.searchRatingOld < torrent2.searchRatingOld);
+        assertTrue(torrent1.searchRating < torrent2.searchRating);
     }
 
     @Test
@@ -86,7 +86,7 @@ class TorrentHelperTest {
         TorrentHelper.evaluateRating(torrent1, "Test Title");
         TorrentHelper.evaluateRating(torrent2, "Test Title");
         // Then
-        assertTrue(torrent1.searchRatingOld > torrent2.searchRatingOld);
+        assertTrue(torrent1.searchRating > torrent2.searchRating);
     }
 
     @Test
@@ -107,7 +107,7 @@ class TorrentHelperTest {
         TorrentHelper.evaluateRating(torrent1, "Test Title");
         TorrentHelper.evaluateRating(torrent2, "Test Title");
         // Then
-        assertTrue(torrent1.searchRatingOld < torrent2.searchRatingOld);
+        assertTrue(torrent1.searchRating < torrent2.searchRating);
     }
 
     @Test
@@ -123,7 +123,7 @@ class TorrentHelperTest {
         // When
         TorrentHelper.evaluateRating(torrent1, "planet earth 2006");
         // Then
-        assertTrue(torrent1.searchRatingOld > 0);
+        assertTrue(torrent1.searchRating > 0);
     }
     //
 
@@ -139,8 +139,8 @@ class TorrentHelperTest {
         // When
         TorrentHelper.evaluateRating(torrent1, "movie title");
         // Then
-        assertTrue(torrent1.searchRatingOld > 0);
-        assertTrue(torrent1.debugRatingOld.contains("📅"));
+        assertTrue(torrent1.searchRating > 0);
+        assertTrue(torrent1.debugRating.contains("📅"));
     }
     @Test
     void shouldRateTorrentNameShouldDetectAllWordsIncludingYear2() {
@@ -170,8 +170,8 @@ class TorrentHelperTest {
         // When
         TorrentHelper.evaluateRating(torrent1, "movie title");
         // Then
-        assertTrue(torrent1.searchRatingOld > 0);
-        assertFalse(torrent1.debugRatingOld.contains("📅"));
+        assertTrue(torrent1.searchRating > 0);
+        assertFalse(torrent1.debugRating.contains("📅"));
     }
 
     @Test
@@ -186,8 +186,8 @@ class TorrentHelperTest {
         // When
         TorrentHelper.evaluateRating(torrent1, "the movie of books");
         // Then
-        assertTrue(torrent1.searchRatingOld > 0);
-        assertFalse(torrent1.debugRatingOld.contains("\uD83D\uDD0D:2.40"));
+        assertTrue(torrent1.searchRating > 0);
+        assertFalse(torrent1.debugRating.contains("\uD83D\uDD0D:2.40"));
     }
 
     @Test
@@ -209,7 +209,7 @@ class TorrentHelperTest {
         TorrentHelper.evaluateRating(torrent1, "the movie of books");
         TorrentHelper.evaluateRating(torrent2, "the movie of books");
         // Then
-        assertTrue(torrent1.searchRatingOld == torrent2.searchRatingOld);
+        assertTrue(torrent1.searchRating == torrent2.searchRating);
     }
 
     @Test
@@ -224,7 +224,7 @@ class TorrentHelperTest {
         TorrentHelper.evaluateRating(torrent1, "Test Title S03E01");
         TorrentHelper.evaluateRating(torrent2, "Test Title S03E01");
         // Then
-        assertEquals(torrent1.searchRatingOld, torrent2.searchRatingOld);
+        assertEquals(torrent1.searchRating, torrent2.searchRating);
     }
 
 }
