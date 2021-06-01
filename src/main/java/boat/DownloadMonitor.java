@@ -163,6 +163,7 @@ public class DownloadMonitor {
 
             // search all & sort & download first
             final Map<MediaItem, Torrent> mapOfTorrents = queueService.getQueue().stream()
+                .limit(20)
                 .map(mediaItem -> new SimpleEntry<>(mediaItem,
                     torrentSearchEngineService.cachedSearchTorrents(getSearchNameFrom(mediaItem)).stream().findFirst()
                         .orElse(null)))
