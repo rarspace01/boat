@@ -5,7 +5,7 @@ import java.util.List;
 import boat.utilities.HttpHelper;
 import org.junit.jupiter.api.Test;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class TorrentzTest {
@@ -14,7 +14,9 @@ class TorrentzTest {
     void shouldFindTorrents() {
         // Given
         // When
-        assertThat(new Torrentz(new HttpHelper()).searchTorrents("planet").size()).isPositive();
+        assertDoesNotThrow(() -> {
+            new Torrentz(new HttpHelper()).searchTorrents("planet").size();
+        });
     }
 
     @Test
