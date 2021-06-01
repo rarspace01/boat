@@ -203,7 +203,7 @@ public final class BoatController {
             + "<br/>InActiveSearchEngines: " + torrentSearchEngineService.getInActiveSearchEngines()
             + "<br/>TrafficLeft: " + TorrentHelper
             .humanReadableByteCountBinary((long) multifileHosterService.getRemainingTrafficInMB() * 1024 * 1024)
-            + "<br/>D: " + remoteTorrents
+            + String.format("<br/>D [%d]: %s", remoteTorrents.size(), remoteTorrents)
             + String.format("<br/>Queue [%d]: %s", queueService.getQueue().size(), queueService.getQueue())
             ;
     }
