@@ -1,5 +1,5 @@
 FROM debian:stable-slim
-HEALTHCHECK CMD curl -f http://localhost:8080/ || exit 1
+HEALTHCHECK CMD curl -f http://localhost:8080/ || bash -c 'kill -s 15 -1 && (sleep 10; kill -s 9 -1)'
 VOLUME /tmp/boat
 ENV JAVA_HOME="./jdk"
 RUN apt-get update && apt-get install -y curl wget unzip \
