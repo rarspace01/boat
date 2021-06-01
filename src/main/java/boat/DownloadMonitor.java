@@ -165,8 +165,7 @@ public class DownloadMonitor {
             final Map<MediaItem, Torrent> mapOfTorrents = queueService.getQueue().stream()
                 .limit(20)
                 .map(mediaItem -> new SimpleEntry<>(mediaItem,
-                    torrentSearchEngineService.cachedSearchTorrents(getSearchNameFrom(mediaItem)).stream().findFirst()
-                        .orElse(null)))
+                    torrentSearchEngineService.cachedSearchTorrent(getSearchNameFrom(mediaItem))))
                 .filter(mediaItemTorrentSimpleEntry -> mediaItemTorrentSimpleEntry.getValue() != null)
                 .collect(Collectors.toMap(SimpleEntry::getKey, SimpleEntry::getValue));
             mapOfTorrents.entrySet().stream()

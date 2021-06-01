@@ -65,10 +65,9 @@ public class TorrentSearchEngineService {
             .collect(Collectors.toList());
     }
 
-    @NotNull
     @Cacheable("searchCache")
-    public List<Torrent> cachedSearchTorrents(String searchString) {
-        return searchTorrents(searchString);
+    public Torrent cachedSearchTorrent(String searchString) {
+        return searchTorrents(searchString).stream().findFirst().orElse(null);
     }
 
     @NotNull
