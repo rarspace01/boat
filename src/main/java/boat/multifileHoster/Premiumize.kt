@@ -173,7 +173,7 @@ class Premiumize(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoste
                 tempTorrent.file_id = localNode["file_id"].asText()
                 tempTorrent.folder_id = cleanJsonNull(tempTorrent.folder_id)
                 tempTorrent.file_id = cleanJsonNull(tempTorrent.file_id)
-                tempTorrent.remoteId = localNode["id"].toString().replace("\"", "")
+                tempTorrent.remoteId = localNode["id"].asText()
                 tempTorrent.status = localNode["status"].asText()
                 val src = localNode["src"].asText()
                 if (src.contains("btih")) {
@@ -200,7 +200,10 @@ class Premiumize(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoste
         val removeTorrenntUrl = "https://www.premiumize.me/api/transfer/delete?id=" + remoteTorrent.remoteId + "&" +
                 "&apikey=" + PropertiesHelper.getProperty("PREMIUMIZE_APIKEY") +
                 "&type=hello.torrent&src=" + remoteTorrent.magnetUri
-        httpHelper.getPage(removeTorrenntUrl)
+        val page = httpHelper.getPage(removeTorrenntUrl)
+        if (!page.contains("success")) {
+            log.error("Deleting failed: {}", removeTorrenntUrl)
+        }
     }
 
     override fun enrichCacheStateOfTorrents(torrents: List<Torrent>) {
