@@ -6,11 +6,14 @@ import java.net.URLDecoder;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.springframework.cache.Cache;
@@ -33,6 +36,7 @@ import boat.torrent.TorrentType;
 import boat.utilities.ProcessUtil;
 import boat.utilities.PropertiesHelper;
 import boat.utilities.StreamGobbler;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -147,21 +151,50 @@ public class DownloadMonitor {
             .count();
         if (numberOfActiveRemoteTorrents < 20
             && multifileHosterService.getRemainingTrafficInMB() > MIN_GB_FOR_QUEUE * 1024) {
-            final MediaItem mediaItem = queueService.getQueue().stream().findFirst().orElse(null);
-            if (mediaItem != null) {
-                final Integer year = mediaItem.getYear();
-                String searchName = mediaItem.getTitle() + (year != null ? " " + year : "");
-                searchName = TorrentHelper.getNormalizedTorrentStringWithSpaces(searchName).replaceAll("['!]", "");
-                final List<String> existingFiles = cloudService
-                    .findExistingFiles(searchName);
-                if (existingFiles.isEmpty()) {
-                    torrentSearchEngineService.searchTorrents(searchName)
-                        .stream().findFirst().ifPresent(multifileHosterService::addTorrentToQueue);
-                }
-                queueService.remove(mediaItem);
+
+            // drop existing entries
+            queueService.getQueue().stream()
+                .filter(this::isAlreadyDownloaded)
+                .forEach(this::removeFromQueue);
+
+            // search all & sort & download first
+            final Stream<SimpleEntry<MediaItem, Torrent>> streamOfTorrents = queueService.getQueue().stream()
+                .map(mediaItem1 -> new SimpleEntry<>(mediaItem1,
+                    torrentSearchEngineService.searchTorrents(getSearchNameFrom(mediaItem1)).stream().findFirst()
+                        .orElse(null)))
+                .filter(mediaItemTorrentSimpleEntry -> mediaItemTorrentSimpleEntry.getValue() != null);
+            final List<String> doubles = streamOfTorrents
+                .map(mediaItemTorrentSimpleEntry -> String
+                    .format("%.2f", mediaItemTorrentSimpleEntry.getValue().searchRating))
+                .collect(Collectors.toList());
+            streamOfTorrents
+                .min(Map.Entry.comparingByValue()).ifPresent(mediaItemTorrentSimpleEntry -> {
+                log.info("picked {} from {}", mediaItemTorrentSimpleEntry.getValue().searchRating,
+                    String.join(",", doubles));
+                multifileHosterService.addTorrentToQueue(mediaItemTorrentSimpleEntry.getValue());
+                queueService.remove(mediaItemTorrentSimpleEntry.getKey());
                 queueService.saveQueue();
-            }
+            });
         }
+    }
+
+    private void removeFromQueue(MediaItem mediaItem) {
+        queueService.remove(mediaItem);
+        queueService.saveQueue();
+    }
+
+    private boolean isAlreadyDownloaded(MediaItem mediaItem) {
+        final List<String> existingFiles = cloudService
+            .findExistingFiles(getSearchNameFrom(mediaItem));
+        return !existingFiles.isEmpty();
+    }
+
+    @NotNull
+    private String getSearchNameFrom(MediaItem mediaItem) {
+        final Integer year = mediaItem.getYear();
+        String searchName = mediaItem.getTitle() + (year != null ? " " + year : "");
+        searchName = TorrentHelper.getNormalizedTorrentStringWithSpaces(searchName).replaceAll("['!]", "");
+        return searchName;
     }
 
     private boolean isRcloneInstalled() {
