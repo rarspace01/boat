@@ -74,9 +74,7 @@ public class TorrentHelper {
     }
 
     public static Torrent evaluateRating(Torrent tempTorrent, String searchName) {
-        tempTorrent.debugRatingOld = "";
         tempTorrent.debugRating = "";
-        tempTorrent.searchRatingOld = 0.0;
         tempTorrent.searchRating = 0.0;
 
         String debugAdditional = "";
@@ -106,19 +104,15 @@ public class TorrentHelper {
         });
         double matchedScoreOfTorrent = (double) matches.get() / (double) torrentWordCount;
         double matchedScoreOfSearch = (double) matches.get() / (double) searchWords.size();
-        final double searchRating = matchedScoreOfTorrent * matchedScoreOfSearch * 3;
-        tempTorrent.searchRatingOld += searchRating;
 
         // bonus for year in torrentName
         if (normalizedTorrentNameWithSpaces.matches(".*[1-2][09][0-9][0-9].*")) {
             additionalRating += 0.5;
-            tempTorrent.searchRatingOld += 0.5;
             debugAdditional += "📅";
         }
 
         // calc first range
         double sizeRating = Math.min(tempTorrent.lsize, SIZE_UPPER_LIMIT) / SIZE_UPPER_LIMIT;
-        tempTorrent.searchRatingOld += sizeRating;
         // calculate seeder ratio
         double seedRatio = (double) tempTorrent.seeder / Math.max((double) tempTorrent.leecher, 0.1);
         double seedRatioOptimized;
@@ -133,28 +127,22 @@ public class TorrentHelper {
         if (TorrentType.MOVIES.equals(typeOfMedia)
             || TorrentType.SERIES_SHOWS.equals(typeOfMedia)) {
             additionalRating += 1;
-            tempTorrent.searchRatingOld += 1;
             debugAdditional += "🎬";
         }
         if (tempTorrent.isVerified) {
             additionalRating += 0.25;
-            tempTorrent.searchRatingOld += 0.25;
             debugAdditional += "✅";
         }
         double speedRating;
         if (tempTorrent.cached.size() > 0) {
-            tempTorrent.searchRatingOld += 2;
             debugAdditional += "⚡";
             speedRating = 2;
         } else if (seedRatio > 1.0) {
             speedRating = Math.min(seedRatioOptimized, SEED_RATIO_UPPER_LIMIT) / SEED_RATIO_UPPER_LIMIT;
-            tempTorrent.searchRatingOld += speedRating;
         } else if (tempTorrent.seeder == 1) {
             speedRating = seedRatioOptimized / 10.0;
-            tempTorrent.searchRatingOld = speedRating;
         } else {
             speedRating = seedRatioOptimized;
-            tempTorrent.searchRatingOld += seedRatioOptimized;
         }
 
         // searchRatingNew Calc
