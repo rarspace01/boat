@@ -13,7 +13,7 @@ internal class BluRayComServiceTest {
 
         // Given
         // When
-        val releasesForMonthAndYear = bluRayComService.getReleasesForMonthAndYear(0, 2021)
+        val releasesForMonthAndYear = bluRayComService.getReleasesForMonthAndYear(1, 2021)
         // Then
         assertThat(releasesForMonthAndYear.size).isGreaterThan(0)
     }
