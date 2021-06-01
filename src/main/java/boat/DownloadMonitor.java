@@ -168,7 +168,7 @@ public class DownloadMonitor {
                     .format("%.2f", mediaItemTorrentSimpleEntry.getValue().searchRating))
                 .collect(Collectors.toList());
             streamOfTorrents
-                .min(Map.Entry.comparingByValue()).ifPresent(mediaItemTorrentSimpleEntry -> {
+                .min(Map.Entry.comparingByValue(TorrentHelper.torrentSorter)).ifPresent(mediaItemTorrentSimpleEntry -> {
                 log.info("picked {} from {}", mediaItemTorrentSimpleEntry.getValue().searchRating,
                     String.join(",", doubles));
                 multifileHosterService.addTorrentToQueue(mediaItemTorrentSimpleEntry.getValue());
