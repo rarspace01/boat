@@ -66,7 +66,7 @@ public class TorrentSearchEngineService {
     }
 
     @NotNull
-    @Cacheable
+    @Cacheable("searchCache")
     public List<Torrent> cachedSearchTorrents(String searchString) {
         return searchTorrents(searchString);
     }
