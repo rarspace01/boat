@@ -158,19 +158,19 @@ public class DownloadMonitor {
                 .forEach(this::removeFromQueue);
 
             // search all & sort & download first
-            final Stream<SimpleEntry<MediaItem, Torrent>> streamOfTorrents = queueService.getQueue().stream()
+            final Map<MediaItem, Torrent> mapOfTorrents = queueService.getQueue().stream()
                 .map(mediaItem1 -> new SimpleEntry<>(mediaItem1,
                     torrentSearchEngineService.searchTorrents(getSearchNameFrom(mediaItem1)).stream().findFirst()
                         .orElse(null)))
-                .filter(mediaItemTorrentSimpleEntry -> mediaItemTorrentSimpleEntry.getValue() != null);
-            final List<String> doubles = streamOfTorrents
+                .filter(mediaItemTorrentSimpleEntry -> mediaItemTorrentSimpleEntry.getValue() != null)
+                .collect(Collectors.toMap(SimpleEntry::getKey, SimpleEntry::getValue));
+            final List<String> doubles = mapOfTorrents.entrySet().stream()
                 .map(mediaItemTorrentSimpleEntry -> String
                     .format("%.2f", mediaItemTorrentSimpleEntry.getValue().searchRating))
                 .collect(Collectors.toList());
-            streamOfTorrents
+            mapOfTorrents.entrySet().stream()
                 .min(Map.Entry.comparingByValue(TorrentHelper.torrentSorter)).ifPresent(mediaItemTorrentSimpleEntry -> {
-                log.info("picked {} from {}", mediaItemTorrentSimpleEntry.getValue().searchRating,
-                    String.join(",", doubles));
+                log.info("picked {} from {}", mediaItemTorrentSimpleEntry.getValue(), String.join(",", doubles));
                 multifileHosterService.addTorrentToQueue(mediaItemTorrentSimpleEntry.getValue());
                 queueService.remove(mediaItemTorrentSimpleEntry.getKey());
                 queueService.saveQueue();
@@ -266,7 +266,7 @@ public class DownloadMonitor {
                         currentFileNumber++;
                         updateUploadStatus(torrentToBeDownloaded, filesFromTorrent, currentFileNumber, startTime);
                     }
-                    wasDownloadSuccessful = failedUploads > 0;
+                    wasDownloadSuccessful = failedUploads == 0;
                     multifileHosterService.delete(torrentToBeDownloaded);
                 }
             } catch (Exception exception) {
@@ -380,6 +380,7 @@ public class DownloadMonitor {
             Executors.newSingleThreadExecutor().submit(streamGobbler);
             exitCode = process.waitFor();
         } catch (IOException | InterruptedException e) {
+            log.error("upload failed: {}", destinationPath);
             log.error(e.getMessage());
             return false;
         }
