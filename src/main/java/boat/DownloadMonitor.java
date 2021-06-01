@@ -168,13 +168,9 @@ public class DownloadMonitor {
                         .orElse(null)))
                 .filter(mediaItemTorrentSimpleEntry -> mediaItemTorrentSimpleEntry.getValue() != null)
                 .collect(Collectors.toMap(SimpleEntry::getKey, SimpleEntry::getValue));
-            final List<String> doubles = mapOfTorrents.values().stream()
-                .map(torrent -> String
-                    .format("%.2f", torrent.searchRating))
-                .collect(Collectors.toList());
             mapOfTorrents.entrySet().stream()
                 .min(Map.Entry.comparingByValue(TorrentHelper.torrentSorter)).ifPresent(mediaItemTorrentSimpleEntry -> {
-                log.info("picked {} from {}", mediaItemTorrentSimpleEntry.getValue(), String.join(",", doubles));
+                log.info("picked {}", mediaItemTorrentSimpleEntry.getValue().name);
                 multifileHosterService.addTorrentToQueue(mediaItemTorrentSimpleEntry.getValue());
                 queueService.remove(mediaItemTorrentSimpleEntry.getKey());
                 queueService.saveQueue();
