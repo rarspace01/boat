@@ -392,6 +392,7 @@ public class DownloadMonitor {
             log.error("upload failed: {}", destinationPath);
             return false;
         } else {
+            log.info("DF>[{}]", destinationPath);
             return true;
         }
     }
