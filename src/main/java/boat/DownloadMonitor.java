@@ -6,14 +6,11 @@ import java.net.URLDecoder;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.AbstractMap.SimpleEntry;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.springframework.cache.Cache;
@@ -162,18 +159,28 @@ public class DownloadMonitor {
                 .forEach(this::removeFromQueue);
 
             // search all & sort & download first
-            final Map<MediaItem, Torrent> mapOfTorrents = queueService.getQueue().stream()
-                .limit(20)
-                .map(mediaItem -> new SimpleEntry<>(mediaItem,
-                    torrentSearchEngineService.cachedSearchTorrent(getSearchNameFrom(mediaItem))))
-                .filter(mediaItemTorrentSimpleEntry -> mediaItemTorrentSimpleEntry.getValue() != null)
-                .collect(Collectors.toMap(SimpleEntry::getKey, SimpleEntry::getValue));
-            mapOfTorrents.entrySet().stream()
-                .min(Map.Entry.comparingByValue(TorrentHelper.torrentSorter)).ifPresent(mediaItemTorrentSimpleEntry -> {
-                log.info("picked {}", mediaItemTorrentSimpleEntry.getValue().name);
-                multifileHosterService.addTorrentToQueue(mediaItemTorrentSimpleEntry.getValue());
-                queueService.remove(mediaItemTorrentSimpleEntry.getKey());
-                queueService.saveQueue();
+//            final Map<MediaItem, Torrent> mapOfTorrents = queueService.getQueue().stream()
+//                .limit(20)
+//                .map(mediaItem -> new SimpleEntry<>(mediaItem,
+//                    torrentSearchEngineService.cachedSearchTorrent(getSearchNameFrom(mediaItem))))
+//                .filter(mediaItemTorrentSimpleEntry -> mediaItemTorrentSimpleEntry.getValue() != null)
+//                .collect(Collectors.toMap(SimpleEntry::getKey, SimpleEntry::getValue));
+//            mapOfTorrents.entrySet().stream()
+//                .min(Map.Entry.comparingByValue(TorrentHelper.torrentSorter)).ifPresent(mediaItemTorrentSimpleEntry -> {
+//                log.info("picked {}", mediaItemTorrentSimpleEntry.getValue().name);
+//                multifileHosterService.addTorrentToQueue(mediaItemTorrentSimpleEntry.getValue());
+//                queueService.remove(mediaItemTorrentSimpleEntry.getKey());
+//                queueService.saveQueue();
+//            });
+            queueService.getQueue().stream().findFirst().ifPresent(mediaItem -> {
+                log.info("picked {}", mediaItem);
+                torrentSearchEngineService.searchTorrents(getSearchNameFrom(mediaItem)).stream()
+                    .findFirst()
+                    .ifPresent(torrent -> {
+                        multifileHosterService.addTorrentToQueue(torrent);
+                        queueService.remove(mediaItem);
+                        queueService.saveQueue();
+                    });
             });
         }
     }
