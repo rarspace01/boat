@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.google.gson.JsonElement
 import com.google.gson.JsonParser
+import org.apache.logging.log4j.util.Strings
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 import org.slf4j.LoggerFactory
@@ -225,7 +226,11 @@ class Premiumize(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoste
         val collected = torrents.stream().map { obj: Torrent -> obj.torrentId }
             .collect(Collectors.joining("&items$urlEncodedBrackets=", "&items$urlEncodedBrackets=", ""))
         val checkUrl = String.format(requestUrl, collected)
-        val pageContent = httpHelper.getPage(checkUrl)
+        var pageContent = httpHelper.getPage(checkUrl)
+        if (Strings.isEmpty(pageContent)) {
+            Thread.sleep(100)
+            pageContent = httpHelper.getPage(checkUrl)
+        }
         val jsonRoot = JsonParser.parseString(pageContent)
         if (jsonRoot == null || !jsonRoot.isJsonObject) {
             log.error("couldn't retrieve cache for:$checkUrl")
