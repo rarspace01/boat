@@ -12,7 +12,7 @@ import java.util.stream.Collectors
 
 @Service
 class MultifileHosterService @Autowired constructor(httpHelper: HttpHelper?) : HttpUser(httpHelper) {
-    private val multifileHosterList: MutableList<MultifileHoster> = ArrayList()
+    private val multifileHosterList: MutableList<MultifileHoster> = mutableListOf(Premiumize(httpHelper))
     fun getCachedStateOfTorrents(returnResults: List<Torrent>): List<Torrent> {
         multifileHosterList.forEach(Consumer { multifileHoster: MultifileHoster ->
             multifileHoster.enrichCacheStateOfTorrents(
@@ -99,8 +99,4 @@ class MultifileHosterService @Autowired constructor(httpHelper: HttpHelper?) : H
         private val log = LoggerFactory.getLogger(MultifileHosterService::class.java)
     }
 
-    init {
-        multifileHosterList.add(Premiumize(httpHelper))
-        //currently disabled multifileHosterList.add(new Alldebrid(httpHelper));
-    }
 }
