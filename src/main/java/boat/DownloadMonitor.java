@@ -146,10 +146,14 @@ public class DownloadMonitor {
     }
 
     private void checkForQueueEntryAndAddToDownloads() {
-        final long numberOfActiveRemoteTorrents = multifileHosterService.getRemoteTorrents()
+        final List<Torrent> remoteTorrents = multifileHosterService.getRemoteTorrents();
+        final long numberOfActiveRemoteTorrents = remoteTorrents
             .stream().filter(torrent -> !torrent.status.equals("finished"))
             .count();
-        if (numberOfActiveRemoteTorrents < 20
+        final long numberOfTorrentsReadToDownload = remoteTorrents
+            .stream().filter(torrent -> torrent.status.equals("finished"))
+            .count();
+        if (numberOfTorrentsReadToDownload == 0 && numberOfActiveRemoteTorrents < 20
             && multifileHosterService.getRemainingTrafficInMB() > MIN_GB_FOR_QUEUE * 1024) {
 
             // drop existing entries
