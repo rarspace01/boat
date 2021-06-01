@@ -140,7 +140,7 @@ public class DownloadMonitor {
 
     @Scheduled(fixedRate = SECONDS_BETWEEN_QUEUE_POLLING * 1000)
     public void checkForQueueEntries() {
-        if (isRcloneInstalled() && cloudService.isCloudTokenValid()) {
+        if (!isDownloadInProgress && isRcloneInstalled() && cloudService.isCloudTokenValid()) {
             checkForQueueEntryAndAddToDownloads();
         }
     }
@@ -159,14 +159,14 @@ public class DownloadMonitor {
 
             // search all & sort & download first
             final Map<MediaItem, Torrent> mapOfTorrents = queueService.getQueue().stream()
-                .map(mediaItem1 -> new SimpleEntry<>(mediaItem1,
-                    torrentSearchEngineService.searchTorrents(getSearchNameFrom(mediaItem1)).stream().findFirst()
+                .map(mediaItem -> new SimpleEntry<>(mediaItem,
+                    torrentSearchEngineService.cachedSearchTorrents(getSearchNameFrom(mediaItem)).stream().findFirst()
                         .orElse(null)))
                 .filter(mediaItemTorrentSimpleEntry -> mediaItemTorrentSimpleEntry.getValue() != null)
                 .collect(Collectors.toMap(SimpleEntry::getKey, SimpleEntry::getValue));
-            final List<String> doubles = mapOfTorrents.entrySet().stream()
-                .map(mediaItemTorrentSimpleEntry -> String
-                    .format("%.2f", mediaItemTorrentSimpleEntry.getValue().searchRating))
+            final List<String> doubles = mapOfTorrents.values().stream()
+                .map(torrent -> String
+                    .format("%.2f", torrent.searchRating))
                 .collect(Collectors.toList());
             mapOfTorrents.entrySet().stream()
                 .min(Map.Entry.comparingByValue(TorrentHelper.torrentSorter)).ifPresent(mediaItemTorrentSimpleEntry -> {

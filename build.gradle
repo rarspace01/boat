@@ -2,6 +2,7 @@ buildscript {
     ext.kotlin_version = '1.5.10'
     ext.spring_boot_version = '2.5.0'
     ext.jackson_version = '2.12.3'
+    ext.lombok_version = '1.18.20'
     repositories {
         mavenCentral()
         maven {
@@ -72,11 +73,13 @@ dependencies {
     implementation group: 'com.github.ben-manes.caffeine', name: 'caffeine', version: "3.0.2"
     implementation group: 'commons-io', name: 'commons-io', version: '2.9.0'
 
-    implementation 'org.projectlombok:lombok:1.18.20'
-    annotationProcessor 'org.projectlombok:lombok:1.18.20'
+    implementation "org.projectlombok:lombok:$lombok_version"
+    annotationProcessor "org.projectlombok:lombok:$lombok_version"
 
-    testImplementation 'org.projectlombok:lombok:1.18.20'
-    testAnnotationProcessor 'org.projectlombok:lombok:1.18.20'
+    testImplementation "org.projectlombok:lombok:$lombok_version"
+    testAnnotationProcessor "org.projectlombok:lombok:$lombok_version"
+
+    //implementation "io.reactivex.rxjava3:rxjava:3.0.12"
 
     runtimeOnly("org.springframework.boot:spring-boot-properties-migrator")
     testImplementation group: 'org.mockito', name: 'mockito-core', version: '3.10.0'

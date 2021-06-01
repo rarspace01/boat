@@ -9,6 +9,7 @@ import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import boat.multifileHoster.MultifileHosterService;
@@ -62,6 +63,12 @@ public class TorrentSearchEngineService {
         return allSearchEngines.stream()
             .filter(torrentSearchEngine -> !activeSearchEngines.contains(torrentSearchEngine))
             .collect(Collectors.toList());
+    }
+
+    @NotNull
+    @Cacheable
+    public List<Torrent> cachedSearchTorrents(String searchString) {
+        return searchTorrents(searchString);
     }
 
     @NotNull
