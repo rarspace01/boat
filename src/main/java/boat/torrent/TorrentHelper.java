@@ -15,6 +15,8 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+import boat.info.MediaItem;
+
 public class TorrentHelper {
 
     public static final String REGEX_RELEASE_GROUP = "(-[A-Za-z\\s]+)";
@@ -316,5 +318,12 @@ public class TorrentHelper {
             .stream()
             .max(Entry.comparingByValue());
         return maxEntry.isPresent() ? maxEntry.get().getKey() : TorrentType.TRANSFER;
+    }
+
+    public static String getSearchNameFrom(MediaItem mediaItem) {
+        final Integer year = mediaItem.getYear();
+        String searchName = mediaItem.getTitle() + (year != null ? " " + year : "");
+        searchName = getNormalizedTorrentStringWithSpaces(searchName).replaceAll("['!]", "");
+        return searchName;
     }
 }

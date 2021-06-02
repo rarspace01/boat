@@ -139,7 +139,9 @@ public final class BoatController {
                 final String[] titles = pageWithEntries.split("\n");
                 queueService.addAll(Arrays.stream(titles).map(title ->
                     new MediaItem(title, title, null, boat.info.MediaType.Other)
-                ).collect(Collectors.toList()));
+                )
+                    .filter(this::isNotAlreadyDownloaded)
+                    .collect(Collectors.toList()));
                 queueService.saveQueue();
                 return response.toString();
             } else {
@@ -215,5 +217,10 @@ public final class BoatController {
         return "off we go";
     }
 
+    private boolean isNotAlreadyDownloaded(MediaItem mediaItem) {
+        final List<String> existingFiles = cloudService
+            .findExistingFiles(TorrentHelper.getSearchNameFrom(mediaItem));
+        return existingFiles.isEmpty();
+    }
 
 }

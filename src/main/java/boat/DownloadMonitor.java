@@ -33,7 +33,6 @@ import boat.torrent.TorrentType;
 import boat.utilities.ProcessUtil;
 import boat.utilities.PropertiesHelper;
 import boat.utilities.StreamGobbler;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -153,11 +152,6 @@ public class DownloadMonitor {
         if (numberOfTorrentsReadToDownload == 0 && numberOfActiveRemoteTorrents < 20
             && multifileHosterService.getRemainingTrafficInMB() > MIN_GB_FOR_QUEUE * 1024) {
 
-            // drop existing entries
-            queueService.getQueue().stream()
-                .filter(this::isAlreadyDownloaded)
-                .forEach(this::removeFromQueue);
-
             // search all & sort & download first
 //            final Map<MediaItem, Torrent> mapOfTorrents = queueService.getQueue().stream()
 //                .limit(20)
@@ -174,7 +168,7 @@ public class DownloadMonitor {
 //            });
             queueService.getQueue().stream().findFirst().ifPresent(mediaItem -> {
                 log.info("picked {}", mediaItem);
-                torrentSearchEngineService.searchTorrents(getSearchNameFrom(mediaItem)).stream()
+                torrentSearchEngineService.searchTorrents(TorrentHelper.getSearchNameFrom(mediaItem)).stream()
                     .findFirst()
                     .ifPresent(torrent -> {
                         multifileHosterService.addTorrentToQueue(torrent);
@@ -188,20 +182,6 @@ public class DownloadMonitor {
     private void removeFromQueue(MediaItem mediaItem) {
         queueService.remove(mediaItem);
         queueService.saveQueue();
-    }
-
-    private boolean isAlreadyDownloaded(MediaItem mediaItem) {
-        final List<String> existingFiles = cloudService
-            .findExistingFiles(getSearchNameFrom(mediaItem));
-        return !existingFiles.isEmpty();
-    }
-
-    @NotNull
-    private String getSearchNameFrom(MediaItem mediaItem) {
-        final Integer year = mediaItem.getYear();
-        String searchName = mediaItem.getTitle() + (year != null ? " " + year : "");
-        searchName = TorrentHelper.getNormalizedTorrentStringWithSpaces(searchName).replaceAll("['!]", "");
-        return searchName;
     }
 
     private boolean isRcloneInstalled() {
