@@ -1,7 +1,7 @@
 package boat.info;
 
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
@@ -87,17 +87,24 @@ public class CloudService {
 
     public List<String> findExistingFiles(String searchName) {
         final String[] strings = searchName.split(" ");
-
+        final List<String> listOfFiles = new ArrayList<>();
         ForkJoinPool customThreadPool = new ForkJoinPool(TorrentType.values().length);
         try {
-            return customThreadPool.submit(() -> Arrays.asList(TorrentType.values()).parallelStream()
-                .map(torrentType -> findFilesBasedOnStringsAndMediaType(searchName, strings, torrentType))
-                .flatMap(List::stream)
-                .collect(Collectors.toList())
-            ).get();
+            listOfFiles.addAll(customThreadPool
+                .submit(() -> Arrays.asList(TorrentType.values()).parallelStream()
+                    .map(torrentType -> findFilesBasedOnStringsAndMediaType(searchName, strings, torrentType))
+                    .flatMap(List::stream)
+                    .collect(Collectors.toList())
+                ).get());
         } catch (Exception exception) {
-            return Collections.emptyList();
+        } finally {
+            if (customThreadPool != null) {
+                customThreadPool.shutdown();
+                customThreadPool = null;
+            }
         }
+        return listOfFiles;
+
     }
 
 

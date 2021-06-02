@@ -95,6 +95,7 @@ public class TorrentSearchEngineService {
         } finally {
             if (forkJoinPool != null) {
                 forkJoinPool.shutdown();
+                forkJoinPool = null;
             }
         }
 
