@@ -16,4 +16,4 @@ COPY boat.cfg boat.cfg
 RUN mkdir -p /root/.config/rclone/
 COPY rclone.conf /root/.config/rclone/rclone.conf
 EXPOSE 8080
-CMD wget https://github.com/rarspace01/boat/releases/latest/download/boat.jar -O boat.jar && chmod +x boat.jar && ./jre/bin/java -jar boat.jar
+CMD wget https://github.com/rarspace01/boat/releases/latest/download/boat.jar -O boat.jar && chmod +x boat.jar && ./jre/bin/java -XX:+HeapDumpOnOutOfMemoryError -jar boat.jar
