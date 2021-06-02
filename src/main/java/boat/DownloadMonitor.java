@@ -172,9 +172,9 @@ public class DownloadMonitor {
                     .findFirst()
                     .ifPresent(torrent -> {
                         multifileHosterService.addTorrentToQueue(torrent);
-                        queueService.remove(mediaItem);
-                        queueService.saveQueue();
                     });
+                queueService.remove(mediaItem);
+                queueService.saveQueue();
             });
         }
     }
