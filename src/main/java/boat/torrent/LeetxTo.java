@@ -13,6 +13,8 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
+import static org.springframework.util.CollectionUtils.isEmpty;
+
 public class LeetxTo extends HttpUser implements TorrentSearchEngine {
 
     LeetxTo(HttpHelper httpHelper) {
@@ -85,7 +87,10 @@ public class LeetxTo extends HttpUser implements TorrentSearchEngine {
             }
         }
         //retrieve magneturis for torrents
-        torrentList.parallelStream().forEach(torrent -> torrent.magnetUri = retrieveMagnetUri(torrent));
+        torrentList.parallelStream().forEach(torrent -> {
+            torrent.magnetUri = retrieveMagnetUri(torrent);
+            torrent.remoteUrl = "";
+        });
 
         // remove torrents without magneturi
         return torrentList.stream().filter(TorrentHelper::isValidTorrent).collect(Collectors.toList());
@@ -94,7 +99,7 @@ public class LeetxTo extends HttpUser implements TorrentSearchEngine {
     private String retrieveMagnetUri(Torrent torrent) {
         String pageContent = httpHelper.getPage(torrent.remoteUrl);
         Document doc = Jsoup.parse(pageContent);
-        if (doc.select("* > li > a[href*=magnet]").size() > 0) {
+        if (!isEmpty(doc.select("* > li > a[href*=magnet]"))) {
             return doc.select("* > li > a[href*=magnet]").get(0).attr("href").trim();
         } else {
             return null;
