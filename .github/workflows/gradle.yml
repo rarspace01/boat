@@ -31,8 +31,8 @@ jobs:
           ALLDEBRID_APIKEY: ${{ secrets.ALLDEBRID_APIKEY }}
         run: ./gradlew build
       - name: Release
-          uses: softprops/action-gh-release@v1
-          with:
-            files: "./build/libs/boat.jar"
-          env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v1
+        with:
+          files: "./build/libs/boat.jar"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
