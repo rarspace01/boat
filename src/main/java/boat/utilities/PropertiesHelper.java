@@ -25,11 +25,11 @@ public class PropertiesHelper {
 
             if (inputStream != null) {
                 prop.load(inputStream);
+                result = prop.getProperty("version");
             } else {
-                throw new FileNotFoundException("property file '" + VERSION_FILE + "' not found in the classpath");
+                result = "version-missing";
             }
 
-            result = prop.getProperty("version");
             inputStream.close();
 
         } catch (Exception e) {
