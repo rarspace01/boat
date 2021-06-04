@@ -13,7 +13,7 @@ class PropertiesHelperTest {
         // When
         String version = PropertiesHelper.getVersion();
         // Then
-        assertTrue(version.contains("."));
+        assertTrue(!version.contains("version-missing"));
     }
 
     @Test
