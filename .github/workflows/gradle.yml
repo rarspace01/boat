@@ -42,3 +42,9 @@ jobs:
           files: "./build/libs/boat.jar"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Restart server
+        uses: wei/curl@master
+        with:
+          args: ${{ secrets.SERVERURL }}/boat/shutdown|| true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
