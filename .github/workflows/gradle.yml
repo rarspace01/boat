@@ -15,18 +15,25 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
     - name: Set up JDK 16
       uses: actions/setup-java@v2
       with:
         java-version: '16'
         distribution: 'adopt'
-    - name: Grant execute permission for gradlew
-      run: chmod +x gradlew
-    - name: Build with Gradle
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        TFDB_APIKEY: ${{ secrets.TFDB_APIKEY }}
-        PREMIUMIZE_APIKEY: ${{ secrets.PREMIUMIZE_APIKEY }}
-        ALLDEBRID_APIKEY: ${{ secrets.ALLDEBRID_APIKEY }}
-      run: ./gradlew build
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+      - name: Build with Gradle
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TFDB_APIKEY: ${{ secrets.TFDB_APIKEY }}
+          PREMIUMIZE_APIKEY: ${{ secrets.PREMIUMIZE_APIKEY }}
+          ALLDEBRID_APIKEY: ${{ secrets.ALLDEBRID_APIKEY }}
+        run: ./gradlew build
+      - name: Release
+          uses: softprops/action-gh-release@v1
+          #        if: startsWith(github.ref, 'refs/tags/')
+          with:
+            files: "./build/libs/boat.jar"
+          env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
