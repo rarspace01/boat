@@ -26,12 +26,6 @@ before_deploy:
   - git config --local user.email "rarspace01@users.noreply.github.com"
   - export TRAVIS_TAG=${TRAVIS_TAG:-$(date +'%Y%m%d%H%M%S')-$(git log --format=%h -1)}
 deploy:
-  - provider: releases
-    token: $GITHUB_APIKEY
-    file: "./build/libs/boat.jar"
-    skip_cleanup: true
-    on:
-      branch: master
   - provider: script
     script: set +e;curl $SERVERURL/boat/shutdown|| true
     on:
