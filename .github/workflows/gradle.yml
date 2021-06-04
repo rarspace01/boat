@@ -37,8 +37,8 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Release
         uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
         with:
+          tag_name: ${{ steps.tag_version.outputs.new_tag }}
           files: "./build/libs/boat.jar"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
