@@ -117,6 +117,7 @@ task createProperties(dependsOn: processResources) {
         new File("$buildDir/resources/main/version.properties").withWriter { w ->
             Properties p = new Properties()
             p['version'] = gitVersion() + "-" + getCheckedOutGitCommitHash() + "-" + new Date().format('yyyy-MM-dd HH:mm:ss')
+            println('Version:'+p['version'])
             p.store w, null
         }
     }
