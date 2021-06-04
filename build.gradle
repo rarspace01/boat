@@ -14,6 +14,7 @@ buildscript {
         classpath("org.owasp:dependency-check-gradle:6.2.0")
         classpath("gradle.plugin.org.kt3k.gradle.plugin:coveralls-gradle-plugin:2.12.0")
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        classpath "com.palantir.git-version:com.palantir.git-version.gradle.plugin:0.12.3"
     }
 }
 
@@ -26,6 +27,7 @@ apply plugin: 'io.spring.dependency-management'
 apply plugin: 'org.owasp.dependencycheck'
 apply plugin: 'jacoco'
 apply plugin: 'com.github.kt3k.coveralls'
+apply plugin: 'com.palantir.git-version'
 
 jacoco {
     toolVersion = "0.8.7+"
@@ -42,7 +44,7 @@ jacocoTestReport {
 //runtime("org.springframework.boot:spring-boot-properties-migrator")
 jar {
     archivesBaseName = 'boat'
-    archiveVersion = '0.8.11'
+    archiveVersion = gitVersion()
 }
 
 repositories {
