@@ -30,6 +30,11 @@ jobs:
           PREMIUMIZE_APIKEY: ${{ secrets.PREMIUMIZE_APIKEY }}
           ALLDEBRID_APIKEY: ${{ secrets.ALLDEBRID_APIKEY }}
         run: ./gradlew build
+      - name: Bump version and push tag
+        id: tag_version
+        uses: mathieudutour/github-tag-action@v5.5
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
