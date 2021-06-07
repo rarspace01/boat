@@ -85,7 +85,7 @@ dependencies {
 
     runtimeOnly("org.springframework.boot:spring-boot-properties-migrator")
     testImplementation group: 'org.mockito', name: 'mockito-core', version: '3.10.0'
-    testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: '3.10.0'
+    testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: '3.11.0'
     testImplementation "io.mockk:mockk:1.11.0"
     testImplementation('org.junit.jupiter:junit-jupiter:5.7.2')
     testImplementation("org.springframework.boot:spring-boot-starter-test:$spring_boot_version")
