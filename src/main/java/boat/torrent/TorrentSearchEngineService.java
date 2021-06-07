@@ -33,7 +33,6 @@ public class TorrentSearchEngineService {
             new SolidTorrents(httpHelper),
             new LeetxTo(httpHelper),
             new YTS(httpHelper),
-            new RARBG(httpHelper),
             new Torrentz(httpHelper),
             new MagnetDL(httpHelper),
             new LimeTorrents(httpHelper),
