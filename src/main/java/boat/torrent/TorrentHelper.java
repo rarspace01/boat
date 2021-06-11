@@ -116,10 +116,15 @@ public class TorrentHelper {
         // calc first range
         double sizeRating = Math.min(tempTorrent.lsize, SIZE_UPPER_LIMIT) / SIZE_UPPER_LIMIT;
         // calculate seeder ratio
-        double seedRatio = (double) tempTorrent.seeder / Math.max((double) tempTorrent.leecher, 0.1);
+        double seedRatio;
+        if (tempTorrent.leecher > 0) {
+            seedRatio = (double) tempTorrent.seeder / (double) tempTorrent.leecher;
+        } else {
+            seedRatio = tempTorrent.seeder;
+        }
         double seedRatioOptimized;
         if (tempTorrent.seeder >= 1 && tempTorrent.seeder <= 3) {
-            seedRatioOptimized = 1.0;
+            seedRatioOptimized = 1.0 / Math.max(tempTorrent.leecher, 0.1);
         } else {
             seedRatioOptimized = seedRatio;
         }
@@ -152,9 +157,13 @@ public class TorrentHelper {
             matchedScoreOfSearch * (matchedScoreOfTorrent + sizeRating + speedRating + additionalRating);
 
         tempTorrent.debugRating = String
-            .format("🔍%.2f * (🔦%.2f + 📦%.2f + 🚄%.2f + 🧮%.2f - %s)", matchedScoreOfSearch, matchedScoreOfTorrent,
+            .format("🔍%.2f * (🔦%.2f + 📦%.2f + 🚄%.2f (%.2f) + 🧮%.2f - %s)", matchedScoreOfSearch,
+                matchedScoreOfTorrent,
                 sizeRating,
-                speedRating, additionalRating, debugAdditional);
+                speedRating,
+                seedRatioOptimized,
+                additionalRating,
+                debugAdditional);
 
         return tempTorrent;
     }
