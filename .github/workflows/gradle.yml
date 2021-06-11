@@ -63,4 +63,4 @@ jobs:
           PREMIUMIZE_APIKEY: ${{ secrets.PREMIUMIZE_APIKEY }}
           ALLDEBRID_APIKEY: ${{ secrets.ALLDEBRID_APIKEY }}
         run: ./gradlew clean build
-      - run: native-image
+      - run: native-image --no-server --no-fallback --allow-incomplete-classpath -jar "./build/libs/boat.jar"
