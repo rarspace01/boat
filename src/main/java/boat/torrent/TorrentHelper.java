@@ -124,7 +124,7 @@ public class TorrentHelper {
         }
         double seedRatioOptimized;
         if (tempTorrent.seeder >= 1 && tempTorrent.seeder <= 3) {
-            seedRatioOptimized = 1.0 / Math.max(tempTorrent.leecher, 0.1);
+            seedRatioOptimized = 1.0 / Math.max(tempTorrent.leecher, 1);
         } else {
             seedRatioOptimized = seedRatio;
         }
