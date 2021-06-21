@@ -19,4 +19,4 @@ Build Status:
 
 [![Java CI with Gradle](https://github.com/rarspace01/boat/actions/workflows/gradle.yml/badge.svg)](https://github.com/rarspace01/boat/actions/workflows/gradle.yml)
 
-[![Coverage Status](https://coveralls.io/repos/github/rarspace01/boat/badge.svg?branch=master)](https://coveralls.io/github/rarspace01/boat?branch=master)
+[![Coverage Status](https://coveralls.io/repos/github/rarspace01/boat/badge.svg?branch=main)](https://coveralls.io/github/rarspace01/boat?branch=main)
