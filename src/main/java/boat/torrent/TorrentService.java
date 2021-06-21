@@ -39,6 +39,26 @@ public class TorrentService {
         }
     }
 
+    public List<String> getAllTrackerUrls() {
+        if (trackerList.size() > 0) {
+            return trackerList;
+        }
+        AtomicInteger currentChars = new AtomicInteger(0);
+        List<String> trackerList = new ArrayList<>();
+        try {
+            InputStream inputStream = TorrentService.class.getResourceAsStream("/trackers.txt");
+            InputStreamReader inputStreamReader = new InputStreamReader(inputStream, Charset.defaultCharset());
+            BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+            String line;
+            while ((line = bufferedReader.readLine()) != null) {
+                trackerList.add(line);
+            }
+            return trackerList;
+        } catch (IOException e) {
+            return Collections.emptyList();
+        }
+    }
+
     public List<String> getReleaseTags() {
         if (releaseTags.size() > 0) {
             return releaseTags;

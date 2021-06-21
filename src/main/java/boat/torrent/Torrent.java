@@ -19,8 +19,8 @@ public class Torrent implements Comparable<Torrent> {
     //public long size;
     public String size;
     public double lsize;
-    public int seeder;
-    public int leecher;
+    public int seeder = -1;
+    public int leecher = -1;
     public String magnetUri;
     public String category;
     public double searchRating = 0.0;

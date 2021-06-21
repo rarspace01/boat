@@ -24,9 +24,11 @@ public class TorrentSearchEngineService {
     private final List<TorrentSearchEngine> activeSearchEngines = new ArrayList<>();
     private final List<TorrentSearchEngine> allSearchEngines;
     private final MultifileHosterService multifileHosterService;
+    private final TorrentInfoService torrentInfoService;
 
     @Autowired
-    public TorrentSearchEngineService(HttpHelper httpHelper, MultifileHosterService multifileHosterService) {
+    public TorrentSearchEngineService(HttpHelper httpHelper, MultifileHosterService multifileHosterService,
+                                      TorrentInfoService torrentInfoService) {
         this.allSearchEngines = Arrays.asList(
             new PirateBay(httpHelper),
             new NyaaSi(httpHelper),
@@ -39,6 +41,7 @@ public class TorrentSearchEngineService {
             new Zooqle(httpHelper)
         );
         this.multifileHosterService = multifileHosterService;
+        this.torrentInfoService = torrentInfoService;
         this.activeSearchEngines.addAll(allSearchEngines);
     }
 
@@ -105,6 +108,11 @@ public class TorrentSearchEngineService {
         //log.info("Cleanup took {}ms", Instant.now().toEpochMilli() - afterRemoteSearch.toEpochMilli());
         //final Instant afterCleanup = Instant.now();
         List<Torrent> cacheStateOfTorrents = multifileHosterService.getCachedStateOfTorrents(returnResults);
+
+        //final Instant preRefresh = Instant.now();
+        torrentInfoService.refreshTorrentStats(cacheStateOfTorrents);
+        //log.info("refreshTorrentStats took {}ms", Instant.now().toEpochMilli() - preRefresh.toEpochMilli());
+
         //log.info("Cache info took {}ms", Instant.now().toEpochMilli() - afterCleanup.toEpochMilli());
 
         return cacheStateOfTorrents

@@ -16,6 +16,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import boat.info.MediaItem;
+import org.apache.commons.codec.net.URLCodec;
 
 public class TorrentHelper {
 
@@ -263,6 +264,10 @@ public class TorrentHelper {
         } catch (UnsupportedEncodingException e) {
             return string;
         }
+    }
+
+    public static String urlEncode(byte[] string) {
+        return new String(new URLCodec().encode(string));
     }
 
     public static String buildMagnetUriFromHash(final String hash, final String torrentName) {

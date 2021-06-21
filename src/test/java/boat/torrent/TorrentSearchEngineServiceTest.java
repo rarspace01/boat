@@ -11,7 +11,7 @@ class TorrentSearchEngineServiceTest {
     @Test
     void cleanDuplicates() {
         // Given
-        final TorrentSearchEngineService tse = new TorrentSearchEngineService(null, null);
+        final TorrentSearchEngineService tse = new TorrentSearchEngineService(null, null, null);
 
         final Torrent s1 = new Torrent("S1");
         final Torrent s2 = new Torrent("S2");

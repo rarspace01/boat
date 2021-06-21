@@ -83,10 +83,12 @@ public class HttpHelper {
             String contentType = connection.getHeaderField("Content-Type");
             String charset = null;
 
-            for (String param : contentType.replace(" ", "").split(";")) {
-                if (param.startsWith("charset=")) {
-                    charset = param.split("=", 2)[1];
-                    break;
+            if (contentType != null) {
+                for (String param : contentType.replace(" ", "").split(";")) {
+                    if (param.startsWith("charset=")) {
+                        charset = param.split("=", 2)[1];
+                        break;
+                    }
                 }
             }
 
