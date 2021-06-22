@@ -32,6 +32,7 @@ import boat.utilities.HttpHelper;
 import boat.utilities.PropertiesHelper;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.validator.routines.UrlValidator;
 import org.apache.logging.log4j.util.Strings;
 
 @Slf4j
@@ -40,6 +41,8 @@ public final class BoatController {
 
     public static final String BREAK_LINK_HTML = "  <br>\n";
     private final String switchToProgress = "<a href=\"../debug\">Show Progress</a> ";
+    private final String switchToSearchList = "<a href=\"../searchList\">Search a List</a> ";
+    private final String switchToSearch = "<a href=\"../search\">Search a single Title</a> ";
     private final HttpHelper httpHelper;
     private final TorrentSearchEngineService torrentSearchEngineService;
     private final CloudService cloudService;
@@ -107,6 +110,30 @@ public final class BoatController {
             "  <input type=\"submit\" value=\"Download\" style=\"font-size: 2em; \">\n" +
             "</form>\n" +
             "<br/>\n" +
+            switchToSearchList +
+            switchToProgress.replace("..", "../boat") +
+            "</body>\n" +
+            "</html>\n";
+    }
+
+    @GetMapping({"/searchList"})
+    @NonNull
+    public final String searchList() {
+        return "<!DOCTYPE html>\n" +
+            "<html>\n" +
+            "<body style=\"font-size: 2em;\">\n" +
+            "\n" +
+            "<h2>Here to serve you</h2>\n" +
+            "<form action=\"../boat/download/\" target=\"_blank\" method=\"POST\">\n" +
+            "Download multiple movies (one per line):<br>\n" +
+            "<textarea id=\"qqq\" name=\"qqq\" rows=\"25\" cols=\"25\" style=\"font-size: 2em; \">\n"
+            + "</textarea>\n" +
+            BREAK_LINK_HTML +
+            "  <input type=\"reset\" value=\"Reset\" style=\"font-size: 2em; \">\n" +
+            "  <input type=\"submit\" value=\"Download\" style=\"font-size: 2em; \">\n" +
+            "</form>\n" +
+            "<br/>\n" +
+            switchToSearch +
             switchToProgress.replace("..", "../boat") +
             "</body>\n" +
             "</html>\n";
@@ -116,7 +143,7 @@ public final class BoatController {
     @NonNull
     public final String searchTorrents(@RequestParam(value = "q", required = false) String searchString,
                                        @RequestParam(value = "qq", required = false) String localSearchString,
-                                       @RequestParam(value = "qqq", required = false) String luckySearchUrl) {
+                                       @RequestParam(value = "qqq", required = false) String luckySearchList) {
         long startTime = System.currentTimeMillis();
         if (Strings.isNotEmpty(localSearchString)) {
             final List<String> existingFiles = cloudService.findExistingFiles(localSearchString);
@@ -132,9 +159,16 @@ public final class BoatController {
             log.info("Took: [{}]ms for [{}] found [{}]", (System.currentTimeMillis() - startTime), searchString,
                 torrentList.size());
             return "G: " + torrentList.stream().limit(25).collect(Collectors.toList());
-        } else if (Strings.isNotEmpty(luckySearchUrl)) {
+        } else if (Strings.isNotEmpty(luckySearchList)) {
             StringBuilder response = new StringBuilder();
-            final String pageWithEntries = httpHelper.getPage(luckySearchUrl);
+            String[] schemes = {"http", "https"};
+            UrlValidator urlValidator = new UrlValidator(schemes);
+            final String pageWithEntries;
+            if (urlValidator.isValid(luckySearchList)) {
+                pageWithEntries = httpHelper.getPage(luckySearchList);
+            } else {
+                pageWithEntries = luckySearchList;
+            }
             if (Strings.isNotEmpty(pageWithEntries)) {
                 final String[] titles = pageWithEntries.split("\n");
                 queueService.addAll(Arrays.stream(titles).map(title ->
