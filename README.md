@@ -18,5 +18,5 @@ openjdk version "16 2020-04-20"
 Build Status:
 
 [![Java CI with Gradle](https://github.com/rarspace01/boat/actions/workflows/gradle.yml/badge.svg)](https://github.com/rarspace01/boat/actions/workflows/gradle.yml)
-
+[![Coveralls](https://github.com/rarspace01/boat/actions/workflows/coveralls.yml/badge.svg)](https://github.com/rarspace01/boat/actions/workflows/coveralls.yml)
 [![Coverage Status](https://coveralls.io/repos/github/rarspace01/boat/badge.svg?branch=main)](https://coveralls.io/github/rarspace01/boat?branch=main)
