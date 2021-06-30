@@ -56,8 +56,8 @@ public class Torrent implements Comparable<Torrent> {
             magnetUriBase64 = Base64.getUrlEncoder().encodeToString(magnetUri.getBytes(StandardCharsets.UTF_8));
         }
 
-        stringBuilder.append(String.format("[%s]\uD83C\uDFE0[%s]", this.name, this.source.charAt(0)));
-        if (!"Premiumize".equals(source) && !"Alldebrid".equals(source)) {
+        stringBuilder.append(String.format("[%s]\uD83C\uDFE0[%s]", this.name, retrieveSourceName()));
+        if (!isRemoteTorrent()) {
             stringBuilder.append(String.format("[%s][%s/%s@%.2f]", size, leecher, seeder, seedRatio));
             stringBuilder.append(String.format("R: %.2f ", this.searchRating));
         }
@@ -88,6 +88,14 @@ public class Torrent implements Comparable<Torrent> {
         stringBuilder.append("</br>");
 
         return stringBuilder.toString();
+    }
+
+    private String retrieveSourceName() {
+        return isRemoteTorrent() && source != null ? String.valueOf(source.charAt(0)) : source;
+    }
+
+    private boolean isRemoteTorrent() {
+        return remoteId != null && remoteId.length() > 0;
     }
 
     @Override
