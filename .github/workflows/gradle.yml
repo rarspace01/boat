@@ -50,17 +50,17 @@ jobs:
           args: ${{ secrets.SERVERURL }}/boat/shutdown|| true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - uses: ayltai/setup-graalvm@v1
-        with:
-          java-version: 16
-          graalvm-version: 21.1.0
-          native-image: true
-      - run: java -version
-      - name: Build with Gradle (GraalVM)
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TFDB_APIKEY: ${{ secrets.TFDB_APIKEY }}
-          PREMIUMIZE_APIKEY: ${{ secrets.PREMIUMIZE_APIKEY }}
-          ALLDEBRID_APIKEY: ${{ secrets.ALLDEBRID_APIKEY }}
-        run: ./gradlew clean assemble
-      - run: native-image --no-server --no-fallback --allow-incomplete-classpath -jar "./build/libs/boat.jar"
+#      - uses: ayltai/setup-graalvm@v1
+#        with:
+#          java-version: 16
+#          graalvm-version: 21.1.0
+#          native-image: true
+#      - run: java -version
+#      - name: Build with Gradle (GraalVM)
+#        env:
+#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#          TFDB_APIKEY: ${{ secrets.TFDB_APIKEY }}
+#          PREMIUMIZE_APIKEY: ${{ secrets.PREMIUMIZE_APIKEY }}
+#          ALLDEBRID_APIKEY: ${{ secrets.ALLDEBRID_APIKEY }}
+#        run: ./gradlew clean assemble
+#      - run: native-image --no-server --no-fallback --allow-incomplete-classpath -jar "./build/libs/boat.jar"
