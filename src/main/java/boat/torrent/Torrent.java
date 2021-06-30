@@ -56,7 +56,7 @@ public class Torrent implements Comparable<Torrent> {
             magnetUriBase64 = Base64.getUrlEncoder().encodeToString(magnetUri.getBytes(StandardCharsets.UTF_8));
         }
 
-        stringBuilder.append(String.format("[%s]\uD83C\uDFE0[%s]", this.name, this.source));
+        stringBuilder.append(String.format("[%s]\uD83C\uDFE0[%s]", this.name, this.source.charAt(0)));
         if (!"Premiumize".equals(source) && !"Alldebrid".equals(source)) {
             stringBuilder.append(String.format("[%s][%s/%s@%.2f]", size, leecher, seeder, seedRatio));
             stringBuilder.append(String.format("R: %.2f ", this.searchRating));
