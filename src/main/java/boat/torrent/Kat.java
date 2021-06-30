@@ -32,7 +32,8 @@ public class Kat extends HttpUser implements TorrentSearchEngine {
     }
 
     private String buildSearchUrl(String searchName) {
-        return String.format(getBaseUrl() + "/usearch/%s/1/?field=seeders&sorder=desc", URLEncoder.encode(searchName, StandardCharsets.UTF_8));
+        return String.format("%s/usearch/%s/1/?field=seeders&sorder=desc", getBaseUrl(),
+            URLEncoder.encode(searchName, StandardCharsets.UTF_8));
     }
 
     @Override
@@ -55,21 +56,26 @@ public class Kat extends HttpUser implements TorrentSearchEngine {
 
                         if (element.getElementsByClass("torrents_table__torrent_title").size() > 0) {
                             //extract name
-                            tempTorrent.name = element.getElementsByClass("torrents_table__torrent_title").get(0).text();
+                            tempTorrent.name = element.getElementsByClass("torrents_table__torrent_title").get(0)
+                                .text();
                         }
                         if (element.getElementsByAttributeValueMatching("href", "magnet:").size() > 0) {
                             //extract magneturi
-                            tempTorrent.magnetUri = element.getElementsByAttributeValueMatching("href", "magnet:").attr("href").trim();
+                            tempTorrent.magnetUri = element.getElementsByAttributeValueMatching("href", "magnet:")
+                                .attr("href").trim();
                         }
                         if (element.getElementsByAttributeValueMatching("data-title", "Size").size() > 0) {
-                            tempTorrent.size = TorrentHelper.cleanNumberString(element.getElementsByAttributeValueMatching("data-title", "Size").text().trim());
+                            tempTorrent.size = TorrentHelper.cleanNumberString(
+                                element.getElementsByAttributeValueMatching("data-title", "Size").text().trim());
                             tempTorrent.lsize = TorrentHelper.extractTorrentSizeFromString(tempTorrent);
                         }
                         if (element.getElementsByAttributeValueMatching("data-title", "Seed").size() > 0) {
-                            tempTorrent.seeder = Integer.parseInt(TorrentHelper.cleanNumberString(element.getElementsByAttributeValueMatching("data-title", "Seed").text().trim()));
+                            tempTorrent.seeder = Integer.parseInt(TorrentHelper.cleanNumberString(
+                                element.getElementsByAttributeValueMatching("data-title", "Seed").text().trim()));
                         }
                         if (element.getElementsByAttributeValueMatching("data-title", "Leech").size() > 0) {
-                            tempTorrent.leecher = Integer.parseInt(TorrentHelper.cleanNumberString(element.getElementsByAttributeValueMatching("data-title", "Leech").text().trim()));
+                            tempTorrent.leecher = Integer.parseInt(TorrentHelper.cleanNumberString(
+                                element.getElementsByAttributeValueMatching("data-title", "Leech").text().trim()));
                         }
                         if (element.getElementsByClass("ka ka16 ka-verify ka-green").size() > 0) {
                             tempTorrent.isVerified = true;

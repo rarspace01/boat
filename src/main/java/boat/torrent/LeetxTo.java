@@ -35,7 +35,8 @@ public class LeetxTo extends HttpUser implements TorrentSearchEngine {
     }
 
     private String buildSearchUrl(String searchName) {
-        return String.format(getBaseUrl() + "/sort-search/%s/seeders/desc/1/", URLEncoder.encode(searchName, StandardCharsets.UTF_8));
+        return String.format("%s/sort-search/%s/seeders/desc/1/", getBaseUrl(),
+            URLEncoder.encode(searchName, StandardCharsets.UTF_8));
     }
 
     @Override

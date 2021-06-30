@@ -34,7 +34,8 @@ public class NyaaSi extends HttpUser implements TorrentSearchEngine {
     }
 
     private String buildSearchUrl(String searchName) {
-        return String.format(getBaseUrl() + "/?f=0&c=0_0&q=%s&s=seeders&o=desc", URLEncoder.encode(searchName, StandardCharsets.UTF_8));
+        return String.format("%s/?f=0&c=0_0&q=%s&s=seeders&o=desc", getBaseUrl(),
+            URLEncoder.encode(searchName, StandardCharsets.UTF_8));
     }
 
     @Override
