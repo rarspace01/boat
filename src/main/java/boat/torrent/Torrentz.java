@@ -7,10 +7,12 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import boat.utilities.HttpHelper;
+import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
 
+@Slf4j
 public class Torrentz extends HttpUser implements TorrentSearchEngine {
 
     Torrentz(HttpHelper httpHelper) {
@@ -57,16 +59,17 @@ public class Torrentz extends HttpUser implements TorrentSearchEngine {
             tempTorrent.magnetUri = torrentElement.getElementsByTag("a").first().attr("href");
             try {
                 tempTorrent.seeder = Integer
-                    .parseInt(torrentElement.getElementsByAttributeValue("data-title", "Last Updated").first().text());
+                    .parseInt(torrentElement.getElementsByAttributeValue("data-title", "Last Updated").stream()
+                        .filter(element -> !element.hasAttr("class")).findFirst().get().text());
                 tempTorrent.leecher = Integer
-                    .parseInt(torrentElement.getElementsByAttributeValue("data-title", "Size").first().text());
+                    .parseInt(torrentElement.getElementsByAttributeValue("data-title", "Leeches").first().text());
                 tempTorrent.lsize = TorrentHelper.extractTorrentSizeFromString(
-                    torrentElement.getElementsByAttributeValue("data-title", "Description").first().text()
+                    torrentElement.getElementsByAttributeValue("data-title", "Size").first().text()
                         .replaceAll(".*Size\\s|,.*", ""));
                 tempTorrent.size = TorrentHelper
                     .humanReadableByteCountBinary((long) (tempTorrent.lsize * 1024.0 * 1024.0));
-            } catch (Exception ignored) {
-
+            } catch (Exception exception) {
+                log.error("parsing exception", exception);
             }
 
             TorrentHelper.evaluateRating(tempTorrent, searchName);

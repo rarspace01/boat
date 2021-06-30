@@ -10,11 +10,13 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import boat.utilities.HttpHelper;
+import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Node;
 import org.jsoup.select.Elements;
 
+@Slf4j
 public class RARBG extends HttpUser implements TorrentSearchEngine {
 
     public RARBG(HttpHelper httpHelper) {
@@ -49,12 +51,12 @@ public class RARBG extends HttpUser implements TorrentSearchEngine {
 
         Elements torrentsOnPage = doc.select(".lista2");
         return torrentsOnPage.stream()
-                .map(Node::toString)
-                .map(this::extractSubUrl)
-                .filter(Objects::nonNull)
-                .map(url -> parseTorrentsOnSubPage(httpHelper.getPage(url), searchName))
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+            .map(Node::toString)
+            .map(this::extractSubUrl)
+            .filter(Objects::nonNull)
+            .map(url -> parseTorrentsOnSubPage(httpHelper.getPage(url), searchName))
+            .filter(Objects::nonNull)
+            .collect(Collectors.toList());
     }
 
     private Torrent parseTorrentsOnSubPage(String page, String searchName) {
@@ -62,10 +64,10 @@ public class RARBG extends HttpUser implements TorrentSearchEngine {
         final Torrent torrent = new Torrent(toString());
         torrent.name = doc.title().replaceAll(" Torrent download", "");
         torrent.magnetUri = doc.select("a[href*=magnet]")
-                .stream()
-                .map(element -> element.attributes().get("href"))
-                .filter(Objects::nonNull)
-                .findFirst().orElse(null);
+            .stream()
+            .map(element -> element.attributes().get("href"))
+            .filter(Objects::nonNull)
+            .findFirst().orElse(null);
         final String text = doc.text();
 
         torrent.size = TorrentHelper.cleanNumberString(getValueBetweenStrings(text, "Size: ", "Show Files").trim());
@@ -74,7 +76,8 @@ public class RARBG extends HttpUser implements TorrentSearchEngine {
         try {
             torrent.seeder = Integer.parseInt(getValueBetweenStrings(text, "Seeders : ", " ,").trim());
             torrent.leecher = Integer.parseInt(getValueBetweenStrings(text, "Leechers : ", " ,").trim());
-        } catch (Exception ignored) {
+        } catch (Exception exception) {
+            log.error("parsing exception", exception);
         }
         TorrentHelper.evaluateRating(torrent, searchName);
         if (TorrentHelper.isValidTorrent(torrent)) {

@@ -7,10 +7,12 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import boat.utilities.HttpHelper;
+import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
 
+@Slf4j
 public class LimeTorrents extends HttpUser implements TorrentSearchEngine {
 
     LimeTorrents(HttpHelper httpHelper) {
@@ -67,8 +69,8 @@ public class LimeTorrents extends HttpUser implements TorrentSearchEngine {
                     .extractTorrentSizeFromString(torrentElement.getElementsByClass("tdnormal").get(1).text());
                 tempTorrent.size = TorrentHelper
                     .humanReadableByteCountBinary((long) (tempTorrent.lsize * 1024.0 * 1024.0));
-            } catch (Exception ignored) {
-
+            } catch (Exception exception) {
+                log.error("parsing exception", exception);
             }
 
             TorrentHelper.evaluateRating(tempTorrent, searchName);

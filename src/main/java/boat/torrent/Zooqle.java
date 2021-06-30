@@ -31,7 +31,8 @@ public class Zooqle extends HttpUser implements TorrentSearchEngine {
     }
 
     private String buildSearchUrl(String searchName) {
-        return String.format("%s/search?q=%s&fmt=rss", getBaseUrl(), URLEncoder.encode(searchName, StandardCharsets.UTF_8));
+        return String
+            .format("%s/search?q=%s&fmt=rss", getBaseUrl(), URLEncoder.encode(searchName, StandardCharsets.UTF_8));
     }
 
     @Override
@@ -53,7 +54,9 @@ public class Zooqle extends HttpUser implements TorrentSearchEngine {
             Torrent tempTorrent = new Torrent(toString());
 
             tempTorrent.name = torrentElement.getElementsByTag("title").text();
-            tempTorrent.magnetUri = TorrentHelper.buildMagnetUriFromHash(torrentElement.getElementsByTag("torrent").first().getElementsByTag("infohash").text(), tempTorrent.name);
+            tempTorrent.magnetUri = TorrentHelper.buildMagnetUriFromHash(
+                torrentElement.getElementsByTag("torrent").first().getElementsByTag("infohash").text(),
+                tempTorrent.name);
             tempTorrent.seeder = Integer.parseInt(torrentElement.getElementsByTag("torrent:seeds").text());
             tempTorrent.leecher = Integer.parseInt(torrentElement.getElementsByTag("torrent:peers").text());
             tempTorrent.lsize =

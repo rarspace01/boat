@@ -34,7 +34,8 @@ public class YTS extends HttpUser implements TorrentSearchEngine {
     }
 
     private String buildSearchUrl(String searchName) {
-        return String.format(getBaseUrl() + "/api/v2/list_movies.json?limit=50&query_term=%s&sort_by=seeds", URLEncoder.encode(searchName, StandardCharsets.UTF_8));
+        return String.format(getBaseUrl() + "/api/v2/list_movies.json?limit=50&query_term=%s&sort_by=seeds",
+            URLEncoder.encode(searchName, StandardCharsets.UTF_8));
     }
 
     @Override
@@ -61,7 +62,8 @@ public class YTS extends HttpUser implements TorrentSearchEngine {
             tempTorrent.name = jsonTorrent.get("title").getAsString() + " " + jsonTorrent.get("year").getAsInt();
             JsonObject bestTorrentSource = retrieveBestTorrent(jsonTorrent.get("torrents").getAsJsonArray());
             tempTorrent.isVerified = true;
-            tempTorrent.magnetUri = TorrentHelper.buildMagnetUriFromHash(bestTorrentSource.get("hash").getAsString().toLowerCase(), tempTorrent.name);
+            tempTorrent.magnetUri = TorrentHelper
+                .buildMagnetUriFromHash(bestTorrentSource.get("hash").getAsString().toLowerCase(), tempTorrent.name);
             tempTorrent.seeder = bestTorrentSource.get("seeds").getAsInt();
             tempTorrent.leecher = bestTorrentSource.get("peers").getAsInt();
             tempTorrent.size = bestTorrentSource.get("size").getAsString();
@@ -80,7 +82,8 @@ public class YTS extends HttpUser implements TorrentSearchEngine {
     private JsonObject retrieveBestTorrent(JsonArray torrentElements) {
         AtomicReference<JsonObject> bestTorrent = new AtomicReference<>();
         torrentElements.forEach(torrentElement -> {
-            if (bestTorrent.get() == null || bestTorrent.get().get("size_bytes").getAsLong() < torrentElement.getAsJsonObject().get("size_bytes").getAsLong()) {
+            if (bestTorrent.get() == null || bestTorrent.get().get("size_bytes").getAsLong() < torrentElement
+                .getAsJsonObject().get("size_bytes").getAsLong()) {
                 bestTorrent.set(torrentElement.getAsJsonObject());
             }
         });

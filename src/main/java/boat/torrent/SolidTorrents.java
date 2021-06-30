@@ -11,7 +11,9 @@ import boat.utilities.HttpHelper;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class SolidTorrents extends HttpUser implements TorrentSearchEngine {
 
     SolidTorrents(HttpHelper httpHelper) {
@@ -32,7 +34,8 @@ public class SolidTorrents extends HttpUser implements TorrentSearchEngine {
     }
 
     private String buildSearchUrl(String searchName) {
-        return getBaseUrl() + "/api/v1/search?sort=seeders&q=" + URLEncoder.encode(searchName, StandardCharsets.UTF_8) + "&category=all&fuv=yes";
+        return getBaseUrl() + "/api/v1/search?sort=seeders&q=" + URLEncoder.encode(searchName, StandardCharsets.UTF_8)
+            + "&category=all&fuv=yes";
     }
 
     @Override
@@ -71,8 +74,8 @@ public class SolidTorrents extends HttpUser implements TorrentSearchEngine {
                 }
             }
 
-        } catch (JsonProcessingException e) {
-            e.printStackTrace();
+        } catch (JsonProcessingException exception) {
+            log.error("parsing exception", exception);
         }
         return torrentList;
     }
