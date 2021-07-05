@@ -36,6 +36,7 @@ public class Torrent implements Comparable<Torrent> {
     public List<String> cached = new ArrayList<>();
     public List<TorrentFile> fileList = new ArrayList<>();
     public boolean isVerified = false;
+    public boolean statsVerified = false;
 
     public Torrent(String source) {
         this.source = source;

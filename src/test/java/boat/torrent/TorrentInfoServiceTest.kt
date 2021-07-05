@@ -16,7 +16,7 @@ internal class TorrentInfoServiceTest {
             torrent
         )
         // When
-        val seedAndLeecherFromTracker = torrentInfoService.getSeedAndLeecherFromTracker(
+        torrentInfoService.refreshSeedAndLeecherFromTracker(
             "http://tracker.opentrackr.org:1337/announce", torrentList
         )
         // Then
@@ -37,7 +37,7 @@ internal class TorrentInfoServiceTest {
             torrent, torrent2
         )
         // When
-        val seedAndLeecherFromTracker = torrentInfoService.getSeedAndLeecherFromTracker(
+        torrentInfoService.refreshSeedAndLeecherFromTracker(
             "http://tracker.opentrackr.org:1337/announce", torrentList
         )
         // Then

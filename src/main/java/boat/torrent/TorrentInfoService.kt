@@ -21,10 +21,10 @@ class TorrentInfoService(httpHelper: HttpHelper) :
         val nonCachedTorrents = torrentList.filter { torrent -> torrent.cached.size == 0 }
         val maximumQuerySize = 50
         if (nonCachedTorrents.size <= maximumQuerySize) {
-            getSeedAndLeecherFromTracker(trackerUrl, nonCachedTorrents)
+            refreshSeedAndLeecherFromTracker(trackerUrl, nonCachedTorrents)
         } else {
             for (i in nonCachedTorrents.indices step maximumQuerySize) {
-                getSeedAndLeecherFromTracker(
+                refreshSeedAndLeecherFromTracker(
                     trackerUrl,
                     nonCachedTorrents.subList(
                         i,
@@ -35,7 +35,7 @@ class TorrentInfoService(httpHelper: HttpHelper) :
         }
     }
 
-    fun getSeedAndLeecherFromTracker(trackerUrl: String, torrentList: List<Torrent>) {
+    fun refreshSeedAndLeecherFromTracker(trackerUrl: String, torrentList: List<Torrent>) {
         val joinedHashes = torrentList
             .map { torrent -> torrent.torrentId }
             .map { torrentHash: String? -> TorrentHelper.urlEncode(Hex.decodeHex(torrentHash)) }
@@ -65,6 +65,7 @@ class TorrentInfoService(httpHelper: HttpHelper) :
                 if (seederList[i] > -1) {
                     torrentList[i].seeder = seederList[i]
                     torrentList[i].leecher = leecherList[i]
+                    torrentList[i].statsVerified = true
                 }
             }
         }

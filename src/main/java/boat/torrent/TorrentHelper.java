@@ -142,10 +142,15 @@ public class TorrentHelper {
             debugAdditional += "✅";
         }
         double speedRating;
-        double speedMultiplier = 1.0;
+        double speedMultiplier = 0.5;
+        if (tempTorrent.statsVerified) {
+            speedMultiplier = 1;
+            debugAdditional += "☑️";
+        }
         if (!tempTorrent.cached.isEmpty()) {
             debugAdditional += "⚡";
             speedRating = 2;
+            speedMultiplier = 1;
         } else if (seedRatio > 1.0) {
             speedRating = Math.min(seedRatioOptimized, SEED_RATIO_UPPER_LIMIT) / SEED_RATIO_UPPER_LIMIT;
         } else if (tempTorrent.seeder == 1) {
