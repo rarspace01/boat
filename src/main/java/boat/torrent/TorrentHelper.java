@@ -142,23 +142,27 @@ public class TorrentHelper {
             debugAdditional += "✅";
         }
         double speedRating;
-        if (tempTorrent.cached.size() > 0) {
+        double speedMultiplier = 1.0;
+        if (!tempTorrent.cached.isEmpty()) {
             debugAdditional += "⚡";
             speedRating = 2;
         } else if (seedRatio > 1.0) {
             speedRating = Math.min(seedRatioOptimized, SEED_RATIO_UPPER_LIMIT) / SEED_RATIO_UPPER_LIMIT;
         } else if (tempTorrent.seeder == 1) {
             speedRating = seedRatioOptimized / 10.0;
+            speedMultiplier = speedRating;
         } else {
             speedRating = seedRatioOptimized;
         }
 
         // searchRatingNew Calc
         tempTorrent.searchRating =
-            matchedScoreOfSearch * (matchedScoreOfTorrent + sizeRating + speedRating + additionalRating);
+            matchedScoreOfSearch * speedMultiplier * (matchedScoreOfTorrent + sizeRating + speedRating
+                + additionalRating);
 
         tempTorrent.debugRating = String
-            .format("🔍%.2f * (🔦%.2f + 📦%.2f + 🚄%.2f (%.2f) + 🧮%.2f - %s)", matchedScoreOfSearch,
+            .format("🔍%.2f * 📶%.2f * (🔦%.2f + 📦%.2f + 🚄%.2f (%.2f) + 🧮%.2f - %s)", matchedScoreOfSearch,
+                speedMultiplier,
                 matchedScoreOfTorrent,
                 sizeRating,
                 speedRating,
