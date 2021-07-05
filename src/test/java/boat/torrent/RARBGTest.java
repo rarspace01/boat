@@ -20,7 +20,6 @@ class RARBGTest {
             torrents.addAll(new RARBG(new HttpHelper()).searchTorrents("planet"));
         });
         // Then
-        assertEquals(true, true);
     }
 
     @Test

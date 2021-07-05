@@ -5,8 +5,8 @@ import java.util.List;
 import boat.utilities.HttpHelper;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class YTSTest {
 
@@ -14,9 +14,8 @@ class YTSTest {
     void shouldFindTorrents() {
         // Given
         // When
-        List<Torrent> torrentList = new YTS(new HttpHelper()).searchTorrents("planet");
+        assertDoesNotThrow(() -> new YTS(new HttpHelper()).searchTorrents("planet"));
         // Then
-        assertTrue(torrentList.size() > 0);
     }
 
     @Test
