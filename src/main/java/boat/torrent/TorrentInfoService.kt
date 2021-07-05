@@ -19,7 +19,7 @@ class TorrentInfoService(httpHelper: HttpHelper) :
 
     fun refreshTorrentStats(torrentList: MutableList<Torrent>) {
         val nonCachedTorrents = torrentList.filter { torrent -> torrent.cached.size == 0 }
-        val maximumQuerySize = 50
+        val maximumQuerySize = 40
         if (nonCachedTorrents.size <= maximumQuerySize) {
             refreshSeedAndLeecherFromTracker(trackerUrl, nonCachedTorrents)
         } else {
