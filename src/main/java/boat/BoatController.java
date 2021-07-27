@@ -102,7 +102,7 @@ public final class BoatController {
             "</form>\n" +
             BREAK_LINK_HTML +
             BREAK_LINK_HTML +
-            "<form action=\"../boat\" target=\"_blank\" method=\"POST\">\n" +
+            "<form action=\"../boat/download\" target=\"_blank\" method=\"POST\">\n" +
             "  Direct download URL (multiple seperate by comma):<br>\n" +
             "  <input type=\"text\" name=\"dd\" value=\"\" style=\"font-size: 2em; \">\n" +
             BREAK_LINK_HTML +
@@ -139,7 +139,7 @@ public final class BoatController {
             "</html>\n";
     }
 
-    @GetMapping({"/boat"})
+    @RequestMapping({"/boat"})
     @NonNull
     public final String searchTorrents(@RequestParam(value = "q", required = false) String searchString,
                                        @RequestParam(value = "qq", required = false) String localSearchString,
