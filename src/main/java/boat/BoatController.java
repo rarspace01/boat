@@ -160,7 +160,6 @@ public final class BoatController {
                 torrentList.size());
             return "G: " + torrentList.stream().limit(25).collect(Collectors.toList());
         } else if (Strings.isNotEmpty(luckySearchList)) {
-            StringBuilder response = new StringBuilder();
             String[] schemes = {"http", "https"};
             UrlValidator urlValidator = new UrlValidator(schemes);
             final String pageWithEntries;
@@ -171,13 +170,14 @@ public final class BoatController {
             }
             if (Strings.isNotEmpty(pageWithEntries)) {
                 final String[] titles = pageWithEntries.split("\n");
-                queueService.addAll(Arrays.stream(titles).map(title ->
+                final List<MediaItem> listOfMediaItems = Arrays.stream(titles).map(title ->
                     new MediaItem(title, title, null, boat.info.MediaType.Other)
                 )
                     .filter(this::isNotAlreadyDownloaded)
-                    .collect(Collectors.toList()));
+                    .collect(Collectors.toList());
+                queueService.addAll(listOfMediaItems);
                 queueService.saveQueue();
-                return response.toString();
+                return switchToProgress + listOfMediaItems;
             } else {
                 return "Error: nothing in remote url";
             }
