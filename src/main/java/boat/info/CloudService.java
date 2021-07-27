@@ -79,8 +79,8 @@ public class CloudService {
         if (preparedTorrentName.length() > 0) {
             preparedTorrentName = preparedTorrentName.substring(0, 1);
         }
-        preparedTorrentName = preparedTorrentName.replaceAll("[0-9]", "0-9");
         preparedTorrentName = preparedTorrentName.replaceAll("[\\W]", "?");
+        preparedTorrentName = preparedTorrentName.replaceAll("[0-9]", "0-9");
         preparedTorrentName = preparedTorrentName.toUpperCase();
         //
         return preparedTorrentName;
