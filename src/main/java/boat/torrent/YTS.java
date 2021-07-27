@@ -47,7 +47,7 @@ public class YTS extends HttpUser implements TorrentSearchEngine {
         ArrayList<Torrent> torrentList = new ArrayList<>();
 
         JsonElement jsonRoot = JsonParser.parseString(pageContent);
-        if (jsonRoot == null) {
+        if (jsonRoot == null || !jsonRoot.isJsonObject()) {
             return torrentList;
         }
         JsonElement data = jsonRoot.getAsJsonObject().get("data");
