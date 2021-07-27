@@ -4,6 +4,8 @@ import boat.utilities.HttpHelper
 import org.apache.commons.codec.binary.Hex
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import java.util.concurrent.ExecutionException
+import java.util.concurrent.ForkJoinPool
 import java.util.regex.Pattern
 
 
@@ -18,21 +20,31 @@ class TorrentInfoService(httpHelper: HttpHelper) :
     }
 
     fun refreshTorrentStats(torrentList: MutableList<Torrent>) {
+        val startOfRefresh = System.currentTimeMillis()
         val nonCachedTorrents = torrentList.filter { torrent -> torrent.cached.size == 0 }
-        val maximumQuerySize = 40
-        if (nonCachedTorrents.size <= maximumQuerySize) {
-            refreshSeedAndLeecherFromTracker(trackerUrl, nonCachedTorrents)
-        } else {
-            for (i in nonCachedTorrents.indices step maximumQuerySize) {
-                refreshSeedAndLeecherFromTracker(
-                    trackerUrl,
-                    nonCachedTorrents.subList(
-                        i,
-                        (i + maximumQuerySize).coerceAtMost(nonCachedTorrents.size - 1)
-                    )
-                )
+        val parallelism: Int = nonCachedTorrents.size
+        var forkJoinPool: ForkJoinPool? = null
+        try {
+            forkJoinPool = ForkJoinPool(parallelism)
+            forkJoinPool.submit(
+                Runnable {
+                    nonCachedTorrents.parallelStream()
+                        .forEach { torrent ->
+                            refreshSeedAndLeecherFromTracker(trackerUrl, listOf(torrent))
+                        }
+                }
+            ).get()
+        } catch (e: InterruptedException) {
+            log.error("Parallel refresh execution failed", e)
+        } catch (e: ExecutionException) {
+            log.error("Parallel refresh execution failed", e)
+        } finally {
+            if (forkJoinPool != null) {
+                forkJoinPool.shutdown()
+                forkJoinPool = null
             }
         }
+        log.info("Refresh took {}ms", System.currentTimeMillis() - startOfRefresh)
     }
 
     fun refreshSeedAndLeecherFromTracker(trackerUrl: String, torrentList: List<Torrent>) {
@@ -44,6 +56,14 @@ class TorrentInfoService(httpHelper: HttpHelper) :
             "${trackerUrl.replace("announce", "scrape")}?info_hash=${joinedHashes}"
         //log.info("$queryUrl")
         val page = httpHelper.getPage(queryUrl)
+//        val splittedHashs = page
+//                .replace("d5:files","")
+//        .replace("d20:","")
+//            .replace(Regex("d8:completei[0-9]+"),"")
+//            .replace(Regex("e10:downloadedi[0-9]+"),"")
+//            .replace(Regex("e10:incompletei[0-9]+e"),"")
+//            .replace("eee","")
+//            .split("e20:")
         val seederPattern = Pattern.compile("8:completei([0-9]+)e")
         val leecherPattern = Pattern.compile("10:incompletei([0-9]+)e")
         val seederMatcher = seederPattern.matcher(page)
@@ -60,7 +80,7 @@ class TorrentInfoService(httpHelper: HttpHelper) :
             leecher = leecherMatcher.group(1).toInt()
             leecherList.add(leecher)
         }
-        if (seederList.size == leecherList.size && seederList.size == torrentList.size) {
+        if (seederList.size == leecherList.size) {
             for (i in 0 until seederList.size) {
                 if (seederList[i] > -1) {
                     torrentList[i].seeder = seederList[i]

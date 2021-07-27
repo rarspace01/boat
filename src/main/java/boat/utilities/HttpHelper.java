@@ -20,6 +20,7 @@ import javax.net.ssl.X509TrustManager;
 
 import org.springframework.stereotype.Service;
 
+import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -110,6 +111,59 @@ public class HttpHelper {
         returnString = buildString.toString();
 
         return returnString;
+    }
+
+    public byte[] getRawPage(String url, List<String> params, String cookies, int timeout) {
+
+        URLConnection connection;
+        try {
+            SSLContext sc = SSLContext.getInstance("SSL");
+            sc.init(null, trustAllCerts, null);
+
+            connection = new URL(url).openConnection();
+            if (connection instanceof HttpsURLConnection) {
+                ((HttpsURLConnection) connection).setSSLSocketFactory(sc.getSocketFactory());
+            }
+            connection.setRequestProperty("User-Agent",
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:68.0) Gecko/20100101 Firefox/68.0");
+            connection.setRequestProperty("Accept-Charset", charset);
+            connection.setRequestProperty("Accept",
+                "text/html,application/xhtml+xml,application/xml,application/json;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9");
+            connection.setConnectTimeout(timeout);
+            connection.setReadTimeout(timeout);
+
+            if (cookies != null) {
+                connection.setRequestProperty("Cookie", cookies);
+            }
+
+            InputStream response = connection.getInputStream();
+
+//            for (Map.Entry<String, List<String>> header : connection.getHeaderFields().entrySet()) {
+//                System.out.println(header.getKey() + "=" + header.getValue());
+//            }
+
+            String contentType = connection.getHeaderField("Content-Type");
+            String charset = null;
+
+            if (contentType != null) {
+                for (String param : contentType.replace(" ", "").split(";")) {
+                    if (param.startsWith("charset=")) {
+                        charset = param.split("=", 2)[1];
+                        break;
+                    }
+                }
+            }
+
+            if (charset == null) {
+                charset = "UTF-8";
+            }
+
+            return IOUtils.toByteArray(response);
+
+        } catch (IOException | NoSuchAlgorithmException | KeyManagementException ignored) {
+        }
+
+        return null;
     }
 
     public String getPage(String url) {

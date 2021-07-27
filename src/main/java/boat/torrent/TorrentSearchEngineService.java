@@ -74,7 +74,6 @@ public class TorrentSearchEngineService {
 
     @NotNull
     public List<Torrent> searchTorrents(String searchString) {
-        //final Instant startRemoteSearch = Instant.now();
         List<Torrent> combineResults = new ArrayList<>();
         final List<TorrentSearchEngine> activeSearchEngines = new ArrayList<>(
             getActiveSearchEngines());
