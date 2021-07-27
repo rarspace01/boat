@@ -257,7 +257,6 @@ public class TorrentHelper {
     public static boolean isValidTorrent(Torrent torrent, boolean validateUri) {
         return torrent.name != null &&
             (validateUri ? torrent.magnetUri != null : true) &&
-            torrent.seeder > 0 &&
             !isBlocklisted(torrent) &&
             torrent.lsize > 0
             ;

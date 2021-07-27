@@ -116,6 +116,7 @@ public class TorrentSearchEngineService {
 
         return cacheStateOfTorrents
             .stream()
+            .filter(torrent -> torrent.seeder > 0)
             .map(torrent -> TorrentHelper.evaluateRating(torrent, searchString))
             .sorted(TorrentHelper.torrentSorter)
             .collect(Collectors.toList());
