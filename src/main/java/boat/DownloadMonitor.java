@@ -17,6 +17,7 @@ import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import boat.info.BluRayComService;
 import boat.info.CloudFileService;
@@ -197,7 +198,7 @@ public class DownloadMonitor {
     @Scheduled(fixedRate = SECONDS_BETWEEN_CLEAR_TRANSFER_POLLING * 1000)
     public void clearTransferTorrents() {
         multifileHosterService.getRemoteTorrents().stream()
-            .filter(torrent -> isTorrentStuckOnErrror(torrent))
+            .filter(this::isTorrentStuckOnErrror)
             .forEach(multifileHosterService::delete);
     }
 
@@ -315,8 +316,13 @@ public class DownloadMonitor {
             remainingDuration.toSecondsPart());
     }
 
-    private String buildFilename(String name, String fileURLFromTorrent) {
+    public String buildFilename(String name, String fileURLFromTorrent) {
         String fileEndingFromUrl = extractFileEndingFromUrl(fileURLFromTorrent);
+        name = StringUtils.hasText(name) ? name : fileURLFromTorrent;
+        name = name.replaceAll("\"", "");
+        name = name.replaceAll("\\.torrent", "");
+        name = name.replaceAll("[wW][wW][wW]\\.[A-Za-z0-9-]*\\.[a-zA-Z]+[\\s-]*", "").trim();
+        name = name.replaceAll("\\s", ".");
         if (!name.contains(fileEndingFromUrl)) {
             return name + "." + fileEndingFromUrl;
         } else {

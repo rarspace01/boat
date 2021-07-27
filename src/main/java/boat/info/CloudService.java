@@ -75,11 +75,12 @@ public class CloudService {
         preparedTorrentName = preparedTorrentName.replaceAll("(a[ .]|the[ .]|der[ .])", "");
         //
         preparedTorrentName = preparedTorrentName.trim();
-        preparedTorrentName = preparedTorrentName.replaceAll("\"", "");
+        preparedTorrentName = preparedTorrentName.replaceAll("[\".]", "");
         if (preparedTorrentName.length() > 0) {
             preparedTorrentName = preparedTorrentName.substring(0, 1);
         }
         preparedTorrentName = preparedTorrentName.replaceAll("[0-9]", "0-9");
+        preparedTorrentName = preparedTorrentName.replaceAll("[\\W]", "?");
         preparedTorrentName = preparedTorrentName.toUpperCase();
         //
         return preparedTorrentName;
