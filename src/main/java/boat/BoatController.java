@@ -177,7 +177,7 @@ public final class BoatController {
                     .collect(Collectors.toList());
                 queueService.addAll(listOfMediaItems);
                 queueService.saveQueue();
-                return switchToProgress + listOfMediaItems;
+                return switchToProgress.replace("..", "../boat") + listOfMediaItems;
             } else {
                 return "Error: nothing in remote url";
             }

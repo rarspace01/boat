@@ -34,7 +34,7 @@ public class CloudFileService {
         builder.directory(new File(System.getProperty("user.home")));
         try {
             Process process = builder.start();
-            process.waitFor(10, TimeUnit.SECONDS);
+            process.waitFor(20, TimeUnit.SECONDS);
             String output = new String(process.getInputStream().readAllBytes());
             final JsonElement jsonElement = JsonParser.parseString(output);
             if (jsonElement.isJsonArray()) {

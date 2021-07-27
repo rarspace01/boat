@@ -107,6 +107,7 @@ public class DownloadMonitor {
     @Scheduled(fixedRate = SECONDS_BETWEEN_FILE_CACHE_REFRESH * 1000)
     public void refreshCloudFileServiceCache() {
         log.info("refreshCloudFileServiceCache()");
+        final long startOfCache = System.currentTimeMillis();
         if (isRcloneInstalled()) {
             final Cache filesCache = cacheManager.getCache("filesCache");
             Arrays.stream("abcdefghijklmnopqrstuvwxyzöäü0".split("")).forEach(searchName -> {
@@ -122,6 +123,7 @@ public class DownloadMonitor {
                     });
                 log.info("Cache refresh done for: {}", searchName);
             });
+            log.info("Cache refresh done in: {}ms", System.currentTimeMillis() - startOfCache);
             cloudFileService.setCacheFilled(true);
         } else {
             log.warn("rclone not installed");
