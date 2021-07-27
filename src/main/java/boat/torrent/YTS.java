@@ -25,8 +25,7 @@ public class YTS extends HttpUser implements TorrentSearchEngine {
 
         CopyOnWriteArrayList<Torrent> torrentList = new CopyOnWriteArrayList<>();
 
-        String resultString = null;
-        resultString = httpHelper.getPage(buildSearchUrl(searchName));
+        String resultString = httpHelper.getPage(buildSearchUrl(searchName));
 
         torrentList.addAll(parseTorrentsOnResultPage(resultString, searchName));
         torrentList.sort(TorrentHelper.torrentSorter);
@@ -34,7 +33,8 @@ public class YTS extends HttpUser implements TorrentSearchEngine {
     }
 
     private String buildSearchUrl(String searchName) {
-        return String.format(getBaseUrl() + "/api/v2/list_movies.json?limit=50&query_term=%s&sort_by=seeds",
+        return String.format("%s/api/v2/list_movies.json?limit=50&query_term=%s&sort_by=seeds",
+            getBaseUrl(),
             URLEncoder.encode(searchName, StandardCharsets.UTF_8));
     }
 
@@ -47,6 +47,9 @@ public class YTS extends HttpUser implements TorrentSearchEngine {
         ArrayList<Torrent> torrentList = new ArrayList<>();
 
         JsonElement jsonRoot = JsonParser.parseString(pageContent);
+        if (jsonRoot == null) {
+            return torrentList;
+        }
         JsonElement data = jsonRoot.getAsJsonObject().get("data");
         if (data == null) {
             return torrentList;

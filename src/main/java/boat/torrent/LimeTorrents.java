@@ -24,8 +24,7 @@ public class LimeTorrents extends HttpUser implements TorrentSearchEngine {
 
         CopyOnWriteArrayList<Torrent> torrentList = new CopyOnWriteArrayList<>();
 
-        String resultString = null;
-        resultString = httpHelper.getPage(buildSearchUrl(searchName));
+        String resultString = httpHelper.getPage(buildSearchUrl(searchName));
 
         torrentList.addAll(parseTorrentsOnResultPage(resultString, searchName));
         torrentList.sort(TorrentHelper.torrentSorter);
