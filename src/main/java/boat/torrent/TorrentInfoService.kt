@@ -4,7 +4,6 @@ import boat.utilities.HttpHelper
 import org.apache.commons.codec.binary.Hex
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
-import java.util.concurrent.ExecutionException
 import java.util.concurrent.ForkJoinPool
 import java.util.regex.Pattern
 
@@ -25,17 +24,13 @@ class TorrentInfoService(httpHelper: HttpHelper) :
         val parallelism: Int = 1.coerceAtLeast(nonCachedTorrents.size)
         val forkJoinPool = ForkJoinPool(parallelism)
         try {
-            forkJoinPool.submit(
-                Runnable {
-                    nonCachedTorrents.parallelStream()
-                        .forEach { torrent ->
-                            refreshSeedAndLeecherFromTracker(trackerUrl, listOf(torrent))
-                        }
-                }
-            ).get()
-        } catch (e: InterruptedException) {
-            log.error("Parallel refresh execution failed", e)
-        } catch (e: ExecutionException) {
+            forkJoinPool.submit {
+                nonCachedTorrents.parallelStream()
+                    .forEach { torrent ->
+                        refreshSeedAndLeecherFromTracker(trackerUrl, listOf(torrent))
+                    }
+            }.get()
+        } catch (e: Exception) {
             log.error("Parallel refresh execution failed", e)
         } finally {
             forkJoinPool.shutdown()
