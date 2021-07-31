@@ -22,10 +22,9 @@ class TorrentInfoService(httpHelper: HttpHelper) :
     fun refreshTorrentStats(torrentList: MutableList<Torrent>) {
         val startOfRefresh = System.currentTimeMillis()
         val nonCachedTorrents = torrentList.filter { torrent -> torrent.cached.size == 0 }
-        val parallelism: Int = nonCachedTorrents.size
-        var forkJoinPool: ForkJoinPool? = null
+        val parallelism: Int = 1.coerceAtMost(nonCachedTorrents.size)
+        val forkJoinPool = ForkJoinPool(parallelism)
         try {
-            forkJoinPool = ForkJoinPool(parallelism)
             forkJoinPool.submit(
                 Runnable {
                     nonCachedTorrents.parallelStream()
@@ -39,10 +38,7 @@ class TorrentInfoService(httpHelper: HttpHelper) :
         } catch (e: ExecutionException) {
             log.error("Parallel refresh execution failed", e)
         } finally {
-            if (forkJoinPool != null) {
-                forkJoinPool.shutdown()
-                forkJoinPool = null
-            }
+            forkJoinPool.shutdown()
         }
         log.info("Refresh took {}ms", System.currentTimeMillis() - startOfRefresh)
     }
