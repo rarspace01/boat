@@ -22,7 +22,7 @@ class TorrentInfoService(httpHelper: HttpHelper) :
     fun refreshTorrentStats(torrentList: MutableList<Torrent>) {
         val startOfRefresh = System.currentTimeMillis()
         val nonCachedTorrents = torrentList.filter { torrent -> torrent.cached.size == 0 }
-        val parallelism: Int = 1.coerceAtMost(nonCachedTorrents.size)
+        val parallelism: Int = 1.coerceAtLeast(nonCachedTorrents.size)
         val forkJoinPool = ForkJoinPool(parallelism)
         try {
             forkJoinPool.submit(

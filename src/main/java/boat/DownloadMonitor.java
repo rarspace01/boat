@@ -112,7 +112,6 @@ public class DownloadMonitor {
             final Cache filesCache = cacheManager.getCache("filesCache");
             Arrays.stream("abcdefghijklmnopqrstuvwxyzöäü0".split("")).forEach(searchName -> {
                 Stream.of(TorrentType.values())
-                    .parallel()
                     .forEach(torrentType -> {
                         final String destinationPath = cloudService
                             .buildDestinationPathWithTypeOfMediaWithoutSubFolders(searchName, torrentType);
