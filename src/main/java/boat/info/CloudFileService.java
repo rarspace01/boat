@@ -33,11 +33,11 @@ public class CloudFileService {
         builder.command("bash", "-c", commandToRun);
         builder.directory(new File(System.getProperty("user.home")));
         try {
-            Thread.sleep(100);
             Process process = builder.start();
             process.waitFor(20, TimeUnit.SECONDS);
             String output = new String(process.getInputStream().readAllBytes());
             final JsonElement jsonElement = JsonParser.parseString(output);
+            Thread.sleep(1000);
             if (jsonElement.isJsonArray()) {
                 jsonElement.getAsJsonArray()
                         .forEach(jsonElement1 -> {
