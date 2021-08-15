@@ -197,9 +197,8 @@ class Premiumize(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoste
     }
 
     override fun delete(remoteTorrent: Torrent) {
-        val removeTorrenntUrl = "https://www.premiumize.me/api/transfer/delete?id=" + remoteTorrent.remoteId + "&" +
-                "&apikey=" + PropertiesHelper.getProperty("PREMIUMIZE_APIKEY") +
-                "&type=hello.torrent&src=" + remoteTorrent.magnetUri
+        val removeTorrenntUrl = "https://www.premiumize.me/api/transfer/delete?id=" + remoteTorrent.remoteId +
+                "&apikey=" + PropertiesHelper.getProperty("PREMIUMIZE_APIKEY")
         val page = httpHelper.getPage(removeTorrenntUrl)
         if (!page.contains("success")) {
             log.error("Deleting failed: {}", removeTorrenntUrl)
