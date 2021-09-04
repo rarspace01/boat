@@ -154,29 +154,18 @@ public class DownloadMonitor {
         if (numberOfTorrentsReadToDownload == 0 && numberOfActiveRemoteTorrents < 20
             && multifileHosterService.getRemainingTrafficInMB() > MIN_GB_FOR_QUEUE * 1024) {
 
-            // search all & sort & download first
-//            final Map<MediaItem, Torrent> mapOfTorrents = queueService.getQueue().stream()
-//                .limit(20)
-//                .map(mediaItem -> new SimpleEntry<>(mediaItem,
-//                    torrentSearchEngineService.cachedSearchTorrent(getSearchNameFrom(mediaItem))))
-//                .filter(mediaItemTorrentSimpleEntry -> mediaItemTorrentSimpleEntry.getValue() != null)
-//                .collect(Collectors.toMap(SimpleEntry::getKey, SimpleEntry::getValue));
-//            mapOfTorrents.entrySet().stream()
-//                .min(Map.Entry.comparingByValue(TorrentHelper.torrentSorter)).ifPresent(mediaItemTorrentSimpleEntry -> {
-//                log.info("picked {}", mediaItemTorrentSimpleEntry.getValue().name);
-//                multifileHosterService.addTorrentToQueue(mediaItemTorrentSimpleEntry.getValue());
-//                queueService.remove(mediaItemTorrentSimpleEntry.getKey());
-//                queueService.saveQueue();
-//            });
             queueService.getQueue().stream().findFirst().ifPresent(mediaItem -> {
                 log.info("picked {}", mediaItem);
-                torrentSearchEngineService.searchTorrents(TorrentHelper.getSearchNameFrom(mediaItem)).stream()
-                    .findFirst()
-                    .ifPresent(torrent -> {
-                        multifileHosterService.addTorrentToQueue(torrent);
-                    });
-                queueService.remove(mediaItem);
-                queueService.saveQueue();
+                String searchName = TorrentHelper.getSearchNameFrom(mediaItem);
+                final List<String> existingFiles = cloudService.findExistingFiles(searchName);
+                if (!existingFiles.isEmpty()) {
+                    torrentSearchEngineService.searchTorrents(searchName).stream()
+                        .findFirst()
+                        .ifPresent(multifileHosterService::addTorrentToQueue);
+                } else {
+                    log.warn("Looks like Torrent was already downloaded, skipped {} - matched files: {}", mediaItem, existingFiles);
+                }
+                removeFromQueue(mediaItem);
             });
         }
     }
@@ -231,7 +220,6 @@ public class DownloadMonitor {
                         .getFilesFromTorrent(torrentToBeDownloaded);
                     int currentFileNumber = 0;
                     int failedUploads = 0;
-                    int maxFileCount = filesFromTorrent.size();
                     Instant startTime = Instant.now();
                     for (TorrentFile torrentFile : filesFromTorrent) {
                         // check fileSize to get rid of samples and NFO files?
@@ -298,7 +286,7 @@ public class DownloadMonitor {
         if (startTime == null || currentFileNumber == 0) {
             final long size = listOfFiles.stream()
                 .map(torrentFile -> torrentFile.filesize)
-                .reduce(Long.valueOf(0), Long::sum);
+                .reduce(0L, Long::sum);
             double lsize = (double) size / 1024.0 / 1024.0;
             long expectedSecondsRemaining = (long) (lsize / 10.0);
             remainingDuration = Duration.of(expectedSecondsRemaining, ChronoUnit.SECONDS);
