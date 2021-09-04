@@ -160,14 +160,14 @@ public class DownloadMonitor {
             queueService.getQueue().stream().findFirst().ifPresent(mediaItem -> {
                 log.info("picked {}", mediaItem);
                 String searchName = TorrentHelper.getSearchNameFrom(mediaItem);
-                final List<String> existingFiles = cloudService.findExistingFiles(searchName);
-                if (!existingFiles.isEmpty()) {
+//                final List<String> existingFiles = cloudService.findExistingFiles(searchName);
+//                if (!existingFiles.isEmpty()) {
                     torrentSearchEngineService.searchTorrents(searchName).stream()
                         .findFirst()
                         .ifPresent(multifileHosterService::addTorrentToQueue);
-                } else {
-                    log.warn("Looks like Torrent was already downloaded, skipped {} - matched files: {}", mediaItem, existingFiles);
-                }
+//                } else {
+//                    log.warn("Looks like Torrent was already downloaded, skipped {} - matched files: {}", mediaItem, existingFiles);
+//                }
                 removeFromQueue(mediaItem);
             });
         }
