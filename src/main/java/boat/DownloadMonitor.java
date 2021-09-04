@@ -43,6 +43,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 public class DownloadMonitor {
 
     public static final int MIN_GB_FOR_QUEUE = 150;
+    public static final int MAX_QUEUE_DOWNLOADS_LIMIT = 20;
     private final TorrentSearchEngineService torrentSearchEngineService;
     private final TorrentMetaService torrentMetaService;
     private final CloudService cloudService;
@@ -139,7 +140,9 @@ public class DownloadMonitor {
     @Scheduled(fixedRate = SECONDS_BETWEEN_QUEUE_POLLING * 1000)
     public void checkForQueueEntries() {
         if (!isDownloadInProgress && isRcloneInstalled() && cloudService.isCloudTokenValid()) {
-            checkForQueueEntryAndAddToDownloads();
+            for(int i=0;i<MAX_QUEUE_DOWNLOADS_LIMIT;i++){
+                checkForQueueEntryAndAddToDownloads();
+            }
         }
     }
 
@@ -148,10 +151,10 @@ public class DownloadMonitor {
         final long numberOfActiveRemoteTorrents = remoteTorrents
             .stream().filter(torrent -> !torrent.status.equals("finished"))
             .count();
-        final long numberOfTorrentsReadToDownload = remoteTorrents
+        final long numberOfTorrentsReadyToDownload = remoteTorrents
             .stream().filter(torrent -> torrent.status.equals("finished"))
             .count();
-        if (numberOfTorrentsReadToDownload == 0 && numberOfActiveRemoteTorrents < 20
+        if (numberOfTorrentsReadyToDownload == 0 && numberOfActiveRemoteTorrents < MAX_QUEUE_DOWNLOADS_LIMIT
             && multifileHosterService.getRemainingTrafficInMB() > MIN_GB_FOR_QUEUE * 1024) {
 
             queueService.getQueue().stream().findFirst().ifPresent(mediaItem -> {
