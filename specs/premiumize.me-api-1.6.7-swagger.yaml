@@ -1,0 +1,842 @@
+swagger: '2.0'
+host: www.premiumize.me
+basePath: /api
+info:
+  version: "1.6.7"
+  title: Premiumize.me
+  description: |
+    # Implementation details
+    ---
+    - Methods are grouped by namespaces (e.g. "folder", "item").
+    - Supported HTTP request methods are GET and POST
+    - All requests must include the parameter *apikey* or *access_token* for authorization.
+      - **apikey:** can be found in your premiumize [account settings](https://www.premiumize.me/account)
+      - **access_token:** will be obtained by registered applications authorized via OAuth2 API
+    - OAuth API:
+      - can be registered at [premiumize.me](https://www.premiumize.me/registerclient)
+      - registering your application is free and recommended
+      - we support all major OAuth grant types, see [documentation](https://bshaffer.github.io/oauth2-server-php-docs/overview/grant-types)
+      - additionally we support *device_code* as grant type
+        - this allows an easy authorization without a web-brower
+        - well suited for TV apps or mobile devices
+        - see [documentation](https://alexbilbie.com/2016/04/oauth-2-device-flow-grant/)
+    
+    # API methods
+    ---
+    The base URL of the REST API is:
+    ```
+    https://www.premiumize.me/api/
+    ```
+    The authorization URL for OAuth is:
+    ```
+    https://www.premiumize.me/authorize
+    ```
+    The token URL for OAuth is:
+    ```
+    https://www.premiumize.me/token
+    ```
+schemes:
+  - https
+# Authorization button  
+securityDefinitions:
+  oAuth2Implicit:
+    type: oauth2
+    authorizationUrl: https://www.premiumize.me/authorize
+    flow: implicit
+    scopes:
+      full: access to all api methods
+  oAuth2AuthCode:
+    type: oauth2
+    flow: accessCode
+    authorizationUrl: https://www.premiumize.me/authorize
+    tokenUrl: https://www.premiumize.me/token
+    scopes:
+      full: access to all api methods
+  oAuth2Password:
+    type: oauth2
+    description: User's customer id (as username) and pin (as password) should be submitted as part of the request to then token URL.
+    tokenUrl: https://www.premiumize.me/token
+    flow: password
+    scopes:
+      full: access to all api methods
+  apikey:
+    type: apiKey
+    in: query
+    name: apikey
+# define security for ALL paths    
+security:
+  - oAuth2Implicit: []
+  - oAuth2AuthCode: []
+  - oAuth2Password: []
+  - apikey: []
+# define API namespaces
+tags:
+  - name: folder
+    description: Operations on folders
+  - name: item
+    description: Operations on items
+  - name: transfer
+    description: Operations on transfers
+  - name: account
+    description: Operations on account
+  - name: zip
+    description: Zip operations
+  - name: cache
+    description: Cache operations
+#define API calls
+paths:
+  /folder/list:
+    get:
+      tags:
+        - folder
+      summary: List a folder
+      operationId: folderList
+      produces:
+        - application/json
+      parameters:
+        - in: query
+          type: string
+          name: id
+          description: Id of the folder to be listed
+          required: false
+        - in: query
+          type: boolean
+          name: includebreadcrumbs
+          description: Breadcrumbs of the folder to be listed
+          required: false
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+              content:
+                type: array
+                items:
+                  $ref: '#/definitions/item'
+              breadcrumbs:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    name:
+                      type: string
+                    parent_id:
+                      type: string
+              name:    
+                type: string
+              parent_id:
+                type: string
+              folder_id:
+                type: string
+  /item/listall:
+    get:
+      tags:
+        - item
+      summary: List all files
+      operationId: itemListAll
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+              files:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    name:
+                      type: string
+                    created_at:
+                      type: integer
+                    size:
+                      type: integer
+                    mime_type:
+                      type: string
+                    virus_scan:
+                      type: string
+                      enum:
+                        - ok
+                        - infected
+                        - error
+                    path:
+                      type: string
+  /folder/create:
+    post:
+      description: Operations on transfers
+      tags:
+        - folder
+      summary: Create a new folder
+      operationId: folderCreate
+      consumes:
+        - application/x-www-form-urlencoded
+      produces:
+        - application/json
+      parameters:
+        - in: formData
+          type: string
+          name: name
+          description: Name of the folder to be created
+          required: true
+        - in: formData
+          type: string
+          name: parent_id
+          description: Id of the parent folder
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: success
+              id:
+                type: string
+  /folder/rename:
+    post:
+      tags:
+        - folder
+      parameters:
+        - in: formData
+          type: string
+          name: id
+          required: true
+        - in: formData
+          type: string
+          name: name
+          required: true
+      summary: Rename a folder
+      operationId: folderRename
+      consumes:
+        - application/x-www-form-urlencoded
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            $ref: '#/definitions/apiresponse'
+  /folder/paste:
+    post:
+      tags:
+        - folder
+      parameters:
+        - in: formData
+          name: items[0][id]
+          description: item  id be paste 
+          type: array
+          collectionFormat: multi
+          items:
+            type: string
+          uniqueItems: true
+          required: true
+        - in: formData
+          name: items[0][type]
+          description: item to type be paste (file or folder)
+          type: array
+          collectionFormat: multi
+          items:
+            type: string
+          required: true
+        - in: formData
+          type: string
+          name: id
+          required: true
+          description: id of the folder to paste into
+      summary: Paste multiple files or folders into a folder
+      operationId: folderPaste
+      consumes:
+        - application/x-www-form-urlencoded
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            $ref: '#/definitions/apiresponse'
+  /folder/delete:
+    post:
+      parameters:
+        - in: formData
+          type: string
+          name: id
+          required: true
+          description: id of the folder
+      consumes:
+        - application/x-www-form-urlencoded
+      tags:
+        - folder
+      summary: Delete a folder
+      operationId: folderDelete
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            $ref: '#/definitions/apiresponse'
+  /folder/uploadinfo:
+    get:
+      parameters:
+        - in: formData
+          type: string
+          name: id
+          description: id of the folder
+      consumes:
+        - application/x-www-form-urlencoded
+      tags:
+        - folder
+      summary: >-
+        get upload info. you will receive a token and a url. make a html upload
+        to the url and send the file as "file" parameter and the token as
+        "token" parameter. the file will be stored to the folder specified.
+      operationId: folderUploadinfo
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: success
+              token:
+                type: string
+              url:
+                type: string
+  /folder/search:
+    get:
+      tags:
+        - folder
+      summary: Search a folder or files
+      operationId: folderSearch
+      produces:
+        - application/json
+      parameters:
+        - in: query
+          type: string
+          name: q
+          description: Search your files
+          required: false
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+              content:
+                type: array
+                items:
+                  $ref: '#/definitions/item'
+              name:    
+                type: string
+              parent_id:
+                type: string
+              breadcrumbs:
+                type: string
+  /item/delete:
+    post:
+      parameters:
+        - in: formData
+          type: string
+          name: id
+          required: true
+          description: id of the item
+      consumes:
+        - application/x-www-form-urlencoded
+      tags:
+        - item
+      summary: delete an item
+      operationId: itemDelete
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            $ref: '#/definitions/apiresponse'
+  /item/rename:
+    post:
+      parameters:
+        - in: formData
+          type: string
+          name: id
+          required: true
+          description: id of the item
+        - in: formData
+          type: string
+          name: name
+          required: true
+          description: new name
+      consumes:
+        - application/x-www-form-urlencoded
+      tags:
+        - item
+      summary: rename an item
+      operationId: itemRename
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            $ref: '#/definitions/apiresponse'
+  /item/details:
+    get:
+      parameters:
+        - in: query
+          type: string
+          name: id
+          required: true
+          description: id of the item
+      consumes:
+        - application/x-www-form-urlencoded
+      tags:
+        - item
+      summary: shows details of the item
+      operationId: itemDetails
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            type: object
+            properties:
+              id:
+                type: string
+              name:
+                type: string
+              type:
+                type: string
+                example: file
+              size:
+                type: integer
+              created_at:
+                type: integer
+              folder_id:
+                type: string
+              acodec:
+                type: string
+              vcodec:
+                type: string
+              link:
+                type: string
+              mime_type:
+                type: string
+              opensubtitles_hash:
+                type: string
+              resx:
+                type: string
+              resy:
+                type: string
+              duration:
+                type: string
+              transcode_status:
+                type: string
+                enum:
+                  - not_applicable
+                  - running
+                  - finished
+                  - pending
+                  - good_as_is
+                  - error
+                  - fetch_pending
+                example: finished
+              virus_scan:
+                type: string
+                enum:
+                  - ok
+                  - infected
+                  - error
+              stream_link:
+                type: string
+              audio_track_names:
+                type: array
+                items:
+                  type: string
+              bitrate: 
+                type: integer
+                format: float
+  /zip/generate:
+    post:
+      parameters:
+        - in: formData
+          name: files[]
+          description: items to add to the zip
+          type: array
+          collectionFormat: multi
+          items:
+            type: string
+        - in: formData
+          name: folders[]
+          description: folders to add to the zip
+          type: array
+          collectionFormat: multi
+          items:
+            type: string
+      consumes:
+        - application/x-www-form-urlencoded
+      tags:
+        - zip
+      summary: generate a zip
+      operationId: zipGenerate
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                enum:
+                  - success
+                  - error
+              location:
+                type: string
+  /cache/check:
+    get:
+      parameters:
+        - in: query
+          name: items[]
+          description: items to be check
+          type: array
+          items:
+            type: string
+          collectionFormat: multi
+      tags:
+        - cache
+      summary: check supported links availability
+      operationId: cacheCheck
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                enum:
+                  - success
+                  - error
+              response:
+                type: array
+                items:
+                  type: boolean
+              transcoded:
+                type: array
+                items:
+                  type: boolean
+              filename:
+                type: array
+                items:
+                  type: string
+              filesize:
+                type: array
+                items:
+                  type: string
+  /transfer/create:
+    post:
+      parameters:
+        - in: formData
+          name: src
+          description: 'src can be: http(s) links to supported container files, links to any supported website and magnet links.'
+          type: string
+        - in: formData
+          name: file
+          description: file (supported containerfiles, nzb, dlc)
+          type: file
+        - in: formData
+          type: string
+          name: folder_id
+          description: Id of the target folder
+          required: false
+      consumes:
+        - multipart/form-data
+      tags:
+        - transfer
+      summary: create a transfer
+      operationId: transferCreate
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                enum:
+                  - success
+                  - error
+              id:
+                type: string
+              name:
+                type: string
+                example: example.jpg
+              type:
+                type: string
+  /transfer/directdl:
+    post:
+      parameters:
+        - in: formData
+          name: src
+          description: 'src can be:  http(s) links to cached container files, magnets and links to any supported websites.'
+          type: string
+      consumes:
+        - application/x-www-form-urlencoded
+      tags:
+        - transfer
+      summary: create a direct download link
+      description: "Important: This method contains redundant reponse data. The field 'content' contains a list of files, in case the requested data has more than 1 file (directories).
+      If the response contains only one file, then the array will contain only one item. So as an app developer you can always use the content-arra and ignore the other fields. The other fields are there for legacy purposes. The fields location, filename, filesize will always contain the information for one file only.
+      "
+      operationId: transferDirectdl
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                enum:
+                  - success
+                  - error
+              location:
+                type: string
+                example: https://server.com/path/file.ext
+              filename:
+                type: string
+                example: file.ext
+              filesize:
+                type: integer
+                example: 123123123
+              content:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    path:
+                      type: string
+                      example: folder/file1.jpg
+                    size:
+                      type: integer
+                      example: 123123123                      
+                    link:
+                      type: string
+                      example: https://server.com/path/file.ext
+                    stream_link:
+                      type: string
+                      example: https://server.com/path/file.ext
+                    transcode_status:
+                      type: string
+                      example: finished
+                      
+  /transfer/list:
+    get:
+      tags:
+        - transfer
+      summary: list transfers
+      operationId: transferList
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+              transfers:
+                type: array
+                items:
+                  $ref: '#/definitions/transfer'
+  /transfer/clearfinished:
+    post:
+      tags:
+        - transfer
+      summary: clear finished transfers
+      operationId: transferClearfinished
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            $ref: '#/definitions/apiresponse'
+  /transfer/delete:
+    post:
+      parameters:
+        - in: formData
+          type: string
+          name: id
+          required: true
+          description: id
+      consumes:
+        - application/x-www-form-urlencoded
+      tags:
+        - transfer
+      summary: delete a transfer
+      operationId: transferDelete
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            $ref: '#/definitions/apiresponse'
+  /account/info:
+    get:
+      tags:
+        - account
+      summary: get account info
+      operationId: accountInfo
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: success
+              customer_id:
+                type: integer
+              premium_until:
+                type: integer
+              limit_used:
+                type: number
+                format: float
+              space_used:
+                type: integer
+  /services/list:
+    get:
+      tags:
+        - services
+      summary: get a list of services
+      operationId: serviceList
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            type: object
+            properties:
+              directdl:
+                type: array
+                items: 
+                  type: string       
+              cache:
+                type: array
+                items: 
+                  type: string
+              fairusefactor:
+                type: object
+                properties:
+                  service:
+                    type: integer
+              aliases:
+                type: object
+                properties:
+                  service:
+                    type: array
+                    items: 
+                      type: string
+              regexpatterns:
+                type: object
+                properties:
+                  service:
+                    type: array
+                    items: 
+                      type: string
+                  
+
+definitions:
+  apiresponse:
+    type: object
+    required:
+      - status
+    properties:
+      status:
+        type: string
+        enum:
+          - success
+          - error
+      message:
+        type: string
+  item:
+    type: object
+    required:
+      - id
+      - type
+      - name
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+      type:
+        type: string
+        enum:
+          - file
+          - folder
+      size:
+        type: integer
+      created_at:
+        type: integer
+      mime_type:
+        type: string
+      transcode_status:
+        type: string
+        enum:
+          - not_applicable
+          - running
+          - finished
+          - pending
+          - good_as_is
+          - error
+          - fetch_pending
+        example: finished
+      link:
+        type: string
+      stream_link:
+        type: string
+      virus_scan:
+        type: string
+        enum:
+          - ok
+          - infected
+          - error
+  transfer:
+    type: object
+    required:
+      - id
+      - status
+      - name
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+      message:
+        type: string
+      status:
+        type: string
+        enum:
+          - waiting
+          - finished
+          - running
+          - deleted
+          - banned
+          - error
+          - timeout
+          - seeding
+          - queued
+      progress:
+        type: number
+        format: float
+      src:
+        type: string
+      folder_id:
+        type: string
+      file_id:
+        type: string
+externalDocs:
+  description: Go to premiumize.me
+  url: 'https://www.premiumize.me'
