@@ -266,8 +266,7 @@ public class DownloadMonitor {
     }
 
     public Torrent getTorrentToBeDownloaded() {
-        torrentMetaService.refreshTorrents();
-        List<Torrent> activeTorrents = torrentMetaService.getActiveTorrents();
+        List<Torrent> activeTorrents = torrentMetaService.getTorrentsToDownload();
         final double remainingTrafficInMB = multifileHosterService.getRemainingTrafficInMB();
         return activeTorrents
             .stream()

@@ -36,7 +36,7 @@ class MultifileHosterService @Autowired constructor(httpHelper: HttpHelper) : Ht
 
     fun addTorrentToQueue(torrent: Torrent): String {
         // filter for traffic left
-        val listOfMultihostersWithTrafficLeft = multifileHosterListForDownloads.filter { multifileHoster -> multifileHoster.getRemainingTrafficInMB() > 30000 }
+        val listOfMultihostersWithTrafficLeft = multifileHosterList.filter { multifileHoster -> multifileHoster.getRemainingTrafficInMB() > 30000 }
         val potentialMultihosters = listOfMultihostersWithTrafficLeft.ifEmpty { multifileHosterList }
 
         return if (potentialMultihosters.size == 1) {
@@ -59,6 +59,11 @@ class MultifileHosterService @Autowired constructor(httpHelper: HttpHelper) : Ht
 
     val remoteTorrents: List<Torrent>
         get() = multifileHosterList.stream()
+            .flatMap { multifileHoster: MultifileHoster -> multifileHoster.getRemoteTorrents().stream() }
+            .collect(Collectors.toList())
+
+    val remoteTorrentsForDownload: List<Torrent>
+        get() = multifileHosterListForDownloads.stream()
             .flatMap { multifileHoster: MultifileHoster -> multifileHoster.getRemoteTorrents().stream() }
             .collect(Collectors.toList())
 
