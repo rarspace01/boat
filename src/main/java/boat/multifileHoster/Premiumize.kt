@@ -1,5 +1,6 @@
 package boat.multifileHoster
 
+import boat.mapper.TorrentMapper
 import boat.torrent.HttpUser
 import boat.torrent.Torrent
 import boat.torrent.TorrentFile
@@ -82,6 +83,10 @@ class Premiumize(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoste
 
     override fun getName(): String {
         return this.javaClass.simpleName
+    }
+
+    override fun toString(): String {
+        return getName()
     }
 
     override fun getFilesFromTorrent(torrent: Torrent): List<TorrentFile> {
@@ -174,7 +179,8 @@ class Premiumize(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoste
                 tempTorrent.folder_id = cleanJsonNull(tempTorrent.folder_id)
                 tempTorrent.file_id = cleanJsonNull(tempTorrent.file_id)
                 tempTorrent.remoteId = localNode["id"].asText()
-                tempTorrent.status = localNode["status"].asText()
+                tempTorrent.remoteStatusText = localNode["status"].asText()
+                tempTorrent.remoteTorrentStatus = TorrentMapper.mapRemoteStatus(tempTorrent.remoteStatusText)
                 val src = localNode["src"].asText()
                 if (src.contains("btih")) {
                     tempTorrent.magnetUri = src
@@ -183,7 +189,7 @@ class Premiumize(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoste
                 if (messages.size == 3) {
                     tempTorrent.eta = messages[2]
                 }
-                tempTorrent.progress = localNode["progress"].toString()
+                tempTorrent.remoteProgress = localNode["progress"].toString()
                 remoteTorrentList.add(tempTorrent)
             }
         } catch (e: IOException) {

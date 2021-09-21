@@ -12,4 +12,5 @@ interface MultifileHoster {
     fun getPrio(): Int
     fun getRemainingTrafficInMB(): Double
     fun getName(): String
+    override fun toString(): String
 }

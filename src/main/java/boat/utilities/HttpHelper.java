@@ -1,10 +1,12 @@
 package boat.utilities;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.channels.Channels;
@@ -12,6 +14,7 @@ import java.nio.channels.ReadableByteChannel;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
@@ -191,5 +194,22 @@ public class HttpHelper {
 
     public boolean isWebsiteResponding(String baseUrl, int timeout) {
         return getPage(baseUrl, timeout).length() > 0;
+    }
+
+    public String getExternalHostname(){
+        ProcessBuilder builder = new ProcessBuilder();
+        builder.command("bash", "-c", "dig -x $(curl -s checkip.amazonaws.com) +short");
+        builder.directory(new File(System.getProperty("user.home")));
+        String output = "";
+        String error = "";
+        try {
+            Process process = builder.start();
+            process.waitFor(5, TimeUnit.SECONDS);
+            output = new String(process.getInputStream().readAllBytes());
+        } catch (Exception e) {
+            log.error("{}\nOutput from process:\n{}\nError from Process:\n{}", e.getMessage(), output, error);
+            e.printStackTrace();
+        }
+        return output;
     }
 }

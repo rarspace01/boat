@@ -25,7 +25,11 @@ public class Torrent implements Comparable<Torrent> {
     public String category;
     public double searchRating = 0.0;
     public String debugRating = "";
-    public String status;
+    public String remoteStatusText;
+    public int remoteStatusCode;
+    public TorrentStatus remoteTorrentStatus;
+    public TorrentStatus localTorrentStatus;
+    public String remoteProgress;
     public String progress;
     public String eta;
     public String remoteId;
@@ -63,7 +67,7 @@ public class Torrent implements Comparable<Torrent> {
             stringBuilder.append(String.format("R: %.2f ", this.searchRating));
         }
 
-        if (magnetUriBase64 != null && magnetUriBase64.length() > 0 && this.status == null) {
+        if (magnetUriBase64 != null && magnetUriBase64.length() > 0 && this.remoteStatusText == null) {
             stringBuilder.append("<a href=\"./boat/download/?d=" + magnetUriBase64 + "\">Download</a>");
         }
 
@@ -75,12 +79,12 @@ public class Torrent implements Comparable<Torrent> {
         /*        if (getTorrentId() != null) {
             stringBuilder.append(" TID:" + getTorrentId());
         }*/
-        if (this.status != null && this.progress != null) {
-            String progress = "/" + this.progress;
-            if (status.contains("Uploading")) {
+        if (this.remoteStatusText != null && this.remoteProgress != null) {
+            String progress = "/" + this.remoteProgress;
+            if (remoteStatusText.contains("Uploading")) {
                 progress = "";
             }
-            stringBuilder.append(" " + this.status.replaceAll("finished", "Waiting for Upload") + progress);
+            stringBuilder.append(" " + this.remoteStatusText.replaceAll("finished", "Waiting for Upload") + progress);
         }
         if (eta != null) {
             stringBuilder.append(" ETA:" + this.eta);

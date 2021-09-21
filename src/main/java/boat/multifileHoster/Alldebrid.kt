@@ -1,5 +1,6 @@
 package boat.multifileHoster
 
+import boat.mapper.TorrentMapper
 import boat.torrent.HttpUser
 import boat.torrent.Torrent
 import boat.torrent.TorrentFile
@@ -47,9 +48,9 @@ class Alldebrid(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoster
             val downloadSpeed = jsonTorrent["downloadSpeed"].asLong.toDouble()
             val remainingSeconds = ((size - downloaded) / downloadSpeed).toLong()
             val duration = Duration.ofSeconds(remainingSeconds)
-            torrent.progress = String.format("%f", downloaded / size)
+            torrent.remoteProgress = String.format("%f", downloaded / size)
             torrent.eta = String.format("ETA: %s", duration.toString())
-            torrent.status = jsonTorrent["status"].asString
+            torrent.remoteStatusText = jsonTorrent["status"].asString
             torrents.add(torrent)
         })
         return torrents
@@ -75,9 +76,16 @@ class Alldebrid(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoster
             val downloadSpeed = jsonTorrent["downloadSpeed"].asLong.toDouble()
             val remainingSeconds = ((size - downloaded) / downloadSpeed).toLong()
             val duration = Duration.ofSeconds(remainingSeconds)
-            torrent.progress = String.format("%f", downloaded / size)
-            torrent.eta = String.format("ETA: %s", duration.toString())
-            torrent.status = jsonTorrent["status"].asString
+            torrent.remoteProgress = String.format("%f", downloaded / size)
+            torrent.eta = String.format(
+                "%02d:%02d:%02d",
+                duration.toHours(),
+                duration.toMinutesPart(),
+                duration.toSecondsPart()
+            )
+            torrent.remoteStatusText = jsonTorrent["status"].asString
+            torrent.remoteStatusCode = jsonTorrent["statusCode"].asInt
+            torrent.remoteTorrentStatus = TorrentMapper.mapRemoteStatus(torrent.remoteStatusCode)
             val links = jsonTorrent["links"].asJsonArray
             if (remoteId != null) {
                 torrent.fileList.clear()
@@ -153,7 +161,7 @@ class Alldebrid(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoster
     }
 
     override fun getPrio(): Int {
-        return 0
+        return 2
     }
 
     override fun getRemainingTrafficInMB(): Double {
@@ -162,6 +170,11 @@ class Alldebrid(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoster
 
     override fun getName(): String {
         return this.javaClass.simpleName
+    }
+
+    override fun toString(): String
+    {
+        return getName()
     }
 
     companion object {

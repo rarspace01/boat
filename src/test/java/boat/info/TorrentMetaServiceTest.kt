@@ -23,13 +23,13 @@ internal class TorrentMetaServiceTest {
         // Given
         val remoteTorrentDownloading = Torrent("Remote")
         remoteTorrentDownloading.magnetUri = "btih:123&"
-        remoteTorrentDownloading.status = "downloading"
+        remoteTorrentDownloading.remoteStatusText = "downloading"
         val remoteTorrentFinished = Torrent("Remote")
         remoteTorrentFinished.magnetUri = "btih:321&"
-        remoteTorrentFinished.status = "finished"
+        remoteTorrentFinished.remoteStatusText = "finished"
         val localTorrentUploading = Torrent("Remote")
         localTorrentUploading.magnetUri = "btih:321&"
-        localTorrentUploading.status = "uploading (3/7)"
+        localTorrentUploading.remoteStatusText = "uploading (3/7)"
         every {multifileHosterService.remoteTorrents} returns (listOf(remoteTorrentDownloading, remoteTorrentFinished))
         torrentMetaService.updateTorrent(localTorrentUploading)
         // When
@@ -44,13 +44,13 @@ internal class TorrentMetaServiceTest {
         // Given
         val remoteTorrentDownloading = Torrent("Remote")
         remoteTorrentDownloading.magnetUri = "btih:123&"
-        remoteTorrentDownloading.status = "downloading"
+        remoteTorrentDownloading.remoteStatusText = "downloading"
         val remoteTorrentFinished = Torrent("Remote")
         remoteTorrentFinished.magnetUri = "btih:321&"
-        remoteTorrentFinished.status = "finished"
+        remoteTorrentFinished.remoteStatusText = "finished"
         val localTorrentUploading = Torrent("Remote")
         localTorrentUploading.magnetUri = "btih:321&"
-        localTorrentUploading.status = "uploading (3/7)"
+        localTorrentUploading.remoteStatusText = "uploading (3/7)"
         every {multifileHosterService.remoteTorrents} returns (listOf(remoteTorrentDownloading, remoteTorrentFinished))
         torrentMetaService.updateTorrent(localTorrentUploading)
         // When

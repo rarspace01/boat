@@ -30,6 +30,7 @@ import boat.torrent.Torrent;
 import boat.torrent.TorrentFile;
 import boat.torrent.TorrentHelper;
 import boat.torrent.TorrentSearchEngineService;
+import boat.torrent.TorrentStatus;
 import boat.torrent.TorrentType;
 import boat.utilities.ProcessUtil;
 import boat.utilities.PropertiesHelper;
@@ -119,7 +120,8 @@ public class DownloadMonitor {
                         if (filesCache != null) {
                             filesCache.evictIfPresent(destinationPath);
                         }
-                        cloudFileService.getFilesInPath(destinationPath);
+                        List<String> filesInPath = cloudFileService.getFilesInPath(destinationPath);
+                        log.info("Files in Path: {}",filesInPath.size());
                     });
                 log.info("Cache refresh done for: {}", searchName);
             });
@@ -149,10 +151,10 @@ public class DownloadMonitor {
     private void checkForQueueEntryAndAddToDownloads() {
         final List<Torrent> remoteTorrents = multifileHosterService.getRemoteTorrents();
         final long numberOfActiveRemoteTorrents = remoteTorrents
-            .stream().filter(torrent -> !torrent.status.equals("finished"))
+            .stream().filter(torrent -> !torrent.remoteTorrentStatus.equals(TorrentStatus.READY_TO_BE_DOWNLOADED))
             .count();
         final long numberOfTorrentsReadyToDownload = remoteTorrents
-            .stream().filter(torrent -> torrent.status.equals("finished"))
+            .stream().filter(torrent -> torrent.remoteTorrentStatus.equals(TorrentStatus.READY_TO_BE_DOWNLOADED))
             .count();
         if (numberOfTorrentsReadyToDownload == 0 && numberOfActiveRemoteTorrents < MAX_QUEUE_DOWNLOADS_LIMIT
             && multifileHosterService.getRemainingTrafficInMB() > MIN_GB_FOR_QUEUE * 1024) {
@@ -196,7 +198,7 @@ public class DownloadMonitor {
     }
 
     private boolean isTorrentStuckOnErrror(Torrent torrent) {
-        return torrent.status.contains("error");
+        return torrent.remoteTorrentStatus.equals(TorrentStatus.ERROR);
     }
 
     private boolean checkForDownloadableTorrentsAndDownloadTheFirst() {
@@ -255,7 +257,7 @@ public class DownloadMonitor {
                 isDownloadInProgress = false;
             }
             if (!wasDownloadSuccessful) {
-                log.error(String.format("Couldn't download Torrent: %s", torrentToBeDownloaded));
+                log.error("Couldn't download Torrent: {}", torrentToBeDownloaded);
             }
             return wasDownloadSuccessful;
         } else {
@@ -277,7 +279,7 @@ public class DownloadMonitor {
 
     private void updateUploadStatus(Torrent torrentToBeDownloaded, List<TorrentFile> listOfFiles, int currentFileNumber,
                                     Instant startTime) {
-        torrentToBeDownloaded.status = getUploadStatusString(torrentToBeDownloaded, listOfFiles, currentFileNumber,
+        torrentToBeDownloaded.remoteStatusText = getUploadStatusString(torrentToBeDownloaded, listOfFiles, currentFileNumber,
             startTime);
         torrentMetaService.updateTorrent(torrentToBeDownloaded);
     }
@@ -381,7 +383,7 @@ public class DownloadMonitor {
 
     private boolean checkIfTorrentCanBeDownloaded(Torrent remoteTorrent) {
         return List.of("finished", "seeding", "ready to upload", "Ready").stream()
-            .anyMatch(status -> remoteTorrent.status.contains(status));
+            .anyMatch(status -> remoteTorrent.remoteStatusText.contains(status));
     }
 
 }

@@ -237,6 +237,8 @@ public final class BoatController {
             + "<br/>search Cache: " + (cloudFileService.isCacheFilled() ? "✅" : "❌")
             + "<br/>ActiveSearchEngines: " + torrentSearchEngineService.getActiveSearchEngines()
             + "<br/>InActiveSearchEngines: " + torrentSearchEngineService.getInActiveSearchEngines()
+            + "<br/>Active MultifileHoster: " + multifileHosterService.getActiveMultifileHosters()
+            + "<br/>Active DL MultifileHoster: " + multifileHosterService.getActiveMultifileHosterForDownloads()
             + "<br/>TrafficLeft: " + TorrentHelper
             .humanReadableByteCountBinary((long) multifileHosterService.getRemainingTrafficInMB() * 1024 * 1024)
             + String.format("<br/>D [%d]: %s", remoteTorrents.size(), remoteTorrents)

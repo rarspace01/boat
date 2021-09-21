@@ -1,48 +1,47 @@
-package boat.multifileHoster;
+package boat.multifileHoster
 
-import java.util.List;
+import boat.torrent.Torrent
+import boat.utilities.HttpHelper
+import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Assertions.assertDoesNotThrow
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 
-import boat.torrent.Torrent;
-import boat.torrent.TorrentFile;
-import boat.utilities.HttpHelper;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-class AlldebridTest {
-
-    private Alldebrid alldebrid;
+internal class AlldebridTest {
+    private lateinit var alldebrid: Alldebrid
 
     @BeforeEach
-    void beforeEach() {
-        alldebrid = new Alldebrid(new HttpHelper());
+    fun beforeEach() {
+        alldebrid = Alldebrid(HttpHelper())
     }
 
-    @Disabled
     @Test
-    void getRemoteTorrents() {
+    fun getRemoteTorrents() {
         // Given
         // When
-        final List<Torrent> remoteTorrents = alldebrid.getRemoteTorrents();
+        val remoteTorrents = alldebrid.getRemoteTorrents()
         // Then
-        assertTrue(remoteTorrents != null);
+        Assertions.assertTrue(remoteTorrents != null)
     }
 
-    @Disabled
     @Test
-    void getFilesFromTorrent() {
+    fun filesFromTorrent() {
         // Given
-        final List<Torrent> remoteTorrents = alldebrid.getRemoteTorrents();
+        val remoteTorrents: List<Torrent?> = alldebrid.getRemoteTorrents()
         // When
-        final Torrent torrent = remoteTorrents.stream().findFirst().orElse(null);
-        if(torrent != null) {
-            final List<TorrentFile> filesFromTorrent = alldebrid.getFilesFromTorrent(torrent);
-            assertNotNull(filesFromTorrent);
+        val torrent = remoteTorrents.stream().findFirst().orElse(null)
+        if (torrent != null) {
+            val filesFromTorrent = alldebrid.getFilesFromTorrent(torrent)
+            Assertions.assertNotNull(filesFromTorrent)
         }
-        assertTrue(true);
+        Assertions.assertTrue(true)
     }
 
+    @Test
+    fun remainingTrafficInMB() {
+        // Given
+        // When
+        // Then
+        assertDoesNotThrow { alldebrid.getRemainingTrafficInMB() }
+    }
 }

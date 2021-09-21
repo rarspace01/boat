@@ -20,9 +20,9 @@ class TorrentMetaService(private val multifileHosterService: MultifileHosterServ
     fun refreshTorrents() {
         val remoteTorrents = multifileHosterService.remoteTorrents
         remoteTorrents.forEach(Consumer { torrent: Torrent ->
-            if (isReadyForDownloadStatus(torrent.status)) {
+            if (isReadyForDownloadStatus(torrent.remoteStatusText)) {
                 val localStatus = localStatusStorage[torrent.torrentId]
-                torrent.status = localStatus ?: torrent.status
+                torrent.remoteStatusText = localStatus ?: torrent.remoteStatusText
             } else {
                 localStatusStorage.remove(torrent.torrentId)
             }
@@ -36,9 +36,9 @@ class TorrentMetaService(private val multifileHosterService: MultifileHosterServ
     }
 
     fun updateTorrent(torrentUpdate: Torrent) {
-        localStatusStorage[torrentUpdate.torrentId] = torrentUpdate.status
+        localStatusStorage[torrentUpdate.torrentId] = torrentUpdate.remoteStatusText
         torrentUpdate.remoteId?.let {
-            localStatusStorage[torrentUpdate.remoteId] = torrentUpdate.status
+            localStatusStorage[torrentUpdate.remoteId] = torrentUpdate.remoteStatusText
         }
     }
 }
