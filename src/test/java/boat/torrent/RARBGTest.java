@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import boat.utilities.HttpHelper;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -11,6 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class RARBGTest {
 
+    @Disabled
     @Test
     void shouldFindTorrents() {
         // Given
@@ -22,6 +24,7 @@ class RARBGTest {
         // Then
     }
 
+    @Disabled
     @Test
     void shouldFindTorrentsWithURL() {
         // Given
