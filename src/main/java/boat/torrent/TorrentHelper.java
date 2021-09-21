@@ -148,7 +148,7 @@ public class TorrentHelper {
             debugAdditional += "☑️";
         }
         if (!tempTorrent.cached.isEmpty()) {
-            debugAdditional += "⚡";
+            debugAdditional += String.format("⚡(%s)", tempTorrent.cached.stream().map(s -> s.charAt(0)).collect(Collectors.toList()));
             speedRating = 2;
             speedMultiplier = 1;
         } else if (seedRatio > 1.0) {
