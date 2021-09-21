@@ -51,6 +51,8 @@ class Alldebrid(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoster
             torrent.remoteProgress = String.format("%f", downloaded / size)
             torrent.eta = String.format("ETA: %s", duration.toString())
             torrent.remoteStatusText = jsonTorrent["status"].asString
+            torrent.remoteStatusCode = jsonTorrent["statusCode"].asInt
+            torrent.remoteTorrentStatus = TorrentMapper.mapRemoteStatus(torrent.remoteStatusCode)
             torrents.add(torrent)
         })
         return torrents
@@ -165,7 +167,7 @@ class Alldebrid(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoster
     }
 
     override fun getRemainingTrafficInMB(): Double {
-        return Double.MAX_VALUE
+        return 999999.0
     }
 
     override fun getName(): String {

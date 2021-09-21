@@ -12,12 +12,13 @@ import java.util.stream.Collectors
 
 @Service
 class MultifileHosterService @Autowired constructor(httpHelper: HttpHelper) : HttpUser(httpHelper) {
-    private val multifileHosterList: MutableList<MultifileHoster> = mutableListOf<MultifileHoster>(Premiumize(httpHelper), Alldebrid(httpHelper))
+    private val multifileHosterList: MutableList<MultifileHoster> = mutableListOf(Premiumize(httpHelper), Alldebrid(httpHelper))
     private val multifileHosterListForDownloads: MutableList<MultifileHoster> = getEligibleMultifileHoster(httpHelper)
 
     private fun getEligibleMultifileHoster(httpHelper: HttpHelper): MutableList<MultifileHoster> {
         val eligibleList = mutableListOf<MultifileHoster>(Premiumize(httpHelper))
         if(!httpHelper.externalHostname.contains("happysrv")){
+            log.info("httpHelper.externalHostname: {}", httpHelper.externalHostname)
             eligibleList.add(Alldebrid(httpHelper))
         }
         return eligibleList
