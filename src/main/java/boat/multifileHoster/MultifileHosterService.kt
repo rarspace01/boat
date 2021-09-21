@@ -17,8 +17,7 @@ class MultifileHosterService @Autowired constructor(httpHelper: HttpHelper) : Ht
 
     private fun getEligibleMultifileHoster(httpHelper: HttpHelper): MutableList<MultifileHoster> {
         val eligibleList = mutableListOf<MultifileHoster>(Premiumize(httpHelper))
-        if(!httpHelper.externalHostname.contains("happysrv")){
-            log.info("httpHelper.externalHostname: {}", httpHelper.externalHostname)
+        if(!httpHelper.externalHostname.contains("happysrv") && !httpHelper.externalHostname.contains(".com")){
             eligibleList.add(Alldebrid(httpHelper))
         }
         return eligibleList
