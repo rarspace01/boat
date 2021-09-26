@@ -23,6 +23,7 @@ class Alldebrid(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoster
         val urlEncodedBrackets = TorrentHelper.urlEncode("[]")
         val collected = "&magnets" + urlEncodedBrackets + "=" + TorrentHelper.urlEncode(toBeAddedTorrent.magnetUri)
         val checkUrl = String.format(requestUrl, collected)
+        log.info("Add Magnet URL: {}",checkUrl)
         val pageContent = httpHelper.getPage(checkUrl)
         val jsonRoot = JsonParser.parseString(pageContent)
         val status = jsonRoot.asJsonObject["status"]
@@ -128,7 +129,6 @@ class Alldebrid(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoster
         val urlEncodedBrackets = TorrentHelper.urlEncode("[]")
         val collected = torrents.stream().map { obj: Torrent -> obj.torrentId }.collect(Collectors.joining("&magnets$urlEncodedBrackets=", "&magnets$urlEncodedBrackets=", ""))
         val checkUrl = String.format(requestUrl, collected)
-        log.info("check cache via: {}", checkUrl)
         val pageContent = httpHelper.getPage(checkUrl)
         val jsonRoot = JsonParser.parseString(pageContent)
         if (jsonRoot == null || !jsonRoot.isJsonObject) {
@@ -168,7 +168,7 @@ class Alldebrid(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoster
     }
 
     override fun getRemainingTrafficInMB(): Double {
-        return 999999.0
+        return 9999999.0
     }
 
     override fun getName(): String {
