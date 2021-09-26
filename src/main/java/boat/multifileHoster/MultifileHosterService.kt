@@ -36,25 +36,26 @@ class MultifileHosterService @Autowired constructor(httpHelper: HttpHelper) : Ht
 
     fun addTorrentToQueue(torrent: Torrent): String {
         // filter for traffic left
-        val listOfMultihostersWithTrafficLeft = multifileHosterList.filter { multifileHoster -> multifileHoster.getRemainingTrafficInMB() > 30000 }
-        val potentialMultihosters = listOfMultihostersWithTrafficLeft.ifEmpty { multifileHosterList }
-
-        return if (potentialMultihosters.size == 1) {
-            potentialMultihosters[0].addTorrentToQueue(torrent)
-        } else {
-            val potentialCachedTorrentToDownload =
-                getCachedStateOfTorrents(listOf(torrent)).stream().findFirst().orElse(torrent)
-            val cachedMultihosters = potentialMultihosters
-                .filter { multifileHoster: MultifileHoster ->
-                    potentialCachedTorrentToDownload.cached.contains(multifileHoster.getName())
-                }
-            val multihostersToDownload = cachedMultihosters.ifEmpty { potentialMultihosters }
-            multihostersToDownload
-                .stream()
-                .min(Comparator.comparingInt(MultifileHoster::getPrio))
-                .orElse(potentialMultihosters.first())
-                .addTorrentToQueue(torrent)
-        }
+        return Premiumize(httpHelper).addTorrentToQueue(torrent)
+//        val listOfMultihostersWithTrafficLeft = multifileHosterList.filter { multifileHoster -> multifileHoster.getRemainingTrafficInMB() > 30000 }
+//        val potentialMultihosters = listOfMultihostersWithTrafficLeft.ifEmpty { multifileHosterList }
+//
+//        return if (potentialMultihosters.size == 1) {
+//            potentialMultihosters[0].addTorrentToQueue(torrent)
+//        } else {
+//            val potentialCachedTorrentToDownload =
+//                getCachedStateOfTorrents(listOf(torrent)).stream().findFirst().orElse(torrent)
+//            val cachedMultihosters = potentialMultihosters
+//                .filter { multifileHoster: MultifileHoster ->
+//                    potentialCachedTorrentToDownload.cached.contains(multifileHoster.getName())
+//                }
+//            val multihostersToDownload = cachedMultihosters.ifEmpty { potentialMultihosters }
+//            multihostersToDownload
+//                .stream()
+//                .min(Comparator.comparingInt(MultifileHoster::getPrio))
+//                .orElse(potentialMultihosters.first())
+//                .addTorrentToQueue(torrent)
+//        }
     }
 
     val remoteTorrents: List<Torrent>
