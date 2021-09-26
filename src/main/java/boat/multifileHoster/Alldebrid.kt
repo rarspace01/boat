@@ -128,6 +128,7 @@ class Alldebrid(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoster
         val urlEncodedBrackets = TorrentHelper.urlEncode("[]")
         val collected = torrents.stream().map { obj: Torrent -> obj.torrentId }.collect(Collectors.joining("&magnets$urlEncodedBrackets=", "&magnets$urlEncodedBrackets=", ""))
         val checkUrl = String.format(requestUrl, collected)
+        log.info("check cache via: {}", checkUrl)
         val pageContent = httpHelper.getPage(checkUrl)
         val jsonRoot = JsonParser.parseString(pageContent)
         if (jsonRoot == null || !jsonRoot.isJsonObject) {
