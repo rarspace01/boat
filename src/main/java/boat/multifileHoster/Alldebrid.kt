@@ -17,7 +17,7 @@ import java.util.function.Consumer
 import java.util.stream.Collectors
 
 class Alldebrid(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoster {
-    override fun addTorrentToQueue(toBeAddedTorrent: Torrent): String {
+    override fun addTorrentToDownloadQueue(toBeAddedTorrent: Torrent): String {
         val requestUrl =
             "https://api.alldebrid.com/v4/magnet/upload?agent=pirateboat&apikey=" + PropertiesHelper.getProperty("ALLDEBRID_APIKEY") + "%s"
         val urlEncodedBrackets = TorrentHelper.urlEncode("[]")
@@ -50,7 +50,9 @@ class Alldebrid(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoster
             val remainingSeconds = ((size - downloaded) / downloadSpeed).toLong()
             val duration = Duration.ofSeconds(remainingSeconds)
             torrent.remoteProgress = String.format("%f", downloaded / size)
-            torrent.eta = String.format("ETA: %s", duration.toString())
+            torrent.remoteProgressInPercent = downloaded / size
+            torrent.eta = duration
+            torrent.magnetUri = TorrentHelper.buildMagnetUriFromHash(jsonTorrent["hash"].asString, torrent.name)
             torrent.remoteStatusText = jsonTorrent["status"].asString
             torrent.remoteStatusCode = jsonTorrent["statusCode"].asInt
             torrent.remoteTorrentStatus = TorrentMapper.mapRemoteStatus(torrent.remoteStatusCode)
@@ -80,12 +82,9 @@ class Alldebrid(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoster
             val remainingSeconds = ((size - downloaded) / downloadSpeed).toLong()
             val duration = Duration.ofSeconds(remainingSeconds)
             torrent.remoteProgress = String.format("%f", downloaded / size)
-            torrent.eta = String.format(
-                "%02d:%02d:%02d",
-                duration.toHours(),
-                duration.toMinutesPart(),
-                duration.toSecondsPart()
-            )
+            torrent.remoteProgressInPercent = downloaded / size
+            torrent.eta = duration
+            torrent.magnetUri = TorrentHelper.buildMagnetUriFromHash(jsonTorrent["hash"].asString, torrent.name)
             torrent.remoteStatusText = jsonTorrent["status"].asString
             torrent.remoteStatusCode = jsonTorrent["statusCode"].asInt
             torrent.remoteTorrentStatus = TorrentMapper.mapRemoteStatus(torrent.remoteStatusCode)
@@ -169,6 +168,10 @@ class Alldebrid(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoster
 
     override fun getRemainingTrafficInMB(): Double {
         return 9999999.0
+    }
+
+    override fun getMaximumActiveTransfers(): Int {
+        return 25
     }
 
     override fun getName(): String {

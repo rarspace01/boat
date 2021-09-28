@@ -25,6 +25,7 @@ import boat.info.QueueService;
 import boat.info.TheFilmDataBaseService;
 import boat.info.TorrentMetaService;
 import boat.multifileHoster.MultifileHosterService;
+import boat.services.TransferService;
 import boat.torrent.Torrent;
 import boat.torrent.TorrentHelper;
 import boat.torrent.TorrentSearchEngineService;
@@ -51,6 +52,7 @@ public final class BoatController {
     private final MultifileHosterService multifileHosterService;
     private final QueueService queueService;
     private final CloudFileService cloudFileService;
+    private final TransferService transferService;
 
     @Autowired
     public BoatController(
@@ -61,7 +63,8 @@ public final class BoatController {
         TheFilmDataBaseService theFilmDataBaseService,
         MultifileHosterService multifileHosterService,
         QueueService queueService,
-        CloudFileService cloudFileService) {
+        CloudFileService cloudFileService,
+        TransferService transferService) {
         this.httpHelper = httpHelper;
         this.torrentSearchEngineService = torrentSearchEngineService;
         this.cloudService = cloudService;
@@ -70,6 +73,7 @@ public final class BoatController {
         this.multifileHosterService = multifileHosterService;
         this.queueService = queueService;
         this.cloudFileService = cloudFileService;
+        this.transferService = transferService;
     }
 
     @GetMapping({"/"})
@@ -208,9 +212,10 @@ public final class BoatController {
             }
         }
         if (torrentsToBeDownloaded.size() == 1) {
-            return switchToProgress + multifileHosterService.addTorrentToQueue(torrentsToBeDownloaded.get(0));
+            multifileHosterService.addTorrentToTransfer(torrentsToBeDownloaded.get(0));
+            return switchToProgress;
         } else {
-            torrentsToBeDownloaded.forEach(multifileHosterService::addTorrentToQueue);
+            torrentsToBeDownloaded.forEach(multifileHosterService::addTorrentToTransfer);
             return switchToProgress;
         }
     }
@@ -241,6 +246,7 @@ public final class BoatController {
             + "<br/>Active DL MultifileHoster: " + multifileHosterService.getActiveMultifileHosterForDownloads()
             + "<br/>TrafficLeft: " + TorrentHelper
             .humanReadableByteCountBinary((long) multifileHosterService.getRemainingTrafficInMB() * 1024 * 1024)
+            + String.format("<br/>Transfers [%d]: %s", transferService.getAll().size(), transferService.getAll())
             + String.format("<br/>D [%d]: %s", remoteTorrents.size(), remoteTorrents)
             + String.format("<br/>Queue [%d]: %s", queueService.getQueue().size(), queueService.getQueue())
             ;

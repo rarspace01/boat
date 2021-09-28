@@ -10,6 +10,7 @@ import boat.info.CloudService;
 import boat.info.QueueService;
 import boat.info.TorrentMetaService;
 import boat.multifileHoster.MultifileHosterService;
+import boat.services.TransferService;
 import boat.torrent.Torrent;
 import boat.torrent.TorrentFile;
 import boat.torrent.TorrentSearchEngineService;
@@ -37,6 +38,8 @@ class DownloadMonitorTest {
     private QueueService queueService;
     @Mock
     private BluRayComService blurayComService;
+    @Mock
+    private TransferService transferService;
 
     private DownloadMonitor downloadMonitor;
 
@@ -44,7 +47,7 @@ class DownloadMonitorTest {
     void beforeEach() {
         downloadMonitor = new DownloadMonitor(torrentSearchEngineService, torrentMetaService, cloudService,
             multiHosterService,
-            cloudFileService, cacheManager, queueService, blurayComService);
+            cloudFileService, cacheManager, queueService, blurayComService, transferService);
     }
 
     @Test

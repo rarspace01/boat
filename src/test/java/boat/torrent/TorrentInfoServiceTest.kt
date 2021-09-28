@@ -57,7 +57,7 @@ internal class TorrentInfoServiceTest {
             torrent, torrent2
         )
         // When
-        val torrentList2 = torrentInfoService.refreshTorrentStats(torrentList)
+        torrentInfoService.refreshTorrentStats(torrentList)
         // Then
         assertThat(torrentList[1].leecher).isGreaterThan(-1)
         assertThat(torrentList[1].seeder).isGreaterThan(-1)
@@ -82,7 +82,7 @@ internal class TorrentInfoServiceTest {
             torrentList.add(torrent3)
         }
         // When
-        val torrentList2 = torrentInfoService.refreshTorrentStats(torrentList)
+        torrentInfoService.refreshTorrentStats(torrentList)
         // Then
         assertThat(torrentList[99].leecher).isGreaterThan(-1)
         assertThat(torrentList[99].seeder).isGreaterThan(-1)

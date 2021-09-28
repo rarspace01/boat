@@ -16,13 +16,14 @@ import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 import org.slf4j.LoggerFactory
 import java.io.IOException
+import java.time.Duration
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.function.Consumer
 import java.util.regex.Pattern
 import java.util.stream.Collectors
 
 class Premiumize(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoster {
-    override fun addTorrentToQueue(toBeAddedTorrent: Torrent): String {
+    override fun addTorrentToDownloadQueue(toBeAddedTorrent: Torrent): String {
         val response: String
         val addTorrenntUrl =
             "https://www.premiumize.me/api/transfer/create?apikey=" + PropertiesHelper.getProperty("PREMIUMIZE_APIKEY") +
@@ -53,6 +54,10 @@ class Premiumize(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoste
         val boostAccount: String =
             httpHelper.getPage("https://www.premiumize.me/account?apikey=" + PropertiesHelper.getProperty("PREMIUMIZE_APIKEY"))
         return parseRemainingTrafficInMB(responseAccount) + parseRemainingBoostTrafficInMB(boostAccount)
+    }
+
+    override fun getMaximumActiveTransfers(): Int {
+        return 25
     }
 
     private fun parseRemainingBoostTrafficInMB(boostAccount: String): Double {
@@ -187,15 +192,33 @@ class Premiumize(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoste
                 }
                 val messages = localNode["message"].asText().split(",").toTypedArray()
                 if (messages.size == 3) {
-                    tempTorrent.eta = messages[2]
+                    val extractDurationFromString = extractDurationFromString(messages[2])
+                    tempTorrent.eta = extractDurationFromString
                 }
                 tempTorrent.remoteProgress = localNode["progress"].toString()
+                tempTorrent.remoteProgressInPercent = localNode["progress"].asDouble()
                 remoteTorrentList.add(tempTorrent)
             }
         } catch (e: IOException) {
             e.printStackTrace()
         }
         return remoteTorrentList
+    }
+
+    private fun extractDurationFromString(durationString: String): Duration {
+        if(durationString.contains("unknown")) return Duration.ZERO
+        val valueOfDuration = durationString
+            .replace("days", "",true)
+            .replace("hours", "",true)
+            .replace("minutes", "",true)
+            .replace("seconds", "",true)
+            .replace("left", "",true)
+            .trim()
+        if(durationString.contains("days")) return Duration.ofDays(valueOfDuration.toLong())
+        if(durationString.contains("hours")) return Duration.ofHours(valueOfDuration.toLong())
+        if(durationString.contains("minutes")) return Duration.ofMinutes(valueOfDuration.toLong())
+        if(durationString.contains("seconds")) return Duration.ofSeconds(valueOfDuration.toLong())
+        return Duration.ZERO
     }
 
     private fun cleanJsonNull(inputString: String): String? {

@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Assertions.assertDoesNotThrow
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-
 internal class AlldebridTest {
     private lateinit var alldebrid: Alldebrid
 
@@ -19,10 +18,10 @@ internal class AlldebridTest {
     fun getRemoteTorrents() {
         // Given
         // When
-        val remoteTorrents = alldebrid.getRemoteTorrents()
         // Then
-        Assertions.assertTrue(remoteTorrents != null)
+        assertDoesNotThrow { alldebrid.getRemoteTorrents() }
     }
+
 
     @Test
     fun filesFromTorrent() {
@@ -45,3 +44,4 @@ internal class AlldebridTest {
         assertDoesNotThrow { alldebrid.getRemainingTrafficInMB() }
     }
 }
+

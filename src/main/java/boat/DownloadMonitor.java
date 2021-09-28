@@ -8,6 +8,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -25,7 +26,9 @@ import boat.info.CloudService;
 import boat.info.MediaItem;
 import boat.info.QueueService;
 import boat.info.TorrentMetaService;
+import boat.model.Transfer;
 import boat.multifileHoster.MultifileHosterService;
+import boat.services.TransferService;
 import boat.torrent.Torrent;
 import boat.torrent.TorrentFile;
 import boat.torrent.TorrentHelper;
@@ -51,6 +54,7 @@ public class DownloadMonitor {
     private final MultifileHosterService multifileHosterService;
 
     private static final int SECONDS_BETWEEN_DOWNLOAD_POLLING = 30;
+    private static final int SECONDS_BETWEEN_TRANSFER_POLLING = 30;
     private static final int SECONDS_BETWEEN_QUEUE_POLLING = 30;
     private static final int SECONDS_BETWEEN_SEARCH_ENGINE_POLLING = 240;
     private static final int SECONDS_BETWEEN_CLEAR_TRANSFER_POLLING = 3600;
@@ -62,6 +66,7 @@ public class DownloadMonitor {
     private final CacheManager cacheManager;
     private final QueueService queueService;
     private final BluRayComService bluRayComService;
+    private final TransferService transferService;
     private Boolean isRcloneInstalled;
 
     public DownloadMonitor(TorrentSearchEngineService torrentSearchEngineService,
@@ -71,7 +76,8 @@ public class DownloadMonitor {
                            CloudFileService cloudFileService,
                            CacheManager cacheManager,
                            QueueService queueService,
-                           BluRayComService bluRayComService
+                           BluRayComService bluRayComService,
+                           TransferService transferService
     ) {
         this.torrentSearchEngineService = torrentSearchEngineService;
         this.torrentMetaService = torrentMetaService;
@@ -81,6 +87,7 @@ public class DownloadMonitor {
         this.cacheManager = cacheManager;
         this.queueService = queueService;
         this.bluRayComService = bluRayComService;
+        this.transferService = transferService;
     }
 
     @Scheduled(fixedRate = SECONDS_BETWEEN_SEARCH_ENGINE_POLLING * 1000)
@@ -89,8 +96,9 @@ public class DownloadMonitor {
         torrentSearchEngineService.refreshTorrentSearchEngines();
     }
 
-    @Scheduled(fixedRate = SECONDS_BETWEEN_FILE_CACHE_REFRESH * 1000)
-    public void fillQueueWithMovies() {
+//    @Scheduled(fixedRate = SECONDS_BETWEEN_FILE_CACHE_REFRESH * 1000)
+//    public void fillQueueWithMovies() {
+//        log.info("fillQueueWithMovies()");
 //        final List<MediaItem> completeList = new java.util.ArrayList<>(Collections.emptyList());
 //        IntStream.rangeClosed(2006,2021)
 //            .parallel()
@@ -104,7 +112,7 @@ public class DownloadMonitor {
 //                    });
 //            });
 //        queueService.addAll(completeList);
-    }
+//    }
 
     @Scheduled(fixedRate = SECONDS_BETWEEN_FILE_CACHE_REFRESH * 1000)
     public void refreshCloudFileServiceCache() {
@@ -132,8 +140,17 @@ public class DownloadMonitor {
         }
     }
 
+    @Scheduled(fixedRate = SECONDS_BETWEEN_TRANSFER_POLLING * 1000)
+    public void addTransfersToQueueAndUpdateTransferStatus() {
+        log.info("addTransfersToQueueAndUpdateTransferStatus()");
+        multifileHosterService.addTransfersToQueue();
+        // refresh remote torrents to local
+        multifileHosterService.updateTransferStatus();
+    }
+
     @Scheduled(fixedRate = SECONDS_BETWEEN_DOWNLOAD_POLLING * 1000)
     public void checkForDownloadableTorrents() {
+        log.info("checkForDownloadableTorrents()");
         if (!isDownloadInProgress && isRcloneInstalled() && cloudService.isCloudTokenValid()) {
             checkForDownloadableTorrentsAndDownloadTheFirst();
         }
@@ -141,7 +158,8 @@ public class DownloadMonitor {
 
     @Scheduled(fixedRate = SECONDS_BETWEEN_QUEUE_POLLING * 1000)
     public void checkForQueueEntries() {
-        if (!isDownloadInProgress && isRcloneInstalled() && cloudService.isCloudTokenValid()) {
+        log.info("checkForQueueEntries()");
+        if (!isDownloadInProgress && cloudService.isCloudTokenValid()) {
             for(int i=0;i<MAX_QUEUE_DOWNLOADS_LIMIT;i++){
                 checkForQueueEntryAndAddToDownloads();
             }
@@ -162,14 +180,14 @@ public class DownloadMonitor {
             queueService.getQueue().stream().findFirst().ifPresent(mediaItem -> {
                 log.info("picked {}", mediaItem);
                 String searchName = TorrentHelper.getSearchNameFrom(mediaItem);
-//                final List<String> existingFiles = cloudService.findExistingFiles(searchName);
-//                if (!existingFiles.isEmpty()) {
+                final List<String> existingFiles = cloudService.findExistingFiles(searchName);
+                if (!existingFiles.isEmpty()) {
                     torrentSearchEngineService.searchTorrents(searchName).stream()
                         .findFirst()
-                        .ifPresent(multifileHosterService::addTorrentToQueue);
-//                } else {
-//                    log.warn("Looks like Torrent was already downloaded, skipped {} - matched files: {}", mediaItem, existingFiles);
-//                }
+                        .ifPresent(multifileHosterService::addTorrentToTransfer);
+                } else {
+                    log.warn("Looks like Torrent was already downloaded, skipped {} - matched files: {}", mediaItem, existingFiles);
+                }
                 removeFromQueue(mediaItem);
             });
         }
@@ -192,6 +210,7 @@ public class DownloadMonitor {
 
     @Scheduled(fixedRate = SECONDS_BETWEEN_CLEAR_TRANSFER_POLLING * 1000)
     public void clearTransferTorrents() {
+        log.info("clearTransferTorrents()");
         multifileHosterService.getRemoteTorrents().stream()
             .filter(this::isTorrentStuckOnErrror)
             .forEach(multifileHosterService::delete);
@@ -203,6 +222,7 @@ public class DownloadMonitor {
 
     private boolean checkForDownloadableTorrentsAndDownloadTheFirst() {
         final Torrent torrentToBeDownloaded = getTorrentToBeDownloaded();
+        Optional<Transfer> transferToBeDownloaded = transferService.getAll().stream().filter(transfer -> transfer.remoteId.equals(torrentToBeDownloaded.remoteId)).findFirst();
         if (torrentToBeDownloaded != null) {
             isDownloadInProgress = true;
             boolean wasDownloadSuccessful = false;
@@ -220,6 +240,7 @@ public class DownloadMonitor {
                     );
                     updateUploadStatus(torrentToBeDownloaded, List.of(fileToDownload), 1, null);
                     multifileHosterService.delete(torrentToBeDownloaded);
+                    transferToBeDownloaded.ifPresent(transferService::delete);
                 } else {
                     List<TorrentFile> filesFromTorrent = multifileHosterService
                         .getFilesFromTorrent(torrentToBeDownloaded);
@@ -250,6 +271,7 @@ public class DownloadMonitor {
                     }
                     wasDownloadSuccessful = failedUploads == 0;
                     multifileHosterService.delete(torrentToBeDownloaded);
+                    transferToBeDownloaded.ifPresent(transferService::delete);
                 }
             } catch (Exception exception) {
                 log.error(String.format("Couldn't download Torrent: %s", torrentToBeDownloaded), exception);
@@ -278,9 +300,40 @@ public class DownloadMonitor {
 
     private void updateUploadStatus(Torrent torrentToBeDownloaded, List<TorrentFile> listOfFiles, int currentFileNumber,
                                     Instant startTime) {
+        Optional<Transfer> transferOptional = transferService.getAll().stream().filter(transfer -> transfer.remoteId.equals(torrentToBeDownloaded.remoteId)).findFirst();
+
+        if (transferOptional.isPresent()) {
+            Transfer transfer = transferOptional.get();
+            transfer.torrentStatus = TorrentStatus.UPLOADING_TO_DRIVE;
+            transfer.progressInPercentage = (double) currentFileNumber / (double) listOfFiles.size();
+            transfer.eta = getUploadDuration(listOfFiles, currentFileNumber, startTime);
+            transferService.save(transfer);
+        }
+
         torrentToBeDownloaded.remoteStatusText = getUploadStatusString(torrentToBeDownloaded, listOfFiles, currentFileNumber,
             startTime);
         torrentMetaService.updateTorrent(torrentToBeDownloaded);
+    }
+
+    public Duration getUploadDuration(List<TorrentFile> listOfFiles,
+                                        int currentFileNumber, Instant startTime) {
+        Duration remainingDuration;
+        int fileCount = listOfFiles.size();
+        if (startTime == null || currentFileNumber == 0) {
+            final long size = listOfFiles.stream()
+                .map(torrentFile -> torrentFile.filesize)
+                .reduce(0L, Long::sum);
+            double lsize = (double) size / 1024.0 / 1024.0;
+            long expectedSecondsRemaining = (long) (lsize / 10.0);
+            remainingDuration = Duration.of(expectedSecondsRemaining, ChronoUnit.SECONDS);
+        } else {
+            long diffTime = Instant.now().toEpochMilli() - startTime.toEpochMilli();
+            final long milliPerFile = diffTime / (long) currentFileNumber;
+            final int remainingFileCount = fileCount - currentFileNumber;
+            final long expectedMilliRemaining = milliPerFile * remainingFileCount;
+            remainingDuration = Duration.of(expectedMilliRemaining, ChronoUnit.MILLIS);
+        }
+        return remainingDuration;
     }
 
     public String getUploadStatusString(Torrent torrentToBeDownloaded, List<TorrentFile> listOfFiles,
@@ -381,8 +434,7 @@ public class DownloadMonitor {
 
 
     private boolean checkIfTorrentCanBeDownloaded(Torrent remoteTorrent) {
-        return List.of("finished", "seeding", "ready to upload", "Ready").stream()
-            .anyMatch(status -> remoteTorrent.remoteStatusText.contains(status));
+        return TorrentStatus.READY_TO_BE_DOWNLOADED == remoteTorrent.remoteTorrentStatus;
     }
 
 }

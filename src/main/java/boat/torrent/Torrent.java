@@ -1,6 +1,7 @@
 package boat.torrent;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Date;
@@ -30,8 +31,9 @@ public class Torrent implements Comparable<Torrent> {
     public TorrentStatus remoteTorrentStatus;
     public TorrentStatus localTorrentStatus;
     public String remoteProgress;
+    public double remoteProgressInPercent;
     public String progress;
-    public String eta;
+    public Duration eta;
     public String remoteId;
     public String folder_id;
     public String file_id;
