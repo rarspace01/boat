@@ -37,5 +37,6 @@ jobs:
           TFDB_APIKEY: ${{ secrets.TFDB_APIKEY }}
           PREMIUMIZE_APIKEY: ${{ secrets.PREMIUMIZE_APIKEY }}
           ALLDEBRID_APIKEY: ${{ secrets.ALLDEBRID_APIKEY }}
+          MONGO_URI: ${{ secrets.MONGO_URI }}
           COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
         run: ./gradlew jacocoTestReport coveralls build

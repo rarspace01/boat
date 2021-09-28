@@ -37,6 +37,7 @@ jobs:
           TFDB_APIKEY: ${{ secrets.TFDB_APIKEY }}
           PREMIUMIZE_APIKEY: ${{ secrets.PREMIUMIZE_APIKEY }}
           ALLDEBRID_APIKEY: ${{ secrets.ALLDEBRID_APIKEY }}
+          MONGO_URI: ${{ secrets.MONGO_URI }}
         run: ./gradlew build
       - name: Release
         uses: softprops/action-gh-release@v1
