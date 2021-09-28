@@ -19,9 +19,6 @@ import lombok.extern.slf4j.Slf4j;
 @Configuration
 public class AppConfiguration implements SchedulingConfigurer {
 
-    /*
-     * Use the standard Mongo driver API to create a com.mongodb.client.MongoClient instance.
-     */
     public @Bean
     MongoClient mongoClient() {
         MongoClient mongoClient = MongoClients.create(PropertiesHelper.getProperty("MONGO_URI"));
