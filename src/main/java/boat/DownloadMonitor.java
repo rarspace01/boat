@@ -8,6 +8,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
@@ -222,7 +223,8 @@ public class DownloadMonitor {
 
     private boolean checkForDownloadableTorrentsAndDownloadTheFirst() {
         final Torrent torrentToBeDownloaded = getTorrentToBeDownloaded();
-        Optional<Transfer> transferToBeDownloaded = transferService.getAll().stream().filter(transfer -> transfer.remoteId.equals(torrentToBeDownloaded.remoteId)).findFirst();
+        Optional<Transfer> transferToBeDownloaded = transferService.getAll().stream().filter(transfer -> transfer.uri != null && transfer.uri.toLowerCase(Locale.ROOT).contains(torrentToBeDownloaded.getTorrentId().toLowerCase(
+            Locale.ROOT))).findFirst();
         if (torrentToBeDownloaded != null) {
             isDownloadInProgress = true;
             boolean wasDownloadSuccessful = false;

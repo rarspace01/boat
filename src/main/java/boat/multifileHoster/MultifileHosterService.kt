@@ -196,7 +196,7 @@ class MultifileHosterService (httpHelper: HttpHelper, private val transferServic
     fun updateTransferStatus() {
         val transfers = transferService.getAll().filter { transfer -> !transfer.torrentStatus.equals(TorrentStatus.UPLOADING_TO_DRIVE) && !transfer.torrentStatus.equals(TorrentStatus.UPLOADED) }
         remoteTorrentsForDownload.forEach { torrent ->
-            transfers.find { transfer -> transfer.uri.contains(torrent.torrentId) }
+            transfers.find { transfer -> transfer.uri.lowercase().contains(torrent.torrentId.lowercase()) }
                 ?.also {  transfer ->
                 transfer.torrentStatus = torrent.remoteTorrentStatus
                 transfer.progressInPercentage = torrent.remoteProgressInPercent
