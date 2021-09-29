@@ -268,15 +268,20 @@ class Premiumize(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoste
             log.error(pageContent)
         } else {
             val response = jsonRoot.asJsonObject["response"]
-            val responseArray = response.asJsonArray
-            val index = AtomicInteger()
-            if (responseArray.size() == torrents.size) {
-                responseArray.forEach(Consumer { jsonElement: JsonElement ->
-                    if (jsonElement.asBoolean) {
-                        torrents[index.get()].cached.add(this.javaClass.simpleName)
-                    }
-                    index.getAndIncrement()
-                })
+            if (response != null && !response.isJsonNull) {
+                val responseArray = response.asJsonArray
+                val index = AtomicInteger()
+                if (responseArray.size() == torrents.size) {
+                    responseArray.forEach(Consumer { jsonElement: JsonElement ->
+                        if (jsonElement.asBoolean) {
+                            torrents[index.get()].cached.add(this.javaClass.simpleName)
+                        }
+                        index.getAndIncrement()
+                    })
+                }
+            } else {
+                log.error("couldn't retrieve cache for:$checkUrl")
+                log.error(pageContent)
             }
         }
     }
