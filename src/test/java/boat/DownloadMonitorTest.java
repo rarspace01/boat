@@ -14,6 +14,7 @@ import boat.services.TransferService;
 import boat.torrent.Torrent;
 import boat.torrent.TorrentFile;
 import boat.torrent.TorrentSearchEngineService;
+import boat.utilities.HttpHelper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -40,6 +41,8 @@ class DownloadMonitorTest {
     private BluRayComService blurayComService;
     @Mock
     private TransferService transferService;
+    @Mock
+    private HttpHelper httpHelper;
 
     private DownloadMonitor downloadMonitor;
 
@@ -47,7 +50,7 @@ class DownloadMonitorTest {
     void beforeEach() {
         downloadMonitor = new DownloadMonitor(torrentSearchEngineService, torrentMetaService, cloudService,
             multiHosterService,
-            cloudFileService, cacheManager, queueService, blurayComService, transferService);
+            cloudFileService, cacheManager, queueService, blurayComService, transferService, httpHelper);
     }
 
     @Test
