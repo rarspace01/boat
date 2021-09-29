@@ -223,9 +223,10 @@ public class DownloadMonitor {
 
     private boolean checkForDownloadableTorrentsAndDownloadTheFirst() {
         final Torrent torrentToBeDownloaded = getTorrentToBeDownloaded();
-        Optional<Transfer> transferToBeDownloaded = transferService.getAll().stream().filter(transfer -> transfer.uri != null && transfer.uri.toLowerCase(Locale.ROOT).contains(torrentToBeDownloaded.getTorrentId().toLowerCase(
-            Locale.ROOT))).findFirst();
         if (torrentToBeDownloaded != null) {
+            Optional<Transfer> transferToBeDownloaded = transferService.getAll().stream()
+                .filter(transfer -> transfer.uri != null && transfer.uri.toLowerCase(Locale.ROOT).contains(torrentToBeDownloaded.getTorrentId().toLowerCase(
+                    Locale.ROOT))).findFirst();
             isDownloadInProgress = true;
             boolean wasDownloadSuccessful = false;
             try {
