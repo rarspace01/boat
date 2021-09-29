@@ -116,7 +116,7 @@ def getCheckedOutGitCommitHash() {
 }
 
 def getTagVersion() {
-    ['sh', '-c', 'git describe --tags --always --first-parent'].execute().text.trim()
+    ['sh', '-c', 'git fetch --all --tags && git describe --tags --always --first-parent'].execute().text.trim()
 }
 
 task createProperties(dependsOn: processResources) {
