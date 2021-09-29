@@ -302,7 +302,8 @@ public class DownloadMonitor {
 
     private void updateUploadStatus(Torrent torrentToBeDownloaded, List<TorrentFile> listOfFiles, int currentFileNumber,
                                     Instant startTime) {
-        Optional<Transfer> transferOptional = transferService.getAll().stream().filter(transfer -> transfer.remoteId.equals(torrentToBeDownloaded.remoteId)).findFirst();
+        Optional<Transfer> transferOptional = transferService.getAll().stream().filter(transfer -> transfer.uri != null && transfer.uri.toLowerCase(Locale.ROOT).contains(torrentToBeDownloaded.getTorrentId().toLowerCase(
+            Locale.ROOT))).findFirst();
 
         if (transferOptional.isPresent()) {
             Transfer transfer = transferOptional.get();
