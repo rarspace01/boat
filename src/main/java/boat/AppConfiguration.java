@@ -37,7 +37,7 @@ public class AppConfiguration implements SchedulingConfigurer {
 
     @Bean(destroyMethod = "shutdown")
     public Executor taskExecutor() {
-        int scheduledPoolSize = Math.min(Runtime.getRuntime().availableProcessors(), 2);
+        int scheduledPoolSize = Math.max(Runtime.getRuntime().availableProcessors(), 2);
         log.info("scheduledPoolSize:{}", scheduledPoolSize);
         return Executors.newScheduledThreadPool(scheduledPoolSize);
     }
