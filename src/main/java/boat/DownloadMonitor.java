@@ -183,12 +183,12 @@ public class DownloadMonitor {
         log.info("checkForQueueEntries()");
         if (!isDownloadInProgress && cloudService.isCloudTokenValid()) {
             for(int i=0;i<MAX_QUEUE_DOWNLOADS_LIMIT;i++){
-                checkForQueueEntryAndAddToDownloads();
+                checkForQueueEntryAndAddToTransfers();
             }
         }
     }
 
-    private void checkForQueueEntryAndAddToDownloads() {
+    private void checkForQueueEntryAndAddToTransfers() {
         final List<Torrent> remoteTorrents = multifileHosterService.getRemoteTorrents();
         final long numberOfActiveRemoteTorrents = remoteTorrents
             .stream().filter(torrent -> !torrent.remoteTorrentStatus.equals(TorrentStatus.READY_TO_BE_DOWNLOADED))
@@ -203,7 +203,7 @@ public class DownloadMonitor {
                 log.info("picked {}", mediaItem);
                 String searchName = TorrentHelper.getSearchNameFrom(mediaItem);
                 final List<String> existingFiles = cloudService.findExistingFiles(searchName);
-                if (!existingFiles.isEmpty()) {
+                if (existingFiles.isEmpty()) {
                     torrentSearchEngineService.searchTorrents(searchName).stream()
                         .findFirst()
                         .ifPresent(multifileHosterService::addTorrentToTransfer);
