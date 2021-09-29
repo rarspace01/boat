@@ -182,9 +182,7 @@ public class DownloadMonitor {
     public void checkForQueueEntries() {
         log.info("checkForQueueEntries()");
         if (!isDownloadInProgress && cloudService.isCloudTokenValid()) {
-            for(int i=0;i<MAX_QUEUE_DOWNLOADS_LIMIT;i++){
-                checkForQueueEntryAndAddToTransfers();
-            }
+            checkForQueueEntryAndAddToTransfers();
         }
     }
 
