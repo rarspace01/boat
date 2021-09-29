@@ -36,9 +36,12 @@ import boat.torrent.TorrentHelper;
 import boat.torrent.TorrentSearchEngineService;
 import boat.torrent.TorrentStatus;
 import boat.torrent.TorrentType;
+import boat.utilities.HttpHelper;
 import boat.utilities.ProcessUtil;
 import boat.utilities.PropertiesHelper;
 import boat.utilities.StreamGobbler;
+import com.google.gson.JsonParser;
+import org.apache.logging.log4j.util.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,6 +59,7 @@ public class DownloadMonitor {
 
     private static final int SECONDS_BETWEEN_DOWNLOAD_POLLING = 30;
     private static final int SECONDS_BETWEEN_TRANSFER_POLLING = 30;
+    private static final int SECONDS_BETWEEN_VERSION_CHECK = 60*60;
     private static final int SECONDS_BETWEEN_QUEUE_POLLING = 30;
     private static final int SECONDS_BETWEEN_SEARCH_ENGINE_POLLING = 240;
     private static final int SECONDS_BETWEEN_CLEAR_TRANSFER_POLLING = 3600;
@@ -68,6 +72,7 @@ public class DownloadMonitor {
     private final QueueService queueService;
     private final BluRayComService bluRayComService;
     private final TransferService transferService;
+    private final HttpHelper httpHelper;
     private Boolean isRcloneInstalled;
 
     public DownloadMonitor(TorrentSearchEngineService torrentSearchEngineService,
@@ -78,7 +83,8 @@ public class DownloadMonitor {
                            CacheManager cacheManager,
                            QueueService queueService,
                            BluRayComService bluRayComService,
-                           TransferService transferService
+                           TransferService transferService,
+                           HttpHelper httpHelper
     ) {
         this.torrentSearchEngineService = torrentSearchEngineService;
         this.torrentMetaService = torrentMetaService;
@@ -89,6 +95,7 @@ public class DownloadMonitor {
         this.queueService = queueService;
         this.bluRayComService = bluRayComService;
         this.transferService = transferService;
+        this.httpHelper = httpHelper;
     }
 
     @Scheduled(fixedRate = SECONDS_BETWEEN_SEARCH_ENGINE_POLLING * 1000)
@@ -154,6 +161,20 @@ public class DownloadMonitor {
         log.info("checkForDownloadableTorrents()");
         if (!isDownloadInProgress && isRcloneInstalled() && cloudService.isCloudTokenValid()) {
             checkForDownloadableTorrentsAndDownloadTheFirst();
+        }
+    }
+
+    @Scheduled(fixedRate = SECONDS_BETWEEN_VERSION_CHECK * 1000)
+    public void checkForUpdatedVersionAndShutdownIfUpdateAvailable() {
+        log.info("checkForUpdatedVersionAndShutdown()");
+        String pageContent = httpHelper.getPage("https://api.github.com/repos/rarspace01/boat/releases/latest");
+        if(!Strings.isEmpty(pageContent)){
+            var jsonRoot = JsonParser.parseString(pageContent);
+            var githubVersion = jsonRoot.getAsJsonObject().get("name").getAsString();
+            if(!PropertiesHelper.getVersion().contains(githubVersion)) {
+                log.info("Local [{}] != Github [{}]",PropertiesHelper.getVersion(),githubVersion);
+                log.warn("version out of date, shutting down");
+            }
         }
     }
 
