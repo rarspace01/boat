@@ -164,7 +164,7 @@ public class DownloadMonitor {
         }
     }
 
-    @Scheduled(fixedRate = SECONDS_BETWEEN_VERSION_CHECK * 1000)
+    @Scheduled(fixedRate = SECONDS_BETWEEN_VERSION_CHECK * 1000, initialDelay = SECONDS_BETWEEN_VERSION_CHECK * 1000)
     public void checkForUpdatedVersionAndShutdownIfUpdateAvailable() {
         log.info("checkForUpdatedVersionAndShutdown()");
         String pageContent = httpHelper.getPage("https://api.github.com/repos/rarspace01/boat/releases/latest");
