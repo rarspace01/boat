@@ -1,9 +1,12 @@
 package boat;
 
+import java.lang.management.ManagementFactory;
+import java.lang.management.RuntimeMXBean;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -237,7 +240,10 @@ public final class BoatController {
     public final String getDebugInfo() {
         torrentMetaService.refreshTorrents();
         List<Torrent> remoteTorrents = torrentMetaService.getActiveTorrents();
-        return "v:" + PropertiesHelper.getVersion()
+        RuntimeMXBean runtimeBean = ManagementFactory.getRuntimeMXBean();
+        long startTime = runtimeBean.getStartTime();
+        Date startDate = new Date(startTime);
+        return "v:" + PropertiesHelper.getVersion() + " started: "+startDate
             + "<br/>cloud token: " + (cloudService.isCloudTokenValid() ? "✅" : "❌")
             + "<br/>search Cache: " + (cloudFileService.isCacheFilled() ? "✅" : "❌")
             + "<br/>ActiveSearchEngines: " + torrentSearchEngineService.getActiveSearchEngines()

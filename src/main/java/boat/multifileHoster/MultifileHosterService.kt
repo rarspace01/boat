@@ -44,8 +44,8 @@ class MultifileHosterService (httpHelper: HttpHelper, private val transferServic
         if (potentialMultihosters.size == 1) {
             selectedMultiFileHosterSource = potentialMultihosters[0]
         } else {
-            val potentialCachedTorrentToDownload =
-                getCachedStateOfTorrents(listOf(torrent)).stream().findFirst().orElse(torrent)
+            val potentialCachedTorrentToDownload = torrent;
+//                getCachedStateOfTorrents(listOf(torrent)).stream().findFirst().orElse(torrent)
             val cachedMultihosters = potentialMultihosters
                 .filter { multifileHoster: MultifileHoster ->
                     potentialCachedTorrentToDownload.cached.contains(multifileHoster.getName())
