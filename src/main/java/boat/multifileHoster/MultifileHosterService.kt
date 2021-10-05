@@ -82,7 +82,7 @@ class MultifileHosterService (httpHelper: HttpHelper, private val transferServic
 //        }
         }
 
-    fun addTransfersToQueue() {
+    fun addTransfersToDownloadQueue() {
         // filter for traffic left
         val transfersToBeAdded = transferService.getAll()
             .filter { transfer -> TorrentStatus.ADDED == transfer.torrentStatus }

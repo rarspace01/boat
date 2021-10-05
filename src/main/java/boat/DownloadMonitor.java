@@ -149,9 +149,9 @@ public class DownloadMonitor {
     }
 
     @Scheduled(fixedRate = SECONDS_BETWEEN_TRANSFER_POLLING * 1000)
-    public void addTransfersToQueueAndUpdateTransferStatus() {
-        log.info("addTransfersToQueueAndUpdateTransferStatus()");
-        multifileHosterService.addTransfersToQueue();
+    public void addTransfersToDownloadQueueAndUpdateTransferStatus() {
+        log.info("addTransfersToDownloadQueueAndUpdateTransferStatus()");
+        multifileHosterService.addTransfersToDownloadQueue();
         // refresh remote torrents to local
         multifileHosterService.updateTransferStatus();
     }
@@ -248,6 +248,9 @@ public class DownloadMonitor {
                     Locale.ROOT))).findFirst();
             isDownloadInProgress = true;
             boolean wasDownloadSuccessful = false;
+            if (!transferToBeDownloaded.isPresent()) {
+                log.warn("Torrent not in transfers but downloading it: {}", torrentToBeDownloaded);
+            }
             try {
                 if (multifileHosterService.isSingleFileDownload(torrentToBeDownloaded)) {
                     TorrentFile fileToDownload = multifileHosterService
