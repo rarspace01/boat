@@ -121,7 +121,7 @@ class MultifileHosterService (httpHelper: HttpHelper, private val transferServic
 //                .addTorrentToQueue(torrent)
 
     val remoteTorrents: List<Torrent>
-        get() = multifileHosterList.stream()
+        get() = multifileHosterListForDownloads.stream()
             .flatMap { multifileHoster: MultifileHoster -> multifileHoster.getRemoteTorrents().stream() }
             .collect(Collectors.toList())
 
