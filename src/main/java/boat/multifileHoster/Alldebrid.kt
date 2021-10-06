@@ -36,6 +36,10 @@ class Alldebrid(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoster
             "https://api.alldebrid.com/v4/magnet/status?agent=pirateboat&apikey=" + PropertiesHelper.getProperty("ALLDEBRID_APIKEY")
         val pageContent = httpHelper.getPage(requestUrl)
         val jsonRoot = JsonParser.parseString(pageContent)
+        if(!pageContent.contains("data")) {
+            log.error("page didn't contain data: {}",pageContent)
+            return torrents
+        }
         val jsonMagnets = jsonRoot.asJsonObject["data"].asJsonObject["magnets"].asJsonArray
         jsonMagnets.forEach(Consumer { jsonElement: JsonElement ->
             val torrent = Torrent(getName())
