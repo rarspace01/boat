@@ -164,7 +164,7 @@ public class DownloadMonitor {
         }
     }
 
-    @Scheduled(fixedRate = SECONDS_BETWEEN_VERSION_CHECK * 1000, initialDelay = SECONDS_BETWEEN_VERSION_CHECK * 1000)
+    @Scheduled(fixedRate = SECONDS_BETWEEN_VERSION_CHECK * 1000, initialDelay = 60 * 5 * 1000)
     public void checkForUpdatedVersionAndShutdownIfUpdateAvailable() {
         log.info("checkForUpdatedVersionAndShutdown()");
         String pageContent = httpHelper.getPage("https://api.github.com/repos/rarspace01/boat/releases/latest");
@@ -176,7 +176,7 @@ public class DownloadMonitor {
                 log.warn("version out of date, shutting down");
             } else {
                  log.info("Local [{}] == Github [{}]",PropertiesHelper.getVersion(),githubVersion);
-                log.warn("version up to date, keep working");
+                log.info("version up to date, keep working");
             }
         }
     }
