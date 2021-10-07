@@ -171,9 +171,7 @@ public class DownloadMonitor {
             if(!PropertiesHelper.getVersion().contains(githubVersion)) {
                 log.info("Local [{}] != Github [{}]",PropertiesHelper.getVersion(),githubVersion);
                 log.warn("version out of date, shutting down");
-            } else {
-                 log.info("Local [{}] == Github [{}]",PropertiesHelper.getVersion(),githubVersion);
-                log.info("version up to date, keep working");
+                System.exit(0);
             }
         }
     }
