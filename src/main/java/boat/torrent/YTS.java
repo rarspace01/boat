@@ -13,7 +13,9 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class YTS extends HttpUser implements TorrentSearchEngine {
 
     YTS(HttpHelper httpHelper) {
@@ -45,39 +47,43 @@ public class YTS extends HttpUser implements TorrentSearchEngine {
 
     private List<Torrent> parseTorrentsOnResultPage(String pageContent, String searchName) {
         ArrayList<Torrent> torrentList = new ArrayList<>();
-
-        JsonElement jsonRoot = JsonParser.parseString(pageContent);
-        if (jsonRoot == null || !jsonRoot.isJsonObject()) {
-            return torrentList;
-        }
-        JsonElement data = jsonRoot.getAsJsonObject().get("data");
-        if (data == null) {
-            return torrentList;
-        }
-        JsonElement results = data.getAsJsonObject().get("movies");
-        if (results == null) {
-            return torrentList;
-        }
-        JsonArray jsonArray = results.getAsJsonArray();
-        jsonArray.forEach(jsonTorrentElement -> {
-            Torrent tempTorrent = new Torrent(toString());
-            final JsonObject jsonTorrent = jsonTorrentElement.getAsJsonObject();
-            tempTorrent.name = jsonTorrent.get("title").getAsString() + " " + jsonTorrent.get("year").getAsInt();
-            JsonObject bestTorrentSource = retrieveBestTorrent(jsonTorrent.get("torrents").getAsJsonArray());
-            tempTorrent.isVerified = true;
-            tempTorrent.magnetUri = TorrentHelper
-                .buildMagnetUriFromHash(bestTorrentSource.get("hash").getAsString().toLowerCase(), tempTorrent.name);
-            tempTorrent.seeder = bestTorrentSource.get("seeds").getAsInt();
-            tempTorrent.leecher = bestTorrentSource.get("peers").getAsInt();
-            tempTorrent.size = bestTorrentSource.get("size").getAsString();
-            tempTorrent.lsize = bestTorrentSource.get("size_bytes").getAsLong() / 1024.0f / 1024.0f;
-            tempTorrent.date = new Date(bestTorrentSource.get("date_uploaded_unix").getAsLong() * 1000);
-
-            TorrentHelper.evaluateRating(tempTorrent, searchName);
-            if (TorrentHelper.isValidTorrent(tempTorrent)) {
-                torrentList.add(tempTorrent);
+        try {
+            JsonElement jsonRoot = JsonParser.parseString(pageContent);
+            if (jsonRoot == null || !jsonRoot.isJsonObject()) {
+                return torrentList;
             }
-        });
+            JsonElement data = jsonRoot.getAsJsonObject().get("data");
+            if (data == null) {
+                return torrentList;
+            }
+            JsonElement results = data.getAsJsonObject().get("movies");
+            if (results == null) {
+                return torrentList;
+            }
+            JsonArray jsonArray = results.getAsJsonArray();
+            jsonArray.forEach(jsonTorrentElement -> {
+                Torrent tempTorrent = new Torrent(toString());
+                final JsonObject jsonTorrent = jsonTorrentElement.getAsJsonObject();
+                tempTorrent.name = jsonTorrent.get("title").getAsString() + " " + jsonTorrent.get("year").getAsInt();
+                JsonObject bestTorrentSource = retrieveBestTorrent(jsonTorrent.get("torrents").getAsJsonArray());
+                tempTorrent.isVerified = true;
+                tempTorrent.magnetUri = TorrentHelper
+                    .buildMagnetUriFromHash(bestTorrentSource.get("hash").getAsString().toLowerCase(), tempTorrent.name);
+                tempTorrent.seeder = bestTorrentSource.get("seeds").getAsInt();
+                tempTorrent.leecher = bestTorrentSource.get("peers").getAsInt();
+                tempTorrent.size = bestTorrentSource.get("size").getAsString();
+                tempTorrent.lsize = bestTorrentSource.get("size_bytes").getAsLong() / 1024.0f / 1024.0f;
+                tempTorrent.date = new Date(bestTorrentSource.get("date_uploaded_unix").getAsLong() * 1000);
+
+                TorrentHelper.evaluateRating(tempTorrent, searchName);
+                if (TorrentHelper.isValidTorrent(tempTorrent)) {
+                    torrentList.add(tempTorrent);
+                }
+            });
+
+        } catch (Exception exception) {
+            log.error("failed to parse string:\n{}\nException:\n{}", pageContent, exception);
+        }
 
         return torrentList;
     }
