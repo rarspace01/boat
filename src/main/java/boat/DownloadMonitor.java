@@ -128,7 +128,7 @@ public class DownloadMonitor {
         final long startOfCache = System.currentTimeMillis();
         if (isRcloneInstalled()) {
             final Cache filesCache = cacheManager.getCache("filesCache");
-            Arrays.stream("abcdefghijklmnopqrstuvwxyzöäü0".split("")).forEach(searchName -> {
+            Arrays.stream("abcdefghijklmnopqrstuvwxyz+0".split("")).forEach(searchName -> {
                 Stream.of(TorrentType.values())
                     .forEach(torrentType -> {
                         final String destinationPath = cloudService

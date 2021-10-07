@@ -1,9 +1,7 @@
 package boat.info;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
@@ -66,6 +64,11 @@ public class CloudService {
 
     @NotNull
     private String deductFirstTorrentLetter(String preparedTorrentName) {
+        // replace Umlauts
+        preparedTorrentName = preparedTorrentName.replaceAll("[äÄ]","A");
+        preparedTorrentName = preparedTorrentName.replaceAll("[öÖ]","O");
+        preparedTorrentName = preparedTorrentName.replaceAll("[üÜ]","Ü");
+
         // take only name infront of year
         String[] split = preparedTorrentName.split("[1-2][0-9]{3}");
         if (split.length > 0) {
