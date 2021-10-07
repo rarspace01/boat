@@ -150,15 +150,12 @@ public class DownloadMonitor {
 
     @Scheduled(fixedRate = SECONDS_BETWEEN_TRANSFER_POLLING * 1000)
     public void addTransfersToDownloadQueueAndUpdateTransferStatus() {
-        log.info("addTransfersToDownloadQueueAndUpdateTransferStatus()");
         multifileHosterService.addTransfersToDownloadQueue();
-        // refresh remote torrents to local
         multifileHosterService.updateTransferStatus();
     }
 
     @Scheduled(fixedRate = SECONDS_BETWEEN_DOWNLOAD_POLLING * 1000)
     public void checkForDownloadableTorrents() {
-        log.info("checkForDownloadableTorrents()");
         if (!isDownloadInProgress && isRcloneInstalled() && cloudService.isCloudTokenValid()) {
             checkForDownloadableTorrentsAndDownloadTheFirst();
         }
@@ -183,7 +180,6 @@ public class DownloadMonitor {
 
     @Scheduled(fixedRate = SECONDS_BETWEEN_QUEUE_POLLING * 1000)
     public void checkForQueueEntries() {
-        log.info("checkForQueueEntries()");
         if (!isDownloadInProgress && cloudService.isCloudTokenValid()) {
             checkForQueueEntryAndAddToTransfers();
         }
