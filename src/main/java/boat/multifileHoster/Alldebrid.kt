@@ -59,7 +59,7 @@ class Alldebrid(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoster
             torrent.magnetUri = TorrentHelper.buildMagnetUriFromHash(jsonTorrent["hash"].asString, torrent.name)
             torrent.remoteStatusText = jsonTorrent["status"].asString
             torrent.remoteStatusCode = jsonTorrent["statusCode"].asInt
-            torrent.remoteTorrentStatus = TorrentMapper.mapRemoteStatus(torrent.remoteStatusCode)
+            torrent.remoteTransferStatus = TorrentMapper.mapRemoteStatus(torrent.remoteStatusCode)
             torrents.add(torrent)
         })
         return torrents
@@ -91,7 +91,7 @@ class Alldebrid(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoster
             torrent.magnetUri = TorrentHelper.buildMagnetUriFromHash(jsonTorrent["hash"].asString, torrent.name)
             torrent.remoteStatusText = jsonTorrent["status"].asString
             torrent.remoteStatusCode = jsonTorrent["statusCode"].asInt
-            torrent.remoteTorrentStatus = TorrentMapper.mapRemoteStatus(torrent.remoteStatusCode)
+            torrent.remoteTransferStatus = TorrentMapper.mapRemoteStatus(torrent.remoteStatusCode)
             val links = jsonTorrent["links"].asJsonArray
             if (remoteId != null) {
                 torrent.fileList.clear()

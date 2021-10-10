@@ -10,6 +10,7 @@ import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import boat.model.TransferStatus;
 import org.apache.logging.log4j.util.Strings;
 import org.jetbrains.annotations.NotNull;
 
@@ -28,8 +29,8 @@ public class Torrent implements Comparable<Torrent> {
     public String debugRating = "";
     public String remoteStatusText;
     public int remoteStatusCode;
-    public TorrentStatus remoteTorrentStatus;
-    public TorrentStatus localTorrentStatus;
+    public TransferStatus remoteTransferStatus;
+    public TransferStatus localTransferStatus;
     public String remoteProgress;
     public double remoteProgressInPercent;
     public String progress;

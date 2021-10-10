@@ -1,30 +1,30 @@
 package boat.mapper
 
 import boat.model.Transfer
+import boat.model.TransferStatus
 import boat.torrent.Torrent
-import boat.torrent.TorrentStatus
 
 class TorrentMapper {
     companion object {
-        fun mapRemoteStatus(remoteStatusCode: Int?): TorrentStatus {
+        fun mapRemoteStatus(remoteStatusCode: Int?): TransferStatus {
             return when (remoteStatusCode) {
-                0 -> TorrentStatus.ADDED_TO_MULTIHOSTER
-                1 -> TorrentStatus.DOWNLOADING_TO_MULTIHOSTER
-                2, 3 -> TorrentStatus.UPLOADING_TO_MULTIHOSTER
-                4 -> TorrentStatus.READY_TO_BE_DOWNLOADED
-                in 5..11 -> TorrentStatus.ERROR
-                else -> TorrentStatus.UNKNOWN
+                0 -> TransferStatus.ADDED_TO_MULTIHOSTER
+                1 -> TransferStatus.DOWNLOADING_TO_MULTIHOSTER
+                2, 3 -> TransferStatus.UPLOADING_TO_MULTIHOSTER
+                4 -> TransferStatus.READY_TO_BE_DOWNLOADED
+                in 5..11 -> TransferStatus.ERROR
+                else -> TransferStatus.UNKNOWN
             }
         }
 
-        fun mapRemoteStatus(remoteStatus: String?): TorrentStatus {
+        fun mapRemoteStatus(remoteStatus: String?): TransferStatus {
             return when(remoteStatus) {
-            "waiting","queued" -> TorrentStatus.ADDED_TO_MULTIHOSTER
-            "finished","seeding" -> TorrentStatus.READY_TO_BE_DOWNLOADED
-            "running" -> TorrentStatus.DOWNLOADING_TO_MULTIHOSTER
-            "deleted" -> TorrentStatus.DELETED
-            "banned","error","timeout" -> TorrentStatus.ERROR
-             else -> TorrentStatus.UNKNOWN
+            "waiting","queued" -> TransferStatus.ADDED_TO_MULTIHOSTER
+            "finished","seeding" -> TransferStatus.READY_TO_BE_DOWNLOADED
+            "running" -> TransferStatus.DOWNLOADING_TO_MULTIHOSTER
+            "deleted" -> TransferStatus.DELETED
+            "banned","error","timeout" -> TransferStatus.ERROR
+             else -> TransferStatus.UNKNOWN
             }
         }
 
@@ -32,7 +32,7 @@ class TorrentMapper {
             val torrent = Torrent(transfer.source)
             torrent.magnetUri = transfer.uri
             torrent.remoteStatusText = transfer.feedbackMessage
-            torrent.localTorrentStatus = transfer.torrentStatus
+            torrent.localTransferStatus = transfer.transferStatus
             return torrent
         }
     }

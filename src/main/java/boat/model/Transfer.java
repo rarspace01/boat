@@ -5,7 +5,6 @@ import java.time.Instant;
 
 import org.springframework.data.annotation.Id;
 
-import boat.torrent.TorrentStatus;
 import lombok.Data;
 
 @Data
@@ -20,7 +19,9 @@ public class Transfer {
 
     public String uri;
 
-    public TorrentStatus torrentStatus = TorrentStatus.NONE;
+    public TransferStatus transferStatus = TransferStatus.NONE;
+
+    public TransferType transfertType = TransferType.TORRENT;
 
     public Double progressInPercentage = 0.0;
 
@@ -29,5 +30,11 @@ public class Transfer {
     public Duration eta;
 
     public Instant updated;
+
+    @Override
+    public String toString(){
+        return String.format("[%s,%s,%s,%s,%s,%f.2,%s,%s,%s]", id, remoteId, source, transferStatus, transfertType, progressInPercentage, feedbackMessage, eta,
+            updated);
+    }
 
 }

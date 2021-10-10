@@ -28,13 +28,13 @@ import boat.info.MediaItem;
 import boat.info.QueueService;
 import boat.info.TorrentMetaService;
 import boat.model.Transfer;
+import boat.model.TransferStatus;
 import boat.multifileHoster.MultifileHosterService;
 import boat.services.TransferService;
 import boat.torrent.Torrent;
 import boat.torrent.TorrentFile;
 import boat.torrent.TorrentHelper;
 import boat.torrent.TorrentSearchEngineService;
-import boat.torrent.TorrentStatus;
 import boat.torrent.TorrentType;
 import boat.utilities.HttpHelper;
 import boat.utilities.ProcessUtil;
@@ -186,10 +186,10 @@ public class DownloadMonitor {
     private void checkForQueueEntryAndAddToTransfers() {
         final List<Torrent> remoteTorrents = multifileHosterService.getRemoteTorrents();
         final long numberOfActiveRemoteTorrents = remoteTorrents
-            .stream().filter(torrent -> !torrent.remoteTorrentStatus.equals(TorrentStatus.READY_TO_BE_DOWNLOADED))
+            .stream().filter(torrent -> !torrent.remoteTransferStatus.equals(TransferStatus.READY_TO_BE_DOWNLOADED))
             .count();
         final long numberOfTorrentsReadyToDownload = remoteTorrents
-            .stream().filter(torrent -> torrent.remoteTorrentStatus.equals(TorrentStatus.READY_TO_BE_DOWNLOADED))
+            .stream().filter(torrent -> torrent.remoteTransferStatus.equals(TransferStatus.READY_TO_BE_DOWNLOADED))
             .count();
         if (numberOfTorrentsReadyToDownload == 0 && numberOfActiveRemoteTorrents < MAX_QUEUE_DOWNLOADS_LIMIT
             && multifileHosterService.getRemainingTrafficInMB() > MIN_GB_FOR_QUEUE * 1024) {
@@ -234,7 +234,7 @@ public class DownloadMonitor {
     }
 
     private boolean isTorrentStuckOnErrror(Torrent torrent) {
-        return torrent.remoteTorrentStatus.equals(TorrentStatus.ERROR);
+        return torrent.remoteTransferStatus.equals(TransferStatus.ERROR);
     }
 
     private boolean checkForDownloadableTorrentsAndDownloadTheFirst() {
@@ -327,7 +327,7 @@ public class DownloadMonitor {
 
         if (transferOptional.isPresent()) {
             Transfer transfer = transferOptional.get();
-            transfer.torrentStatus = TorrentStatus.UPLOADING_TO_DRIVE;
+            transfer.transferStatus = TransferStatus.UPLOADING_TO_DRIVE;
             transfer.progressInPercentage = (double) currentFileNumber / (double) listOfFiles.size();
             transfer.eta = getUploadDuration(listOfFiles, currentFileNumber, startTime);
             transferService.save(transfer);
@@ -457,7 +457,7 @@ public class DownloadMonitor {
 
 
     private boolean checkIfTorrentCanBeDownloaded(Torrent remoteTorrent) {
-        return TorrentStatus.READY_TO_BE_DOWNLOADED == remoteTorrent.remoteTorrentStatus;
+        return TransferStatus.READY_TO_BE_DOWNLOADED == remoteTorrent.remoteTransferStatus;
     }
 
 }

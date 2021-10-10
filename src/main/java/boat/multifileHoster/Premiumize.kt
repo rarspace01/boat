@@ -185,7 +185,7 @@ class Premiumize(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoste
                 tempTorrent.file_id = cleanJsonNull(tempTorrent.file_id)
                 tempTorrent.remoteId = localNode["id"].asText()
                 tempTorrent.remoteStatusText = localNode["status"].asText()
-                tempTorrent.remoteTorrentStatus = TorrentMapper.mapRemoteStatus(tempTorrent.remoteStatusText)
+                tempTorrent.remoteTransferStatus = TorrentMapper.mapRemoteStatus(tempTorrent.remoteStatusText)
                 val src = localNode["src"].asText()
                 if (src.contains("btih")) {
                     tempTorrent.magnetUri = src
