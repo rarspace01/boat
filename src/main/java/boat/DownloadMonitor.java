@@ -226,11 +226,14 @@ public class DownloadMonitor {
     }
 
     @Scheduled(fixedRate = SECONDS_BETWEEN_CLEAR_TRANSFER_POLLING * 1000)
-    public void clearTransferTorrents() {
+    public void clearTransferAndTorrentsWithErrors() {
         log.info("clearTransferTorrents()");
         multifileHosterService.getRemoteTorrents().stream()
             .filter(this::isTorrentStuckOnErrror)
             .forEach(multifileHosterService::delete);
+        transferService.getAll().stream().filter(transfer -> TransferStatus.ERROR.equals(transfer.getTransferStatus()) || transfer.updated.isBefore(Instant.now().minus(7, ChronoUnit.DAYS))).forEach(
+            transferService::delete);
+
     }
 
     private boolean isTorrentStuckOnErrror(Torrent torrent) {

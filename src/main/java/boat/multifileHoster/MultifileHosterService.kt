@@ -41,23 +41,23 @@ class MultifileHosterService(httpHelper: HttpHelper,
     }
 
     fun addTorrentToTransfer(torrent: Torrent) {
-        val listOfMultihostersWithTrafficLeft = multifileHosterList.filter { multifileHoster -> multifileHoster.getRemainingTrafficInMB() > 30000 }
-        val potentialMultihosters = listOfMultihostersWithTrafficLeft.ifEmpty { multifileHosterList }
-        var selectedMultiFileHosterSource = potentialMultihosters.first()
-        if (potentialMultihosters.size == 1) {
-            selectedMultiFileHosterSource = potentialMultihosters[0]
+        val listOfMultiHostersWithTrafficLeft = multifileHosterList.filter { multifileHoster -> multifileHoster.getRemainingTrafficInMB() > 30000 }
+        val potentialMultiHosters = listOfMultiHostersWithTrafficLeft.ifEmpty { multifileHosterList }
+        var selectedMultiFileHosterSource: MultifileHoster
+        if (potentialMultiHosters.size == 1) {
+            selectedMultiFileHosterSource = potentialMultiHosters[0]
         } else {
-            val potentialCachedTorrentToDownload = torrent;
-//                getCachedStateOfTorrents(listOf(torrent)).stream().findFirst().orElse(torrent)
-            val cachedMultihosters = potentialMultihosters
-                .filter { multifileHoster: MultifileHoster ->
-                    potentialCachedTorrentToDownload.cached.contains(multifileHoster.getName())
-                }
-            val multiHostersToDownload = cachedMultihosters.ifEmpty { potentialMultihosters }
-            selectedMultiFileHosterSource = multiHostersToDownload
+//            val potentialCachedTorrentToDownload = torrent;
+////                getCachedStateOfTorrents(listOf(torrent)).stream().findFirst().orElse(torrent)
+//            val cachedMultihosters = potentialMultihosters
+//                .filter { multifileHoster: MultifileHoster ->
+//                    potentialCachedTorrentToDownload.cached.contains(multifileHoster.getName())
+//                }
+//            val multiHostersToDownload = cachedMultihosters.ifEmpty { potentialMultiHosters }
+            selectedMultiFileHosterSource = potentialMultiHosters
                 .stream()
                 .min(Comparator.comparingInt(MultifileHoster::getPrio))
-                .orElse(potentialMultihosters.first())
+                .orElse(potentialMultiHosters.first())
         }
             val transfer = Transfer()
             transfer.transferStatus = TransferStatus.ADDED
@@ -88,7 +88,7 @@ class MultifileHosterService(httpHelper: HttpHelper,
     fun addTransfersToDownloadQueue() {
         // filter for traffic left
         val transfersToBeAdded = transferService.getAll()
-            .filter { transfer -> TransferStatus.ADDED == transfer.transferStatus }
+            .filter { transfer -> TransferStatus.ADDED == transfer.transferStatus || TransferStatus.SERVER_ERROR == transfer.transferStatus}
             .filter { transfer -> multifileHosterListForDownloads.any { multifileHoster -> multifileHoster.getName() == transfer.source } }
         multifileHosterListForDownloads.forEach { multifileHoster ->
             val transfersForHoster = transfersToBeAdded.filter { transfer -> transfer.source.equals(multifileHoster.getName()) }
@@ -96,7 +96,12 @@ class MultifileHosterService(httpHelper: HttpHelper,
                 val addTorrentToQueueMessage = multifileHoster.addTorrentToDownloadQueue(TorrentMapper.mapTransferToTorrent(transfer))
                 transfer.feedbackMessage = addTorrentToQueueMessage
                 if (addTorrentToQueueMessage.contains("error")) {
-                    transfer.transferStatus = TransferStatus.ERROR
+                    transfer.transferStatus = when(transfer.transferStatus) {
+                        TransferStatus.SERVER_ERROR -> TransferStatus.ERROR
+                        else -> TransferStatus.SERVER_ERROR
+                    }
+                    if(transfer.transferStatus == TransferStatus.SERVER_ERROR)
+                    transfer.transferStatus = TransferStatus.SERVER_ERROR
                 } else {
                     transfer.remoteId = extractRemoteIdFromMessage(transfer.feedbackMessage)
                     transfer.transferStatus = TransferStatus.ADDED_TO_MULTIHOSTER
