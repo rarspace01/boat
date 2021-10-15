@@ -227,7 +227,7 @@ class MultifileHosterService(httpHelper: HttpHelper,
                     transferService.save(transfer)
                     matchedTransfers.add(transfer)
                 } ?: also {
-                log.error("no transfer for torrent found: {}", torrent.torrentId.lowercase())
+                log.error("no transfer for torrent found: {} - {}", torrent.torrentId.lowercase(), torrent.remoteId)
             }
         }
         val listOfUnmatchedTransfers = transfers.filter { matchedTransfers.none { matchedTransfer -> matchedTransfer.id.equals(it.id) } }
