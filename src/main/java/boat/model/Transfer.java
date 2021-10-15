@@ -35,7 +35,7 @@ public class Transfer {
 
     @Override
     public String toString(){
-        return String.format("\n[<!-- ID:[%s]RID:[%s] -->%s,%s,%s,%s,%.3f,%s<!--,%s-->,%s]", id, remoteId, name, source, transferStatus, transfertType, progressInPercentage, feedbackMessage, eta,
+        return String.format("\n[<!-- ID:[%s]RID:[%s] -->%s,%s,%s,%s,%.3f,<!-- FEEDBACK-MSG: %s -->,%s,%s]", id, remoteId, name, source, transferStatus, transfertType, progressInPercentage, feedbackMessage, eta,
             updated);
     }
 
