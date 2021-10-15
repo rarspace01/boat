@@ -245,7 +245,7 @@ public class DownloadMonitor {
         if (torrentToBeDownloaded != null) {
             Optional<Transfer> transferToBeDownloaded = transferService.getAll().stream()
                 .filter(transfer -> transfer.uri != null && transfer.uri.toLowerCase(Locale.ROOT).contains(torrentToBeDownloaded.getTorrentId().toLowerCase(
-                    Locale.ROOT)) || (transfer.remoteId != null && transfer.remoteId == torrentToBeDownloaded.remoteId)).findFirst();
+                    Locale.ROOT)) || (transfer.remoteId != null && transfer.remoteId.equals(torrentToBeDownloaded.remoteId))).findFirst();
             isDownloadInProgress = true;
             boolean wasDownloadSuccessful = false;
             if (!transferToBeDownloaded.isPresent()) {
