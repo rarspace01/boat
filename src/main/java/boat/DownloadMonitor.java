@@ -240,7 +240,7 @@ public class DownloadMonitor {
         return torrent.remoteTransferStatus.equals(TransferStatus.ERROR);
     }
 
-    private boolean checkForDownloadableTorrentsAndDownloadTheFirst() {
+    private void checkForDownloadableTorrentsAndDownloadTheFirst() {
         final Torrent torrentToBeDownloaded = getTorrentToBeDownloaded();
         if (torrentToBeDownloaded != null) {
             Optional<Transfer> transferToBeDownloaded = transferService.getAll().stream()
@@ -248,7 +248,7 @@ public class DownloadMonitor {
                     Locale.ROOT)) || (transfer.remoteId != null && transfer.remoteId.equals(torrentToBeDownloaded.remoteId))).findFirst();
             isDownloadInProgress = true;
             boolean wasDownloadSuccessful = false;
-            if (!transferToBeDownloaded.isPresent()) {
+            if (transferToBeDownloaded.isEmpty()) {
                 log.warn("Torrent not in transfers but downloading it: {}", torrentToBeDownloaded);
             }
             try {
@@ -306,9 +306,10 @@ public class DownloadMonitor {
             if (!wasDownloadSuccessful) {
                 log.error("Couldn't download Torrent: {}", torrentToBeDownloaded);
             }
-            return wasDownloadSuccessful;
         } else {
-            return true;
+            final Optional<Transfer> optionalTransfer = transferService.getAll().stream()
+                .filter(transfer -> TransferStatus.READY_TO_BE_DOWNLOADED.equals(transfer.transferStatus)).findFirst();
+            optionalTransfer.ifPresent(transfer -> log.error("According to State we could download but doesn't exist: {}", transfer));
         }
     }
 

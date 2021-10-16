@@ -113,7 +113,7 @@ class MultifileHosterService(httpHelper: HttpHelper,
 
     fun extractRemoteIdFromMessage(feedbackMessage: String): String? {
         if(Strings.isNotEmpty(feedbackMessage)) {
-            val pattern = Pattern.compile("\"id\":\"(\\w+)\"")
+            val pattern = Pattern.compile("\"id\":\"([^\"]+)\"")
             val matcher = pattern.matcher(feedbackMessage)
             if(matcher.find()){
                 return matcher.group(1)

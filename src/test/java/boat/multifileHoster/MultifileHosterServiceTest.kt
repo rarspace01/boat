@@ -27,4 +27,14 @@ internal class MultifileHosterServiceTest {
         // Then
         assertThat(remoteIdFromMessage).isEqualTo("0jXfg462WZz2EkSpFKjU_g")
     }
+
+    @Test
+    fun extractOtherRemoteIdFromMessage() {
+        // Given
+        // When
+        val remoteIdFromMessage =
+            multifileHosterService.extractRemoteIdFromMessage("{\"status\":\"success\",\"id\":\"yxGo09Kq-RkayKbAxdDyFQ\",\"name\":\"magnet:?xt=urn:btih:12345678912316782351328765\",\"type\":\"torrent\"}")
+        // Then
+        assertThat(remoteIdFromMessage).isEqualTo("yxGo09Kq-RkayKbAxdDyFQ")
+    }
 }
