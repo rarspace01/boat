@@ -115,6 +115,7 @@ class Premiumize(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoste
         } catch (e: IOException) {
             e.printStackTrace()
         }
+        log.debug("ListOfFiles in Torrent: {}", returnList)
         return returnList
     }
 

@@ -1,5 +1,8 @@
 package boat.torrent;
 
+import lombok.ToString;
+
+@ToString
 public class TorrentFile {
 
     public String name;
