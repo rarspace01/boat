@@ -30,7 +30,7 @@ class TransferService(private val transferRepository: TransferRepository){
 
     fun get(transfer: Optional<Transfer>): Optional<Transfer> {
         return if(transfer.isPresent){
-            get(transfer)
+            get(transfer.get())
         } else {
             Optional.empty()
         }

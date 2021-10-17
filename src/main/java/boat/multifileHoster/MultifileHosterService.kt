@@ -181,6 +181,7 @@ class MultifileHosterService(httpHelper: HttpHelper,
         return if (hoster.isPresent) {
             hoster.get().getFilesFromTorrent(torrentToBeDownloaded)
         } else {
+            log.error("no MFH present for downloads")
             ArrayList()
         }
     }

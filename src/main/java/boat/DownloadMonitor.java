@@ -253,7 +253,7 @@ public class DownloadMonitor {
             }
             try {
                 if (multifileHosterService.isSingleFileDownload(torrentToBeDownloaded)) {
-                    log.info("SFD - {}", transferToBeDownloaded);
+                    transferToBeDownloaded.ifPresent(transfer -> log.info("SFD - {}", transfer));
                     TorrentFile fileToDownload = multifileHosterService
                         .getMainFileURLFromTorrent(torrentToBeDownloaded);
                     updateUploadStatus(torrentToBeDownloaded, List.of(fileToDownload), 0, null);
@@ -269,7 +269,7 @@ public class DownloadMonitor {
                     transferToBeDownloaded = transferService.get(transferToBeDownloaded);
                     transferToBeDownloaded.ifPresent(transferService::delete);
                 } else {
-                    log.info("MFD - {}", transferToBeDownloaded);
+                    transferToBeDownloaded.ifPresent(transfer -> log.info("MFD - {}", transfer));
                     List<TorrentFile> filesFromTorrent = multifileHosterService
                         .getFilesFromTorrent(torrentToBeDownloaded);
                     int currentFileNumber = 0;
