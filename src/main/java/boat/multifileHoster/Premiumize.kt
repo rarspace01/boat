@@ -98,7 +98,7 @@ class Premiumize(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoste
         val returnList: MutableList<TorrentFile> = ArrayList()
         val responseFiles = httpHelper.getPage(
             "https://www.premiumize.me/api/folder/list?id=" + torrent.folder_id +
-                    "&apikey=" + PropertiesHelper.getProperty("PREMIUMIZE_APIKEY")
+                    "&includebreadcrumbs=false&apikey=" + PropertiesHelper.getProperty("PREMIUMIZE_APIKEY")
         )
         val m = ObjectMapper()
         log.info(responseFiles);
