@@ -95,7 +95,7 @@ class MultifileHosterService(httpHelper: HttpHelper,
             transfersForHoster.forEach { transfer ->
                 val addTorrentToQueueMessage = multifileHoster.addTorrentToDownloadQueue(TorrentMapper.mapTransferToTorrent(transfer))
                 transfer.feedbackMessage = addTorrentToQueueMessage
-                if (addTorrentToQueueMessage.contains("error")) {
+                if (addTorrentToQueueMessage.contains("error") || !addTorrentToQueueMessage.contains("You already added this job")) {
                     log.error("addTorrentToQueueMessage error: {} for transfer {}", addTorrentToQueueMessage, transfer)
                     transfer.transferStatus = when(transfer.transferStatus) {
                         TransferStatus.SERVER_ERROR -> TransferStatus.ERROR
