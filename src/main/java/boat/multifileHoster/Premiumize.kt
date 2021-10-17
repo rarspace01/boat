@@ -101,6 +101,7 @@ class Premiumize(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoste
                     "&apikey=" + PropertiesHelper.getProperty("PREMIUMIZE_APIKEY")
         )
         val m = ObjectMapper()
+        log.info(responseFiles);
         try {
             val rootNode = m.readTree(responseFiles)
             val localNodes = rootNode.path("content")
@@ -115,7 +116,7 @@ class Premiumize(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoste
         } catch (e: IOException) {
             e.printStackTrace()
         }
-        log.debug("ListOfFiles in Torrent: {}", returnList)
+        log.info("ListOfFiles in Torrent: {}", returnList)
         return returnList
     }
 
