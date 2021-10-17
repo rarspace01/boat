@@ -65,6 +65,7 @@ public class Torrent implements Comparable<Torrent> {
         }
 
         stringBuilder.append(String.format("[%s]\uD83C\uDFE0[%s]", this.name, retrieveSourceName()));
+
         if (!isRemoteTorrent()) {
             stringBuilder.append(String.format("[%s][%s/%s@%.2f]", size, leecher, seeder, seedRatio));
             stringBuilder.append(String.format("R: %.2f ", this.searchRating));
@@ -92,7 +93,7 @@ public class Torrent implements Comparable<Torrent> {
         if (eta != null) {
             stringBuilder.append(" ETA:" + this.eta);
         }
-
+        stringBuilder.append(String.format("<!-- %s - %s -->", this.getTorrentId(), this.remoteId));
         stringBuilder.append("</br>");
 
         return stringBuilder.toString();

@@ -96,6 +96,7 @@ class MultifileHosterService(httpHelper: HttpHelper,
                 val addTorrentToQueueMessage = multifileHoster.addTorrentToDownloadQueue(TorrentMapper.mapTransferToTorrent(transfer))
                 transfer.feedbackMessage = addTorrentToQueueMessage
                 if (addTorrentToQueueMessage.contains("error")) {
+                    log.error("addTorrentToQueueMessage error: {} for transfer {}", addTorrentToQueueMessage, transfer)
                     transfer.transferStatus = when(transfer.transferStatus) {
                         TransferStatus.SERVER_ERROR -> TransferStatus.ERROR
                         else -> TransferStatus.SERVER_ERROR
@@ -199,6 +200,7 @@ class MultifileHosterService(httpHelper: HttpHelper,
     fun delete(torrent: Torrent) {
         val hoster = multifileHosterList.firstOrNull { multifileHoster: MultifileHoster -> multifileHoster.getName() == torrent.source }
         if (hoster != null) {
+            log.info("Deleting torrent: {}", torrent)
             hoster.delete(torrent)
         } else {
             log.error("Deletion of Torrent not possible: {}", torrent.toString())
@@ -227,7 +229,7 @@ class MultifileHosterService(httpHelper: HttpHelper,
                     transferService.save(transfer)
                     matchedTransfers.add(transfer)
                 } ?: also {
-                log.error("no transfer for torrent found: {} - {}", torrent.torrentId.lowercase(), torrent.remoteId)
+                log.error("no transfer for torrent found: {}", torrent)
             }
         }
         val listOfUnmatchedTransfers = transfers.filter { matchedTransfers.none { matchedTransfer -> matchedTransfer.id.equals(it.id) } }
