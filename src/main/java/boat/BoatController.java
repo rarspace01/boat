@@ -261,6 +261,7 @@ public final class BoatController {
     @GetMapping({"/boat/shutdown"})
     @NonNull
     public final String shutdownServer() {
+        log.info("shutdown request received");
         System.exit(0);
         return "off we go";
     }
