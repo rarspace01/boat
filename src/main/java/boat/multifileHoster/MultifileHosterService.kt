@@ -165,6 +165,10 @@ class MultifileHosterService(httpHelper: HttpHelper,
         return biggestFileYet > 0.9 * sumFileSize
     }
 
+    fun isMultiFileDownload(torrentToBeDownloaded: Torrent): Boolean {
+        return getFilesFromTorrent(torrentToBeDownloaded).size > 1
+    }
+
     fun getSizeOfTorrentInMB(torrent: Torrent): Double {
         val size: Long = getFilesFromTorrent(torrent).sumOf { torrentFile: TorrentFile -> torrentFile.filesize }
         return size.toDouble() / 1024.0 / 1024.0

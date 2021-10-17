@@ -268,7 +268,7 @@ public class DownloadMonitor {
                     multifileHosterService.delete(torrentToBeDownloaded);
                     transferToBeDownloaded = transferService.get(transferToBeDownloaded);
                     transferToBeDownloaded.ifPresent(transferService::delete);
-                } else {
+                } else if(multifileHosterService.isMultiFileDownload(torrentToBeDownloaded)) {
                     transferToBeDownloaded.ifPresent(transfer -> log.info("MFD - {}", transfer));
                     List<TorrentFile> filesFromTorrent = multifileHosterService
                         .getFilesFromTorrent(torrentToBeDownloaded);
@@ -301,6 +301,8 @@ public class DownloadMonitor {
                     multifileHosterService.delete(torrentToBeDownloaded);
                     transferToBeDownloaded = transferService.get(transferToBeDownloaded);
                     transferToBeDownloaded.ifPresent(transferService::delete);
+                } else {
+                   log.error(torrentToBeDownloaded.toString());
                 }
             } catch (Exception exception) {
                 log.error(String.format("Couldn't download Torrent: %s", torrentToBeDownloaded), exception);
