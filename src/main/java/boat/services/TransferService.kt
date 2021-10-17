@@ -5,6 +5,7 @@ import boat.repositories.TransferRepository
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.time.Instant
+import java.util.Optional
 
 @Service
 class TransferService(private val transferRepository: TransferRepository){
@@ -21,6 +22,18 @@ class TransferService(private val transferRepository: TransferRepository){
 
     fun getAll():List<Transfer>{
         return transferRepository.findAll()
+    }
+
+    fun get(transfer: Transfer): Optional<Transfer> {
+        return transferRepository.findById(transfer.id)
+    }
+
+    fun get(transfer: Optional<Transfer>): Optional<Transfer> {
+        return if(transfer.isPresent){
+            get(transfer)
+        } else {
+            Optional.empty()
+        }
     }
 
     companion object {

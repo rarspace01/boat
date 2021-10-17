@@ -217,6 +217,7 @@ class MultifileHosterService(httpHelper: HttpHelper,
 
     fun updateTransferStatus() {
         val transfers = transferService.getAll()
+            .filter { transfer -> multifileHosterListForDownloads.any { multifileHoster -> multifileHoster.getName() == transfer.source } }
             .filter { transfer -> !transfer.transferStatus.equals(TransferStatus.UPLOADING_TO_DRIVE) && !transfer.transferStatus.equals(TransferStatus.UPLOADED) }
         val matchedTransfers = mutableListOf<Transfer>()
         remoteTorrentsForDownload.forEach { torrent ->
