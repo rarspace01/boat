@@ -110,7 +110,6 @@ class Premiumize(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoste
         }
 
         val m = ObjectMapper()
-        log.info(responseFilesPage)
         try {
             val rootNode = m.readTree(responseFilesPage)
             val localNodes = rootNode.path("content")
@@ -130,7 +129,6 @@ class Premiumize(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoste
         } else {
             filteredList = returnList
         }
-        log.info("ListOfFiles in Torrent: {}", filteredList)
         return filteredList
     }
 
