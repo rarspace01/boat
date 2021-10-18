@@ -96,14 +96,23 @@ class Premiumize(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoste
 
     override fun getFilesFromTorrent(torrent: Torrent): List<TorrentFile> {
         val returnList: MutableList<TorrentFile> = ArrayList()
-        val responseFiles = httpHelper.getPage(
-            "https://www.premiumize.me/api/folder/list?id=" + torrent.folder_id +
-                    "&includebreadcrumbs=false&apikey=" + PropertiesHelper.getProperty("PREMIUMIZE_APIKEY")
-        )
+        var filteredList: List<TorrentFile>
+        val responseFilesPage = if(isSingleFileTorrent(torrent)){
+            httpHelper.getPage(
+                "https://www.premiumize.me/api/folder/list?"+
+                        "includebreadcrumbs=false&apikey=" + PropertiesHelper.getProperty("PREMIUMIZE_APIKEY")
+            )
+        } else {
+            httpHelper.getPage(
+                "https://www.premiumize.me/api/folder/list?id=" + torrent.folder_id +
+                        "&includebreadcrumbs=false&apikey=" + PropertiesHelper.getProperty("PREMIUMIZE_APIKEY")
+            )
+        }
+
         val m = ObjectMapper()
-        log.info(responseFiles);
+        log.info(responseFilesPage)
         try {
-            val rootNode = m.readTree(responseFiles)
+            val rootNode = m.readTree(responseFilesPage)
             val localNodes = rootNode.path("content")
             val fileList = localNodes.findParents("type")
             for (jsonFile in fileList) {
@@ -116,9 +125,16 @@ class Premiumize(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoste
         } catch (e: IOException) {
             e.printStackTrace()
         }
-        log.info("ListOfFiles in Torrent: {}", returnList)
-        return returnList
+        if(isSingleFileTorrent(torrent)) {
+            filteredList = returnList.filter { torrentFile -> torrentFile.id.equals(torrent.file_id) }
+        } else {
+            filteredList = returnList
+        }
+        log.info("ListOfFiles in Torrent: {}", filteredList)
+        return filteredList
     }
+
+    private fun isSingleFileTorrent(torrent: Torrent) = torrent.file_id != null && torrent.file_id.isNotEmpty() && !torrent.file_id.contains("null")
 
     private fun extractTorrentFilesFromJSONFolder(
         torrent: Torrent,
@@ -159,6 +175,7 @@ class Premiumize(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoste
         // check if hello.torrent is onefile and is located in root
         if (torrent.file_id != null && torrent.folder_id != null) {
             if (jsonFile["id"].asText().toString() == torrent.file_id) {
+                tf.id = jsonFile["id"].asText()
                 tf.name = prefix + jsonFile["name"].asText()
                 tf.filesize = jsonFile["size"].asLong()
                 tf.url = jsonFile["link"].asText()
@@ -183,8 +200,6 @@ class Premiumize(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoste
                 tempTorrent.name = localNode["name"].asText()
                 tempTorrent.folder_id = localNode["folder_id"].asText()
                 tempTorrent.file_id = localNode["file_id"].asText()
-                tempTorrent.folder_id = cleanJsonNull(tempTorrent.folder_id)
-                tempTorrent.file_id = cleanJsonNull(tempTorrent.file_id)
                 tempTorrent.remoteId = localNode["id"].asText()
                 tempTorrent.remoteStatusText = localNode["status"].asText()
                 tempTorrent.remoteTransferStatus = TorrentMapper.mapRemoteStatus(tempTorrent.remoteStatusText)
@@ -221,10 +236,6 @@ class Premiumize(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoste
         if(durationString.contains("minutes")) return Duration.ofMinutes(valueOfDuration.toLong())
         if(durationString.contains("seconds")) return Duration.ofSeconds(valueOfDuration.toLong())
         return Duration.ZERO
-    }
-
-    private fun cleanJsonNull(inputString: String): String? {
-        return if (inputString == "null") null else inputString
     }
 
     override fun delete(remoteTorrent: Torrent) {

@@ -93,7 +93,7 @@ public class Torrent implements Comparable<Torrent> {
         if (eta != null) {
             stringBuilder.append(" ETA:" + this.eta);
         }
-        stringBuilder.append(String.format("<!-- %s - %s - folder_id: -->", this.getTorrentId(), this.remoteId, this.folder_id));
+        stringBuilder.append(String.format("<!-- %s - %s - folder_id: %s file_id: %s -->", this.getTorrentId(), this.remoteId, this.folder_id, this.file_id));
         stringBuilder.append("</br>");
 
         return stringBuilder.toString();
