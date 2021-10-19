@@ -18,6 +18,7 @@ import org.jetbrains.annotations.NotNull;
 @Service
 public class CloudService {
 
+    public static final String RCLONE_DIR = "RCLONEDIR";
     private final CloudFileService cloudFileService;
 
     CloudService(CloudFileService cloudFileService) {
@@ -25,11 +26,11 @@ public class CloudService {
     }
 
     public boolean isCloudTokenValid() {
-        return cloudFileService.getFilesInPath(PropertiesHelper.getProperty("RCLONEDIR")).size() > 0;
+        return !cloudFileService.getFilesInPath(PropertiesHelper.getProperty(RCLONE_DIR)).isEmpty();
     }
 
     public String buildDestinationPath(final String torrentName) {
-        String basePath = PropertiesHelper.getProperty("RCLONEDIR");
+        String basePath = PropertiesHelper.getProperty(RCLONE_DIR);
         String preparedTorrentName = TorrentHelper.prepareTorrentName(torrentName);
         final TorrentType typeOfMedia = TorrentHelper.determineTypeOfMedia(torrentName);
         String torrentNameFirstLetterDeducted = deductFirstTorrentLetter(preparedTorrentName);
@@ -56,7 +57,7 @@ public class CloudService {
 
     public String buildDestinationPathWithTypeOfMediaWithoutSubFolders(final String torrentName,
                                                                        TorrentType typeOfMedia) {
-        String basePath = PropertiesHelper.getProperty("RCLONEDIR");
+        String basePath = PropertiesHelper.getProperty(RCLONE_DIR);
         String preparedTorrentName = TorrentHelper.prepareTorrentName(torrentName);
         String firstTorrentLetter = deductFirstTorrentLetter(preparedTorrentName);
         return basePath + "/" + typeOfMedia.getType() + "/" + firstTorrentLetter + "/";
@@ -120,7 +121,7 @@ public class CloudService {
     }
 
     private String buildDestinationPathWithTypeOfMedia(String name, TorrentType torrentType) {
-        String basePath = PropertiesHelper.getProperty("RCLONEDIR");
+        String basePath = PropertiesHelper.getProperty(RCLONE_DIR);
         String preparedTorrentName = TorrentHelper.prepareTorrentName(name);
         String torrentNameFirstLetterDeducted = deductFirstTorrentLetter(preparedTorrentName);
         String optionalSeriesString = "";
