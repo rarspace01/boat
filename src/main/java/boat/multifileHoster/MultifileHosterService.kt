@@ -260,8 +260,11 @@ class MultifileHosterService(httpHelper: HttpHelper,
     }
 
     private fun transferMatchedTorrentByName(transfer: Transfer, torrent: Torrent): Boolean {
-        log.warn("transfer only matched by name: {} <-> {}", transfer, torrent)
-        return transfer.name == torrent.name
+        val matchedByName = transfer.name != null && transfer.name == torrent.name
+        if(matchedByName) {
+            log.warn("transfer only matched by name: {} <-> {}", transfer, torrent)
+        }
+        return matchedByName
     }
 
     companion object {
