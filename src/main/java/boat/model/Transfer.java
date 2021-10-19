@@ -42,7 +42,7 @@ public class Transfer {
     }
 
     private String printDuration() {
-        if(eta.equals(Duration.ZERO)) { return ""; } else return eta.toString();
+        if(eta == null || eta.equals(Duration.ZERO)) { return ""; } else return eta.toString();
     }
 
 }
