@@ -5,6 +5,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.text.CharacterIterator;
 import java.text.StringCharacterIterator;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -347,5 +348,9 @@ public class TorrentHelper {
         String searchName = mediaItem.getTitle() + (year != null ? " " + year : "");
         searchName = getNormalizedTorrentStringWithSpaces(searchName).replaceAll("['!]", "");
         return searchName;
+    }
+
+    public static String formatDuration(Duration duration) {
+        return String.format("D: %sdays %shrs %smin %ssec", duration.toDays(), duration.toHours() % 24, duration.toMinutes() % 60, duration.getSeconds() % 60);
     }
 }

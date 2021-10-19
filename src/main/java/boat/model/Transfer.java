@@ -5,6 +5,7 @@ import java.time.Instant;
 
 import org.springframework.data.annotation.Id;
 
+import boat.torrent.TorrentHelper;
 import lombok.Data;
 
 @Data
@@ -53,7 +54,7 @@ public class Transfer {
         if (eta == null || eta.equals(Duration.ZERO)) {
             return "";
         } else {
-            return ", "+ eta;
+            return ", "+ TorrentHelper.formatDuration(eta);
         }
     }
 
