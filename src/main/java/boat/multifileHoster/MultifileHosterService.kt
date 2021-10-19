@@ -61,7 +61,7 @@ class MultifileHosterService(httpHelper: HttpHelper,
                 .orElse(potentialMultiHosters.first())
         }
             val transfer = Transfer()
-            transfer.transfertType = extractType(torrent.magnetUri)
+            transfer.transferType = extractType(torrent.magnetUri)
             transfer.transferStatus = TransferStatus.ADDED
             transfer.source = selectedMultiFileHosterSource.getName()
             transfer.uri = torrent.magnetUri

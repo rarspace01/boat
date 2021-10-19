@@ -23,7 +23,7 @@ public class Transfer {
 
     public TransferStatus transferStatus = TransferStatus.NONE;
 
-    public TransferType transfertType = TransferType.TORRENT;
+    public TransferType transferType = TransferType.TORRENT;
 
     public Double progressInPercentage = 0.0;
 
@@ -35,14 +35,22 @@ public class Transfer {
 
     @Override
     public String toString() {
-        return String.format("\n<br/>[<!-- ID:[%s]RID:[%s] -->%s,\uD83C\uDFE0%s,%s,%s,%.3f,<!-- MSG: %s -->%s <!-- ,%s -->]", id, remoteId, name,
-            source.charAt(0), transferStatus, transfertType, progressInPercentage, feedbackMessage,
+        return String.format("\n<br/>[<!-- ID:[%s]RID:[%s] -->%s,\uD83C\uDFE0%s,%s,%s,%s,<!-- MSG: %s -->%s <!-- ,%s -->]", id, remoteId, name,
+            source.charAt(0), transferStatus.getString(), transferType, getPercentageString(), feedbackMessage,
             printDuration(),
             updated);
     }
 
+    private String getPercentageString() {
+        return String.format("%.2f%%", progressInPercentage * 100.0);
+    }
+
     private String printDuration() {
-        if(eta == null || eta.equals(Duration.ZERO)) { return ""; } else return eta.toString();
+        if (eta == null || eta.equals(Duration.ZERO)) {
+            return "";
+        } else {
+            return ", "+ eta;
+        }
     }
 
 }
