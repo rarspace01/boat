@@ -1,6 +1,7 @@
 package boat.torrent;
 
 import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.text.CharacterIterator;
@@ -18,6 +19,9 @@ import java.util.stream.Collectors;
 
 import boat.info.MediaItem;
 import org.apache.commons.codec.net.URLCodec;
+import org.apache.logging.log4j.util.Strings;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class TorrentHelper {
 
@@ -275,6 +279,14 @@ public class TorrentHelper {
         }
     }
 
+    public static String urlDecode(final String string) {
+        try {
+            return URLDecoder.decode(string, StandardCharsets.UTF_8.toString());
+        } catch (UnsupportedEncodingException e) {
+            return string;
+        }
+    }
+
     public static String urlEncode(byte[] string) {
         return new String(new URLCodec().encode(string));
     }
@@ -357,5 +369,14 @@ public class TorrentHelper {
             return String.format("D: %shrs %smin %ssec", duration.toHours() % 24, duration.toMinutes() % 60, duration.getSeconds() % 60);
         }
 
+    }
+
+    @Nullable
+    public static String extractTorrentName(@NotNull Torrent torrent) {
+        if (Strings.isNotEmpty(torrent.name) && !torrent.name.equals("null")) {
+            return torrent.name;
+        } else {
+            return urlDecode(torrent.getTorrentNameFromUri());
+        }
     }
 }

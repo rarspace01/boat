@@ -8,6 +8,7 @@ import boat.services.TransferService
 import boat.torrent.HttpUser
 import boat.torrent.Torrent
 import boat.torrent.TorrentFile
+import boat.torrent.TorrentHelper
 import boat.utilities.HttpHelper
 import org.apache.logging.log4j.util.Strings
 import org.slf4j.LoggerFactory
@@ -61,7 +62,7 @@ class MultifileHosterService(httpHelper: HttpHelper,
                 .orElse(potentialMultiHosters.first())
         }
             val transfer = Transfer()
-            transfer.name = torrent.name
+            transfer.name = TorrentHelper.extractTorrentName(torrent)
             transfer.transferType = extractType(torrent.magnetUri)
             transfer.transferStatus = TransferStatus.ADDED
             transfer.source = selectedMultiFileHosterSource.getName()

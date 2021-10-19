@@ -44,6 +44,8 @@ public class Torrent implements Comparable<Torrent> {
     public List<TorrentFile> fileList = new ArrayList<>();
     public boolean isVerified = false;
     public boolean statsVerified = false;
+    private Pattern magnetPattern = Pattern.compile("(btih:)([a-zA-Z0-9]*)&*");
+    private Pattern magnetNamePattern = Pattern.compile("dn=(.*?)&");
 
     public Torrent(String source) {
         this.source = source;
@@ -122,12 +124,23 @@ public class Torrent implements Comparable<Torrent> {
         if (this.magnetUri == null) {
             return getRemoteIdOrHash();
         }
-        Pattern magnetPattern = Pattern.compile("(btih:)([a-zA-Z0-9]*)&*");
         Matcher matcher = magnetPattern.matcher(this.magnetUri);
         if (matcher.find()) {
             return matcher.group(2).toLowerCase();
         } else {
             return getRemoteIdOrHash();
+        }
+    }
+
+    public String getTorrentNameFromUri() {
+        if (this.magnetUri == null) {
+            return null;
+        }
+        Matcher matcher = magnetNamePattern.matcher(this.magnetUri);
+        if (matcher.find()) {
+            return matcher.group(1).toLowerCase();
+        } else {
+            return null;
         }
     }
 
