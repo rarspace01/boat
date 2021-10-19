@@ -34,9 +34,15 @@ public class Transfer {
     public Instant updated;
 
     @Override
-    public String toString(){
-        return String.format("\n<br/>[<!-- ID:[%s]RID:[%s] -->%s,\uD83C\uDFE0%s,%s,%s,%.3f,<!-- MSG: %s -->%s,%s]", id, remoteId, name, source.charAt(0), transferStatus, transfertType, progressInPercentage, feedbackMessage, eta,
+    public String toString() {
+        return String.format("\n<br/>[<!-- ID:[%s]RID:[%s] -->%s,\uD83C\uDFE0%s,%s,%s,%.3f,<!-- MSG: %s -->%s <!-- ,%s -->]", id, remoteId, name,
+            source.charAt(0), transferStatus, transfertType, progressInPercentage, feedbackMessage,
+            printDuration(),
             updated);
+    }
+
+    private String printDuration() {
+        if(eta.equals(Duration.ZERO)) { return ""; } else return eta.toString();
     }
 
 }

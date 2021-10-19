@@ -3,6 +3,7 @@ package boat.multifileHoster
 import boat.mapper.TorrentMapper
 import boat.model.Transfer
 import boat.model.TransferStatus
+import boat.model.TransferType
 import boat.services.TransferService
 import boat.torrent.HttpUser
 import boat.torrent.Torrent
@@ -60,6 +61,7 @@ class MultifileHosterService(httpHelper: HttpHelper,
                 .orElse(potentialMultiHosters.first())
         }
             val transfer = Transfer()
+            transfer.transfertType = extractType(torrent.magnetUri)
             transfer.transferStatus = TransferStatus.ADDED
             transfer.source = selectedMultiFileHosterSource.getName()
             transfer.uri = torrent.magnetUri
@@ -84,6 +86,13 @@ class MultifileHosterService(httpHelper: HttpHelper,
 //                .addTorrentToQueue(torrent)
 //        }
         }
+
+    private fun extractType(magnetUri: String?): TransferType {
+        if(magnetUri?.contains("btih:") == true) {
+            return TransferType.TORRENT
+        }
+        return TransferType.URL
+    }
 
     fun addTransfersToDownloadQueue() {
         // filter for traffic left
