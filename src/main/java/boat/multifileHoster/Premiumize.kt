@@ -214,13 +214,13 @@ class Premiumize(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoste
         val valueOfDuration = durationString
             .replace("days", "",true)
             .replace("hours", "",true)
-            .replace("minutes", "",true)
+            .replace("mins", "",true)
             .replace("seconds", "",true)
             .replace("left", "",true)
             .trim()
         if(durationString.contains("days")) return Duration.ofDays(valueOfDuration.toLong())
         if(durationString.contains("hours")) return Duration.ofHours(valueOfDuration.toLong())
-        if(durationString.contains("minutes")) return Duration.ofMinutes(valueOfDuration.toLong())
+        if(durationString.contains("mins")) return Duration.ofMinutes(valueOfDuration.toLong())
         if(durationString.contains("seconds")) return Duration.ofSeconds(valueOfDuration.toLong())
         return Duration.ZERO
     }
