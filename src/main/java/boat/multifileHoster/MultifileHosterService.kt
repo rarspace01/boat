@@ -240,6 +240,7 @@ class MultifileHosterService(httpHelper: HttpHelper,
                     transfer.transferStatus = torrent.remoteTransferStatus
                     transfer.progressInPercentage = torrent.remoteProgressInPercent
                     transfer.name = torrent.name
+                    transfer.eta = torrent.eta
                     transfer.remoteId = torrent.remoteId
                     transferService.save(transfer)
                     matchedTransfers.add(transfer)
