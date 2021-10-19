@@ -97,9 +97,10 @@ class MultifileHosterService(httpHelper: HttpHelper,
                 transfer.feedbackMessage = addTorrentToQueueMessage
                 if (addTorrentToQueueMessage.contains("error")) {
                     log.error("addTorrentToQueueMessage error: {} for transfer {}", addTorrentToQueueMessage, transfer)
-                    transfer.transferStatus = when(transfer.transferStatus) {
-                        //TransferStatus.SERVER_ERROR -> TransferStatus.ERROR
-                        else -> TransferStatus.SERVER_ERROR
+                    if(addTorrentToQueueMessage.contains("You already added this job")) {
+                        transfer.transferStatus = TransferStatus.ERROR
+                    } else {
+                        transfer.transferStatus = TransferStatus.SERVER_ERROR
                     }
                 } else {
                     transfer.remoteId = extractRemoteIdFromMessage(transfer.feedbackMessage)
