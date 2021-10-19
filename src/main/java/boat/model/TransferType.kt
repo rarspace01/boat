@@ -1,5 +1,5 @@
 package boat.model
 
-enum class TransferType {
-    TORRENT,URL
+enum class TransferType(val string:String) {
+    TORRENT("\uD83D\uDCE6️"),URL("\uD83D\uDDFA️")
 }
