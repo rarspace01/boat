@@ -71,7 +71,7 @@ public class Torrent implements Comparable<Torrent> {
             stringBuilder.append(String.format("R: %.2f ", this.searchRating));
         }
 
-        if (magnetUriBase64 != null && magnetUriBase64.length() > 0 && this.remoteStatusText == null) {
+        if (isNotARemoteTorrent(magnetUriBase64)) {
             stringBuilder.append("<a href=\"./boat/download/?d=" + magnetUriBase64 + "\">Download</a>");
         }
 
@@ -93,10 +93,16 @@ public class Torrent implements Comparable<Torrent> {
         if (eta != null) {
             stringBuilder.append(" ETA:" + this.eta);
         }
-        stringBuilder.append(String.format("<!-- %s - %s - folder_id: %s file_id: %s -->", this.getTorrentId(), this.remoteId, this.folder_id, this.file_id));
+        if(!isNotARemoteTorrent(magnetUriBase64)){
+            stringBuilder.append(String.format("%s - %s - folder_id: %s file_id: %s", this.getTorrentId(), this.remoteId, this.folder_id, this.file_id));
+        }
         stringBuilder.append("</br>");
 
         return stringBuilder.toString();
+    }
+
+    private boolean isNotARemoteTorrent(String magnetUriBase64) {
+        return magnetUriBase64 != null && magnetUriBase64.length() > 0 && this.remoteStatusText == null;
     }
 
     private String retrieveSourceName() {
