@@ -351,6 +351,11 @@ public class TorrentHelper {
     }
 
     public static String formatDuration(Duration duration) {
-        return String.format("D: %sdays %shrs %smin %ssec", duration.toDays(), duration.toHours() % 24, duration.toMinutes() % 60, duration.getSeconds() % 60);
+        if(duration.toDays()>0) {
+            return String.format("D: %sdays %shrs %smin %ssec", duration.toDays(), duration.toHours() % 24, duration.toMinutes() % 60, duration.getSeconds() % 60);
+        } else {
+            return String.format("D: %shrs %smin %ssec", duration.toHours() % 24, duration.toMinutes() % 60, duration.getSeconds() % 60);
+        }
+
     }
 }
