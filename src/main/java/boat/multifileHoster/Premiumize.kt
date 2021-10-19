@@ -78,11 +78,11 @@ class Premiumize(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoste
 
     private fun parseRemainingTrafficInMB(responseAccount: String): Double {
         val mapper = ObjectMapper()
-        try {
+        return try {
             val jsonNode = mapper.readTree(responseAccount)
-            return (1.0 - jsonNode.get("limit_used").asDouble()) * 1024.0 * 1024.0
+            (1.0 - jsonNode.get("limit_used").asDouble()) * 1024.0 * 1024.0
         } catch (ignored: Exception) {
-            return 0.0
+            0.0
         }
     }
 
@@ -96,7 +96,6 @@ class Premiumize(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoste
 
     override fun getFilesFromTorrent(torrent: Torrent): List<TorrentFile> {
         val returnList: MutableList<TorrentFile> = ArrayList()
-        var filteredList: List<TorrentFile>
         val responseFilesPage = if(isSingleFileTorrent(torrent)){
             httpHelper.getPage(
                 "https://www.premiumize.me/api/folder/list?"+
@@ -116,18 +115,18 @@ class Premiumize(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoste
             val fileList = localNodes.findParents("type")
             for (jsonFile in fileList) {
                 if (jsonFile["type"].asText() == "file") {
-                    extractTorrentFileFromJSON(torrent, returnList, jsonFile, "")
+                    extractTorrentFileFromJSON(returnList, jsonFile, "")
                 } else if (jsonFile["type"].asText() == "folder") {
-                    extractTorrentFilesFromJSONFolder(torrent, returnList, jsonFile, "")
+                    extractTorrentFilesFromJSONFolder(returnList, jsonFile, "")
                 }
             }
         } catch (e: IOException) {
             e.printStackTrace()
         }
-        if(isSingleFileTorrent(torrent)) {
-            filteredList = returnList.filter { torrentFile -> torrentFile.id.equals(torrent.file_id) }
+        val filteredList: List<TorrentFile> = if(isSingleFileTorrent(torrent)) {
+            returnList.filter { torrentFile -> torrentFile.id.equals(torrent.file_id) }
         } else {
-            filteredList = returnList
+            returnList
         }
         return filteredList
     }
@@ -135,7 +134,6 @@ class Premiumize(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoste
     private fun isSingleFileTorrent(torrent: Torrent) = torrent.file_id != null && torrent.file_id.isNotEmpty() && !torrent.file_id.contains("null")
 
     private fun extractTorrentFilesFromJSONFolder(
-        torrent: Torrent,
         returnList: MutableList<TorrentFile>,
         jsonFolder: JsonNode,
         prefix: String
@@ -153,9 +151,11 @@ class Premiumize(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoste
             val fileList = localNodes.findParents("type")
             for (jsonFile in fileList) {
                 if (jsonFile["type"].asText() == "file") {
-                    extractTorrentFileFromJSON(torrent, returnList, jsonFile, folderName)
+                    extractTorrentFileFromJSON(returnList, jsonFile, folderName)
                 } else if (jsonFile["type"].asText() == "folder") {
-                    extractTorrentFilesFromJSONFolder(torrent, returnList, jsonFile, folderName)
+                    extractTorrentFilesFromJSONFolder(returnList, jsonFile, folderName)
+                } else {
+                    log.error("file extraction error, type: {} - file: {}", jsonFile["type"].asText(), jsonFile)
                 }
             }
         } catch (e: IOException) {
@@ -164,27 +164,16 @@ class Premiumize(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoste
     }
 
     private fun extractTorrentFileFromJSON(
-        torrent: Torrent,
         returnList: MutableList<TorrentFile>,
         jsonFile: JsonNode,
         prefix: String
     ) {
         val tf = TorrentFile()
-        // check if hello.torrent is onefile and is located in root
-        if (torrent.file_id != null && torrent.folder_id != null) {
-            if (jsonFile["id"].asText().toString() == torrent.file_id) {
-                tf.id = jsonFile["id"].asText()
-                tf.name = prefix + jsonFile["name"].asText()
-                tf.filesize = jsonFile["size"].asLong()
-                tf.url = jsonFile["link"].asText()
-                returnList.add(tf)
-            }
-        } else {
-            tf.name = prefix + jsonFile["name"].asText()
-            tf.filesize = jsonFile["size"].asLong()
-            tf.url = jsonFile["link"].asText()
-            returnList.add(tf)
-        }
+        tf.name = prefix + jsonFile["name"].asText()
+        tf.id = jsonFile["id"].asText()
+        tf.filesize = jsonFile["size"].asLong()
+        tf.url = jsonFile["link"].asText()
+        returnList.add(tf)
     }
 
     private fun parseRemoteTorrents(pageContent: String): ArrayList<Torrent> {
