@@ -28,6 +28,8 @@ public class Transfer {
 
     public Double progressInPercentage = 0.0;
 
+    public Long sizeInBytes;
+
     public String feedbackMessage;
 
     public Duration eta;
