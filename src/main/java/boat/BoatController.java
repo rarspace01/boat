@@ -253,7 +253,7 @@ public final class BoatController {
             + "<br/>TrafficLeft: " + TorrentHelper
             .humanReadableByteCountBinary((long) multifileHosterService.getRemainingTrafficInMB() * 1024 * 1024)
             + String.format("<br/>Transfers [%d]: %s", transferService.getAll().size(), transferService.getAll())
-            + String.format("<br/>D [%d]: %s", remoteTorrents.size(), remoteTorrents)
+            + String.format("<br/><!-- D [%d]: %s -->", remoteTorrents.size(), remoteTorrents)
             + String.format("<br/>Queue [%d]: %s", queueService.getQueue().size(), queueService.getQueue())
             ;
     }
