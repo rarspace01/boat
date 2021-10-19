@@ -236,7 +236,11 @@ class MultifileHosterService(httpHelper: HttpHelper,
             .filter { transfer -> !transfer.transferStatus.equals(TransferStatus.UPLOADING_TO_DRIVE) && !transfer.transferStatus.equals(TransferStatus.UPLOADED) }
         val matchedTransfers = mutableListOf<Transfer>()
         remoteTorrentsForDownload.forEach { torrent ->
-            transfers.find { transfer -> transfer.uri.lowercase().contains(torrent.torrentId.lowercase()) || transfer.remoteId != null && transfer.remoteId == torrent.remoteId }
+            transfers.find {
+                    transfer -> transfer.uri.lowercase().contains(torrent.torrentId.lowercase()) ||
+                    transfer.remoteId != null && transfer.remoteId == torrent.remoteId ||
+                    transferMatchedTorrentByName(transfer, torrent)
+            }
                 ?.also { transfer ->
                     transfer.transferStatus = torrent.remoteTransferStatus
                     transfer.progressInPercentage = torrent.remoteProgressInPercent
@@ -253,6 +257,11 @@ class MultifileHosterService(httpHelper: HttpHelper,
         if (listOfUnmatchedTransfers.isNotEmpty()) {
             log.warn("listOfUnmatchedTransfers: [{}]", listOfUnmatchedTransfers)
         }
+    }
+
+    private fun transferMatchedTorrentByName(transfer: Transfer, torrent: Torrent): Boolean {
+        log.warn("transfer only matched by name: {} <-> {}", transfer, torrent)
+        return transfer.name == torrent.name
     }
 
     companion object {
