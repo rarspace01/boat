@@ -236,7 +236,8 @@ class MultifileHosterService(httpHelper: HttpHelper,
             .filter { transfer -> !transfer.transferStatus.equals(TransferStatus.UPLOADING_TO_DRIVE) && !transfer.transferStatus.equals(TransferStatus.UPLOADED) }
         val matchedTransfers = mutableListOf<Transfer>()
         val matchedTorrents = mutableListOf<Torrent>()
-        remoteTorrentsForDownload.forEach { torrent ->
+        val torrentsForDownload = remoteTorrentsForDownload
+        torrentsForDownload.forEach { torrent ->
             transfers.find {
                     transfer -> transfer.uri.lowercase().contains(torrent.torrentId.lowercase()) ||
                     transfer.remoteId != null && transfer.remoteId == torrent.remoteId ||
@@ -256,7 +257,7 @@ class MultifileHosterService(httpHelper: HttpHelper,
             }
         }
         val listOfUnmatchedTransfers = transfers.filter { matchedTransfers.none { matchedTransfer -> matchedTransfer.id.equals(it.id) } }
-        val listOfUnmatchedTorrents = remoteTorrentsForDownload.filter { matchedTorrents.none { matchedTorrent -> matchedTorrent.torrentId.equals((it.torrentId)) } }
+        val listOfUnmatchedTorrents = torrentsForDownload.filter { matchedTorrents.none { matchedTorrent -> matchedTorrent.torrentId.equals((it.torrentId)) } }
         if (listOfUnmatchedTransfers.isNotEmpty()) {
             log.warn("listOfUnmatchedTransfers: [{}]", listOfUnmatchedTransfers)
             log.warn("listOfUnmatchedTorrents: [{}]", listOfUnmatchedTorrents)
