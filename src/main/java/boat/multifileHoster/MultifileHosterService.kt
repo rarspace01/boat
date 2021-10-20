@@ -235,6 +235,7 @@ class MultifileHosterService(httpHelper: HttpHelper,
             .filter { transfer -> multifileHosterListForDownloads.any { multifileHoster -> multifileHoster.getName() == transfer.source } }
             .filter { transfer -> !transfer.transferStatus.equals(TransferStatus.UPLOADING_TO_DRIVE) && !transfer.transferStatus.equals(TransferStatus.UPLOADED) }
         val matchedTransfers = mutableListOf<Transfer>()
+        val matchedTorrents = mutableListOf<Torrent>()
         remoteTorrentsForDownload.forEach { torrent ->
             transfers.find {
                     transfer -> transfer.uri.lowercase().contains(torrent.torrentId.lowercase()) ||
@@ -249,18 +250,23 @@ class MultifileHosterService(httpHelper: HttpHelper,
                     transfer.remoteId = torrent.remoteId
                     transferService.save(transfer)
                     matchedTransfers.add(transfer)
+                    matchedTorrents.add(torrent)
                 } ?: also {
                 log.error("no transfer for torrent found: {}", torrent)
             }
         }
         val listOfUnmatchedTransfers = transfers.filter { matchedTransfers.none { matchedTransfer -> matchedTransfer.id.equals(it.id) } }
+        val listOfUnmatchedTorrents = remoteTorrentsForDownload.filter { matchedTorrents.none { matchedTorrent -> matchedTorrent.torrentId.equals((it.torrentId)) } }
         if (listOfUnmatchedTransfers.isNotEmpty()) {
             log.warn("listOfUnmatchedTransfers: [{}]", listOfUnmatchedTransfers)
+            log.warn("listOfUnmatchedTorrents: [{}]", listOfUnmatchedTorrents)
         }
     }
 
     private fun transferMatchedTorrentByName(transfer: Transfer, torrent: Torrent): Boolean {
-        val matchedByName = transfer.name != null && transfer.name.lowercase() == torrent.name.lowercase()
+        val transferName = TorrentHelper.getNormalizedTorrentStringWithSpaces(transfer.name)
+        val torrentName = TorrentHelper.getNormalizedTorrentStringWithSpaces(torrent.name)
+        val matchedByName = transfer.name != null && transferName.lowercase() == torrentName.lowercase()
         if(matchedByName) {
             log.warn("transfer only matched by name: {} <-> {}", transfer, torrent)
         }
