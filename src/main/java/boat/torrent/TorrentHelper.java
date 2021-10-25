@@ -376,7 +376,8 @@ public class TorrentHelper {
         if (Strings.isNotEmpty(torrent.name) && !torrent.name.equals("null")) {
             return torrent.name;
         } else {
-            return urlDecode(torrent.getTorrentNameFromUri());
+            final String torrentNameFromUri = torrent.getTorrentNameFromUri();
+            return torrentNameFromUri != null ? urlDecode(torrentNameFromUri) : torrent.magnetUri;
         }
     }
 }
