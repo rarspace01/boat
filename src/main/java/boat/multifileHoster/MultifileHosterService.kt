@@ -241,7 +241,8 @@ class MultifileHosterService(httpHelper: HttpHelper,
             transfers.find {
                     transfer -> transfer.uri.lowercase().contains(torrent.torrentId.lowercase()) ||
                     transfer.remoteId != null && transfer.remoteId == torrent.remoteId ||
-                    transferMatchedTorrentByName(transfer, torrent)
+                    transferMatchedTorrentByName(transfer, torrent) ||
+                    transferMatchedTorrentBySource(transfer, torrent)
             }
                 ?.also { transfer ->
                     transfer.transferStatus = torrent.remoteTransferStatus
@@ -262,6 +263,10 @@ class MultifileHosterService(httpHelper: HttpHelper,
             log.warn("listOfUnmatchedTransfers: [{}]", listOfUnmatchedTransfers)
             log.warn("listOfUnmatchedTorrents: [{}]", listOfUnmatchedTorrents)
         }
+    }
+
+    private fun transferMatchedTorrentBySource(transfer: Transfer, torrent: Torrent): Boolean {
+        return Strings.isNotEmpty(transfer.source) && transfer.source.equals(torrent.magnetUri)
     }
 
     private fun transferMatchedTorrentByName(transfer: Transfer, torrent: Torrent): Boolean {
