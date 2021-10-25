@@ -266,7 +266,7 @@ class MultifileHosterService(httpHelper: HttpHelper,
     }
 
     private fun transferMatchedTorrentBySource(transfer: Transfer, torrent: Torrent): Boolean {
-        return Strings.isNotEmpty(transfer.source) && transfer.source.equals(torrent.magnetUri)
+        return Strings.isNotEmpty(transfer.uri) && transfer.source.equals(torrent.magnetUri)
     }
 
     private fun transferMatchedTorrentByName(transfer: Transfer, torrent: Torrent): Boolean {
