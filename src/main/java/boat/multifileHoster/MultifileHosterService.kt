@@ -241,8 +241,8 @@ class MultifileHosterService(httpHelper: HttpHelper,
             transfers.find {
                     transfer -> transfer.uri.lowercase().contains(torrent.torrentId.lowercase()) ||
                     transfer.remoteId != null && transfer.remoteId == torrent.remoteId ||
-                    transferMatchedTorrentByName(transfer, torrent) ||
-                    transferMatchedTorrentBySource(transfer, torrent)
+                    transferMatchedTorrentBySource(transfer, torrent) ||
+                    transferMatchedTorrentByName(transfer, torrent)
             }
                 ?.also { transfer ->
                     transfer.transferStatus = torrent.remoteTransferStatus
@@ -269,14 +269,24 @@ class MultifileHosterService(httpHelper: HttpHelper,
         return Strings.isNotEmpty(transfer.uri) && transfer.source.equals(torrent.magnetUri)
     }
 
-    private fun transferMatchedTorrentByName(transfer: Transfer, torrent: Torrent): Boolean {
-        val transferName = TorrentHelper.getNormalizedTorrentStringWithSpaces(transfer.name)
-        val torrentName = TorrentHelper.getNormalizedTorrentStringWithSpaces(torrent.name)
+    fun transferMatchedTorrentByName(transfer: Transfer, torrent: Torrent): Boolean {
+        val transferName = TorrentHelper.getNormalizedTorrentStringWithSpaces(transfer.name).lowercase()
+        val torrentName = TorrentHelper.getNormalizedTorrentStringWithSpaces(torrent.name).lowercase()
         val matchedByName = transfer.name != null && transferName.lowercase() == torrentName.lowercase()
-        if(matchedByName) {
+        return if(matchedByName) {
             log.warn("transfer only matched by name: {} <-> {}", transfer, torrent)
+            true;
+        } else {
+            val transferWordList = transferName.split(" ")
+            val torrentWordList = torrentName.split(" ")
+            val transferInTorrentCount = transferWordList.count { torrentWordList.contains(it) }
+            val torrentInTransferCount = torrentWordList.count { transferWordList.contains(it) }
+            val transferDiffCount = transferWordList.size - transferInTorrentCount
+            val torrentDiffCount = torrentWordList.size - torrentInTransferCount
+            ((transferInTorrentCount.toDouble()/transferWordList.count().toDouble()>0.75) && transferDiffCount<=2
+                    &&
+                    (torrentInTransferCount.toDouble()/torrentWordList.count().toDouble()>0.75) && torrentDiffCount<=2)
         }
-        return matchedByName
     }
 
     companion object {

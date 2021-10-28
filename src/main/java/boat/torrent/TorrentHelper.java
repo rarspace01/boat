@@ -185,30 +185,31 @@ public class TorrentHelper {
 
     public static String getNormalizedTorrentString(String name) {
         String lowerCase = name.replaceAll(REGEX_RELEASE_GROUP, "").toLowerCase();
-        return lowerCase.trim()
+        final String trimmedAndCleaned = lowerCase.trim()
             .replaceAll("['`´!]", "")
             .replaceAll(",", ".")
-            .replaceAll("\\[[A-Za-z0-9. -]*\\]", "")
-            .replaceAll(TAG_REGEX, ".")
-            .replaceAll(TAG_REGEX, ".")
-            .replaceAll(TAG_REGEX, ".")
-            .replaceAll(TAG_REGEX, ".")
+            .replaceAll("\\[[A-Za-z0-9. -]*\\]", "");
+        final String regexCleaned = getRegexCleaned(trimmedAndCleaned);
+        return regexCleaned
             .replaceAll("[()]+", "")
             .replaceAll("\\s", "")
             .replaceAll("\\.", "")
             ;
     }
 
+    @NotNull
+    private static String getRegexCleaned(String inputString) {
+        final String[] workString = {inputString};
+        torrentService.getReleaseTags().forEach(tag -> workString[0] = workString[0].replaceAll("([ .-]+"+tag+")([ .-]+|$)","."));
+        return workString[0];
+    }
+
     public static String getNormalizedTorrentStringWithSpaces(String name) {
         String lowerCase = name.replaceAll(REGEX_RELEASE_GROUP, "").toLowerCase().replaceAll("\"", "");
-        return lowerCase.trim()
+        return getRegexCleaned(lowerCase.trim()
             .replaceAll("['`´!]", "")
             .replaceAll("\\[[a-z0-9. -]*\\]", "")
-            .replaceAll(",", ".")
-            .replaceAll(TAG_REGEX, ".")
-            .replaceAll(TAG_REGEX, ".")
-            .replaceAll(TAG_REGEX, ".")
-            .replaceAll(TAG_REGEX, ".")
+            .replaceAll(",", "."))
             .replaceAll("[()]+", "")
             .replaceAll("\\.", " ").trim();
     }
@@ -218,12 +219,8 @@ public class TorrentHelper {
             return null;
         }
         String string = name.replaceAll(REGEX_RELEASE_GROUP, "").toLowerCase().replaceAll("\"", "");
-        return string.trim()
-            .replaceAll("\\[[A-Za-z0-9. -]*\\]", "")
-            .replaceAll(TAG_REGEX, ".")
-            .replaceAll(TAG_REGEX, ".")
-            .replaceAll(TAG_REGEX, ".")
-            .replaceAll(TAG_REGEX, ".")
+        return getRegexCleaned(string.trim()
+            .replaceAll("\\[[A-Za-z0-9. -]*\\]", ""))
             .replaceAll("\\.", " ").trim();
     }
 
