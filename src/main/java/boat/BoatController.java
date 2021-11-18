@@ -178,8 +178,8 @@ public final class BoatController {
             if (Strings.isNotEmpty(pageWithEntries)) {
                 final String[] titles = pageWithEntries.split("\n");
                 final List<MediaItem> listOfMediaItems = Arrays.stream(titles).map(title ->
-                    new MediaItem(title, title, null, boat.info.MediaType.Other)
-                )
+                        new MediaItem(title, title, null, boat.info.MediaType.Other)
+                    )
                     .filter(this::isNotAlreadyDownloaded)
                     .collect(Collectors.toList());
                 queueService.addAll(listOfMediaItems);
@@ -214,13 +214,9 @@ public final class BoatController {
                 Stream.of(uris).forEach(uri -> addUriToQueue(torrentsToBeDownloaded, uri));
             }
         }
-        if (torrentsToBeDownloaded.size() == 1) {
-            multifileHosterService.addTorrentToTransfer(torrentsToBeDownloaded.get(0));
-            return switchToProgress;
-        } else {
-            torrentsToBeDownloaded.forEach(multifileHosterService::addTorrentToTransfer);
-            return switchToProgress;
-        }
+        torrentsToBeDownloaded.forEach(multifileHosterService::addTorrentToTransfer);
+        multifileHosterService.updateTransferStatus();
+        return switchToProgress;
     }
 
     private void addUriToQueue(List<Torrent> torrentsToBeDownloaded, String decodedUri) {
@@ -243,7 +239,7 @@ public final class BoatController {
         RuntimeMXBean runtimeBean = ManagementFactory.getRuntimeMXBean();
         long startTime = runtimeBean.getStartTime();
         Date startDate = new Date(startTime);
-        return "v:" + PropertiesHelper.getVersion() + " started: "+startDate
+        return "v:" + PropertiesHelper.getVersion() + " started: " + startDate
             + "<br/>cloud token: " + (cloudService.isCloudTokenValid() ? "✅" : "❌")
             + "<br/>search Cache: " + (cloudFileService.isCacheFilled() ? "✅" : "❌")
             + "<br/>ActiveSearchEngines: " + torrentSearchEngineService.getActiveSearchEngines()

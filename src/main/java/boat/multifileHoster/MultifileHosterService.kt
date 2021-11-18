@@ -18,14 +18,16 @@ import java.util.regex.Pattern
 import java.util.stream.Collectors
 
 @Service
-class MultifileHosterService(httpHelper: HttpHelper,
-                             private val transferService: TransferService) : HttpUser(httpHelper) {
+class MultifileHosterService(
+    httpHelper: HttpHelper,
+    private val transferService: TransferService
+) : HttpUser(httpHelper) {
     private val multifileHosterList: MutableList<MultifileHoster> = mutableListOf(Premiumize(httpHelper), Alldebrid(httpHelper))
     private val multifileHosterListForDownloads: MutableList<MultifileHoster> = getEligibleMultifileHoster(httpHelper)
 
     private fun getEligibleMultifileHoster(httpHelper: HttpHelper): MutableList<MultifileHoster> {
         val eligibleList = mutableListOf<MultifileHoster>()
-        if(!httpHelper.externalHostname.contains("happysrv") && !httpHelper.externalHostname.contains(".com")){
+        if (!httpHelper.externalHostname.contains("happysrv") && !httpHelper.externalHostname.contains(".com")) {
             eligibleList.add(Alldebrid(httpHelper))
         } else {
             eligibleList.add(Premiumize(httpHelper))
@@ -34,23 +36,25 @@ class MultifileHosterService(httpHelper: HttpHelper,
     }
 
     fun getCachedStateOfTorrents(returnResults: List<Torrent>): List<Torrent> {
-        multifileHosterList.forEach(Consumer { multifileHoster: MultifileHoster ->
-            multifileHoster.enrichCacheStateOfTorrents(
-                returnResults
-            )
-        })
+        multifileHosterList.forEach(
+            Consumer { multifileHoster: MultifileHoster ->
+                multifileHoster.enrichCacheStateOfTorrents(
+                    returnResults
+                )
+            }
+        )
         return returnResults
     }
 
     fun addTorrentToTransfer(torrent: Torrent) {
         val listOfMultiHostersWithTrafficLeft = multifileHosterList.filter { multifileHoster -> multifileHoster.getRemainingTrafficInMB() > 30000 }
         val potentialMultiHosters = listOfMultiHostersWithTrafficLeft.ifEmpty { multifileHosterList }
-        var selectedMultiFileHosterSource: MultifileHoster
+        val selectedMultiFileHosterSource: MultifileHoster
         if (potentialMultiHosters.size == 1) {
             selectedMultiFileHosterSource = potentialMultiHosters[0]
         } else {
 //            val potentialCachedTorrentToDownload = torrent;
-////                getCachedStateOfTorrents(listOf(torrent)).stream().findFirst().orElse(torrent)
+// //                getCachedStateOfTorrents(listOf(torrent)).stream().findFirst().orElse(torrent)
 //            val cachedMultihosters = potentialMultihosters
 //                .filter { multifileHoster: MultifileHoster ->
 //                    potentialCachedTorrentToDownload.cached.contains(multifileHoster.getName())
@@ -61,13 +65,13 @@ class MultifileHosterService(httpHelper: HttpHelper,
                 .min(Comparator.comparingInt(MultifileHoster::getPrio))
                 .orElse(potentialMultiHosters.first())
         }
-            val transfer = Transfer()
-            transfer.name = TorrentHelper.extractTorrentName(torrent)
-            transfer.transferType = extractType(torrent.magnetUri)
-            transfer.transferStatus = TransferStatus.ADDED
-            transfer.source = selectedMultiFileHosterSource.getName()
-            transfer.uri = torrent.magnetUri
-            transferService.save(transfer)
+        val transfer = Transfer()
+        transfer.name = TorrentHelper.extractTorrentName(torrent)
+        transfer.transferType = extractType(torrent.magnetUri)
+        transfer.transferStatus = TransferStatus.ADDED
+        transfer.source = selectedMultiFileHosterSource.getName()
+        transfer.uri = torrent.magnetUri
+        transferService.save(transfer)
 //        val listOfMultihostersWithTrafficLeft = multifileHosterList.filter { multifileHoster -> multifileHoster.getRemainingTrafficInMB() > 30000 }
 //        val potentialMultihosters = listOfMultihostersWithTrafficLeft.ifEmpty { multifileHosterList }
 //
@@ -87,10 +91,10 @@ class MultifileHosterService(httpHelper: HttpHelper,
 //                .orElse(potentialMultihosters.first())
 //                .addTorrentToQueue(torrent)
 //        }
-        }
+    }
 
     private fun extractType(magnetUri: String?): TransferType {
-        if(magnetUri?.contains("btih:") == true) {
+        if (magnetUri?.contains("btih:") == true) {
             return TransferType.TORRENT
         }
         return TransferType.URL
@@ -99,7 +103,7 @@ class MultifileHosterService(httpHelper: HttpHelper,
     fun addTransfersToDownloadQueue() {
         // filter for traffic left
         val transfersToBeAdded = transferService.getAll()
-            .filter { transfer -> TransferStatus.ADDED == transfer.transferStatus || TransferStatus.SERVER_ERROR == transfer.transferStatus}
+            .filter { transfer -> TransferStatus.ADDED == transfer.transferStatus || TransferStatus.SERVER_ERROR == transfer.transferStatus }
             .filter { transfer -> multifileHosterListForDownloads.any { multifileHoster -> multifileHoster.getName() == transfer.source } }
         multifileHosterListForDownloads.forEach { multifileHoster ->
             val transfersForHoster = transfersToBeAdded.filter { transfer -> transfer.source.equals(multifileHoster.getName()) }
@@ -108,7 +112,7 @@ class MultifileHosterService(httpHelper: HttpHelper,
                 transfer.feedbackMessage = addTorrentToQueueMessage
                 if (addTorrentToQueueMessage.contains("error")) {
                     log.error("addTorrentToQueueMessage error: {} for transfer {}", addTorrentToQueueMessage, transfer)
-                    if(addTorrentToQueueMessage.contains("You already added this job")) {
+                    if (addTorrentToQueueMessage.contains("You already added this job")) {
                         transfer.transferStatus = TransferStatus.ERROR
                     } else {
                         transfer.transferStatus = TransferStatus.SERVER_ERROR
@@ -123,10 +127,10 @@ class MultifileHosterService(httpHelper: HttpHelper,
     }
 
     fun extractRemoteIdFromMessage(feedbackMessage: String): String? {
-        if(Strings.isNotEmpty(feedbackMessage)) {
+        if (Strings.isNotEmpty(feedbackMessage)) {
             val pattern = Pattern.compile("\"id\":\"([^\"]+)\"")
             val matcher = pattern.matcher(feedbackMessage)
-            if(matcher.find()){
+            if (matcher.find()) {
                 return matcher.group(1)
             }
         }
@@ -222,11 +226,11 @@ class MultifileHosterService(httpHelper: HttpHelper,
         }
     }
 
-    fun getActiveMultifileHosters():List<MultifileHoster>{
+    fun getActiveMultifileHosters(): List<MultifileHoster> {
         return multifileHosterList
     }
 
-    fun getActiveMultifileHosterForDownloads():List<MultifileHoster>{
+    fun getActiveMultifileHosterForDownloads(): List<MultifileHoster> {
         return multifileHosterListForDownloads
     }
 
@@ -239,7 +243,8 @@ class MultifileHosterService(httpHelper: HttpHelper,
         val torrentsForDownload = remoteTorrentsForDownload
         torrentsForDownload.forEach { torrent ->
             transfers.find {
-                    transfer -> transfer.uri.lowercase().contains(torrent.torrentId.lowercase()) ||
+                transfer ->
+                transfer.uri.lowercase().contains(torrent.torrentId.lowercase()) ||
                     transfer.remoteId != null && transfer.remoteId == torrent.remoteId ||
                     transferMatchedTorrentBySource(transfer, torrent) ||
                     transferMatchedTorrentByName(transfer, torrent)
@@ -273,9 +278,9 @@ class MultifileHosterService(httpHelper: HttpHelper,
         val transferName = TorrentHelper.getNormalizedTorrentStringWithSpaces(transfer.name).lowercase()
         val torrentName = TorrentHelper.getNormalizedTorrentStringWithSpaces(torrent.name).lowercase()
         val matchedByName = transfer.name != null && transferName.lowercase() == torrentName.lowercase()
-        return if(matchedByName) {
+        return if (matchedByName) {
             log.warn("transfer only matched by name: {} <-> {}", transfer, torrent)
-            true;
+            true
         } else {
             val transferWordList = transferName.split(" ")
             val torrentWordList = torrentName.split(" ")
@@ -283,14 +288,14 @@ class MultifileHosterService(httpHelper: HttpHelper,
             val torrentInTransferCount = torrentWordList.count { transferWordList.contains(it) }
             val transferDiffCount = transferWordList.size - transferInTorrentCount
             val torrentDiffCount = torrentWordList.size - torrentInTransferCount
-            ((transferInTorrentCount.toDouble()/transferWordList.count().toDouble()>0.75) && transferDiffCount<=2
-                    &&
-                    (torrentInTransferCount.toDouble()/torrentWordList.count().toDouble()>0.75) && torrentDiffCount<=2)
+            (
+                (transferInTorrentCount.toDouble() / transferWordList.count().toDouble()> 0.75) && transferDiffCount <= 2 &&
+                    (torrentInTransferCount.toDouble() / torrentWordList.count().toDouble()> 0.75) && torrentDiffCount <= 2
+                )
         }
     }
 
     companion object {
         private val log = LoggerFactory.getLogger(MultifileHosterService::class.java)
     }
-
 }
