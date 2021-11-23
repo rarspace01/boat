@@ -1,25 +1,15 @@
 package boat;
 
-import java.io.File;
-import java.io.IOException;
-import java.net.URLDecoder;
-import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Locale;
-import java.util.Optional;
-import java.util.concurrent.Executors;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 
 import boat.info.BluRayComService;
 import boat.info.CloudFileService;
@@ -27,25 +17,19 @@ import boat.info.CloudService;
 import boat.info.MediaItem;
 import boat.info.QueueService;
 import boat.info.TorrentMetaService;
-import boat.model.Transfer;
 import boat.model.TransferStatus;
 import boat.multifileHoster.MultifileHosterService;
 import boat.services.TransferService;
 import boat.torrent.Torrent;
-import boat.torrent.TorrentFile;
 import boat.torrent.TorrentHelper;
 import boat.torrent.TorrentSearchEngineService;
 import boat.torrent.TorrentType;
 import boat.utilities.HttpHelper;
-import boat.utilities.ProcessUtil;
 import boat.utilities.PropertiesHelper;
-import boat.utilities.StreamGobbler;
 import com.google.gson.JsonParser;
 import org.apache.logging.log4j.util.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static java.nio.charset.StandardCharsets.UTF_8;
 
 @Component
 public class DownloadMonitor {
@@ -126,7 +110,7 @@ public class DownloadMonitor {
     public void refreshCloudFileServiceCache() {
         log.info("refreshCloudFileServiceCache()");
         final long startOfCache = System.currentTimeMillis();
-        if (isRcloneInstalled()) {
+        if (multifileHosterService.isRcloneInstalled()) {
             final Cache filesCache = cacheManager.getCache("filesCache");
             Arrays.stream("abcdefghijklmnopqrstuvwxyz+0".split("")).forEach(searchName -> {
                 Stream.of(TorrentType.values())
@@ -156,9 +140,7 @@ public class DownloadMonitor {
 
     @Scheduled(fixedRate = SECONDS_BETWEEN_DOWNLOAD_POLLING * 1000)
     public void checkForDownloadableTorrents() {
-        if (!isDownloadInProgress && isRcloneInstalled() && cloudService.isCloudTokenValid()) {
-            checkForDownloadableTorrentsAndDownloadTheFirst();
-        }
+        multifileHosterService.checkForDownloadableTorrents();
     }
 
     @Scheduled(fixedRate = SECONDS_BETWEEN_VERSION_CHECK * 1000, initialDelay = 60 * 5 * 1000)
@@ -215,16 +197,6 @@ public class DownloadMonitor {
         queueService.saveQueue();
     }
 
-    private boolean isRcloneInstalled() {
-        if (isRcloneInstalled == null) {
-            isRcloneInstalled = ProcessUtil.isRcloneInstalled();
-            if (!isRcloneInstalled) {
-                log.error("no rclone found. Downloads not possible");
-            }
-        }
-        return isRcloneInstalled;
-    }
-
     @Scheduled(fixedRate = SECONDS_BETWEEN_CLEAR_TRANSFER_POLLING * 1000)
     public void clearTransferAndTorrentsWithErrors() {
         log.info("clearTransferTorrents()");
@@ -238,236 +210,6 @@ public class DownloadMonitor {
 
     private boolean isTorrentStuckOnErrror(Torrent torrent) {
         return torrent.remoteTransferStatus.equals(TransferStatus.ERROR);
-    }
-
-    private void checkForDownloadableTorrentsAndDownloadTheFirst() {
-        final Torrent torrentToBeDownloaded = getTorrentToBeDownloaded();
-        if (torrentToBeDownloaded != null) {
-            Optional<Transfer> transferToBeDownloaded = transferService.getAll().stream()
-                .filter(transfer -> transfer.uri != null && transfer.uri.toLowerCase(Locale.ROOT).contains(torrentToBeDownloaded.getTorrentId().toLowerCase(
-                    Locale.ROOT)) || (transfer.remoteId != null && transfer.remoteId.equals(torrentToBeDownloaded.remoteId))).findFirst();
-            isDownloadInProgress = true;
-            boolean wasDownloadSuccessful = false;
-            if (transferToBeDownloaded.isEmpty()) {
-                log.warn("Torrent not in transfers but downloading it: {}", torrentToBeDownloaded);
-            }
-            try {
-                if (multifileHosterService.isSingleFileDownload(torrentToBeDownloaded)) {
-                    transferToBeDownloaded.ifPresent(transfer -> log.info("SFD - {}", transfer));
-                    TorrentFile fileToDownload = multifileHosterService
-                        .getMainFileURLFromTorrent(torrentToBeDownloaded);
-                    updateUploadStatus(torrentToBeDownloaded, List.of(fileToDownload), 0, null);
-                    if (torrentToBeDownloaded.name.contains("magnet:?")) {
-                        torrentToBeDownloaded.name = extractFileNameFromUrl(fileToDownload.url);
-                    }
-                    wasDownloadSuccessful = rcloneDownloadFileToGdrive(fileToDownload.url,
-                        cloudService.buildDestinationPath(torrentToBeDownloaded.name) + buildFilename(
-                            torrentToBeDownloaded.name, fileToDownload.url)
-                    );
-                    updateUploadStatus(torrentToBeDownloaded, List.of(fileToDownload), 1, null);
-                    multifileHosterService.delete(torrentToBeDownloaded);
-                    transferToBeDownloaded = transferService.get(transferToBeDownloaded);
-                    transferToBeDownloaded.ifPresent(transferService::delete);
-                } else if(multifileHosterService.isMultiFileDownload(torrentToBeDownloaded)) {
-                    transferToBeDownloaded.ifPresent(transfer -> log.info("MFD - {}", transfer));
-                    List<TorrentFile> filesFromTorrent = multifileHosterService
-                        .getFilesFromTorrent(torrentToBeDownloaded);
-                    int currentFileNumber = 0;
-                    int failedUploads = 0;
-                    Instant startTime = Instant.now();
-                    for (TorrentFile torrentFile : filesFromTorrent) {
-                        // check fileSize to get rid of samples and NFO files?
-                        updateUploadStatus(torrentToBeDownloaded, filesFromTorrent, currentFileNumber, startTime);
-                        String destinationPath = cloudService
-                            .buildDestinationPath(torrentToBeDownloaded.name, filesFromTorrent);
-                        String targetFilePath;
-                        if (destinationPath.contains("transfer")) {
-                            targetFilePath = PropertiesHelper.getProperty("RCLONEDIR") + "/transfer/multipart/"
-                                + torrentToBeDownloaded.name + "/" + torrentFile.name;
-                        } else {
-                            if (destinationPath.contains(TorrentType.SERIES_SHOWS.getType())) {
-                                targetFilePath = destinationPath + torrentFile.name;
-                            } else {
-                                targetFilePath = destinationPath + torrentToBeDownloaded.name + "/" + torrentFile.name;
-                            }
-                        }
-                        if (!rcloneDownloadFileToGdrive(torrentFile.url, targetFilePath)) {
-                            failedUploads++;
-                        }
-                        currentFileNumber++;
-                        updateUploadStatus(torrentToBeDownloaded, filesFromTorrent, currentFileNumber, startTime);
-                    }
-                    wasDownloadSuccessful = failedUploads == 0;
-                    multifileHosterService.delete(torrentToBeDownloaded);
-                    transferToBeDownloaded = transferService.get(transferToBeDownloaded);
-                    transferToBeDownloaded.ifPresent(transferService::delete);
-                } else {
-                   log.error(torrentToBeDownloaded.toString());
-                }
-            } catch (Exception exception) {
-                log.error(String.format("Couldn't download Torrent: %s", torrentToBeDownloaded), exception);
-            } finally {
-                isDownloadInProgress = false;
-            }
-            if (!wasDownloadSuccessful) {
-                log.error("Couldn't download Torrent: {}", torrentToBeDownloaded);
-            }
-        } else {
-            final Optional<Transfer> optionalTransfer = transferService.getAll().stream()
-                .filter(transfer -> TransferStatus.READY_TO_BE_DOWNLOADED.equals(transfer.transferStatus)).findFirst();
-            optionalTransfer.ifPresent(transfer -> log.error("According to State we could download but doesn't exist: {}", transfer));
-        }
-    }
-
-    public Torrent getTorrentToBeDownloaded() {
-        List<Torrent> activeTorrents = torrentMetaService.getTorrentsToDownload();
-        final double remainingTrafficInMB = multifileHosterService.getRemainingTrafficInMB();
-        return activeTorrents
-            .stream()
-            .filter(this::checkIfTorrentCanBeDownloaded)
-            .filter(torrent -> multifileHosterService.getSizeOfTorrentInMB(torrent) < remainingTrafficInMB)
-            .sorted()
-            .findFirst().orElse(null);
-    }
-
-    private void updateUploadStatus(Torrent torrentToBeDownloaded, List<TorrentFile> listOfFiles, int currentFileNumber,
-                                    Instant startTime) {
-        Optional<Transfer> transferOptional = transferService.getAll().stream().filter(transfer -> transfer.uri != null && transfer.uri.toLowerCase(Locale.ROOT).contains(torrentToBeDownloaded.getTorrentId().toLowerCase(
-            Locale.ROOT))).findFirst();
-
-        if (transferOptional.isPresent()) {
-            Transfer transfer = transferOptional.get();
-            transfer.transferStatus = TransferStatus.UPLOADING_TO_DRIVE;
-            transfer.progressInPercentage = (double) currentFileNumber / (double) listOfFiles.size();
-            transfer.eta = getUploadDuration(listOfFiles, currentFileNumber, startTime);
-            transferService.save(transfer);
-        }
-
-        torrentToBeDownloaded.remoteStatusText = getUploadStatusString(torrentToBeDownloaded, listOfFiles, currentFileNumber,
-            startTime);
-        torrentMetaService.updateTorrent(torrentToBeDownloaded);
-    }
-
-    public Duration getUploadDuration(List<TorrentFile> listOfFiles,
-                                        int currentFileNumber, Instant startTime) {
-        Duration remainingDuration;
-        int fileCount = listOfFiles.size();
-        if (startTime == null || currentFileNumber == 0) {
-            final long size = listOfFiles.stream()
-                .map(torrentFile -> torrentFile.filesize)
-                .reduce(0L, Long::sum);
-            double lsize = (double) size / 1024.0 / 1024.0;
-            long expectedSecondsRemaining = (long) (lsize / 10.0);
-            remainingDuration = Duration.of(expectedSecondsRemaining, ChronoUnit.SECONDS);
-        } else {
-            long diffTime = Instant.now().toEpochMilli() - startTime.toEpochMilli();
-            final long milliPerFile = diffTime / (long) currentFileNumber;
-            final int remainingFileCount = fileCount - currentFileNumber;
-            final long expectedMilliRemaining = milliPerFile * remainingFileCount;
-            remainingDuration = Duration.of(expectedMilliRemaining, ChronoUnit.MILLIS);
-        }
-        return remainingDuration;
-    }
-
-    public String getUploadStatusString(Torrent torrentToBeDownloaded, List<TorrentFile> listOfFiles,
-                                        int currentFileNumber, Instant startTime) {
-        Duration remainingDuration;
-        int fileCount = listOfFiles.size();
-        if (startTime == null || currentFileNumber == 0) {
-            final long size = listOfFiles.stream()
-                .map(torrentFile -> torrentFile.filesize)
-                .reduce(0L, Long::sum);
-            double lsize = (double) size / 1024.0 / 1024.0;
-            long expectedSecondsRemaining = (long) (lsize / 10.0);
-            remainingDuration = Duration.of(expectedSecondsRemaining, ChronoUnit.SECONDS);
-        } else {
-            long diffTime = Instant.now().toEpochMilli() - startTime.toEpochMilli();
-            final long milliPerFile = diffTime / (long) currentFileNumber;
-            final int remainingFileCount = fileCount - currentFileNumber;
-            final long expectedMilliRemaining = milliPerFile * remainingFileCount;
-            remainingDuration = Duration.of(expectedMilliRemaining, ChronoUnit.MILLIS);
-        }
-        return String.format("Uploading: %d/%d done ETA: %02d:%02d:%02d",
-            currentFileNumber,
-            fileCount,
-            remainingDuration.toHours(),
-            remainingDuration.toMinutesPart(),
-            remainingDuration.toSecondsPart());
-    }
-
-    public String buildFilename(String name, String fileURLFromTorrent) {
-        String fileEndingFromUrl = extractFileEndingFromUrl(fileURLFromTorrent);
-        name = StringUtils.hasText(name) ? name : fileURLFromTorrent;
-        name = name.replaceAll("\"", "");
-        name = name.replaceAll("\\.torrent", "");
-        name = name.replaceAll("[wW][wW][wW]\\.[A-Za-z0-9-]*\\.[a-zA-Z]+[\\s-]*", "").trim();
-        name = name.replaceAll("\\s", ".");
-        if (!name.contains(fileEndingFromUrl)) {
-            return name + "." + fileEndingFromUrl;
-        } else {
-            return name;
-        }
-    }
-
-    private String extractFileNameFromUrl(String fileURLFromTorrent) {
-        String fileString = URLDecoder.decode(fileURLFromTorrent, UTF_8);
-        Pattern pattern = Pattern.compile("([\\w.%\\-]+)$");
-        String foundMatch = null;
-        Matcher matcher = pattern.matcher(fileString);
-
-        while (matcher.find()) {
-            foundMatch = matcher.group();
-        }
-        if (foundMatch != null) {
-            foundMatch.replaceAll("\\s", ".");
-        }
-        return foundMatch;
-    }
-
-    private String extractFileEndingFromUrl(String fileURLFromTorrent) {
-        Pattern pattern = Pattern.compile("[A-Za-z0-9]+$");
-        String foundMatch = null;
-        Matcher matcher = pattern.matcher(fileURLFromTorrent);
-
-        while (matcher.find()) {
-            foundMatch = matcher.group();
-        }
-        // remove quotes && .torrent
-        return foundMatch != null ? foundMatch.replaceAll("\"", "").replaceAll(".torrent", "") : fileURLFromTorrent;
-    }
-
-    private boolean rcloneDownloadFileToGdrive(String fileURLFromTorrent, String destinationPath) {
-        log.info("D>[{}]", destinationPath);
-        ProcessBuilder builder = new ProcessBuilder();
-        final String commandToRun = String
-            .format("rclone copyurl '%s' '%s'", fileURLFromTorrent, destinationPath.replaceAll("'", ""));
-        builder.command("bash", "-c", commandToRun);
-        builder.directory(new File(System.getProperty("user.home")));
-        Process process = null;
-        int exitCode = -1;
-        try {
-            process = builder.start();
-            StreamGobbler streamGobbler =
-                new StreamGobbler(process.getInputStream(), System.out::println);
-            Executors.newSingleThreadExecutor().submit(streamGobbler);
-            exitCode = process.waitFor();
-        } catch (IOException | InterruptedException e) {
-            log.error("upload failed: {}", destinationPath);
-            log.error(e.getMessage());
-            return false;
-        }
-        if (exitCode != 0) {
-            log.error("upload failed: {}", destinationPath);
-            return false;
-        } else {
-            log.info("DF>[{}]", destinationPath);
-            return true;
-        }
-    }
-
-
-    private boolean checkIfTorrentCanBeDownloaded(Torrent remoteTorrent) {
-        return TransferStatus.READY_TO_BE_DOWNLOADED == remoteTorrent.remoteTransferStatus;
     }
 
 }

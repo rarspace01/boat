@@ -50,7 +50,6 @@ public final class BoatController {
     private final HttpHelper httpHelper;
     private final TorrentSearchEngineService torrentSearchEngineService;
     private final CloudService cloudService;
-    private final TorrentMetaService torrentMetaService;
     private final TheFilmDataBaseService theFilmDataBaseService;
     private final MultifileHosterService multifileHosterService;
     private final QueueService queueService;
@@ -71,7 +70,6 @@ public final class BoatController {
         this.httpHelper = httpHelper;
         this.torrentSearchEngineService = torrentSearchEngineService;
         this.cloudService = cloudService;
-        this.torrentMetaService = torrentMetaService;
         this.theFilmDataBaseService = theFilmDataBaseService;
         this.multifileHosterService = multifileHosterService;
         this.queueService = queueService;
@@ -215,6 +213,7 @@ public final class BoatController {
             }
         }
         torrentsToBeDownloaded.forEach(multifileHosterService::addTorrentToTransfer);
+        multifileHosterService.addTransfersToDownloadQueue();
         multifileHosterService.updateTransferStatus();
         return switchToProgress;
     }
@@ -234,8 +233,8 @@ public final class BoatController {
     @GetMapping({"/boat/debug"})
     @NonNull
     public final String getDebugInfo() {
-        torrentMetaService.refreshTorrents();
-        List<Torrent> remoteTorrents = torrentMetaService.getActiveTorrents();
+        multifileHosterService.refreshTorrents();
+        List<Torrent> remoteTorrents = multifileHosterService.getActiveTorrents();
         RuntimeMXBean runtimeBean = ManagementFactory.getRuntimeMXBean();
         long startTime = runtimeBean.getStartTime();
         Date startDate = new Date(startTime);

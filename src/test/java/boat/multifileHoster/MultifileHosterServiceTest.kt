@@ -1,23 +1,29 @@
 package boat.multifileHoster
 
+import boat.info.CloudService
 import boat.model.Transfer
 import boat.services.TransferService
 import boat.torrent.Torrent
+import boat.torrent.TorrentFile
 import boat.utilities.HttpHelper
 import io.mockk.mockk
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import java.util.List
 
 internal class MultifileHosterServiceTest {
 
     private val httpHelper: HttpHelper = mockk(relaxed = true)
     private val transferService: TransferService = mockk(relaxed = true)
+    private val cloudService: CloudService = mockk(relaxed = true)
     lateinit var multifileHosterService : MultifileHosterService
 
     @BeforeEach
     fun beforeEach(){
-        multifileHosterService = MultifileHosterService(httpHelper, transferService)
+        multifileHosterService = MultifileHosterService(httpHelper, transferService, cloudService)
     }
 
     @Test
@@ -54,5 +60,64 @@ internal class MultifileHosterServiceTest {
             multifileHosterService.transferMatchedTorrentByName(transfer, torrent)
         // Then
         assertThat(matched).isTrue
+    }
+
+    @Test
+    fun shouldGetETABeforeFirstFile() {
+        // Given
+        val torrent = Torrent("Test")
+        torrent.lsize = 1000.0
+        val torrentFile = TorrentFile()
+        torrentFile.filesize = (1024 * 1024 * 500).toLong()
+        // When
+        val uploadStatusString = multifileHosterService.getUploadStatusString(torrent, List.of(torrentFile), 0, null)
+        // Then
+        assertThat(uploadStatusString).doesNotMatch("Uploading: 0/1 done ETA: 00:00:00")
+    }
+
+    @Test
+    fun shouldBuildProperFilenames() {
+        // When
+        val filename = multifileHosterService
+            .buildFilename("www.url.lol - Movie Title 2018", "www.movie-url.lol-movie_title_2018.mkv")
+        // Then
+        assertThat(filename).isEqualTo("Movie.Title.2018.mkv")
+    }
+
+    @Test
+    fun shouldBuildProperFilenamesWithoutQuotesAndTorrentInName() {
+        // When
+        val filename = multifileHosterService
+            .buildFilename("\"www.url.lol - Movie Title 2018.torrent\"", "www.movie-url.lol-movie_title_2018.mkv")
+        // Then
+        assertThat(filename).isEqualTo("Movie.Title.2018.mkv")
+    }
+
+    @Test
+    fun shouldBuildProperFilenameFromFileIfEmptyName() {
+        // When
+        val filename = multifileHosterService
+            .buildFilename("", "www.movie-url.lol-movie.title.2018.mkv")
+        // Then
+        assertThat(filename).isEqualTo("movie.title.2018.mkv")
+    }
+
+    @Test
+    fun shouldBuildProperFilenameFromFileIfNullName() {
+        // When
+        val filename = multifileHosterService
+            .buildFilename(null, "www.movie-url.lol-movie.title.2018.mkv")
+        // Then
+        assertThat(filename).isEqualTo("movie.title.2018.mkv")
+    }
+
+    @Disabled
+    @Test
+    fun getTorrentToBeDownloaded() {
+        // Given
+        // When
+        val torrentToBeDownloaded = multifileHosterService.getTorrentToBeDownloaded()
+        // Then
+        Assertions.assertNotNull(torrentToBeDownloaded)
     }
 }
