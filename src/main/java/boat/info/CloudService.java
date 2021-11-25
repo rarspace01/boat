@@ -44,13 +44,13 @@ public class CloudService {
 
     private String deductSeriesNameFrom(String preparedTorrentName) {
         return Arrays.stream(preparedTorrentName
-            .toLowerCase()
-            .trim()
-            .replaceAll("s[0-9]+e[0-9]+.*", "")
-            .replaceAll("season[.\\s]?[0-9-]+.*", "")
-            .trim()
-            .replaceAll("\\s+", ".")
-            .split("\\."))
+                .toLowerCase()
+                .trim()
+                .replaceAll("s[0-9]+e[0-9]+.*", "")
+                .replaceAll("season[.\\s]?[0-9-]+.*", "")
+                .trim()
+                .replaceAll("\\s+", ".")
+                .split("\\."))
             .map(StringUtils::capitalize)
             .collect(Collectors.joining("."));
     }
@@ -66,9 +66,9 @@ public class CloudService {
     @NotNull
     private String deductFirstTorrentLetter(String preparedTorrentName) {
         // replace Umlauts
-        preparedTorrentName = preparedTorrentName.replaceAll("[äÄ]","A");
-        preparedTorrentName = preparedTorrentName.replaceAll("[öÖ]","O");
-        preparedTorrentName = preparedTorrentName.replaceAll("[üÜ]","Ü");
+        preparedTorrentName = preparedTorrentName.replaceAll("[äÄ]", "A");
+        preparedTorrentName = preparedTorrentName.replaceAll("[öÖ]", "O");
+        preparedTorrentName = preparedTorrentName.replaceAll("[üÜ]", "Ü");
 
         // take only name infront of year
         String[] split = preparedTorrentName.split("[1-2][0-9]{3}");
@@ -93,9 +93,9 @@ public class CloudService {
     public List<String> findExistingFiles(String searchName) {
         final String[] strings = searchName.split(" ");
         return Arrays.stream(TorrentType.values())
-                    .map(torrentType -> findFilesBasedOnStringsAndMediaType(searchName, strings, torrentType))
-                    .flatMap(List::stream)
-                    .collect(Collectors.toList());
+            .map(torrentType -> findFilesBasedOnStringsAndMediaType(searchName, strings, torrentType))
+            .flatMap(List::stream)
+            .collect(Collectors.toList());
     }
 
 

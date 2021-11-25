@@ -58,22 +58,27 @@ public class LeetxTo extends HttpUser implements TorrentSearchEngine {
 
                         if (element.attr("class").contains("name")) {
                             //extract name
-                            tempTorrent.name = element.getElementsByAttributeValueContaining("class", "name").get(0).getElementsByAttributeValueContaining("href", "torrent").get(0).html();
+                            tempTorrent.name = element.getElementsByAttributeValueContaining("class", "name").get(0)
+                                .getElementsByAttributeValueContaining("href", "torrent").get(0).html();
                             tempTorrent.isVerified = tempTorrent.name.contains("⭐");
                             //save remote url for later
-                            tempTorrent.remoteUrl = getBaseUrl() + element.getElementsByAttributeValueContaining("class", "name").get(0).getElementsByAttributeValueContaining("href", "torrent").get(0).attr("href").trim();
+                            tempTorrent.remoteUrl = getBaseUrl() + element.getElementsByAttributeValueContaining("class", "name").get(0)
+                                .getElementsByAttributeValueContaining("href", "torrent").get(0).attr("href").trim();
                         }
                         if (element.attr("class").contains("size")) {
-                            tempTorrent.size = TorrentHelper.cleanNumberString(element.getElementsByAttributeValueContaining("class", "size").get(0).textNodes().get(0).text().trim());
+                            tempTorrent.size = TorrentHelper.cleanNumberString(
+                                element.getElementsByAttributeValueContaining("class", "size").get(0).textNodes().get(0).text().trim());
                             tempTorrent.lsize = TorrentHelper.extractTorrentSizeFromString(tempTorrent);
                         }
 
                         if (element.attr("class").contains("seeds")) {
-                            tempTorrent.seeder = Integer.parseInt(TorrentHelper.cleanNumberString(element.getElementsByAttributeValueContaining("class", "seeds").get(0).textNodes().get(0).text().trim()));
+                            tempTorrent.seeder = Integer.parseInt(TorrentHelper.cleanNumberString(
+                                element.getElementsByAttributeValueContaining("class", "seeds").get(0).textNodes().get(0).text().trim()));
                         }
 
                         if (element.attr("class").contains("leeches")) {
-                            tempTorrent.leecher = Integer.parseInt(TorrentHelper.cleanNumberString(element.getElementsByAttributeValueContaining("class", "leeches").get(0).textNodes().get(0).text().trim()));
+                            tempTorrent.leecher = Integer.parseInt(TorrentHelper.cleanNumberString(
+                                element.getElementsByAttributeValueContaining("class", "leeches").get(0).textNodes().get(0).text().trim()));
                         }
 
                     });

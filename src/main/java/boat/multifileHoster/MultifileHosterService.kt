@@ -264,8 +264,7 @@ class MultifileHosterService(
         val matchedTorrents = mutableListOf<Torrent>()
         val torrentsForDownload = remoteTorrentsForDownload
         torrentsForDownload.forEach { torrent ->
-            transfers.find {
-                transfer ->
+            transfers.find { transfer ->
                 transfer.uri.lowercase().contains(torrent.torrentId.lowercase()) ||
                     transfer.remoteId != null && transfer.remoteId == torrent.remoteId ||
                     transferMatchedTorrentBySource(transfer, torrent) ||
@@ -311,8 +310,8 @@ class MultifileHosterService(
             val transferDiffCount = transferWordList.size - transferInTorrentCount
             val torrentDiffCount = torrentWordList.size - torrentInTransferCount
             (
-                (transferInTorrentCount.toDouble() / transferWordList.count().toDouble()> 0.75) && transferDiffCount <= 2 &&
-                    (torrentInTransferCount.toDouble() / torrentWordList.count().toDouble()> 0.75) && torrentDiffCount <= 2
+                (transferInTorrentCount.toDouble() / transferWordList.count().toDouble() > 0.75) && transferDiffCount <= 2 &&
+                    (torrentInTransferCount.toDouble() / torrentWordList.count().toDouble() > 0.75) && torrentDiffCount <= 2
                 )
         }
     }

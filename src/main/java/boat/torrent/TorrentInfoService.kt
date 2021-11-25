@@ -7,7 +7,6 @@ import org.springframework.stereotype.Service
 import java.util.concurrent.ForkJoinPool
 import java.util.regex.Pattern
 
-
 @Service
 class TorrentInfoService(httpHelper: HttpHelper) :
     HttpUser(httpHelper) {
@@ -44,8 +43,8 @@ class TorrentInfoService(httpHelper: HttpHelper) :
             .map { torrentHash: String? -> TorrentHelper.urlEncode(Hex.decodeHex(torrentHash)) }
             .joinToString("&info_hash=")
         val queryUrl =
-            "${trackerUrl.replace("announce", "scrape")}?info_hash=${joinedHashes}"
-        //log.info("$queryUrl")
+            "${trackerUrl.replace("announce", "scrape")}?info_hash=$joinedHashes"
+        // log.info("$queryUrl")
         val page = httpHelper.getPage(queryUrl)
 //        val splittedHashs = page
 //                .replace("d5:files","")
@@ -81,5 +80,4 @@ class TorrentInfoService(httpHelper: HttpHelper) :
             }
         }
     }
-
 }

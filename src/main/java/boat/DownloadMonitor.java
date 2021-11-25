@@ -43,7 +43,7 @@ public class DownloadMonitor {
 
     private static final int SECONDS_BETWEEN_DOWNLOAD_POLLING = 30;
     private static final int SECONDS_BETWEEN_TRANSFER_POLLING = 30;
-    private static final int SECONDS_BETWEEN_VERSION_CHECK = 60*60;
+    private static final int SECONDS_BETWEEN_VERSION_CHECK = 60 * 60;
     private static final int SECONDS_BETWEEN_QUEUE_POLLING = 30;
     private static final int SECONDS_BETWEEN_SEARCH_ENGINE_POLLING = 240;
     private static final int SECONDS_BETWEEN_CLEAR_TRANSFER_POLLING = 3600;
@@ -121,7 +121,7 @@ public class DownloadMonitor {
                             filesCache.evictIfPresent(destinationPath);
                         }
                         List<String> filesInPath = cloudFileService.getFilesInPath(destinationPath);
-                        log.info("Files in Path: {}",filesInPath.size());
+                        log.info("Files in Path: {}", filesInPath.size());
                     });
                 log.info("Cache refresh done for: {}", searchName);
             });
@@ -147,11 +147,11 @@ public class DownloadMonitor {
     public void checkForUpdatedVersionAndShutdownIfUpdateAvailable() {
         log.info("checkForUpdatedVersionAndShutdown()");
         String pageContent = httpHelper.getPage("https://api.github.com/repos/rarspace01/boat/releases/latest");
-        if(!Strings.isEmpty(pageContent)){
+        if (!Strings.isEmpty(pageContent)) {
             var jsonRoot = JsonParser.parseString(pageContent);
             var githubVersion = jsonRoot.getAsJsonObject().get("name").getAsString();
-            if(!PropertiesHelper.getVersion().contains(githubVersion)) {
-                log.info("Local [{}] != Github [{}]",PropertiesHelper.getVersion(),githubVersion);
+            if (!PropertiesHelper.getVersion().contains(githubVersion)) {
+                log.info("Local [{}] != Github [{}]", PropertiesHelper.getVersion(), githubVersion);
                 log.warn("version out of date, shutting down");
                 System.exit(0);
             }
@@ -203,8 +203,10 @@ public class DownloadMonitor {
         multifileHosterService.getRemoteTorrents().stream()
             .filter(this::isTorrentStuckOnErrror)
             .forEach(multifileHosterService::delete);
-        transferService.getAll().stream().filter(transfer -> TransferStatus.ERROR.equals(transfer.getTransferStatus()) || transfer.updated.isBefore(Instant.now().minus(1, ChronoUnit.DAYS))).forEach(
-            transferService::delete);
+        transferService.getAll().stream()
+            .filter(transfer -> TransferStatus.ERROR.equals(transfer.getTransferStatus()) || transfer.updated.isBefore(Instant.now().minus(1, ChronoUnit.DAYS)))
+            .forEach(
+                transferService::delete);
 
     }
 

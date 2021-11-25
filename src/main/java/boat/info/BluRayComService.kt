@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import org.jsoup.Jsoup
 import org.jsoup.nodes.DataNode
 import org.springframework.stereotype.Service
-import java.util.*
+import java.util.Locale
 import java.util.regex.Pattern
 
 @Service
@@ -14,7 +14,7 @@ class BluRayComService(private val httpHelper: HttpHelper) {
 
     fun getReleasesForMonthAndYear(month: Int, year: Int): List<MediaItem> {
         val listOfMediaItems = arrayListOf<MediaItem>()
-        val page = httpHelper.getPage("https://www.blu-ray.com/movies/releasedates.php?year=${year}&month=${month}")
+        val page = httpHelper.getPage("https://www.blu-ray.com/movies/releasedates.php?year=$year&month=$month")
         val document = Jsoup.parse(page)
         val data = (document.getElementsByAttribute("language")[0].childNode(0) as DataNode).wholeData
         val list = data.split("\n")

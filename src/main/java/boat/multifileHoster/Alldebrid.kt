@@ -23,7 +23,7 @@ class Alldebrid(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoster
         val urlEncodedBrackets = TorrentHelper.urlEncode("[]")
         val collected = "&magnets" + urlEncodedBrackets + "=" + TorrentHelper.urlEncode(toBeAddedTorrent.magnetUri)
         val checkUrl = String.format(requestUrl, collected)
-        log.info("Add Magnet URL: {}",checkUrl)
+        log.info("Add Magnet URL: {}", checkUrl)
         val pageContent = httpHelper.getPage(checkUrl)
         val jsonRoot = JsonParser.parseString(pageContent)
         val status = jsonRoot.asJsonObject["status"]
@@ -36,32 +36,34 @@ class Alldebrid(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoster
             "https://api.alldebrid.com/v4/magnet/status?agent=pirateboat&apikey=" + PropertiesHelper.getProperty("ALLDEBRID_APIKEY")
         val pageContent = httpHelper.getPage(requestUrl)
         val jsonRoot = JsonParser.parseString(pageContent)
-        if(!pageContent.contains("data")) {
-            log.error("page didn't contain data: {}",pageContent)
+        if (!pageContent.contains("data")) {
+            log.error("page didn't contain data: {}", pageContent)
             return torrents
         }
         val jsonMagnets = jsonRoot.asJsonObject["data"].asJsonObject["magnets"].asJsonArray
-        jsonMagnets.forEach(Consumer { jsonElement: JsonElement ->
-            val torrent = Torrent(getName())
-            val jsonTorrent = jsonElement.asJsonObject
-            torrent.remoteId = jsonTorrent["id"].asString
-            torrent.name = jsonTorrent["filename"].asString
-            torrent.size = (jsonTorrent["size"].asLong / 1024 / 1024).toString() + "MB"
-            torrent.lsize = TorrentHelper.extractTorrentSizeFromString(torrent)
-            val downloaded = jsonTorrent["downloaded"].asLong.toDouble()
-            val size = jsonTorrent["size"].asLong.toDouble()
-            val downloadSpeed = jsonTorrent["downloadSpeed"].asLong.toDouble()
-            val remainingSeconds = ((size - downloaded) / downloadSpeed).toLong()
-            val duration = Duration.ofSeconds(remainingSeconds)
-            torrent.remoteProgress = String.format("%f", downloaded / size)
-            torrent.remoteProgressInPercent = downloaded / size
-            torrent.eta = duration
-            torrent.magnetUri = TorrentHelper.buildMagnetUriFromHash(jsonTorrent["hash"].asString, torrent.name)
-            torrent.remoteStatusText = jsonTorrent["status"].asString
-            torrent.remoteStatusCode = jsonTorrent["statusCode"].asInt
-            torrent.remoteTransferStatus = TorrentMapper.mapRemoteStatus(torrent.remoteStatusCode)
-            torrents.add(torrent)
-        })
+        jsonMagnets.forEach(
+            Consumer { jsonElement: JsonElement ->
+                val torrent = Torrent(getName())
+                val jsonTorrent = jsonElement.asJsonObject
+                torrent.remoteId = jsonTorrent["id"].asString
+                torrent.name = jsonTorrent["filename"].asString
+                torrent.size = (jsonTorrent["size"].asLong / 1024 / 1024).toString() + "MB"
+                torrent.lsize = TorrentHelper.extractTorrentSizeFromString(torrent)
+                val downloaded = jsonTorrent["downloaded"].asLong.toDouble()
+                val size = jsonTorrent["size"].asLong.toDouble()
+                val downloadSpeed = jsonTorrent["downloadSpeed"].asLong.toDouble()
+                val remainingSeconds = ((size - downloaded) / downloadSpeed).toLong()
+                val duration = Duration.ofSeconds(remainingSeconds)
+                torrent.remoteProgress = String.format("%f", downloaded / size)
+                torrent.remoteProgressInPercent = downloaded / size
+                torrent.eta = duration
+                torrent.magnetUri = TorrentHelper.buildMagnetUriFromHash(jsonTorrent["hash"].asString, torrent.name)
+                torrent.remoteStatusText = jsonTorrent["status"].asString
+                torrent.remoteStatusCode = jsonTorrent["statusCode"].asInt
+                torrent.remoteTransferStatus = TorrentMapper.mapRemoteStatus(torrent.remoteStatusCode)
+                torrents.add(torrent)
+            }
+        )
         return torrents
     }
 
@@ -103,13 +105,15 @@ class Alldebrid(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoster
 
     private fun extractFiles(links: JsonArray?): List<TorrentFile> {
         val torrentFiles = ArrayList<TorrentFile>()
-        links?.forEach(Consumer { jsonElement: JsonElement ->
-            val torrentFile = TorrentFile()
-            torrentFile.filesize = jsonElement.asJsonObject["size"].asLong
-            torrentFile.name = jsonElement.asJsonObject["filename"].asString
-            torrentFile.url = jsonElement.asJsonObject["link"].asString
-            torrentFiles.add(torrentFile)
-        })
+        links?.forEach(
+            Consumer { jsonElement: JsonElement ->
+                val torrentFile = TorrentFile()
+                torrentFile.filesize = jsonElement.asJsonObject["size"].asLong
+                torrentFile.name = jsonElement.asJsonObject["filename"].asString
+                torrentFile.url = jsonElement.asJsonObject["link"].asString
+                torrentFiles.add(torrentFile)
+            }
+        )
         torrentFiles.forEach(Consumer { torrentFile: TorrentFile -> resolveDirectLink(torrentFile) })
         return torrentFiles
     }
@@ -130,7 +134,8 @@ class Alldebrid(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoster
         val requestUrl =
             "https://api.alldebrid.com/v4/magnet/instant?agent=pirateboat&apikey=" + PropertiesHelper.getProperty("ALLDEBRID_APIKEY") + "%s"
         val urlEncodedBrackets = TorrentHelper.urlEncode("[]")
-        val collected = torrents.stream().map { obj: Torrent -> obj.torrentId }.collect(Collectors.joining("&magnets$urlEncodedBrackets=", "&magnets$urlEncodedBrackets=", ""))
+        val collected = torrents.stream().map { obj: Torrent -> obj.torrentId }
+            .collect(Collectors.joining("&magnets$urlEncodedBrackets=", "&magnets$urlEncodedBrackets=", ""))
         val checkUrl = String.format(requestUrl, collected)
         val pageContent = httpHelper.getPage(checkUrl)
         val jsonRoot = JsonParser.parseString(pageContent)
@@ -141,12 +146,14 @@ class Alldebrid(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoster
             val responseArray = response.asJsonArray
             val index = AtomicInteger()
             if (responseArray.size() == torrents.size) {
-                responseArray.forEach(Consumer { jsonElement: JsonElement ->
-                    if (jsonElement.asJsonObject["instant"].asBoolean) {
-                        torrents[index.get()].cached.add(this.javaClass.simpleName)
+                responseArray.forEach(
+                    Consumer { jsonElement: JsonElement ->
+                        if (jsonElement.asJsonObject["instant"].asBoolean) {
+                            torrents[index.get()].cached.add(this.javaClass.simpleName)
+                        }
+                        index.getAndIncrement()
                     }
-                    index.getAndIncrement()
-                })
+                )
             }
         }
     }
@@ -182,8 +189,7 @@ class Alldebrid(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoster
         return this.javaClass.simpleName
     }
 
-    override fun toString(): String
-    {
+    override fun toString(): String {
         return getName()
     }
 

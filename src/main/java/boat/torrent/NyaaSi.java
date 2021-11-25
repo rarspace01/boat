@@ -57,7 +57,7 @@ public class NyaaSi extends HttpUser implements TorrentSearchEngine {
                     torrent.children().forEach(element -> {
 
                         if (element.getElementsByTag("a").size() > 0
-                                && getTorrentTitle(element).length() > 0) {
+                            && getTorrentTitle(element).length() > 0) {
                             //extract name
                             tempTorrent.name = getTorrentTitle(element);
                         }
@@ -81,7 +81,6 @@ public class NyaaSi extends HttpUser implements TorrentSearchEngine {
                     tempTorrent.leecher = Integer.parseInt(TorrentHelper.cleanNumberString(torrent.children().get(index + 1).text()));
                 }
 
-
                 // evaluate result
                 TorrentHelper.evaluateRating(tempTorrent, searchName);
                 if (TorrentHelper.isValidTorrent(tempTorrent)) {
@@ -94,8 +93,8 @@ public class NyaaSi extends HttpUser implements TorrentSearchEngine {
 
     private String getMagnetUri(Element metaElement) {
         return metaElement.getElementsByTag("a").stream()
-                .filter(element -> element.attributes().get("href").contains("magnet"))
-                .map(element -> element.attributes().get("href").trim()).collect(Collectors.joining(""));
+            .filter(element -> element.attributes().get("href").contains("magnet"))
+            .map(element -> element.attributes().get("href").trim()).collect(Collectors.joining(""));
     }
 
     private boolean elementContainsMagnetUri(Element metaElement) {
@@ -106,11 +105,11 @@ public class NyaaSi extends HttpUser implements TorrentSearchEngine {
         final Elements elementsByTag = metaElement.getElementsByTag("a");
 
         return elementsByTag.stream()
-                .filter(element -> !element.attributes().get("href").contains("magnet"))
-                .filter(element -> !element.attributes().get("href").contains("comment"))
-                .filter(element -> element.attributes().get("href").contains("/view/"))
-                .filter(element -> element.text().trim().length() > 0)
-                .map(element -> element.text().trim()).collect(Collectors.joining());
+            .filter(element -> !element.attributes().get("href").contains("magnet"))
+            .filter(element -> !element.attributes().get("href").contains("comment"))
+            .filter(element -> element.attributes().get("href").contains("/view/"))
+            .filter(element -> element.text().trim().length() > 0)
+            .map(element -> element.text().trim()).collect(Collectors.joining());
     }
 
     @Override

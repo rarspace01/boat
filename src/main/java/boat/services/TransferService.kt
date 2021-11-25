@@ -8,10 +8,10 @@ import java.time.Instant
 import java.util.Optional
 
 @Service
-class TransferService(private val transferRepository: TransferRepository){
+class TransferService(private val transferRepository: TransferRepository) {
 
-    fun save(transfer: Transfer){
-        transfer.updated= Instant.now()
+    fun save(transfer: Transfer) {
+        transfer.updated = Instant.now()
         transferRepository.save(transfer)
     }
 
@@ -20,7 +20,7 @@ class TransferService(private val transferRepository: TransferRepository){
         transferRepository.deleteById(transfer.id)
     }
 
-    fun getAll():List<Transfer>{
+    fun getAll(): List<Transfer> {
         return transferRepository.findAll()
     }
 
@@ -29,7 +29,7 @@ class TransferService(private val transferRepository: TransferRepository){
     }
 
     fun get(transfer: Optional<Transfer>): Optional<Transfer> {
-        return if(transfer.isPresent){
+        return if (transfer.isPresent) {
             get(transfer.get())
         } else {
             Optional.empty()
@@ -39,5 +39,4 @@ class TransferService(private val transferRepository: TransferRepository){
     companion object {
         private val log = LoggerFactory.getLogger(TransferService::class.java)
     }
-
 }

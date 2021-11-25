@@ -1,5 +1,5 @@
 package boat.torrent;
 
 public enum Status {
-    CREATED,DOWNLOADING,READY,UPLOADING,FINISHED
+    CREATED, DOWNLOADING, READY, UPLOADING, FINISHED
 }

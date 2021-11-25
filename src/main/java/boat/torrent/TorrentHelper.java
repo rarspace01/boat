@@ -200,7 +200,7 @@ public class TorrentHelper {
     @NotNull
     private static String getRegexCleaned(String inputString) {
         final String[] workString = {inputString};
-        torrentService.getReleaseTags().forEach(tag -> workString[0] = workString[0].replaceAll("([ .-]+"+tag+")([ .-]+|$)","."));
+        torrentService.getReleaseTags().forEach(tag -> workString[0] = workString[0].replaceAll("([ .-]+" + tag + ")([ .-]+|$)", "."));
         return workString[0];
     }
 
@@ -360,8 +360,9 @@ public class TorrentHelper {
     }
 
     public static String formatDuration(Duration duration) {
-        if(duration.toDays()>0) {
-            return String.format("D: %sdays %shrs %smin %ssec", duration.toDays(), duration.toHours() % 24, duration.toMinutes() % 60, duration.getSeconds() % 60);
+        if (duration.toDays() > 0) {
+            return String.format("D: %sdays %shrs %smin %ssec", duration.toDays(), duration.toHours() % 24, duration.toMinutes() % 60,
+                duration.getSeconds() % 60);
         } else {
             return String.format("D: %shrs %smin %ssec", duration.toHours() % 24, duration.toMinutes() % 60, duration.getSeconds() % 60);
         }

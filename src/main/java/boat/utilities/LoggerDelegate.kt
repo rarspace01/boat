@@ -16,4 +16,3 @@ class LoggerDelegate<in R : Any> : ReadOnlyProperty<R, Logger> {
         } ?: javaClass
     }
 }
-

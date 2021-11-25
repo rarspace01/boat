@@ -27,7 +27,7 @@ class Premiumize(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoste
         val response: String
         val addTorrenntUrl =
             "https://www.premiumize.me/api/transfer/create?apikey=" + PropertiesHelper.getProperty("PREMIUMIZE_APIKEY") +
-                    "&type=hello.torrent&src=" + cleanMagnetUri(toBeAddedTorrent.magnetUri)
+                "&type=hello.torrent&src=" + cleanMagnetUri(toBeAddedTorrent.magnetUri)
         response = httpHelper.getPage(addTorrenntUrl)
         return response
     }
@@ -96,15 +96,15 @@ class Premiumize(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoste
 
     override fun getFilesFromTorrent(torrent: Torrent): List<TorrentFile> {
         val returnList: MutableList<TorrentFile> = ArrayList()
-        val responseFilesPage = if(isSingleFileTorrent(torrent)){
+        val responseFilesPage = if (isSingleFileTorrent(torrent)) {
             httpHelper.getPage(
-                "https://www.premiumize.me/api/folder/list?"+
-                        "includebreadcrumbs=false&apikey=" + PropertiesHelper.getProperty("PREMIUMIZE_APIKEY")
+                "https://www.premiumize.me/api/folder/list?" +
+                    "includebreadcrumbs=false&apikey=" + PropertiesHelper.getProperty("PREMIUMIZE_APIKEY")
             )
         } else {
             httpHelper.getPage(
                 "https://www.premiumize.me/api/folder/list?id=" + torrent.folder_id +
-                        "&includebreadcrumbs=false&apikey=" + PropertiesHelper.getProperty("PREMIUMIZE_APIKEY")
+                    "&includebreadcrumbs=false&apikey=" + PropertiesHelper.getProperty("PREMIUMIZE_APIKEY")
             )
         }
 
@@ -123,7 +123,7 @@ class Premiumize(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoste
         } catch (e: IOException) {
             e.printStackTrace()
         }
-        val filteredList: List<TorrentFile> = if(isSingleFileTorrent(torrent)) {
+        val filteredList: List<TorrentFile> = if (isSingleFileTorrent(torrent)) {
             returnList.filter { torrentFile -> torrentFile.id.equals(torrent.file_id) }
         } else {
             returnList
@@ -140,7 +140,7 @@ class Premiumize(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoste
     ) {
         val responseFiles = httpHelper.getPage(
             "https://www.premiumize.me/api/folder/list?id=" + jsonFolder["id"].asText() +
-                    "&apikey=" + PropertiesHelper.getProperty("PREMIUMIZE_APIKEY")
+                "&apikey=" + PropertiesHelper.getProperty("PREMIUMIZE_APIKEY")
         )
         val folderName = prefix + jsonFolder["name"].asText() + "/"
         val m = ObjectMapper()
@@ -210,24 +210,24 @@ class Premiumize(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoste
     }
 
     private fun extractDurationFromString(durationString: String): Duration {
-        if(durationString.contains("unknown")) return Duration.ZERO
+        if (durationString.contains("unknown")) return Duration.ZERO
         val valueOfDuration = durationString
-            .replace("days", "",true)
-            .replace("hours", "",true)
-            .replace("mins", "",true)
-            .replace("seconds", "",true)
-            .replace("left", "",true)
+            .replace("days", "", true)
+            .replace("hours", "", true)
+            .replace("mins", "", true)
+            .replace("seconds", "", true)
+            .replace("left", "", true)
             .trim()
-        if(durationString.contains("days")) return Duration.ofDays(valueOfDuration.toLong())
-        if(durationString.contains("hours")) return Duration.ofHours(valueOfDuration.toLong())
-        if(durationString.contains("mins")) return Duration.ofMinutes(valueOfDuration.toLong())
-        if(durationString.contains("seconds")) return Duration.ofSeconds(valueOfDuration.toLong())
+        if (durationString.contains("days")) return Duration.ofDays(valueOfDuration.toLong())
+        if (durationString.contains("hours")) return Duration.ofHours(valueOfDuration.toLong())
+        if (durationString.contains("mins")) return Duration.ofMinutes(valueOfDuration.toLong())
+        if (durationString.contains("seconds")) return Duration.ofSeconds(valueOfDuration.toLong())
         return Duration.ZERO
     }
 
     override fun delete(remoteTorrent: Torrent) {
         val removeTorrenntUrl = "https://www.premiumize.me/api/transfer/delete?id=" + remoteTorrent.remoteId +
-                "&apikey=" + PropertiesHelper.getProperty("PREMIUMIZE_APIKEY")
+            "&apikey=" + PropertiesHelper.getProperty("PREMIUMIZE_APIKEY")
         val page = httpHelper.getPage(removeTorrenntUrl)
         if (!page.contains("success")) {
             log.error("Deleting failed: {}", removeTorrenntUrl)
@@ -272,12 +272,14 @@ class Premiumize(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoste
                 val responseArray = response.asJsonArray
                 val index = AtomicInteger()
                 if (responseArray.size() == torrents.size) {
-                    responseArray.forEach(Consumer { jsonElement: JsonElement ->
-                        if (jsonElement.asBoolean) {
-                            torrents[index.get()].cached.add(this.javaClass.simpleName)
+                    responseArray.forEach(
+                        Consumer { jsonElement: JsonElement ->
+                            if (jsonElement.asBoolean) {
+                                torrents[index.get()].cached.add(this.javaClass.simpleName)
+                            }
+                            index.getAndIncrement()
                         }
-                        index.getAndIncrement()
-                    })
+                    )
                 }
             } else {
                 log.error("couldn't retrieve cache for:$checkUrl")

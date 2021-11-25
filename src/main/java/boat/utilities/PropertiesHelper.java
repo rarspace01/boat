@@ -45,7 +45,7 @@ public class PropertiesHelper {
 
         // check if property exists in Environment, then skip
         String envValue = System.getenv(propname);
-        if(envValue != null){
+        if (envValue != null) {
             return envValue;
         }
 

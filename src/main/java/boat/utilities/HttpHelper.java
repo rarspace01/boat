@@ -6,7 +6,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.channels.Channels;
@@ -38,9 +37,9 @@ public class HttpHelper {
                 return null;
             }
 
-                public void checkClientTrusted(
-                        java.security.cert.X509Certificate[] certs, String authType) {
-                }
+            public void checkClientTrusted(
+                java.security.cert.X509Certificate[] certs, String authType) {
+            }
 
             public void checkServerTrusted(
                 java.security.cert.X509Certificate[] certs, String authType) {
@@ -66,7 +65,7 @@ public class HttpHelper {
             sc.init(null, trustAllCerts, null);
 
             connection = new URL(url).openConnection();
-            if(connection instanceof HttpsURLConnection){
+            if (connection instanceof HttpsURLConnection) {
                 ((HttpsURLConnection) connection).setSSLSocketFactory(sc.getSocketFactory());
             }
             connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:68.0) Gecko/20100101 Firefox/68.0");
@@ -196,7 +195,7 @@ public class HttpHelper {
         return getPage(baseUrl, timeout).length() > 0;
     }
 
-    public String getExternalHostname(){
+    public String getExternalHostname() {
         ProcessBuilder builder = new ProcessBuilder();
         builder.command("bash", "-c", "dig -x $(curl -s checkip.amazonaws.com) +short");
         builder.directory(new File(System.getProperty("user.home")));

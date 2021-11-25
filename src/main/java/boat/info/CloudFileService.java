@@ -43,21 +43,21 @@ public class CloudFileService {
             Process process = builder.start();
             process.waitFor(5, TimeUnit.SECONDS);
             output = new String(process.getInputStream().readAllBytes());
-            error  = new String(process.getErrorStream().readAllBytes());
-            if(error.contains("limit") && output.length()==0 && retriesLeft>0) {
+            error = new String(process.getErrorStream().readAllBytes());
+            if (error.contains("limit") && output.length() == 0 && retriesLeft > 0) {
                 Thread.sleep(2000);
                 return getFilesInPathWithRetries(destinationPath, retriesLeft - 1);
             }
-            if(error.contains("directory not found")){
+            if (error.contains("directory not found")) {
                 return Collections.emptyList();
             }
             final JsonElement jsonElement = JsonParser.parseString(output);
             if (jsonElement.isJsonArray()) {
                 jsonElement.getAsJsonArray()
-                        .forEach(jsonElement1 -> {
-                            fileList.add(destinationPath + jsonElement1.getAsJsonObject().get("Path").getAsString());
-                        });
-            } else if(jsonElement.isJsonObject()) {
+                    .forEach(jsonElement1 -> {
+                        fileList.add(destinationPath + jsonElement1.getAsJsonObject().get("Path").getAsString());
+                    });
+            } else if (jsonElement.isJsonObject()) {
                 fileList.add(destinationPath + jsonElement.getAsJsonObject().get("Path").getAsString());
             }
         } catch (Exception e) {

@@ -70,7 +70,7 @@ public class TorrentService {
             BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
             String line;
             while ((line = bufferedReader.readLine()) != null) {
-                    releaseTags.add(line.toLowerCase());
+                releaseTags.add(line.toLowerCase());
             }
             return releaseTags;
         } catch (IOException e) {

@@ -8,7 +8,7 @@ data class MediaItem(
 ) {
     override fun toString(): String {
         return StringBuilder().append("[$title]")
-            .append(if (originalTitle != null) "[${originalTitle}]" else "")
+            .append(if (originalTitle != null) "[$originalTitle]" else "")
             .append(if (year != null) "[$year]" else "")
             .append(if (type != null) "[$type]" else "")
             .append("\n")

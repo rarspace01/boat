@@ -13,7 +13,7 @@ public class Transfer {
 
     @Id
     public String id;
-    
+
     public String name;
 
     public String remoteId;
@@ -56,7 +56,7 @@ public class Transfer {
         if (eta == null || eta.equals(Duration.ZERO)) {
             return "";
         } else {
-            return ", "+ TorrentHelper.formatDuration(eta);
+            return ", " + TorrentHelper.formatDuration(eta);
         }
     }
 

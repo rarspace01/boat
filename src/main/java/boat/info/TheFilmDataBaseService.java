@@ -46,8 +46,9 @@ public class TheFilmDataBaseService {
     }
 
     public List<MediaItem> parseResponsePage(String pageContent) {
-        if (pageContent == null)
+        if (pageContent == null) {
             return null;
+        }
         List<MediaItem> mediaItems = new ArrayList<>();
         JsonElement jsonRoot = JsonParser.parseString(pageContent);
         JsonElement results = jsonRoot.getAsJsonObject().get("results");
@@ -106,7 +107,8 @@ public class TheFilmDataBaseService {
         Integer yearOfRelease = extractYearInTorrent(remoteTorrent.name);
         List<MediaItem> mediaItems = new ArrayList<>();
         if (yearOfRelease != null) {
-            mediaItems.addAll(search(TorrentHelper.getNormalizedTorrentStringWithSpaces(remoteTorrent.name).replaceAll(yearOfRelease.toString(), "").trim(), yearOfRelease));
+            mediaItems.addAll(
+                search(TorrentHelper.getNormalizedTorrentStringWithSpaces(remoteTorrent.name).replaceAll(yearOfRelease.toString(), "").trim(), yearOfRelease));
         } else {
             mediaItems.addAll(search(TorrentHelper.getNormalizedTorrentStringWithSpaces(remoteTorrent.name).trim()));
         }
@@ -120,8 +122,9 @@ public class TheFilmDataBaseService {
         while (matcher.find()) {
             // Get the group matched using group() method
             String group = matcher.group(1);
-            if (group != null)
+            if (group != null) {
                 return Integer.parseInt(group);
+            }
         }
         return null;
     }

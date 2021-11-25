@@ -18,17 +18,17 @@ class TorrentMapper {
         }
 
         fun mapRemoteStatus(remoteStatus: String?): TransferStatus {
-            return when(remoteStatus) {
-            "waiting","queued" -> TransferStatus.ADDED_TO_MULTIHOSTER
-            "finished","seeding" -> TransferStatus.READY_TO_BE_DOWNLOADED
-            "running" -> TransferStatus.DOWNLOADING_TO_MULTIHOSTER
-            "deleted" -> TransferStatus.DELETED
-            "banned","error","timeout" -> TransferStatus.ERROR
-             else -> TransferStatus.UNKNOWN
+            return when (remoteStatus) {
+                "waiting", "queued" -> TransferStatus.ADDED_TO_MULTIHOSTER
+                "finished", "seeding" -> TransferStatus.READY_TO_BE_DOWNLOADED
+                "running" -> TransferStatus.DOWNLOADING_TO_MULTIHOSTER
+                "deleted" -> TransferStatus.DELETED
+                "banned", "error", "timeout" -> TransferStatus.ERROR
+                else -> TransferStatus.UNKNOWN
             }
         }
 
-        fun mapTransferToTorrent(transfer:Transfer):Torrent {
+        fun mapTransferToTorrent(transfer: Transfer): Torrent {
             val torrent = Torrent(transfer.source)
             torrent.magnetUri = transfer.uri
             torrent.remoteStatusText = transfer.feedbackMessage

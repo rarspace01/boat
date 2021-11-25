@@ -19,10 +19,10 @@ internal class MultifileHosterServiceTest {
     private val httpHelper: HttpHelper = mockk(relaxed = true)
     private val transferService: TransferService = mockk(relaxed = true)
     private val cloudService: CloudService = mockk(relaxed = true)
-    lateinit var multifileHosterService : MultifileHosterService
+    lateinit var multifileHosterService: MultifileHosterService
 
     @BeforeEach
-    fun beforeEach(){
+    fun beforeEach() {
         multifileHosterService = MultifileHosterService(httpHelper, transferService, cloudService)
     }
 
@@ -53,7 +53,7 @@ internal class MultifileHosterServiceTest {
         transfer.name = "the adventures of buckaroo banzai across the 8th dimension (1984) (1080p bluray .."
         val torrent = Torrent("Test")
         torrent.name = "The Adventures of Buckaroo Banzai Across the 8th Dimension (1984) (1080p BluRay x265 HEVC 10bit AAC 5.1 Tigole)"
-        torrent.remoteId="remoteId"
+        torrent.remoteId = "remoteId"
         // When
 
         val matched =
