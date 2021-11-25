@@ -5,6 +5,7 @@ import org.apache.commons.codec.binary.Hex
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.util.concurrent.ForkJoinPool
+import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
 
 @Service
@@ -33,6 +34,11 @@ class TorrentInfoService(httpHelper: HttpHelper) :
             log.error("Parallel refresh execution failed", e)
         } finally {
             forkJoinPool.shutdown()
+            val awaitTermination = forkJoinPool.awaitTermination(30, TimeUnit.SECONDS)
+            if (!awaitTermination) {
+                forkJoinPool.shutdownNow()
+                log.error("refreshTorrentStats() terminated after timeout")
+            }
         }
         log.info("Refresh took {}ms", System.currentTimeMillis() - startOfRefresh)
     }
