@@ -26,6 +26,7 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
       - name: Bump version and push tag
+        if: ${{ github.actor != 'dependabot[bot]' }}
         id: tag_version
         uses: mathieudutour/github-tag-action@v5.6
         with:
@@ -40,6 +41,7 @@ jobs:
           MONGO_URI: ${{ secrets.MONGO_URI }}
         run: ./gradlew build
       - name: Release
+        if: ${{ github.actor != 'dependabot[bot]' }}
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ steps.tag_version.outputs.new_tag }}
@@ -47,6 +49,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Restart server
+        if: ${{ github.actor != 'dependabot[bot]' }}
         uses: wei/curl@master
         with:
           args: ${{ secrets.SERVERURL }}/boat/shutdown|| true
