@@ -1,28 +1,28 @@
-package boat.torrent;
+package boat.torrent
 
-import java.util.List;
+import boat.multifileHoster.MultifileHosterService
+import io.mockk.mockk
+import org.assertj.core.api.Assertions
+import org.junit.jupiter.api.Test
 
-import org.junit.jupiter.api.Test;
-
-import static org.assertj.core.api.Assertions.assertThat;
-
-class TorrentSearchEngineServiceTest {
+internal class TorrentSearchEngineServiceTest {
+    private val torrentInfoService: TorrentInfoService = mockk()
+    private val multifileHosterService: MultifileHosterService = mockk()
 
     @Test
-    void cleanDuplicates() {
+    fun cleanDuplicates() {
         // Given
-        final TorrentSearchEngineService tse = new TorrentSearchEngineService(null, null, null);
-
-        final Torrent s1 = new Torrent("S1");
-        final Torrent s2 = new Torrent("S2");
-        s1.magnetUri = "btih:ABC&";
-        s2.magnetUri = "btih:ABC&";
-        s1.searchRating = 1;
-        s2.searchRating = 2;
+        val tse = TorrentSearchEngineService(null, multifileHosterService, torrentInfoService)
+        val s1 = Torrent("S1")
+        val s2 = Torrent("S2")
+        s1.magnetUri = "btih:ABC&"
+        s2.magnetUri = "btih:ABC&"
+        s1.searchRating = 1.0
+        s2.searchRating = 2.0
         // When
-        final List<Torrent> torrentList = tse.cleanDuplicates(List.of(s1, s2));
+        val torrentList = tse.cleanDuplicates(listOf(s1, s2))
         // Then
-        assertThat(torrentList.get(0)).isEqualTo(s2);
-        assertThat(torrentList.size()).isEqualTo(1);
+        Assertions.assertThat(torrentList[0]).isEqualTo(s2)
+        Assertions.assertThat(torrentList.size).isEqualTo(1)
     }
 }
