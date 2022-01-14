@@ -47,7 +47,7 @@ public class LimeTorrents extends HttpUser implements TorrentSearchEngine {
         Document doc = Jsoup.parse(pageContent);
         Elements torrentListOnPage = doc.select(".table2 tr:has(td)");
 
-        if (torrentListOnPage == null) {
+        if (torrentListOnPage.isEmpty()) {
             return torrentList;
         }
 

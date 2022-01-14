@@ -28,7 +28,7 @@ class TorrentSearchEngineService @Autowired constructor(
         val tempActiveSearchEngines: MutableList<TorrentSearchEngine> = ArrayList()
         allSearchEngines.parallelStream().forEach { torrentSearchEngine: TorrentSearchEngine ->
             val torrents = torrentSearchEngine.searchTorrents("blue")
-            if (!torrents.isEmpty()) {
+            if (torrents.isNotEmpty()) {
                 tempActiveSearchEngines.add(torrentSearchEngine)
             }
         }
