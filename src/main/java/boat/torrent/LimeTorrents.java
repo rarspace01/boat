@@ -38,7 +38,7 @@ public class LimeTorrents extends HttpUser implements TorrentSearchEngine {
 
     @Override
     public String getBaseUrl() {
-        return "https://www.limetorrents.info/";
+        return "https://www.limetorrents.pro/";
     }
 
     private List<Torrent> parseTorrentsOnResultPage(String pageContent, String searchName) {
