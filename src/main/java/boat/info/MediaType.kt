@@ -1,11 +1,5 @@
-package boat.info;
+package boat.info
 
-public enum MediaType {
-    Movie,
-    Series,
-    TVShow,
-    Documentary,
-    Audiobook,
-    Music,
-    Other
+enum class MediaType {
+    Movie, Series, TVShow, Documentary, Audiobook, Music, Other
 }
