@@ -57,7 +57,7 @@ internal class MultifileHosterServiceTest {
         // When
 
         val matched =
-            multifileHosterService.transferMatchedTorrentByName(transfer, torrent)
+            multifileHosterService.transferMatchedTorrentByName(transfer, torrent, 2)
         // Then
         assertThat(matched).isTrue
     }
