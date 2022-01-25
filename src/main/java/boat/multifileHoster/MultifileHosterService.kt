@@ -267,8 +267,7 @@ class MultifileHosterService(
             transfers.find { transfer ->
                 transfer.uri.lowercase().contains(torrent.torrentId.lowercase()) ||
                     transfer.remoteId != null && transfer.remoteId == torrent.remoteId ||
-                    transferMatchedTorrentBySource(transfer, torrent) ||
-                    transferMatchedTorrentByName(transfer, torrent)
+                    transferMatchedTorrentBySource(transfer, torrent)
             }
                 ?.also { transfer ->
                     transfer.transferStatus = torrent.remoteTransferStatus
@@ -280,11 +279,74 @@ class MultifileHosterService(
                     matchedTransfers.add(transfer)
                     matchedTorrents.add(torrent)
                 } ?: also {
-                log.error("no transfer for torrent found: {}", torrent)
+                log.warn("no transfer for torrent found: {}", torrent)
             }
         }
-        val listOfUnmatchedTransfers = transfers.filter { matchedTransfers.none { matchedTransfer -> matchedTransfer.id.equals(it.id) } }
-        val listOfUnmatchedTorrents = torrentsForDownload.filter { matchedTorrents.none { matchedTorrent -> matchedTorrent.torrentId.equals((it.torrentId)) } }
+        var listOfUnmatchedTransfers = transfers.filter { matchedTransfers.none { matchedTransfer -> matchedTransfer.id.equals(it.id) } }
+        var listOfUnmatchedTorrents = torrentsForDownload.filter { matchedTorrents.none { matchedTorrent -> matchedTorrent.torrentId.equals((it.torrentId)) } }
+        if (listOfUnmatchedTorrents.isNotEmpty() && listOfUnmatchedTorrents.isNotEmpty()) {
+            listOfUnmatchedTorrents.forEach { torrent ->
+                transfers.find { transfer ->
+                    transferMatchedTorrentByName(transfer, torrent, 0)
+                }?.also { transfer ->
+                    transfer.transferStatus = torrent.remoteTransferStatus
+                    transfer.progressInPercentage = torrent.remoteProgressInPercent
+                    transfer.name = torrent.name
+                    transfer.eta = torrent.eta
+                    transfer.remoteId = torrent.remoteId
+                    transferService.save(transfer)
+                    matchedTransfers.add(transfer)
+                    matchedTorrents.add(torrent)
+                } ?: also {
+                    log.warn("no transfer for torrent found after name match: {}", torrent)
+                }
+            }
+            listOfUnmatchedTransfers = transfers.filter { matchedTransfers.none { matchedTransfer -> matchedTransfer.id.equals(it.id) } }
+            listOfUnmatchedTorrents = torrentsForDownload.filter { matchedTorrents.none { matchedTorrent -> matchedTorrent.torrentId.equals((it.torrentId)) } }
+            if (listOfUnmatchedTorrents.isNotEmpty() && listOfUnmatchedTorrents.isNotEmpty()) {
+                listOfUnmatchedTorrents.forEach { torrent ->
+                    transfers.find { transfer ->
+                        transferMatchedTorrentByName(transfer, torrent, 1)
+                    }?.also { transfer ->
+                        transfer.transferStatus = torrent.remoteTransferStatus
+                        transfer.progressInPercentage = torrent.remoteProgressInPercent
+                        transfer.name = torrent.name
+                        transfer.eta = torrent.eta
+                        transfer.remoteId = torrent.remoteId
+                        transferService.save(transfer)
+                        matchedTransfers.add(transfer)
+                        matchedTorrents.add(torrent)
+                    } ?: also {
+                        log.warn("no transfer for torrent found after name match: {}", torrent)
+                    }
+                }
+                listOfUnmatchedTransfers = transfers.filter { matchedTransfers.none { matchedTransfer -> matchedTransfer.id.equals(it.id) } }
+                listOfUnmatchedTorrents = torrentsForDownload.filter { matchedTorrents.none { matchedTorrent -> matchedTorrent.torrentId.equals((it.torrentId)) } }
+
+                if (listOfUnmatchedTorrents.isNotEmpty() && listOfUnmatchedTorrents.isNotEmpty()) {
+                    listOfUnmatchedTorrents.forEach { torrent ->
+                        transfers.find { transfer ->
+                            transferMatchedTorrentByName(transfer, torrent, 2)
+                        }?.also { transfer ->
+                            transfer.transferStatus = torrent.remoteTransferStatus
+                            transfer.progressInPercentage = torrent.remoteProgressInPercent
+                            transfer.name = torrent.name
+                            transfer.eta = torrent.eta
+                            transfer.remoteId = torrent.remoteId
+                            transferService.save(transfer)
+                            matchedTransfers.add(transfer)
+                            matchedTorrents.add(torrent)
+                        } ?: also {
+                            log.warn("no transfer for torrent found after name match: {}", torrent)
+                        }
+                    }
+                    listOfUnmatchedTransfers = transfers.filter { matchedTransfers.none { matchedTransfer -> matchedTransfer.id.equals(it.id) } }
+                    listOfUnmatchedTorrents =
+                        torrentsForDownload.filter { matchedTorrents.none { matchedTorrent -> matchedTorrent.torrentId.equals((it.torrentId)) } }
+                }
+            }
+        }
+
         if (listOfUnmatchedTransfers.isNotEmpty()) {
             log.warn("listOfUnmatchedTransfers: [{}]", listOfUnmatchedTransfers)
             log.warn("listOfUnmatchedTorrents: [{}]", listOfUnmatchedTorrents)
@@ -295,7 +357,7 @@ class MultifileHosterService(
         return Strings.isNotEmpty(transfer.uri) && transfer.source.equals(torrent.magnetUri)
     }
 
-    fun transferMatchedTorrentByName(transfer: Transfer, torrent: Torrent): Boolean {
+    fun transferMatchedTorrentByName(transfer: Transfer, torrent: Torrent, maxDiff: Int = 0): Boolean {
         val transferName = TorrentHelper.getNormalizedTorrentStringWithSpaces(transfer.name).lowercase()
         val torrentName = TorrentHelper.getNormalizedTorrentStringWithSpaces(torrent.name).lowercase()
         val matchedByName = transfer.name != null && transferName.lowercase() == torrentName.lowercase()
@@ -310,8 +372,8 @@ class MultifileHosterService(
             val transferDiffCount = transferWordList.size - transferInTorrentCount
             val torrentDiffCount = torrentWordList.size - torrentInTransferCount
             (
-                (transferInTorrentCount.toDouble() / transferWordList.count().toDouble() > 0.75) && transferDiffCount <= 2 &&
-                    (torrentInTransferCount.toDouble() / torrentWordList.count().toDouble() > 0.75) && torrentDiffCount <= 2
+                (transferInTorrentCount.toDouble() / transferWordList.count().toDouble() > 0.75) && transferDiffCount <= maxDiff &&
+                    (torrentInTransferCount.toDouble() / torrentWordList.count().toDouble() > 0.75) && torrentDiffCount <= maxDiff
                 )
         }
     }
