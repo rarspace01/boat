@@ -13,6 +13,8 @@ jobs:
   buildFatJarForJVM:
     name: Build JVM jar application
     runs-on: ubuntu-latest
+    outputs:
+      tag-version: ${{ steps.tag_version.outputs.new_tag }}
     steps:
       - uses: actions/checkout@v2
         with:
@@ -82,7 +84,7 @@ jobs:
         if: ${{ github.actor != 'dependabot[bot]' }}
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ steps.tag_version.outputs.new_tag }}
+          tag_name: ${{ needs.buildFatJarForJVM.outputs.tag-version }}
           files: "./build/libs/boat.jar"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
