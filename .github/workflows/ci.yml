@@ -51,20 +51,22 @@ jobs:
     runs-on: ubuntu-latest
     continue-on-error: true
     steps:
-     - uses: ayltai/setup-graalvm@v1
-       with:
-         java-version: 17
-         graalvm-version: 22.0.0.2
-         native-image: true
-     - run: java -version
-     - name: Build with Gradle (GraalVM)
-       env:
-         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-         TFDB_APIKEY: ${{ secrets.TFDB_APIKEY }}
-         PREMIUMIZE_APIKEY: ${{ secrets.PREMIUMIZE_APIKEY }}
-         ALLDEBRID_APIKEY: ${{ secrets.ALLDEBRID_APIKEY }}
-       run: ./gradlew assemble
-     - run: native-image --no-server --no-fallback --allow-incomplete-classpath -jar "./build/libs/boat.jar"
+      - name: Checkout
+        uses: actions/checkout@v2
+      - uses: ayltai/setup-graalvm@v1
+        with:
+          java-version: 17
+          graalvm-version: 22.0.0.2
+          native-image: true
+      - run: java -version
+      - name: Build with Gradle (GraalVM)
+        env:
+           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+           TFDB_APIKEY: ${{ secrets.TFDB_APIKEY }}
+           PREMIUMIZE_APIKEY: ${{ secrets.PREMIUMIZE_APIKEY }}
+           ALLDEBRID_APIKEY: ${{ secrets.ALLDEBRID_APIKEY }}
+        run: ./gradlew assemble
+      - run: native-image --no-server --no-fallback --allow-incomplete-classpath -jar "./build/libs/boat.jar"
   releaseJob:
     name: Create Github Release
     runs-on: ubuntu-latest
