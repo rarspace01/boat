@@ -68,13 +68,13 @@ jobs:
            PREMIUMIZE_APIKEY: ${{ secrets.PREMIUMIZE_APIKEY }}
            ALLDEBRID_APIKEY: ${{ secrets.ALLDEBRID_APIKEY }}
         run: ./gradlew assemble
-      - run: native-image --no-fallback --allow-incomplete-classpath -jar "./build/libs/boat.jar"
+      - run: native-image --no-fallback --allow-incomplete-classpath -jar "./build/libs/boat.jar" boatImage
       - uses: actions/upload-artifact@v2
         if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
         with:
           name: graalVmArtifacts-${{ github.sha }}
           path: |
-            ./boat/boat
+            ./boatImage
           retention-days: 1
   releaseJob:
     name: Create Github Release
@@ -85,6 +85,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - uses: actions/download-artifact@v2
+        with:
+          name: jvmArtifacts-${{ github.sha }}
+      - uses: actions/download-artifact@v2
+        with:
+          name: graalVmArtifacts-${{ github.sha }}
       - name: Release
         if: ${{ github.actor != 'dependabot[bot]' }}
         uses: softprops/action-gh-release@v1
@@ -92,7 +97,7 @@ jobs:
           tag_name: ${{ needs.buildFatJarForJVM.outputs.tag-version }}
           files: |
             "./build/libs/boat.jar"
-            "./boat/boat"
+            "./boatImage"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   restartServerJob:
