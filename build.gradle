@@ -155,3 +155,9 @@ compileTestKotlin {
         jvmTarget = "11"
     }
 }
+
+subprojects {
+    tasks.withType(Test) {
+        maxParallelForks = Runtime.runtime.availableProcessors()
+    }
+}
