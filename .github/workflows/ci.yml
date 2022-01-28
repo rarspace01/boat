@@ -1,7 +1,7 @@
 # This workflow will build a Java project with Gradle
 # For more information see: https://help.github.com/actions/language-and-framework-guides/building-and-testing-java-with-gradle
 
-name: Java CI with Gradle
+name: CI/CD
 
 on:
   push:
@@ -10,10 +10,9 @@ on:
     branches: [ main ]
 
 jobs:
-  build:
-
+  buildFatJarForJVM:
+    name: Build JVM jar application
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v2
         with:
@@ -40,6 +39,43 @@ jobs:
           ALLDEBRID_APIKEY: ${{ secrets.ALLDEBRID_APIKEY }}
           MONGO_URI: ${{ secrets.MONGO_URI }}
         run: ./gradlew build
+      - uses: actions/upload-artifact@v2
+        if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
+        with:
+          name: jvmArtifacts-${{ github.sha }}
+          path: |
+            ./build/libs/boat.jar
+          retention-days: 1
+  buildFatJarForGraalVM:
+    name: Build GraalVM jar application
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+     - uses: ayltai/setup-graalvm@v1
+       with:
+         java-version: 17
+         graalvm-version: 22.0.0
+         native-image: true
+     - run: java -version
+     - name: Build with Gradle (GraalVM)
+       env:
+         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+         TFDB_APIKEY: ${{ secrets.TFDB_APIKEY }}
+         PREMIUMIZE_APIKEY: ${{ secrets.PREMIUMIZE_APIKEY }}
+         ALLDEBRID_APIKEY: ${{ secrets.ALLDEBRID_APIKEY }}
+       run: ./gradlew assemble
+     - run: native-image --no-server --no-fallback --allow-incomplete-classpath -jar "./build/libs/boat.jar"
+  releaseJob:
+    name: Create Github Release
+    runs-on: ubuntu-latest
+    needs: [buildFatJarForJVM]
+    if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - uses: actions/download-artifact@v2
+        with:
+          name: javaArtifacts-${{ github.sha }}
       - name: Release
         if: ${{ github.actor != 'dependabot[bot]' }}
         uses: softprops/action-gh-release@v1
@@ -48,24 +84,15 @@ jobs:
           files: "./build/libs/boat.jar"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  restartServerJob:
+    name: Restart the Server
+    runs-on: ubuntu-latest
+    needs: [releaseJob]
+    if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
+    steps:
       - name: Restart server
-        if: ${{ github.actor != 'dependabot[bot]' }}
         uses: wei/curl@master
         with:
           args: ${{ secrets.SERVERURL }}/boat/shutdown|| true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#      - uses: ayltai/setup-graalvm@v1
-#        with:
-#          java-version: 16
-#          graalvm-version: 21.1.0
-#          native-image: true
-#      - run: java -version
-#      - name: Build with Gradle (GraalVM)
-#        env:
-#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#          TFDB_APIKEY: ${{ secrets.TFDB_APIKEY }}
-#          PREMIUMIZE_APIKEY: ${{ secrets.PREMIUMIZE_APIKEY }}
-#          ALLDEBRID_APIKEY: ${{ secrets.ALLDEBRID_APIKEY }}
-#        run: ./gradlew clean assemble
-#      - run: native-image --no-server --no-fallback --allow-incomplete-classpath -jar "./build/libs/boat.jar"
