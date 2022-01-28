@@ -54,7 +54,7 @@ jobs:
      - uses: ayltai/setup-graalvm@v1
        with:
          java-version: 17
-         graalvm-version: 22.0.0
+         graalvm-version: 22.0.0.2
          native-image: true
      - run: java -version
      - name: Build with Gradle (GraalVM)
