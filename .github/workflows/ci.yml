@@ -96,8 +96,8 @@ jobs:
         with:
           tag_name: ${{ needs.buildFatJarForJVM.outputs.tag-version }}
           files: |
-            "./build/libs/boat.jar"
-            "./boatImage"
+            "boat.jar"
+            "boatImage"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   restartServerJob:
