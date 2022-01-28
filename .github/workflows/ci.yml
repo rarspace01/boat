@@ -90,7 +90,6 @@ jobs:
       - uses: actions/download-artifact@v2
         with:
           name: graalVmArtifacts-${{ github.sha }}
-      - run: ls -a
       - name: Release
         if: ${{ github.actor != 'dependabot[bot]' }}
         uses: softprops/action-gh-release@v1
