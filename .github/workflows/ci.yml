@@ -74,7 +74,7 @@ jobs:
         with:
           name: graalVmArtifacts-${{ github.sha }}
           path: |
-            ./boat/boat/boat
+            ./boat/boat
           retention-days: 1
   releaseJob:
     name: Create Github Release
@@ -92,7 +92,7 @@ jobs:
           tag_name: ${{ needs.buildFatJarForJVM.outputs.tag-version }}
           files: |
             "./build/libs/boat.jar"
-            "./boat/boat/boat"
+            "./boat/boat"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   restartServerJob:
