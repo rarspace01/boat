@@ -235,7 +235,7 @@ public class TorrentHelper {
         final String torrentNameLowerCased = torrent.name.toLowerCase();
         return torrentNameLowerCased.contains("telesync") ||
             torrentNameLowerCased.contains("telecine") ||
-            torrentNameLowerCased.contains(" hdcam") ||
+            torrentNameLowerCased.contains("hdcam") ||
             torrentNameLowerCased.contains("tscam") ||
             torrentNameLowerCased.contains(".cam.") ||
             torrentNameLowerCased.contains(" cam ") ||
