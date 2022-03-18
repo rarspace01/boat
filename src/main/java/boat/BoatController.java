@@ -239,6 +239,7 @@ public final class BoatController {
         long startTime = runtimeBean.getStartTime();
         Date startDate = new Date(startTime);
         return "v:" + PropertiesHelper.getVersion() + " started: " + startDate
+            + "<br/>remote host: " + httpHelper.getExternalHostname()
             + "<br/>cloud token: " + (cloudService.isCloudTokenValid() ? "✅" : "❌")
             + "<br/>search Cache: " + (cloudFileService.isCacheFilled() ? "✅" : "❌")
             + "<br/>ActiveSearchEngines: " + torrentSearchEngineService.getActiveSearchEngines()
