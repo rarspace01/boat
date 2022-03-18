@@ -109,8 +109,4 @@ jobs:
     if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
     steps:
       - name: Restart server
-        uses: wei/curl@master
-        with:
-          args: ${{ secrets.SERVERURL }}/boat/shutdown|| true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: curl ${{ secrets.SERVERURL }}/boat/shutdown|| true
