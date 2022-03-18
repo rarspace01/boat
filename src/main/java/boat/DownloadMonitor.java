@@ -194,7 +194,7 @@ public class DownloadMonitor {
             .filter(this::isTorrentStuckOnError)
             .forEach(multifileHosterService::delete);
         transferService.getAll().stream()
-            .filter(transfer -> TransferStatus.ERROR.equals(transfer.getTransferStatus()) || transfer.updated.isBefore(Instant.now().minus(1, ChronoUnit.DAYS)))
+            .filter(transfer -> TransferStatus.ERROR.equals(transfer.getTransferStatus()) || TransferStatus.DUPLICATE_ERROR.equals(transfer.getTransferStatus())  || transfer.updated.isBefore(Instant.now().minus(1, ChronoUnit.DAYS)))
             .forEach(
                 transferService::delete);
 
