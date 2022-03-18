@@ -35,7 +35,7 @@ jobs:
       - name: Bump version and push tag
         if: ${{ github.actor != 'dependabot[bot]' }}
         id: tag_version
-        uses: mathieudutour/github-tag-action@v6
+        uses: mathieudutour/github-tag-action@v6.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           release_branches: main
