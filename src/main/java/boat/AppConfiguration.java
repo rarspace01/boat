@@ -21,8 +21,7 @@ public class AppConfiguration implements SchedulingConfigurer {
 
     public @Bean
     MongoClient mongoClient() {
-        MongoClient mongoClient = MongoClients.create(PropertiesHelper.getProperty("MONGO_URI"));
-        return mongoClient;
+        return MongoClients.create(PropertiesHelper.getProperty("MONGO_URI"));
     }
 
     public @Bean
