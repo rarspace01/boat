@@ -85,7 +85,7 @@ jobs:
   releaseJob:
     name: Create Github Release
     runs-on: ubuntu-latest
-    needs: [buildFatJarForJVM, buildFatJarForGraalVM]
+    needs: [buildFatJarForJVM]
     if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
     steps:
       - name: Checkout
