@@ -11,7 +11,6 @@ import boat.multifileHoster.MultifileHosterService;
 import boat.services.TransferService;
 import boat.torrent.TorrentSearchEngineService;
 import boat.utilities.HttpHelper;
-import org.junit.jupiter.api.BeforeEach;
 import org.mockito.Mock;
 
 class DownloadMonitorTest {
@@ -39,12 +38,12 @@ class DownloadMonitorTest {
 
     private DownloadMonitor downloadMonitor;
 
-    @BeforeEach
-    void beforeEach() {
-        downloadMonitor = new DownloadMonitor(torrentSearchEngineService, torrentMetaService, cloudService,
-            multiHosterService,
-            cloudFileService, cacheManager, queueService, blurayComService, transferService, httpHelper);
-    }
+//    @BeforeEach
+//    void beforeEach() {
+//        downloadMonitor = new DownloadMonitor(torrentSearchEngineService, cloudService,
+//            multiHosterService,
+//            cloudFileService, cacheManager, queueService, blurayComService, transferService, httpHelper);
+//    }
 
 
 
