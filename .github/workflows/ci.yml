@@ -35,7 +35,7 @@ jobs:
       - name: Bump version and push tag
         if: ${{ github.actor != 'dependabot[bot]' }}
         id: tag_version
-        uses: mathieudutour/github-tag-action@v5.6
+        uses: mathieudutour/github-tag-action@v6
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           release_branches: main
@@ -47,7 +47,7 @@ jobs:
           ALLDEBRID_APIKEY: ${{ secrets.ALLDEBRID_APIKEY }}
           MONGO_URI: ${{ secrets.MONGO_URI }}
         run: ./gradlew build
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
         with:
           name: jvmArtifacts-${{ github.sha }}
@@ -90,12 +90,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v3
         with:
           name: jvmArtifacts-${{ github.sha }}
-      - uses: actions/download-artifact@v2
-        with:
-          name: graalVmArtifacts-${{ github.sha }}
       - name: Release
         if: ${{ github.actor != 'dependabot[bot]' }}
         uses: softprops/action-gh-release@v1
@@ -103,7 +100,6 @@ jobs:
           tag_name: ${{ needs.buildFatJarForJVM.outputs.tag-version }}
           files: |
             boat.jar
-            boatImage
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   restartServerJob:
