@@ -11,12 +11,10 @@ import org.springframework.cache.CacheManager;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import boat.info.BluRayComService;
 import boat.info.CloudFileService;
 import boat.info.CloudService;
 import boat.info.MediaItem;
 import boat.info.QueueService;
-import boat.info.TorrentMetaService;
 import boat.model.TransferStatus;
 import boat.multifileHoster.MultifileHosterService;
 import boat.services.TransferService;
@@ -37,7 +35,6 @@ public class DownloadMonitor {
     public static final int MIN_GB_FOR_QUEUE = 150;
     public static final int MAX_QUEUE_DOWNLOADS_LIMIT = 20;
     private final TorrentSearchEngineService torrentSearchEngineService;
-    private final TorrentMetaService torrentMetaService;
     private final CloudService cloudService;
     private final MultifileHosterService multifileHosterService;
 
@@ -50,34 +47,27 @@ public class DownloadMonitor {
     private static final int SECONDS_BETWEEN_FILE_CACHE_REFRESH = 60 * 60 * 6;
     private static final Logger log = LoggerFactory.getLogger(DownloadMonitor.class);
 
-    private boolean isDownloadInProgress = false;
     private final CloudFileService cloudFileService;
     private final CacheManager cacheManager;
     private final QueueService queueService;
-    private final BluRayComService bluRayComService;
     private final TransferService transferService;
     private final HttpHelper httpHelper;
-    private Boolean isRcloneInstalled;
 
     public DownloadMonitor(TorrentSearchEngineService torrentSearchEngineService,
-                           TorrentMetaService torrentMetaService,
                            CloudService cloudService,
                            MultifileHosterService multifileHosterService,
                            CloudFileService cloudFileService,
                            CacheManager cacheManager,
                            QueueService queueService,
-                           BluRayComService bluRayComService,
                            TransferService transferService,
                            HttpHelper httpHelper
     ) {
         this.torrentSearchEngineService = torrentSearchEngineService;
-        this.torrentMetaService = torrentMetaService;
         this.cloudService = cloudService;
         this.multifileHosterService = multifileHosterService;
         this.cloudFileService = cloudFileService;
         this.cacheManager = cacheManager;
         this.queueService = queueService;
-        this.bluRayComService = bluRayComService;
         this.transferService = transferService;
         this.httpHelper = httpHelper;
     }
@@ -160,7 +150,7 @@ public class DownloadMonitor {
 
     @Scheduled(fixedRate = SECONDS_BETWEEN_QUEUE_POLLING * 1000)
     public void checkForQueueEntries() {
-        if (!isDownloadInProgress && cloudService.isCloudTokenValid()) {
+        if (cloudService.isCloudTokenValid()) {
             checkForQueueEntryAndAddToTransfers();
         }
     }
@@ -201,7 +191,7 @@ public class DownloadMonitor {
     public void clearTransferAndTorrentsWithErrors() {
         log.info("clearTransferTorrents()");
         multifileHosterService.getRemoteTorrents().stream()
-            .filter(this::isTorrentStuckOnErrror)
+            .filter(this::isTorrentStuckOnError)
             .forEach(multifileHosterService::delete);
         transferService.getAll().stream()
             .filter(transfer -> TransferStatus.ERROR.equals(transfer.getTransferStatus()) || transfer.updated.isBefore(Instant.now().minus(1, ChronoUnit.DAYS)))
@@ -210,7 +200,7 @@ public class DownloadMonitor {
 
     }
 
-    private boolean isTorrentStuckOnErrror(Torrent torrent) {
+    private boolean isTorrentStuckOnError(Torrent torrent) {
         return torrent.remoteTransferStatus.equals(TransferStatus.ERROR);
     }
 
