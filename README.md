@@ -12,7 +12,7 @@ newest version.
 tested with:
 
 ```
-openjdk version "16 2020-04-20"
+openjdk version "17 2021-09-14"
 ```
 
 Build Status:

@@ -1,6 +1,7 @@
 package boat.torrent
 
 import boat.multifileHoster.MultifileHosterService
+import boat.utilities.HttpHelper
 import io.mockk.mockk
 import org.assertj.core.api.Assertions
 import org.junit.jupiter.api.Test
@@ -12,7 +13,7 @@ internal class TorrentSearchEngineServiceTest {
     @Test
     fun cleanDuplicates() {
         // Given
-        val tse = TorrentSearchEngineService(null, multifileHosterService, torrentInfoService)
+        val tse = TorrentSearchEngineService(HttpHelper(), multifileHosterService, torrentInfoService)
         val s1 = Torrent("S1")
         val s2 = Torrent("S2")
         s1.magnetUri = "btih:ABC&"

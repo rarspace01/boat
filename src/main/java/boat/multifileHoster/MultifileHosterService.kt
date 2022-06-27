@@ -492,8 +492,8 @@ class MultifileHosterService(
         startTime: Instant?
     ) {
         val transferOptional = transferService.getAll().stream().filter { transfer: Transfer ->
-            transfer.uri != null && transfer.uri.toLowerCase(Locale.ROOT).contains(
-                torrentToBeDownloaded.torrentId.toLowerCase(
+            transfer.uri != null && transfer.uri.lowercase(Locale.ROOT).contains(
+                torrentToBeDownloaded.torrentId.lowercase(
                     Locale.ROOT
                 )
             )

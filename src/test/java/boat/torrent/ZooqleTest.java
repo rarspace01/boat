@@ -3,6 +3,7 @@ package boat.torrent;
 import java.util.List;
 
 import boat.utilities.HttpHelper;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -10,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class ZooqleTest {
 
+    @Disabled
     @Test
     void shouldFindTorrents() {
         // Given
@@ -17,6 +19,7 @@ class ZooqleTest {
         assertDoesNotThrow(() -> new Zooqle(new HttpHelper()).searchTorrents("planet"));
     }
 
+    @Disabled
     @Test
     void shouldFindNoTorrents() {
         // Given
