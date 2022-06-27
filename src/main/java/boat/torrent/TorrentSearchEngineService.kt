@@ -16,7 +16,7 @@ import java.util.stream.Collectors
 @Slf4j
 @Service
 class TorrentSearchEngineService @Autowired constructor(
-    httpHelper: HttpHelper?,
+    httpHelper: HttpHelper,
     multifileHosterService: MultifileHosterService,
     torrentInfoService: TorrentInfoService
 ) {
@@ -132,7 +132,7 @@ class TorrentSearchEngineService @Autowired constructor(
             YTS(httpHelper), // new Torrentz(httpHelper),
             MagnetDL(httpHelper),
             LimeTorrents(httpHelper),
-            Zooqle(httpHelper)
+            // Zooqle(httpHelper),
         )
         this.multifileHosterService = multifileHosterService
         this.torrentInfoService = torrentInfoService

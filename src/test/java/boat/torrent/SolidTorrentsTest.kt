@@ -1,16 +1,14 @@
-package boat.torrent;
+package boat.torrent
 
-import boat.utilities.HttpHelper;
-import org.junit.jupiter.api.Test;
+import boat.utilities.HttpHelper
+import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Test
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-
-class SolidTorrentsTest {
-
+internal class SolidTorrentsTest {
     @Test
-    void shouldFindTorrents() {
+    fun shouldFindTorrents() {
         // Given
         // When
-        assertDoesNotThrow(() -> new SolidTorrents(new HttpHelper()).searchTorrents("planet"));
+        Assertions.assertDoesNotThrow<List<Torrent>> { SolidTorrents(HttpHelper()).searchTorrents("planet") }
     }
 }

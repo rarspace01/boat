@@ -1,86 +1,75 @@
-package boat.torrent;
+package boat.torrent
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
-
-import boat.utilities.HttpHelper;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.extern.slf4j.Slf4j;
+import boat.utilities.HttpHelper
+import boat.utilities.LoggerDelegate
+import com.fasterxml.jackson.databind.ObjectMapper
+import lombok.extern.slf4j.Slf4j
+import org.jsoup.Jsoup
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
+import java.util.concurrent.CopyOnWriteArrayList
 
 @Slf4j
-public class SolidTorrents extends HttpUser implements TorrentSearchEngine {
+class SolidTorrents internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper), TorrentSearchEngine {
 
-    SolidTorrents(HttpHelper httpHelper) {
-        super(httpHelper);
+    companion object {
+        private val logger by LoggerDelegate()
     }
 
-    @Override
-    public List<Torrent> searchTorrents(String searchName) {
-
-        CopyOnWriteArrayList<Torrent> torrentList = new CopyOnWriteArrayList<>();
-
-        String resultString = httpHelper.getPage(buildSearchUrl(searchName));
-
-        torrentList.addAll(parseTorrentsOnResultPage(resultString, searchName));
-        torrentList.sort(TorrentHelper.torrentSorter);
-        return torrentList;
+    override fun searchTorrents(searchName: String): List<Torrent> {
+        val torrentList = CopyOnWriteArrayList<Torrent>()
+        val resultString = httpHelper.getPage(buildSearchUrl(searchName))
+        torrentList.addAll(parseTorrentsOnResultPage(resultString, searchName))
+        torrentList.sortWith(TorrentHelper.torrentSorter)
+        return torrentList
     }
 
-    private String buildSearchUrl(String searchName) {
-        return getBaseUrl() + "/api/v1/search?sort=seeders&q=" + URLEncoder.encode(searchName, StandardCharsets.UTF_8)
-            + "&category=all&fuv=yes";
+    private fun buildSearchUrl(searchName: String): String {
+        return baseUrl + "search?q=${URLEncoder.encode(searchName, StandardCharsets.UTF_8)}&sort=seeders"
     }
 
-    @Override
-    public String getBaseUrl() {
-        return "https://solidtorrents.net";
+    override fun getBaseUrl(): String {
+        return "https://solidtorrents.to/"
     }
 
-    private List<Torrent> parseTorrentsOnResultPage(String pageContent, String searchName) {
-        ArrayList<Torrent> torrentList = new ArrayList<>();
+    private fun parseTorrentsOnResultPage(pageContent: String, searchName: String): List<Torrent> {
+        val torrentList = ArrayList<Torrent>()
 
-        //create ObjectMapper instance
-        ObjectMapper objectMapper = new ObjectMapper();
+        // create ObjectMapper instance
+        val objectMapper = ObjectMapper()
 
-//read JSON like DOM Parser
+        // read JSON like DOM Parser
         try {
-            JsonNode rootNode = objectMapper.readTree(pageContent);
-            JsonNode resultsNode = rootNode.get("results");
-
-            if (resultsNode != null) {
-                Iterator<JsonNode> elements = resultsNode.elements();
-                while (elements.hasNext()) {
-                    JsonNode jsonTorrent = elements.next();
-                    Torrent tempTorrent = new Torrent(toString());
-                    //extract Size & S/L
-                    tempTorrent.name = jsonTorrent.get("title").asText();
-                    tempTorrent.size = TorrentHelper.humanReadableByteCountBinary(jsonTorrent.get("size").asLong());
-                    tempTorrent.lsize = TorrentHelper.extractTorrentSizeFromString(tempTorrent);
-                    tempTorrent.seeder = jsonTorrent.get("swarm").get("seeders").asInt();
-                    tempTorrent.leecher = jsonTorrent.get("swarm").get("leechers").asInt();
-                    tempTorrent.magnetUri = jsonTorrent.get("magnet").asText();
-                    // evaluate result
-                    TorrentHelper.evaluateRating(tempTorrent, searchName);
-                    if (TorrentHelper.isValidTorrent(tempTorrent)) {
-                        torrentList.add(tempTorrent);
-                    }
+            val document = Jsoup.parse(pageContent)
+            val torrentElements = document.getElementsByClass("card search-result my-2")
+            return torrentElements.mapNotNull {
+                val tempTorrent = Torrent(toString())
+                val magnetUri = it.getElementsByClass("dl-magnet")[0].attr("href")
+                val title = it.getElementsByClass("title w-100 truncate")[0]
+                val stats = it.getElementsByClass("stats")
+                // extract Size & S/L
+                tempTorrent.name = title.text().replace("✅", "").trim()
+                tempTorrent.lsize = TorrentHelper.extractTorrentSizeFromString(stats[0].allElements[3].text())
+                tempTorrent.size = TorrentHelper.humanReadableByteCountBinary((tempTorrent.lsize * 1024 * 1024).toLong())
+                tempTorrent.seeder = stats[0].allElements[7].text().trim().toInt()
+                tempTorrent.leecher = stats[0].allElements[10].text().trim().toInt()
+                tempTorrent.magnetUri = magnetUri
+                tempTorrent.isVerified = title.text().matches(Regex(".*✅.*"))
+                // evaluate result
+                TorrentHelper.evaluateRating(tempTorrent, searchName)
+                if (TorrentHelper.isValidTorrent(tempTorrent)) {
+                    tempTorrent
+                } else {
+                    null
                 }
             }
-
-        } catch (JsonProcessingException exception) {
-            log.error("parsing exception", exception);
+        } catch (exception: Exception) {
+            logger.error("parsing exception", exception)
         }
-        return torrentList;
+        return torrentList
     }
 
-    @Override
-    public String toString() {
-        return this.getClass().getSimpleName();
+    override fun toString(): String {
+        return this.javaClass.simpleName
     }
 }
