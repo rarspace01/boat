@@ -17,7 +17,7 @@ openjdk version "17 2021-09-14"
 
 Build Status:
 
-[![Java CI with Gradle](https://github.com/rarspace01/boat/actions/workflows/gradle.yml/badge.svg)](https://github.com/rarspace01/boat/actions/workflows/gradle.yml)
+[![Java CI with Gradle](https://github.com/rarspace01/boat/actions/workflows/ci.yml/badge.svg)](https://github.com/rarspace01/boat/actions/workflows/ci.yml)
 [![Coveralls](https://github.com/rarspace01/boat/actions/workflows/coveralls.yml/badge.svg)](https://github.com/rarspace01/boat/actions/workflows/coveralls.yml)
 [![CodeQL](https://github.com/rarspace01/boat/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/rarspace01/boat/actions/workflows/codeql-analysis.yml)
 [![Coverage Status](https://coveralls.io/repos/github/rarspace01/boat/badge.svg?branch=main)](https://coveralls.io/github/rarspace01/boat?branch=main)
