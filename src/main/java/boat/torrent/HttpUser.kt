@@ -1,12 +1,5 @@
-package boat.torrent;
+package boat.torrent
 
-import boat.utilities.HttpHelper;
+import boat.utilities.HttpHelper
 
-public abstract class HttpUser {
-
-    public final HttpHelper httpHelper;
-
-    public HttpUser(HttpHelper httpHelper) {
-        this.httpHelper = httpHelper;
-    }
-}
+abstract class HttpUser(val httpHelper: HttpHelper)

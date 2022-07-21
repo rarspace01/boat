@@ -1,100 +1,80 @@
-package boat.torrent;
+package boat.torrent
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
+import boat.utilities.HttpHelper
+import org.jsoup.Jsoup
+import org.jsoup.nodes.Element
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
+import java.util.concurrent.CopyOnWriteArrayList
+import java.util.function.Consumer
 
-import boat.utilities.HttpHelper;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
-
-public class Kat extends HttpUser implements TorrentSearchEngine {
-
-    Kat(HttpHelper httpHelper) {
-        super(httpHelper);
+class Kat internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper), TorrentSearchEngine {
+    override fun searchTorrents(searchName: String): List<Torrent> {
+        val torrentList = CopyOnWriteArrayList<Torrent>()
+        val resultString = httpHelper.getPage(buildSearchUrl(searchName))
+        torrentList.addAll(parseTorrentsOnResultPage(resultString, searchName))
+        torrentList.sortWith(TorrentHelper.torrentSorter)
+        return torrentList
     }
 
-    @Override
-    public List<Torrent> searchTorrents(String searchName) {
-
-        CopyOnWriteArrayList<Torrent> torrentList = new CopyOnWriteArrayList<>();
-
-        String resultString = httpHelper.getPage(buildSearchUrl(searchName));
-
-        torrentList.addAll(parseTorrentsOnResultPage(resultString, searchName));
-        torrentList.sort(TorrentHelper.torrentSorter);
-        return torrentList;
+    private fun buildSearchUrl(searchName: String): String {
+        return String.format(
+            "%s/usearch/%s/1/?field=seeders&sorder=desc", baseUrl,
+            URLEncoder.encode(searchName, StandardCharsets.UTF_8)
+        )
     }
 
-    private String buildSearchUrl(String searchName) {
-        return String.format("%s/usearch/%s/1/?field=seeders&sorder=desc", getBaseUrl(),
-            URLEncoder.encode(searchName, StandardCharsets.UTF_8));
+    override fun getBaseUrl(): String {
+        return "https://kat.rip"
     }
 
-    @Override
-    public String getBaseUrl() {
-        return "https://kat.rip";
-    }
+    private fun parseTorrentsOnResultPage(pageContent: String, searchName: String): List<Torrent> {
+        val torrentList = ArrayList<Torrent>()
+        val doc = Jsoup.parse(pageContent)
+        val torrentListOnPage = doc.select(".table > tbody > tr")
+        for (torrent in torrentListOnPage) {
+            val tempTorrent = Torrent(toString())
+            if (torrent.childNodeSize() > 0) {
+                torrent.children().forEach(Consumer { element: Element ->
+                    if (element.getElementsByClass("torrents_table__torrent_title").size > 0) {
+                        //extract name
+                        tempTorrent.name = element.getElementsByClass("torrents_table__torrent_title")[0]
+                            .text()
+                    }
+                    if (element.getElementsByAttributeValueMatching("href", "magnet:").size > 0) {
+                        //extract magneturi
+                        tempTorrent.magnetUri = element.getElementsByAttributeValueMatching("href", "magnet:")
+                            .attr("href").trim { it <= ' ' }
+                    }
+                    if (element.getElementsByAttributeValueMatching("data-title", "Size").size > 0) {
+                        tempTorrent.size = TorrentHelper.cleanNumberString(
+                            element.getElementsByAttributeValueMatching("data-title", "Size").text().trim { it <= ' ' })
+                        tempTorrent.lsize = TorrentHelper.extractTorrentSizeFromString(tempTorrent)
+                    }
+                    if (element.getElementsByAttributeValueMatching("data-title", "Seed").size > 0) {
+                        tempTorrent.seeder = TorrentHelper.cleanNumberString(
+                            element.getElementsByAttributeValueMatching("data-title", "Seed").text().trim { it <= ' ' }).toInt()
+                    }
+                    if (element.getElementsByAttributeValueMatching("data-title", "Leech").size > 0) {
+                        tempTorrent.leecher = TorrentHelper.cleanNumberString(
+                            element.getElementsByAttributeValueMatching("data-title", "Leech").text().trim { it <= ' ' }).toInt()
+                    }
+                    if (element.getElementsByClass("ka ka16 ka-verify ka-green").size > 0) {
+                        tempTorrent.isVerified = true
+                    }
+                })
+            }
 
-    private List<Torrent> parseTorrentsOnResultPage(String pageContent, String searchName) {
-        ArrayList<Torrent> torrentList = new ArrayList<>();
-
-        Document doc = Jsoup.parse(pageContent);
-
-        Elements torrentListOnPage = doc.select(".table > tbody > tr");
-
-        if (torrentListOnPage != null) {
-            for (Element torrent : torrentListOnPage) {
-                Torrent tempTorrent = new Torrent(toString());
-                if (torrent.childNodeSize() > 0) {
-                    torrent.children().forEach(element -> {
-
-                        if (element.getElementsByClass("torrents_table__torrent_title").size() > 0) {
-                            //extract name
-                            tempTorrent.name = element.getElementsByClass("torrents_table__torrent_title").get(0)
-                                .text();
-                        }
-                        if (element.getElementsByAttributeValueMatching("href", "magnet:").size() > 0) {
-                            //extract magneturi
-                            tempTorrent.magnetUri = element.getElementsByAttributeValueMatching("href", "magnet:")
-                                .attr("href").trim();
-                        }
-                        if (element.getElementsByAttributeValueMatching("data-title", "Size").size() > 0) {
-                            tempTorrent.size = TorrentHelper.cleanNumberString(
-                                element.getElementsByAttributeValueMatching("data-title", "Size").text().trim());
-                            tempTorrent.lsize = TorrentHelper.extractTorrentSizeFromString(tempTorrent);
-                        }
-                        if (element.getElementsByAttributeValueMatching("data-title", "Seed").size() > 0) {
-                            tempTorrent.seeder = Integer.parseInt(TorrentHelper.cleanNumberString(
-                                element.getElementsByAttributeValueMatching("data-title", "Seed").text().trim()));
-                        }
-                        if (element.getElementsByAttributeValueMatching("data-title", "Leech").size() > 0) {
-                            tempTorrent.leecher = Integer.parseInt(TorrentHelper.cleanNumberString(
-                                element.getElementsByAttributeValueMatching("data-title", "Leech").text().trim()));
-                        }
-                        if (element.getElementsByClass("ka ka16 ka-verify ka-green").size() > 0) {
-                            tempTorrent.isVerified = true;
-                        }
-                    });
-                }
-
-                // evaluate result
-                TorrentHelper.evaluateRating(tempTorrent, searchName);
-                if (TorrentHelper.isValidTorrent(tempTorrent)) {
-                    torrentList.add(tempTorrent);
-                }
+            // evaluate result
+            TorrentHelper.evaluateRating(tempTorrent, searchName)
+            if (TorrentHelper.isValidTorrent(tempTorrent)) {
+                torrentList.add(tempTorrent)
             }
         }
-        return torrentList;
+        return torrentList
     }
 
-    @Override
-    public String toString() {
-        return this.getClass().getSimpleName();
+    override fun toString(): String {
+        return this.javaClass.simpleName
     }
-
 }

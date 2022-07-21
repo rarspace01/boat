@@ -74,11 +74,11 @@ public class Torrent implements Comparable<Torrent> {
         }
 
         if (isNotARemoteTorrent(magnetUriBase64)) {
-            stringBuilder.append("<a href=\"./boat/download/?d=" + magnetUriBase64 + "\">Download</a>");
+            stringBuilder.append("<a href=\"./boat/download/?d=").append(magnetUriBase64).append("\">Download</a>");
         }
 
         if (Strings.isNotEmpty(this.debugRating)) {
-            stringBuilder.append(" 🏭" + this.debugRating);
+            stringBuilder.append(" 🏭").append(this.debugRating);
         }
 
 
@@ -90,10 +90,11 @@ public class Torrent implements Comparable<Torrent> {
             if (remoteStatusText.contains("Uploading")) {
                 progress = "";
             }
-            stringBuilder.append(" " + this.remoteStatusText.replaceAll("finished", "Waiting for Upload") + progress);
+            stringBuilder.append(" ").append(this.remoteStatusText.replaceAll("finished", "Waiting for Upload"))
+                .append(progress);
         }
         if (eta != null) {
-            stringBuilder.append(" ETA:" + this.eta);
+            stringBuilder.append(" ETA:").append(this.eta);
         }
         if (!isNotARemoteTorrent(magnetUriBase64)) {
             stringBuilder.append(String.format("%s - %s - folder_id: %s file_id: %s", this.getTorrentId(), this.remoteId, this.folder_id, this.file_id));
