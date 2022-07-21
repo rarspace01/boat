@@ -27,7 +27,7 @@ class Premiumize(httpHelper: HttpHelper) : HttpUser(httpHelper), MultifileHoster
         val response: String
         val addTorrenntUrl =
             "https://www.premiumize.me/api/transfer/create?apikey=" + PropertiesHelper.getProperty("PREMIUMIZE_APIKEY") +
-                "&type=hello.torrent&src=" + cleanMagnetUri(toBeAddedTorrent.magnetUri)
+                    "&type=hello.torrent&src=" + cleanMagnetUri(toBeAddedTorrent.magnetUri)
         response = httpHelper.getPage(addTorrenntUrl)
         return response
     }
@@ -99,12 +99,12 @@ class Premiumize(httpHelper: HttpHelper) : HttpUser(httpHelper), MultifileHoster
         val responseFilesPage = if (isSingleFileTorrent(torrent)) {
             httpHelper.getPage(
                 "https://www.premiumize.me/api/folder/list?" +
-                    "includebreadcrumbs=false&apikey=" + PropertiesHelper.getProperty("PREMIUMIZE_APIKEY")
+                        "includebreadcrumbs=false&apikey=" + PropertiesHelper.getProperty("PREMIUMIZE_APIKEY")
             )
         } else {
             httpHelper.getPage(
                 "https://www.premiumize.me/api/folder/list?id=" + torrent.folder_id +
-                    "&includebreadcrumbs=false&apikey=" + PropertiesHelper.getProperty("PREMIUMIZE_APIKEY")
+                        "&includebreadcrumbs=false&apikey=" + PropertiesHelper.getProperty("PREMIUMIZE_APIKEY")
             )
         }
 
@@ -131,7 +131,7 @@ class Premiumize(httpHelper: HttpHelper) : HttpUser(httpHelper), MultifileHoster
         return filteredList
     }
 
-    private fun isSingleFileTorrent(torrent: Torrent) = torrent.file_id != null && torrent.file_id.isNotEmpty() && !torrent.file_id.contains("null")
+    private fun isSingleFileTorrent(torrent: Torrent) = torrent.file_id.isNotEmpty() && !torrent.file_id.contains("null")
 
     private fun extractTorrentFilesFromJSONFolder(
         returnList: MutableList<TorrentFile>,
@@ -140,7 +140,7 @@ class Premiumize(httpHelper: HttpHelper) : HttpUser(httpHelper), MultifileHoster
     ) {
         val responseFiles = httpHelper.getPage(
             "https://www.premiumize.me/api/folder/list?id=" + jsonFolder["id"].asText() +
-                "&apikey=" + PropertiesHelper.getProperty("PREMIUMIZE_APIKEY")
+                    "&apikey=" + PropertiesHelper.getProperty("PREMIUMIZE_APIKEY")
         )
         val folderName = prefix + jsonFolder["name"].asText() + "/"
         val m = ObjectMapper()
@@ -168,11 +168,12 @@ class Premiumize(httpHelper: HttpHelper) : HttpUser(httpHelper), MultifileHoster
         jsonFile: JsonNode,
         prefix: String
     ) {
-        val tf = TorrentFile()
-        tf.name = prefix + jsonFile["name"].asText()
-        tf.id = jsonFile["id"].asText()
-        tf.filesize = jsonFile["size"].asLong()
-        tf.url = jsonFile["link"].asText()
+        val tf = TorrentFile(
+            name = prefix + jsonFile["name"].asText(),
+            id = jsonFile["id"].asText(),
+            filesize = jsonFile["size"].asLong(),
+            url = jsonFile["link"].asText(),
+        )
         returnList.add(tf)
     }
 
@@ -227,7 +228,7 @@ class Premiumize(httpHelper: HttpHelper) : HttpUser(httpHelper), MultifileHoster
 
     override fun delete(remoteTorrent: Torrent) {
         val removeTorrenntUrl = "https://www.premiumize.me/api/transfer/delete?id=" + remoteTorrent.remoteId +
-            "&apikey=" + PropertiesHelper.getProperty("PREMIUMIZE_APIKEY")
+                "&apikey=" + PropertiesHelper.getProperty("PREMIUMIZE_APIKEY")
         val page = httpHelper.getPage(removeTorrenntUrl)
         if (!page.contains("success")) {
             log.error("Deleting failed: {}", removeTorrenntUrl)

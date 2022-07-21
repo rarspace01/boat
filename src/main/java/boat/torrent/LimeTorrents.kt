@@ -41,7 +41,7 @@ class LimeTorrents internal constructor(httpHelper: HttpHelper) : HttpUser(httpH
         }
         torrentListOnPage.forEach(Consumer { torrentElement: Element ->
             val tempTorrent = Torrent(toString())
-            tempTorrent.name = torrentElement.getElementsByClass("tt-name").first()?.text()
+            tempTorrent.name = torrentElement.getElementsByClass("tt-name").first()?.text() ?: ""
             val torrentHash = torrentElement.getElementsByClass("tt-name").first()
                 ?.getElementsByAttributeValueContaining("href", "itorrents")?.first()?.attr("href")
                 ?.replace("http://itorrents.org/torrent/".toRegex(), "")?.replace("\\.torrent.*".toRegex(), "")
@@ -49,10 +49,10 @@ class LimeTorrents internal constructor(httpHelper: HttpHelper) : HttpUser(httpH
             try {
                 tempTorrent.seeder = torrentElement.getElementsByClass("tdseed").first()!!.text().replace("[,.]".toRegex(), "").toInt()
                 tempTorrent.leecher = torrentElement.getElementsByClass("tdleech").first()!!.text().replace("[,.]".toRegex(), "").toInt()
-                tempTorrent.lsize = TorrentHelper
+                tempTorrent.sizeInMB = TorrentHelper
                     .extractTorrentSizeFromString(torrentElement.getElementsByClass("tdnormal")[1].text())
                 tempTorrent.size = TorrentHelper
-                    .humanReadableByteCountBinary((tempTorrent.lsize * 1024.0 * 1024.0).toLong())
+                    .humanReadableByteCountBinary((tempTorrent.sizeInMB * 1024.0 * 1024.0).toLong())
             } catch (exception: Exception) {
                 logger.error("parsing exception", exception)
             }

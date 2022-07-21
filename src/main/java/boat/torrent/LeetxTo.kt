@@ -8,7 +8,6 @@ import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.function.Consumer
-import java.util.stream.Collectors
 
 class LeetxTo internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper), TorrentSearchEngine {
     override fun searchTorrents(searchName: String): List<Torrent> {
@@ -51,7 +50,7 @@ class LeetxTo internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper
                         if (element.attr("class").contains("size")) {
                             tempTorrent.size = TorrentHelper.cleanNumberString(
                                 element.getElementsByAttributeValueContaining("class", "size")[0].textNodes()[0].text().trim { it <= ' ' })
-                            tempTorrent.lsize = TorrentHelper.extractTorrentSizeFromString(tempTorrent)
+                            tempTorrent.sizeInMB = TorrentHelper.extractTorrentSizeFromString(tempTorrent)
                         }
                         if (element.attr("class").contains("seeds")) {
                             tempTorrent.seeder = TorrentHelper.cleanNumberString(
@@ -81,13 +80,13 @@ class LeetxTo internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper
         return torrentList.filter { torrent: Torrent -> TorrentHelper.isValidTorrent(torrent) }
     }
 
-    private fun retrieveMagnetUri(torrent: Torrent): String? {
+    private fun retrieveMagnetUri(torrent: Torrent): String {
         val pageContent = httpHelper.getPage(torrent.remoteUrl)
         val doc = Jsoup.parse(pageContent)
         return if (!CollectionUtils.isEmpty(doc.select("* > li > a[href*=magnet]"))) {
             doc.select("* > li > a[href*=magnet]")[0].attr("href").trim { it <= ' ' }
         } else {
-            null
+            ""
         }
     }
 

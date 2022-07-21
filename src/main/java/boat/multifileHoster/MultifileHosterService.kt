@@ -93,6 +93,7 @@ class MultifileHosterService(
             transferStatus = TransferStatus.ADDED,
             source = selectedMultiFileHosterSource.getName(),
             uri = torrent.magnetUri,
+            sizeInBytes = torrent.getByteSize()
         )
         transferService.save(transfer)
 //        val listOfMultihostersWithTrafficLeft = multifileHosterList.filter { multifileHoster -> multifileHoster.getRemainingTrafficInMB() > 30000 }
@@ -533,7 +534,7 @@ class MultifileHosterService(
         listOfFiles: List<TorrentFile>,
         currentFileNumber: Int,
         startTime: Instant?
-    ): Duration? {
+    ): Duration {
         val remainingDuration: Duration
         val fileCount = listOfFiles.size
         remainingDuration = if (startTime == null || currentFileNumber == 0) {

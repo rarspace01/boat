@@ -49,7 +49,7 @@ class Kat internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper), T
                     if (element.getElementsByAttributeValueMatching("data-title", "Size").size > 0) {
                         tempTorrent.size = TorrentHelper.cleanNumberString(
                             element.getElementsByAttributeValueMatching("data-title", "Size").text().trim { it <= ' ' })
-                        tempTorrent.lsize = TorrentHelper.extractTorrentSizeFromString(tempTorrent)
+                        tempTorrent.sizeInMB = TorrentHelper.extractTorrentSizeFromString(tempTorrent)
                     }
                     if (element.getElementsByAttributeValueMatching("data-title", "Seed").size > 0) {
                         tempTorrent.seeder = TorrentHelper.cleanNumberString(

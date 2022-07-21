@@ -49,8 +49,8 @@ class SolidTorrents internal constructor(httpHelper: HttpHelper) : HttpUser(http
                 val stats = it.getElementsByClass("stats")
                 // extract Size & S/L
                 tempTorrent.name = title.text().replace("✅", "").trim()
-                tempTorrent.lsize = TorrentHelper.extractTorrentSizeFromString(stats[0].allElements[3].text())
-                tempTorrent.size = TorrentHelper.humanReadableByteCountBinary((tempTorrent.lsize * 1024 * 1024).toLong())
+                tempTorrent.sizeInMB = TorrentHelper.extractTorrentSizeFromString(stats[0].allElements[3].text())
+                tempTorrent.size = TorrentHelper.humanReadableByteCountBinary((tempTorrent.sizeInMB * 1024 * 1024).toLong())
                 tempTorrent.seeder = stats[0].allElements[7].text().trim().toInt()
                 tempTorrent.leecher = stats[0].allElements[10].text().trim().toInt()
                 tempTorrent.magnetUri = magnetUri

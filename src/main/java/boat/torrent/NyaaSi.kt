@@ -60,7 +60,7 @@ class NyaaSi internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper)
                         }
                         if (element.text().contains("MiB") || element.text().contains("GiB")) {
                             tempTorrent.size = TorrentHelper.cleanNumberString(element.text().trim { it <= ' ' })
-                            tempTorrent.lsize = TorrentHelper.extractTorrentSizeFromString(tempTorrent)
+                            tempTorrent.sizeInMB = TorrentHelper.extractTorrentSizeFromString(tempTorrent)
                         }
                     })
                 }

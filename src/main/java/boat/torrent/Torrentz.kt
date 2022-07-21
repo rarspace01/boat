@@ -2,7 +2,6 @@ package boat.torrent
 
 import boat.utilities.HttpHelper
 import boat.utilities.LoggerDelegate
-import lombok.extern.slf4j.Slf4j
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 import java.net.URLEncoder
@@ -45,12 +44,12 @@ class Torrentz internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelpe
                 tempTorrent.seeder = torrentElement.getElementsByAttributeValue("data-title", "Last Updated").stream()
                     .filter { element: Element -> !element.hasAttr("class") }.findFirst().get().text().toInt()
                 tempTorrent.leecher = torrentElement.getElementsByAttributeValue("data-title", "Leeches").first()!!.text().toInt()
-                tempTorrent.lsize = TorrentHelper.extractTorrentSizeFromString(
+                tempTorrent.sizeInMB = TorrentHelper.extractTorrentSizeFromString(
                     torrentElement.getElementsByAttributeValue("data-title", "Size").first()!!.text()
                         .replace(".*Size\\s|,.*".toRegex(), "")
                 )
                 tempTorrent.size = TorrentHelper
-                    .humanReadableByteCountBinary((tempTorrent.lsize * 1024.0 * 1024.0).toLong())
+                    .humanReadableByteCountBinary((tempTorrent.sizeInMB * 1024.0 * 1024.0).toLong())
             } catch (exception: Exception) {
                 logger.error("parsing exception", exception)
             }
