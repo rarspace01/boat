@@ -43,7 +43,7 @@ class MultifileHosterService(
     private val multifileHosterList: MutableList<MultifileHoster> = mutableListOf(Premiumize(httpHelper), Alldebrid(httpHelper))
     private val multifileHosterListForDownloads: MutableList<MultifileHoster> = getEligibleMultifileHoster(httpHelper)
 
-    val localStatusStorage = HashMap<String, String>()
+    private val localStatusStorage = HashMap<String, String>()
 
     var activeTorrents: MutableList<Torrent> = java.util.ArrayList()
 
@@ -187,25 +187,20 @@ class MultifileHosterService(
             .flatMap { multifileHoster: MultifileHoster -> multifileHoster.getRemoteTorrents().stream() }
             .collect(Collectors.toList())
 
-    fun isSingleFileDownload(torrentToBeDownloaded: Torrent): Boolean {
-        val tfList = getFilesFromTorrent(torrentToBeDownloaded)
+    private fun isSingleFileDownload(torrentFiles: List<TorrentFile>): Boolean {
         var sumFileSize = 0L
         var biggestFileYet = 0L
-        for (tf in tfList) {
-            if (tf.filesize > biggestFileYet) {
-                biggestFileYet = tf.filesize
+        for (torrentFile in torrentFiles) {
+            if (torrentFile.filesize > biggestFileYet) {
+                biggestFileYet = torrentFile.filesize
             }
-            sumFileSize += tf.filesize
+            sumFileSize += torrentFile.filesize
         }
         // if maxfilesize >90% sumSize --> Singlefile
         return biggestFileYet > 0.9 * sumFileSize
     }
 
-    fun isMultiFileDownload(torrentToBeDownloaded: Torrent): Boolean {
-        return getFilesFromTorrent(torrentToBeDownloaded).size > 1
-    }
-
-    fun getSizeOfTorrentInMB(torrent: Torrent): Double {
+    private fun getSizeOfTorrentInMB(torrent: Torrent): Double {
         val size: Long = getFilesFromTorrent(torrent).sumOf { torrentFile: TorrentFile -> torrentFile.filesize }
         return size.toDouble() / 1024.0 / 1024.0
     }
@@ -214,25 +209,22 @@ class MultifileHosterService(
         return multifileHosterList.sumOf { multifileHoster: MultifileHoster -> multifileHoster.getRemainingTrafficInMB() }
     }
 
-    fun getFilesFromTorrent(torrentToBeDownloaded: Torrent): List<TorrentFile> {
-        val hoster = multifileHosterList.stream()
-            .filter { multifileHoster: MultifileHoster -> multifileHoster.getName() == torrentToBeDownloaded.source }
-            .findFirst()
-        return if (hoster.isPresent) {
-            hoster.get().getFilesFromTorrent(torrentToBeDownloaded)
+    private fun getFilesFromTorrent(torrentToBeDownloaded: Torrent): List<TorrentFile> {
+        val hoster = multifileHosterList.firstOrNull { multifileHoster: MultifileHoster -> multifileHoster.getName() == torrentToBeDownloaded.source }
+        return if (hoster != null) {
+            hoster.getFilesFromTorrent(torrentToBeDownloaded)
         } else {
-            log.error("no MFH present for downloads")
+            log.error("no MFH Files present to be downloaded")
             ArrayList()
         }
     }
 
-    fun getMainFileURLFromTorrent(torrentToBeDownloaded: Torrent): TorrentFile {
-        val tfList = getFilesFromTorrent(torrentToBeDownloaded)
+    private fun getMainFileURLFromTorrent(torrentFiles: List<TorrentFile>): TorrentFile {
         // iterate over and check for One File Torrent
-        var biggestFileYet: TorrentFile = tfList[0]
-        for (tf in tfList) {
-            if (tf.filesize > biggestFileYet.filesize) {
-                biggestFileYet = tf
+        var biggestFileYet: TorrentFile = torrentFiles[0]
+        for (torrentFile in torrentFiles) {
+            if (torrentFile.filesize > biggestFileYet.filesize) {
+                biggestFileYet = torrentFile
             }
         }
         return biggestFileYet
@@ -401,14 +393,15 @@ class MultifileHosterService(
                 log.warn("Torrent not in transfers but downloading it: {}", torrentToBeDownloaded)
             }
             try {
-                if (isSingleFileDownload(torrentToBeDownloaded)) {
+                val filesFromTorrent = getFilesFromTorrent(torrentToBeDownloaded)
+                if (isSingleFileDownload(filesFromTorrent)) {
                     transferToBeDownloaded.ifPresent { transfer: Transfer? ->
                         log.info(
                             "SFD - {}",
                             transfer
                         )
                     }
-                    val fileToDownload: TorrentFile = getMainFileURLFromTorrent(torrentToBeDownloaded)
+                    val fileToDownload: TorrentFile = getMainFileURLFromTorrent(filesFromTorrent)
                     updateUploadStatus(torrentToBeDownloaded, listOf(fileToDownload), 0, null)
                     if (torrentToBeDownloaded.name.contains("magnet:?")) {
                         torrentToBeDownloaded.name = extractFileNameFromUrl(fileToDownload.url)
@@ -423,14 +416,13 @@ class MultifileHosterService(
                     delete(torrentToBeDownloaded)
                     transferToBeDownloaded = transferService.get(transferToBeDownloaded)
                     transferToBeDownloaded.ifPresent { transfer: Transfer? -> transferService.delete(transfer!!) }
-                } else if (isMultiFileDownload(torrentToBeDownloaded)) {
+                } else {
                     transferToBeDownloaded.ifPresent { transfer: Transfer? ->
                         log.info(
                             "MFD - {}",
                             transfer
                         )
                     }
-                    val filesFromTorrent: List<TorrentFile> = getFilesFromTorrent(torrentToBeDownloaded)
                     var currentFileNumber = 0
                     var failedUploads = 0
                     val startTime = Instant.now()
@@ -462,8 +454,6 @@ class MultifileHosterService(
                     delete(torrentToBeDownloaded)
                     transferToBeDownloaded = transferService.get(transferToBeDownloaded)
                     transferToBeDownloaded.ifPresent { transfer: Transfer? -> transferService.delete(transfer!!) }
-                } else {
-                    log.error(torrentToBeDownloaded.toString())
                 }
             } catch (exception: Exception) {
                 log.error(String.format("Couldn't download Torrent: %s", torrentToBeDownloaded), exception)
@@ -534,7 +524,7 @@ class MultifileHosterService(
         return TransferStatus.READY_TO_BE_DOWNLOADED === remoteTorrent.remoteTransferStatus
     }
 
-    fun getUploadDuration(
+    private fun getUploadDuration(
         listOfFiles: List<TorrentFile>,
         currentFileNumber: Int,
         startTime: Instant?
@@ -563,7 +553,7 @@ class MultifileHosterService(
         listOfFiles: List<TorrentFile>,
         currentFileNumber: Int,
         startTime: Instant?
-    ): String? {
+    ): String {
         val remainingDuration: Duration
         val fileCount = listOfFiles.size
         remainingDuration = if (startTime == null || currentFileNumber == 0) {
@@ -633,7 +623,7 @@ class MultifileHosterService(
         }
     }
 
-    fun buildFilename(name: String?, fileURLFromTorrent: String?): String? {
+    fun buildFilename(name: String?, fileURLFromTorrent: String?): String {
         val fileEndingFromUrl: String? = extractFileEndingFromUrl(fileURLFromTorrent)
         var returnName = if (StringUtils.hasText(name)) name ?: fileURLFromTorrent!! else fileURLFromTorrent!!
         returnName = returnName.replace("\"".toRegex(), "")
@@ -674,7 +664,7 @@ class MultifileHosterService(
         activeTorrents.addAll(remoteTorrents)
     }
 
-    fun getTorrentsToDownload(): List<Torrent> {
+    private fun getTorrentsToDownload(): List<Torrent> {
         val remoteTorrents = remoteTorrentsForDownload.apply {
             forEach(
                 Consumer { torrent: Torrent ->
@@ -696,7 +686,7 @@ class MultifileHosterService(
         return status != null && status.lowercase(Locale.getDefault()).matches(Regex("finished|seeding|ready"))
     }
 
-    fun updateTorrent(torrentUpdate: Torrent) {
+    private fun updateTorrent(torrentUpdate: Torrent) {
         localStatusStorage[torrentUpdate.torrentId] = torrentUpdate.remoteStatusText
         torrentUpdate.remoteId?.let {
             localStatusStorage[torrentUpdate.remoteId] = torrentUpdate.remoteStatusText
