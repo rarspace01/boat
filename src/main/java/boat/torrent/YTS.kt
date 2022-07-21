@@ -6,7 +6,6 @@ import com.google.gson.JsonArray
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
-import lombok.extern.slf4j.Slf4j
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.util.Date
@@ -62,7 +61,7 @@ class YTS internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper), T
                 tempTorrent.seeder = bestTorrentSource["seeds"].asInt
                 tempTorrent.leecher = bestTorrentSource["peers"].asInt
                 tempTorrent.size = bestTorrentSource["size"].asString
-                tempTorrent.lsize = (bestTorrentSource["size_bytes"].asLong / 1024.0f / 1024.0f).toDouble()
+                tempTorrent.sizeInMB = (bestTorrentSource["size_bytes"].asLong / 1024.0f / 1024.0f).toDouble()
                 tempTorrent.date = Date(bestTorrentSource["date_uploaded_unix"].asLong * 1000)
                 TorrentHelper.evaluateRating(tempTorrent, searchName)
                 if (TorrentHelper.isValidTorrent(tempTorrent)) {

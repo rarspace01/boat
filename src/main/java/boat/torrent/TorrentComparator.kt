@@ -8,7 +8,7 @@ class TorrentComparator {
             } else if (o1.searchRating < o2.searchRating) {
                 1
             } else {
-                o2.lsize.compareTo(o1.lsize)
+                o2.sizeInMB.compareTo(o1.sizeInMB)
             }
         }
     }

@@ -56,7 +56,7 @@ class RARBG(httpHelper: HttpHelper) : HttpUser(httpHelper), TorrentSearchEngine 
             .findFirst().orElse(null)
         val text = doc.text()
         torrent.size = TorrentHelper.cleanNumberString(getValueBetweenStrings(text, "Size: ", "Show Files").trim { it <= ' ' })
-        torrent.lsize = TorrentHelper.extractTorrentSizeFromString(torrent)
+        torrent.sizeInMB = TorrentHelper.extractTorrentSizeFromString(torrent)
         try {
             torrent.seeder = getValueBetweenStrings(text, "Seeders : ", " ,").trim { it <= ' ' }.toInt()
             torrent.leecher = getValueBetweenStrings(text, "Leechers : ", " ,").trim { it <= ' ' }.toInt()

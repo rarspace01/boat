@@ -3,6 +3,7 @@ package boat.mapper
 import boat.model.Transfer
 import boat.model.TransferStatus
 import boat.torrent.Torrent
+import boat.torrent.TorrentHelper
 
 class TorrentMapper {
     companion object {
@@ -29,11 +30,16 @@ class TorrentMapper {
         }
 
         fun mapTransferToTorrent(transfer: Transfer): Torrent {
-            val torrent = Torrent(transfer.source)
-            torrent.magnetUri = transfer.uri
-            torrent.remoteStatusText = transfer.feedbackMessage
-            torrent.localTransferStatus = transfer.transferStatus
-            return torrent
+            return Torrent(
+                source = transfer.source,
+                name = transfer.name,
+                size = TorrentHelper.humanReadableByteCountBinary(transfer.sizeInBytes),
+                magnetUri = transfer.uri,
+                remoteStatusText = transfer.feedbackMessage ?: "",
+                remoteTransferStatus = transfer.transferStatus,
+                localTransferStatus = transfer.transferStatus,
+                remoteId = transfer.remoteId ?: "",
+            )
         }
     }
 }

@@ -48,7 +48,7 @@ class Alldebrid(httpHelper: HttpHelper) : HttpUser(httpHelper), MultifileHoster 
                 torrent.remoteId = jsonTorrent["id"].asString
                 torrent.name = jsonTorrent["filename"].asString
                 torrent.size = (jsonTorrent["size"].asLong / 1024 / 1024).toString() + "MB"
-                torrent.lsize = TorrentHelper.extractTorrentSizeFromString(torrent)
+                torrent.sizeInMB = TorrentHelper.extractTorrentSizeFromString(torrent)
                 val downloaded = jsonTorrent["downloaded"].asLong.toDouble()
                 val size = jsonTorrent["size"].asLong.toDouble()
                 val downloadSpeed = jsonTorrent["downloadSpeed"].asLong.toDouble()
@@ -81,7 +81,7 @@ class Alldebrid(httpHelper: HttpHelper) : HttpUser(httpHelper), MultifileHoster 
             torrent.remoteId = jsonTorrent["id"].asString
             torrent.name = jsonTorrent["filename"].asString
             torrent.size = (jsonTorrent["size"].asLong / 1024 / 1024).toString() + "MB"
-            torrent.lsize = TorrentHelper.extractTorrentSizeFromString(torrent)
+            torrent.sizeInMB = TorrentHelper.extractTorrentSizeFromString(torrent)
             val downloaded = jsonTorrent["downloaded"].asLong.toDouble()
             val size = jsonTorrent["size"].asLong.toDouble()
             val downloadSpeed = jsonTorrent["downloadSpeed"].asLong.toDouble()
@@ -96,38 +96,35 @@ class Alldebrid(httpHelper: HttpHelper) : HttpUser(httpHelper), MultifileHoster 
             torrent.remoteTransferStatus = TorrentMapper.mapRemoteStatus(torrent.remoteStatusCode)
             val links = jsonTorrent["links"].asJsonArray
             if (remoteId != null) {
-                torrent.fileList.clear()
-                torrent.fileList.addAll(extractFiles(links))
+                torrent.fileList = extractFiles(links)
             }
         }
         return torrent
     }
 
     private fun extractFiles(links: JsonArray?): List<TorrentFile> {
-        val torrentFiles = ArrayList<TorrentFile>()
-        links?.forEach(
-            Consumer { jsonElement: JsonElement ->
-                val torrentFile = TorrentFile()
-                torrentFile.filesize = jsonElement.asJsonObject["size"].asLong
-                torrentFile.name = jsonElement.asJsonObject["filename"].asString
-                torrentFile.url = jsonElement.asJsonObject["link"].asString
-                torrentFiles.add(torrentFile)
-            }
-        )
-        torrentFiles.map { torrentFile: TorrentFile -> resolveDirectLink(torrentFile) }
-        return torrentFiles
+        val torrentFiles = mutableListOf<TorrentFile>()
+        links?.map {
+            val torrentFile = TorrentFile(
+                filesize = it.asJsonObject["size"].asLong,
+                name = it.asJsonObject["filename"].asString,
+                url = resolveDirectLink(it.asJsonObject["link"].asString),
+            )
+
+        } ?: emptyList()
+        return torrentFiles.filter { it.url.isNotEmpty() }
     }
 
-    private fun resolveDirectLink(torrentFile: TorrentFile) {
+    private fun resolveDirectLink(torrentFilePath: String): String {
         val baseUrl =
             "https://api.alldebrid.com/v4/link/unlock?agent=pirateboat&apikey=" + PropertiesHelper.getProperty("ALLDEBRID_APIKEY") + "&link=%s"
-        val requestUrl = String.format(baseUrl, TorrentHelper.urlEncode(torrentFile.url.toString()))
+        val requestUrl = String.format(baseUrl, TorrentHelper.urlEncode(torrentFilePath))
         val pageContent = httpHelper.getPage(requestUrl)
         val jsonRoot = JsonParser.parseString(pageContent)
         val data = jsonRoot.asJsonObject["data"]
         if (data != null) {
-            torrentFile.url = data.asJsonObject["link"].asString
-        }
+            return data.asJsonObject["link"].asString
+        } else return ""
     }
 
     override fun enrichCacheStateOfTorrents(torrents: List<Torrent>) {

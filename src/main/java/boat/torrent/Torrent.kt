@@ -10,32 +10,32 @@ import java.util.Locale
 import java.util.Objects
 import java.util.regex.Pattern
 
-class Torrent(
-    var source: String,
-    var name: String,
+data class Torrent(
+    var source: String = "NONE",
+    var name: String = "",
     var date: Date? = null,
-    var size: String,
-    var lsize: Double = 0.0,
+    var size: String = "",
+    var sizeInMB: Double = 0.0,
     var seeder: Int = -1,
     var leecher: Int = -1,
-    var magnetUri: String,
+    var magnetUri: String = "",
     var category: String? = null,
     var searchRating: Double = 0.0,
     var debugRating: String = "",
-    var remoteStatusText: String,
+    var remoteStatusText: String = "",
     var remoteStatusCode: Int = 0,
-    var remoteTransferStatus: TransferStatus,
-    var localTransferStatus: TransferStatus,
+    var remoteTransferStatus: TransferStatus = TransferStatus.NONE,
+    var localTransferStatus: TransferStatus = TransferStatus.NONE,
     var remoteProgress: String? = null,
     var remoteProgressInPercent: Double = 0.0,
     var progress: String? = null,
-    var eta: Duration? = null,
-    var remoteId: String,
+    var eta: Duration = Duration.ZERO,
+    var remoteId: String = "",
     var folder_id: String? = null,
-    var file_id: String? = null,
-    var remoteUrl: String? = null,
-    var cached: List<String> = ArrayList(),
-    var fileList: List<TorrentFile> = ArrayList(),
+    var file_id: String = "",
+    var remoteUrl: String = "",
+    var cached: MutableList<String> = mutableListOf(),
+    var fileList: List<TorrentFile> = mutableListOf(),
     var isVerified: Boolean = false,
     var statsVerified: Boolean = false,
 
@@ -131,7 +131,11 @@ class Torrent(
         private get() = Objects.requireNonNullElseGet(remoteId) { this.hashCode().toString() }
 
     override fun compareTo(o: Torrent): Int {
-        return if (lsize < o.lsize) -1 else 1
+        return if (sizeInMB < o.sizeInMB) -1 else 1
+    }
+
+    fun getByteSize(): Long {
+        return (sizeInMB * 1024 * 1024).toLong()
     }
 
     companion object {

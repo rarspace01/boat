@@ -1,65 +1,55 @@
-package boat.info;
+package boat.info
 
-import java.util.List;
+import boat.torrent.Torrent
+import boat.utilities.HttpHelper
+import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 
-import boat.torrent.Torrent;
-import boat.utilities.HttpHelper;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-
-class TheFilmDataBaseServiceTest {
-
-    private TheFilmDataBaseService tfdbs;
-
+internal class TheFilmDataBaseServiceTest {
+    private var tfdbs: TheFilmDataBaseService? = null
     @BeforeEach
-    public void beforeMethod() {
-        this.tfdbs = new TheFilmDataBaseService(new HttpHelper());
+    fun beforeMethod() {
+        tfdbs = TheFilmDataBaseService(HttpHelper())
     }
 
     @Test
-    void search() {
+    fun search() {
         // Given
         // When
-        List<MediaItem> mediaItems = tfdbs.search("Planet");
+        val mediaItems = tfdbs!!.search("Planet")
         // Then
-        assertTrue(mediaItems.size() > 0);
+        Assertions.assertTrue(mediaItems!!.size > 0)
     }
 
     @Test
-    void searchEmpty() {
+    fun searchEmpty() {
         // Given
         // When
-        List<MediaItem> mediaItems = tfdbs.search("TrestTrest");
+        val mediaItems = tfdbs!!.search("TrestTrest")
         // Then
-        assertEquals(0, mediaItems.size());
+        Assertions.assertEquals(0, mediaItems!!.size)
     }
 
     @Test
-    void determineMediaType() {
+    fun determineMediaType() {
         // Given
-        Torrent mockTorrent = new Torrent("Test");
-        mockTorrent.name = "Big Buck Bunny (2008) [720p] [PLA]";
+        val mockTorrent = Torrent("Test")
+        mockTorrent.name = "Big Buck Bunny (2008) [720p] [PLA]"
         // When
-        MediaType mediaType = tfdbs.determineMediaType(mockTorrent);
+        val mediaType = tfdbs!!.determineMediaType(mockTorrent)
         // Then
-        assertEquals(MediaType.Movie, mediaType);
-
+        Assertions.assertEquals(MediaType.Movie, mediaType)
     }
 
     @Test
-    void determineMediaTypeMore() {
+    fun determineMediaTypeMore() {
         // Given
-        Torrent mockTorrent = new Torrent("Test");
-        mockTorrent.name = "Big.Buck.Bunny.2008.REMASTERED.1080p.BluRay.x264.DTS-FGT";
+        val mockTorrent = Torrent("Test")
+        mockTorrent.name = "Big.Buck.Bunny.2008.REMASTERED.1080p.BluRay.x264.DTS-FGT"
         // When
-        MediaType mediaType = tfdbs.determineMediaType(mockTorrent);
+        val mediaType = tfdbs!!.determineMediaType(mockTorrent)
         // Then
-        assertEquals(MediaType.Movie, mediaType);
-
+        Assertions.assertEquals(MediaType.Movie, mediaType)
     }
-
 }

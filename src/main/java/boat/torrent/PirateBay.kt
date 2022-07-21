@@ -5,7 +5,6 @@ import boat.utilities.LoggerDelegate
 import com.google.gson.JsonElement
 import com.google.gson.JsonParser
 import com.google.gson.JsonSyntaxException
-import lombok.extern.slf4j.Slf4j
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.CopyOnWriteArrayList
@@ -52,7 +51,7 @@ class PirateBay internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelp
                     tempTorrent.leecher = jsonObject["leechers"].asInt
                     tempTorrent.isVerified = "vip" == jsonObject["status"].asString
                     val size = jsonObject["size"].asLong
-                    tempTorrent.lsize = (size / 1024.0f / 1024.0f).toDouble()
+                    tempTorrent.sizeInMB = (size / 1024.0f / 1024.0f).toDouble()
                     tempTorrent.size = String.format("%s", TorrentHelper.humanReadableByteCountBinary(size))
                     TorrentHelper.evaluateRating(tempTorrent, searchName)
                     if (TorrentHelper.isValidTorrent(tempTorrent)) {

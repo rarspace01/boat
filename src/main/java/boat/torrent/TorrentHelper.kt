@@ -95,7 +95,7 @@ object TorrentHelper {
         }
 
         // calc first range
-        val sizeRating = Math.min(tempTorrent.lsize, SIZE_UPPER_LIMIT) / SIZE_UPPER_LIMIT
+        val sizeRating = Math.min(tempTorrent.sizeInMB, SIZE_UPPER_LIMIT) / SIZE_UPPER_LIMIT
         // calculate seeder ratio
         val seedRatio: Double
         seedRatio = if (tempTorrent.leecher > 0) {
@@ -233,7 +233,7 @@ object TorrentHelper {
     fun isValidTorrent(torrent: Torrent, validateUri: Boolean): Boolean {
         return torrent.name != null &&
                 (if (validateUri) torrent.magnetUri != null else true) &&
-                !isBlocklisted(torrent) && torrent.lsize > 0
+                !isBlocklisted(torrent) && torrent.sizeInMB > 0
     }
 
     fun isValidTorrent(torrent: Torrent): Boolean {

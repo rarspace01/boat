@@ -1,99 +1,117 @@
-package boat.torrent;
+package boat.torrent
 
-import java.util.ArrayList;
-import java.util.List;
+import boat.multifileHoster.Alldebrid
+import boat.multifileHoster.Premiumize
+import boat.utilities.HttpHelper
+import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 
-import boat.multifileHoster.Alldebrid;
-import boat.multifileHoster.Premiumize;
-import boat.utilities.HttpHelper;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-
-class MultihosterTest {
-
-    Premiumize premiumize;
-    Alldebrid alldebrid;
-
+internal class MultihosterTest {
+    var premiumize: Premiumize? = null
+    var alldebrid: Alldebrid? = null
     @BeforeEach
-    void beforeEach() {
-        premiumize = new Premiumize(new HttpHelper());
-        alldebrid = new Alldebrid(new HttpHelper());
+    fun beforeEach() {
+        premiumize = Premiumize(HttpHelper())
+        alldebrid = Alldebrid(HttpHelper())
     }
 
-    @Test
-    void getCacheStateOfTorrent() {
-        // Given
-        List<Torrent> listOfTorrents = new ArrayList<>();
-        Torrent torrentToBeChecked = new Torrent("Test");
-        torrentToBeChecked.magnetUri = "magnet:?xt=urn:btih:e2467cbf021192c241367b892230dc1e05c0580e&dn=test";
-        listOfTorrents.add(torrentToBeChecked);
-
+    // Given
+    @get:Test
+    val cacheStateOfTorrent: Unit
         // When
-        assertDoesNotThrow(() -> premiumize.enrichCacheStateOfTorrents(listOfTorrents));
         // Then
         //assertThat(listOfTorrents).allMatch(torrent -> torrent.cached.size() > 0);
-    }
+        get() {
+            // Given
+            val listOfTorrents: MutableList<Torrent> = ArrayList()
+            val torrentToBeChecked = Torrent("Test")
+            torrentToBeChecked.magnetUri = "magnet:?xt=urn:btih:e2467cbf021192c241367b892230dc1e05c0580e&dn=test"
+            listOfTorrents.add(torrentToBeChecked)
 
-    @Test
-    void getCacheStateOfTorrents() {
-        // Given
-        List<Torrent> listOfTorrents = new ArrayList<>();
-        Torrent torrentToBeChecked = new Torrent("Test");
-        torrentToBeChecked.magnetUri = "magnet:?xt=urn:btih:e2467cbf021192c241367b892230dc1e05c0580e&dn=test";
-        for (int i = 0; i < 2; i++) {
-            listOfTorrents.add(torrentToBeChecked);
+            // When
+            Assertions.assertDoesNotThrow { premiumize!!.enrichCacheStateOfTorrents(listOfTorrents) }
+            // Then
+            //assertThat(listOfTorrents).allMatch(torrent -> torrent.cached.size() > 0);
         }
 
+    // Given
+    @get:Test
+    val cacheStateOfTorrents: Unit
         // When
-        assertDoesNotThrow(() -> premiumize.enrichCacheStateOfTorrents(listOfTorrents));
         // Then
         //assertThat(listOfTorrents).allMatch(torrent -> torrent.cached.size() > 0);
-    }
+        get() {
+            // Given
+            val listOfTorrents: MutableList<Torrent> = ArrayList()
+            val torrentToBeChecked = Torrent("Test")
+            torrentToBeChecked.magnetUri = "magnet:?xt=urn:btih:e2467cbf021192c241367b892230dc1e05c0580e&dn=test"
+            for (i in 0..1) {
+                listOfTorrents.add(torrentToBeChecked)
+            }
 
-    @Test
-    void getCacheStateOfALotOfTorrents() {
-        // Given
-        List<Torrent> listOfTorrents = new ArrayList<>();
-        Torrent torrentToBeChecked = new Torrent("Test");
-        torrentToBeChecked.magnetUri = "magnet:?xt=urn:btih:e2467cbf021192c241367b892230dc1e05c0580e&dn=test";
-
-        for (int i = 0; i < 100; i++) {
-            listOfTorrents.add(torrentToBeChecked);
+            // When
+            Assertions.assertDoesNotThrow { premiumize!!.enrichCacheStateOfTorrents(listOfTorrents) }
+            // Then
+            //assertThat(listOfTorrents).allMatch(torrent -> torrent.cached.size() > 0);
         }
 
+    // Given
+    @get:Test
+    val cacheStateOfALotOfTorrents: Unit
         // When
-        assertDoesNotThrow(() -> premiumize.enrichCacheStateOfTorrents(listOfTorrents));
         // Then
         //assertThat(listOfTorrents).allMatch(torrent -> torrent.cached.size() > 0);
-    }
+        get() {
+            // Given
+            val listOfTorrents: MutableList<Torrent> = ArrayList()
+            val torrentToBeChecked = Torrent("Test")
+            torrentToBeChecked.magnetUri = "magnet:?xt=urn:btih:e2467cbf021192c241367b892230dc1e05c0580e&dn=test"
+            for (i in 0..99) {
+                listOfTorrents.add(torrentToBeChecked)
+            }
 
-    @Test()
-    void getCacheStateOfTorrentsWithEmptyDN() {
-        // Given
-        List<Torrent> listOfTorrents = new ArrayList<>();
-        Torrent torrentToBeChecked = new Torrent("Test");
-        torrentToBeChecked.magnetUri = "magnet:?xt=urn:btih:e2467cbf021192c241367b892230dc1e05c0580e&tracker=test";
-        listOfTorrents.add(torrentToBeChecked);
+            // When
+            Assertions.assertDoesNotThrow { premiumize!!.enrichCacheStateOfTorrents(listOfTorrents) }
+            // Then
+            //assertThat(listOfTorrents).allMatch(torrent -> torrent.cached.size() > 0);
+        }
 
+    // Given
+    @get:Test
+    val cacheStateOfTorrentsWithEmptyDN: Unit
         // When
-        assertDoesNotThrow(() -> premiumize.enrichCacheStateOfTorrents(listOfTorrents));
         // Then
         //assertTrue(listOfTorrents.get(0).cached.size() > 0);
-    }
+        get() {
+            // Given
+            val listOfTorrents: MutableList<Torrent> = ArrayList()
+            val torrentToBeChecked = Torrent("Test")
+            torrentToBeChecked.magnetUri = "magnet:?xt=urn:btih:e2467cbf021192c241367b892230dc1e05c0580e&tracker=test"
+            listOfTorrents.add(torrentToBeChecked)
 
-    @Test()
-    void getCacheStateOfTorrentsWithEmptyDNAllDebrid() {
-        // Given
-        List<Torrent> listOfTorrents = new ArrayList<>();
-        Torrent torrentToBeChecked = new Torrent("Test");
-        torrentToBeChecked.magnetUri = "magnet:?xt=urn:btih:e2467cbf021192c241367b892230dc1e05c0580e&tracker=test";
-        listOfTorrents.add(torrentToBeChecked);
+            // When
+            Assertions.assertDoesNotThrow { premiumize!!.enrichCacheStateOfTorrents(listOfTorrents) }
+            // Then
+            //assertTrue(listOfTorrents.get(0).cached.size() > 0);
+        }
 
+    // Given
+    @get:Test
+    val cacheStateOfTorrentsWithEmptyDNAllDebrid: Unit
         // When
-        assertDoesNotThrow(() -> alldebrid.enrichCacheStateOfTorrents(listOfTorrents));
         // Then
         //assertTrue(listOfTorrents.get(0).cached.size() > 0);
-    }
+        get() {
+            // Given
+            val listOfTorrents: MutableList<Torrent> = ArrayList()
+            val torrentToBeChecked = Torrent("Test")
+            torrentToBeChecked.magnetUri = "magnet:?xt=urn:btih:e2467cbf021192c241367b892230dc1e05c0580e&tracker=test"
+            listOfTorrents.add(torrentToBeChecked)
+
+            // When
+            Assertions.assertDoesNotThrow { alldebrid!!.enrichCacheStateOfTorrents(listOfTorrents) }
+            // Then
+            //assertTrue(listOfTorrents.get(0).cached.size() > 0);
+        }
 }

@@ -45,8 +45,8 @@ class MagnetDL internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelpe
                 .first()!!.attr("href")
             tempTorrent.seeder = torrentElement.getElementsByClass("s").first()!!.text().toInt()
             tempTorrent.leecher = torrentElement.getElementsByClass("l").first()!!.text().toInt()
-            tempTorrent.lsize = TorrentHelper.extractTorrentSizeFromString(torrentElement.child(5).text())
-            tempTorrent.size = TorrentHelper.humanReadableByteCountBinary((tempTorrent.lsize * 1024.0 * 1024.0).toLong())
+            tempTorrent.sizeInMB = TorrentHelper.extractTorrentSizeFromString(torrentElement.child(5).text())
+            tempTorrent.size = TorrentHelper.humanReadableByteCountBinary((tempTorrent.sizeInMB * 1024.0 * 1024.0).toLong())
             TorrentHelper.evaluateRating(tempTorrent, searchName)
             if (TorrentHelper.isValidTorrent(tempTorrent)) {
                 torrentList.add(tempTorrent)

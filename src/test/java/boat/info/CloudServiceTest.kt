@@ -1,181 +1,176 @@
-package boat.info;
+package boat.info
 
-import java.util.List;
+import boat.torrent.Torrent
+import boat.torrent.TorrentFile
+import boat.utilities.PropertiesHelper
+import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable
 
-import boat.torrent.Torrent;
-import boat.torrent.TorrentFile;
-import boat.utilities.PropertiesHelper;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-class CloudServiceTest {
-
-    private CloudService cloudService;
-
+internal class CloudServiceTest {
+    private var cloudService: CloudService? = null
     @BeforeEach
-    public void beforeMethod() {
-        cloudService = new CloudService(new CloudFileService());
+    fun beforeMethod() {
+        cloudService = CloudService(CloudFileService())
     }
 
-    @EnabledIfEnvironmentVariable(named = "DISABLE_UPDATE_PROMPT",matches = "true")
+    @EnabledIfEnvironmentVariable(named = "DISABLE_UPDATE_PROMPT", matches = "true")
     @Test
-    void searchForFilesWithYear() {
+    fun searchForFilesWithYear() {
         // Given
         // When
-        List<String> files = cloudService.findExistingFiles("Plan 9 1959");
+        val files = cloudService!!.findExistingFiles("Plan 9 1959")
         // Then
-        assertTrue(files.size() > 0);
+        Assertions.assertTrue(files.size > 0)
     }
 
-    @EnabledIfEnvironmentVariable(named = "DISABLE_UPDATE_PROMPT",matches = "true")
+    @EnabledIfEnvironmentVariable(named = "DISABLE_UPDATE_PROMPT", matches = "true")
     @Test
-    void searchForFiles() {
+    fun searchForFiles() {
         // Given
         // When
-        List<String> files = cloudService.findExistingFiles("Plan 9");
+        val files = cloudService!!.findExistingFiles("Plan 9")
         // Then
-        assertTrue(files.size() > 0);
-    }
-
-    @Test
-    void buildDestinationPathForSingleFileTorrentNoMatch() {
-        // Given
-        Torrent torrentToBeDownloaded = new Torrent("test");
-        // When
-        String destinationPath = cloudService.buildDestinationPath("Movie");
-        // Then
-        assertEquals(PropertiesHelper.getProperty("RCLONEDIR") + "/transfer/M/", destinationPath);
+        Assertions.assertTrue(files.size > 0)
     }
 
     @Test
-    void buildDestinationPathForSingleFileTorrent() {
+    fun buildDestinationPathForSingleFileTorrentNoMatch() {
         // Given
-        Torrent torrentToBeDownloaded = new Torrent("test");
+        val torrentToBeDownloaded = Torrent("test")
         // When
-        String destinationPath = cloudService.buildDestinationPath("Movie Title Xvid");
+        val destinationPath = cloudService!!.buildDestinationPath("Movie")
         // Then
-        assertEquals(PropertiesHelper.getProperty("RCLONEDIR") + "/Movies/M/", destinationPath);
+        Assertions.assertEquals(PropertiesHelper.getProperty("RCLONEDIR") + "/transfer/M/", destinationPath)
     }
 
     @Test
-    void buildDestinationPathForSingleFileTorrentWithNumber() {
+    fun buildDestinationPathForSingleFileTorrent() {
         // Given
-        Torrent torrentToBeDownloaded = new Torrent("test");
+        val torrentToBeDownloaded = Torrent("test")
         // When
-        String destinationPath = cloudService.buildDestinationPath("A 12 Number Title Xvid");
+        val destinationPath = cloudService!!.buildDestinationPath("Movie Title Xvid")
         // Then
-        assertEquals(PropertiesHelper.getProperty("RCLONEDIR") + "/Movies/0-9/", destinationPath);
+        Assertions.assertEquals(PropertiesHelper.getProperty("RCLONEDIR") + "/Movies/M/", destinationPath)
     }
 
     @Test
-    void buildDestinationPathForSingleFileTorrentExtended() {
+    fun buildDestinationPathForSingleFileTorrentWithNumber() {
         // Given
-        Torrent torrentToBeDownloaded = new Torrent("test");
+        val torrentToBeDownloaded = Torrent("test")
         // When
-        String destinationPath = cloudService.buildDestinationPath("Movie Title 2008 2160p US BluRay REMUX HEVC DTS HD MA TrueHD 7 1 Atmos FGT");
+        val destinationPath = cloudService!!.buildDestinationPath("A 12 Number Title Xvid")
         // Then
-        assertEquals(PropertiesHelper.getProperty("RCLONEDIR") + "/Movies/M/", destinationPath);
+        Assertions.assertEquals(PropertiesHelper.getProperty("RCLONEDIR") + "/Movies/0-9/", destinationPath)
     }
 
     @Test
-    void buildDestinationPathForSingleFileTorrentWithArticles() {
+    fun buildDestinationPathForSingleFileTorrentExtended() {
         // Given
+        val torrentToBeDownloaded = Torrent("test")
         // When
-        String destinationPath = cloudService.buildDestinationPath("A Movie Title 2008 2160p US BluRay REMUX HEVC DTS HD MA TrueHD 7 1 Atmos FGT");
+        val destinationPath = cloudService!!.buildDestinationPath("Movie Title 2008 2160p US BluRay REMUX HEVC DTS HD MA TrueHD 7 1 Atmos FGT")
         // Then
-        assertEquals(PropertiesHelper.getProperty("RCLONEDIR") + "/Movies/M/", destinationPath);
+        Assertions.assertEquals(PropertiesHelper.getProperty("RCLONEDIR") + "/Movies/M/", destinationPath)
     }
 
     @Test
-    void buildDestinationPathForMultiFileTorrentTest() {
+    fun buildDestinationPathForSingleFileTorrentWithArticles() {
         // Given
         // When
-        String destinationPath = cloudService.buildDestinationPath("Test and Test [UNCENSORED] Season 1-3 [1080p] [5.1 MP3] [x265][FINAL]");
+        val destinationPath = cloudService!!.buildDestinationPath("A Movie Title 2008 2160p US BluRay REMUX HEVC DTS HD MA TrueHD 7 1 Atmos FGT")
         // Then
-        assertEquals(PropertiesHelper.getProperty("RCLONEDIR") + "/Series-Shows/T/Test.And.Test/", destinationPath);
+        Assertions.assertEquals(PropertiesHelper.getProperty("RCLONEDIR") + "/Movies/M/", destinationPath)
     }
 
     @Test
-    void buildDestinationPathForSeriesTorrentTest() {
+    fun buildDestinationPathForMultiFileTorrentTest() {
         // Given
         // When
-        String destinationPath = cloudService.buildDestinationPath("Series.S01E02.480p.x264-mSD[tag].mkv");
+        val destinationPath = cloudService!!.buildDestinationPath("Test and Test [UNCENSORED] Season 1-3 [1080p] [5.1 MP3] [x265][FINAL]")
         // Then
-        assertEquals(PropertiesHelper.getProperty("RCLONEDIR") + "/Series-Shows/S/Series/", destinationPath);
+        Assertions.assertEquals(PropertiesHelper.getProperty("RCLONEDIR") + "/Series-Shows/T/Test.And.Test/", destinationPath)
     }
 
     @Test
-    void buildDestinationPathForSeriesLowerCaseTorrentTest() {
+    fun buildDestinationPathForSeriesTorrentTest() {
         // Given
         // When
-        String destinationPath = cloudService.buildDestinationPath("series.S01E02.480p.x264-mSD[tag].mkv");
+        val destinationPath = cloudService!!.buildDestinationPath("Series.S01E02.480p.x264-mSD[tag].mkv")
         // Then
-        assertEquals(PropertiesHelper.getProperty("RCLONEDIR") + "/Series-Shows/S/Series/", destinationPath);
+        Assertions.assertEquals(PropertiesHelper.getProperty("RCLONEDIR") + "/Series-Shows/S/Series/", destinationPath)
     }
 
     @Test
-    void buildDestinationPathWithQuoteTest() {
+    fun buildDestinationPathForSeriesLowerCaseTorrentTest() {
         // Given
         // When
-        String destinationPath = cloudService.buildDestinationPath("\"series.S01E02.480p.x264-mSD[tag].mkv");
+        val destinationPath = cloudService!!.buildDestinationPath("series.S01E02.480p.x264-mSD[tag].mkv")
         // Then
-        assertEquals(PropertiesHelper.getProperty("RCLONEDIR") + "/Series-Shows/S/Series/", destinationPath);
+        Assertions.assertEquals(PropertiesHelper.getProperty("RCLONEDIR") + "/Series-Shows/S/Series/", destinationPath)
     }
 
     @Test
-    void buildDestinationPathForSeriesTorrentTestSubFolders() {
+    fun buildDestinationPathWithQuoteTest() {
         // Given
         // When
-        String destinationPath = cloudService.buildDestinationPath("Series.Name.S01E02.480p.x264-mSD[tag].mkv");
+        val destinationPath = cloudService!!.buildDestinationPath("\"series.S01E02.480p.x264-mSD[tag].mkv")
         // Then
-        assertEquals(PropertiesHelper.getProperty("RCLONEDIR") + "/Series-Shows/S/Series.Name/", destinationPath);
+        Assertions.assertEquals(PropertiesHelper.getProperty("RCLONEDIR") + "/Series-Shows/S/Series/", destinationPath)
     }
 
     @Test
-    void buildDestinationPathWithPDFTest() {
+    fun buildDestinationPathForSeriesTorrentTestSubFolders() {
         // Given
         // When
-        String destinationPath = cloudService.buildDestinationPath("series.S01E02.480p.x264-mSD[tag].pdf");
+        val destinationPath = cloudService!!.buildDestinationPath("Series.Name.S01E02.480p.x264-mSD[tag].mkv")
         // Then
-        assertEquals(PropertiesHelper.getProperty("RCLONEDIR") + "/transfer/S/", destinationPath);
+        Assertions.assertEquals(PropertiesHelper.getProperty("RCLONEDIR") + "/Series-Shows/S/Series.Name/", destinationPath)
     }
 
     @Test
-    void buildDestinationPathSeriesWithFileListAndNonSeriesTorrentName() {
+    fun buildDestinationPathWithPDFTest() {
         // Given
-        TorrentFile tf1 = new TorrentFile();
-        tf1.name = "Series Name S01E01";
-        TorrentFile tf2 = new TorrentFile();
-        tf2.name = "Series Name S01E02";
-        final Torrent torrent = new Torrent("Test");
-        torrent.name = "Could be a movie but is a series";
         // When
-        String destinationPath = cloudService.buildDestinationPath(torrent.name, List.of(tf1, tf2));
+        val destinationPath = cloudService!!.buildDestinationPath("series.S01E02.480p.x264-mSD[tag].pdf")
         // Then
-        assertEquals(PropertiesHelper.getProperty("RCLONEDIR") + "/Series-Shows/C/Could.Be.A.Movie.But.Is.A.Series/",
-            destinationPath);
+        Assertions.assertEquals(PropertiesHelper.getProperty("RCLONEDIR") + "/transfer/S/", destinationPath)
     }
 
     @Test
-    void buildDestinationPathWithSeriesAndExtraTextAfterSeriesName() {
+    fun buildDestinationPathSeriesWithFileListAndNonSeriesTorrentName() {
         // Given
+        val tf1 = TorrentFile()
+        tf1.name = "Series Name S01E01"
+        val tf2 = TorrentFile()
+        tf2.name = "Series Name S01E02"
+        val torrent = Torrent("Test")
+        torrent.name = "Could be a movie but is a series"
         // When
-        String destinationPath = cloudService.buildDestinationPath("series.S01E02.480p.x264-mSD[tag]");
+        val destinationPath = cloudService!!.buildDestinationPath(torrent.name, listOf(tf1, tf2))
         // Then
-        assertEquals(PropertiesHelper.getProperty("RCLONEDIR") + "/Series-Shows/S/Series/", destinationPath);
+        Assertions.assertEquals(
+            PropertiesHelper.getProperty("RCLONEDIR") + "/Series-Shows/C/Could.Be.A.Movie.But.Is.A.Series/",
+            destinationPath
+        )
     }
 
     @Test
-    void buildDestinationPathWithSeriesAndExtraTextAfterSeriesNameExtended() {
+    fun buildDestinationPathWithSeriesAndExtraTextAfterSeriesName() {
         // Given
         // When
-        String destinationPath = cloudService.buildDestinationPath("series.S01E02.Test.480p.x264-mSD[tag]");
+        val destinationPath = cloudService!!.buildDestinationPath("series.S01E02.480p.x264-mSD[tag]")
         // Then
-        assertEquals(PropertiesHelper.getProperty("RCLONEDIR") + "/Series-Shows/S/Series/", destinationPath);
+        Assertions.assertEquals(PropertiesHelper.getProperty("RCLONEDIR") + "/Series-Shows/S/Series/", destinationPath)
     }
 
+    @Test
+    fun buildDestinationPathWithSeriesAndExtraTextAfterSeriesNameExtended() {
+        // Given
+        // When
+        val destinationPath = cloudService!!.buildDestinationPath("series.S01E02.Test.480p.x264-mSD[tag]")
+        // Then
+        Assertions.assertEquals(PropertiesHelper.getProperty("RCLONEDIR") + "/Series-Shows/S/Series/", destinationPath)
+    }
 }

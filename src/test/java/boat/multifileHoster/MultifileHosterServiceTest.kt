@@ -29,9 +29,12 @@ internal class MultifileHosterServiceTest {
     @Test
     fun extractRemoteIdFromMessage() {
         // Given
+        val transferFeedbackMessage =
+            "{\"status\":\"success\",\"id\":\"0jXfg462WZz2EkSpFKjU_g\",\"name\":\"magnet:?xt=urn:btih:123456789\",\"type\":\"torrent\"}"
+        val transfer = Transfer(feedbackMessage = transferFeedbackMessage)
         // When
         val remoteIdFromMessage =
-            multifileHosterService.extractRemoteIdFromMessage("{\"status\":\"success\",\"id\":\"0jXfg462WZz2EkSpFKjU_g\",\"name\":\"magnet:?xt=urn:btih:123456789\",\"type\":\"torrent\"}")
+            multifileHosterService.extractRemoteIdFromMessage(transfer)
         // Then
         assertThat(remoteIdFromMessage).isEqualTo("0jXfg462WZz2EkSpFKjU_g")
     }
@@ -39,9 +42,12 @@ internal class MultifileHosterServiceTest {
     @Test
     fun extractOtherRemoteIdFromMessage() {
         // Given
+        val transferFeedbackMessage =
+            "{\"status\":\"success\",\"id\":\"yxGo09Kq-RkayKbAxdDyFQ\",\"name\":\"magnet:?xt=urn:btih:12345678912316782351328765\",\"type\":\"torrent\"}"
+        val transfer = Transfer(feedbackMessage = transferFeedbackMessage)
         // When
         val remoteIdFromMessage =
-            multifileHosterService.extractRemoteIdFromMessage("{\"status\":\"success\",\"id\":\"yxGo09Kq-RkayKbAxdDyFQ\",\"name\":\"magnet:?xt=urn:btih:12345678912316782351328765\",\"type\":\"torrent\"}")
+            multifileHosterService.extractRemoteIdFromMessage(transfer)
         // Then
         assertThat(remoteIdFromMessage).isEqualTo("yxGo09Kq-RkayKbAxdDyFQ")
     }
@@ -66,9 +72,12 @@ internal class MultifileHosterServiceTest {
     fun shouldGetETABeforeFirstFile() {
         // Given
         val torrent = Torrent("Test")
-        torrent.lsize = 1000.0
-        val torrentFile = TorrentFile()
-        torrentFile.filesize = (1024 * 1024 * 500).toLong()
+        torrent.sizeInMB = 1000.0
+        val torrentFile = TorrentFile(
+            id = "", name = "",
+            filesize = (1024 * 1024 * 500).toLong(),
+            url = ""
+        )
         // When
         val uploadStatusString = multifileHosterService.getUploadStatusString(torrent, List.of(torrentFile), 0, null)
         // Then

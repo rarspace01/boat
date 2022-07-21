@@ -9,14 +9,14 @@ import java.time.Instant
 data class Transfer(
     @Id
     var id: String? = null,
-    var name: String,
+    var name: String = "",
     var remoteId: String? = null,
-    var source: String? = null,
-    var uri: String,
+    var source: String = "NONE",
+    var uri: String = "",
     var transferStatus: TransferStatus = TransferStatus.NONE,
     var transferType: TransferType = TransferType.TORRENT,
     var progressInPercentage: Double = 0.0,
-    var sizeInBytes: Long? = null,
+    var sizeInBytes: Long = 0,
     var feedbackMessage: String? = null,
     var eta: Duration = Duration.ZERO,
     var updated: Instant = Instant.now(),
