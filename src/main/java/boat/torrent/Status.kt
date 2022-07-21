@@ -1,5 +1,5 @@
-package boat.torrent;
+package boat.torrent
 
-public enum Status {
+enum class Status {
     CREATED, DOWNLOADING, READY, UPLOADING, FINISHED
 }
