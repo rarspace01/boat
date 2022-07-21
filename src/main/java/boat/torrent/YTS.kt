@@ -1,107 +1,93 @@
-package boat.torrent;
+package boat.torrent
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.atomic.AtomicReference;
+import boat.utilities.HttpHelper
+import boat.utilities.LoggerDelegate
+import com.google.gson.JsonArray
+import com.google.gson.JsonElement
+import com.google.gson.JsonObject
+import com.google.gson.JsonParser
+import lombok.extern.slf4j.Slf4j
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
+import java.util.Date
+import java.util.Locale
+import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.atomic.AtomicReference
+import java.util.function.Consumer
 
-import boat.utilities.HttpHelper;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import lombok.extern.slf4j.Slf4j;
+class YTS internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper), TorrentSearchEngine {
 
-@Slf4j
-public class YTS extends HttpUser implements TorrentSearchEngine {
-
-    YTS(HttpHelper httpHelper) {
-        super(httpHelper);
+    companion object {
+        private val logger by LoggerDelegate()
     }
 
-    @Override
-    public List<Torrent> searchTorrents(String searchName) {
-
-        CopyOnWriteArrayList<Torrent> torrentList = new CopyOnWriteArrayList<>();
-
-        String resultString = httpHelper.getPage(buildSearchUrl(searchName));
-
-        torrentList.addAll(parseTorrentsOnResultPage(resultString, searchName));
-        torrentList.sort(TorrentHelper.torrentSorter);
-        return torrentList;
+    override fun searchTorrents(searchName: String): List<Torrent> {
+        val torrentList = CopyOnWriteArrayList<Torrent>()
+        val resultString = httpHelper.getPage(buildSearchUrl(searchName))
+        torrentList.addAll(parseTorrentsOnResultPage(resultString, searchName))
+        torrentList.sortWith(TorrentComparator)
+        return torrentList
     }
 
-    private String buildSearchUrl(String searchName) {
-        return String.format("%s/api/v2/list_movies.json?limit=50&query_term=%s&sort_by=seeds",
-            getBaseUrl(),
-            URLEncoder.encode(searchName, StandardCharsets.UTF_8));
+    private fun buildSearchUrl(searchName: String): String {
+        return String.format(
+            "%s/api/v2/list_movies.json?limit=50&query_term=%s&sort_by=seeds",
+            baseUrl,
+            URLEncoder.encode(searchName, StandardCharsets.UTF_8)
+        )
     }
 
-    @Override
-    public String getBaseUrl() {
-        return "https://yts.mx";
+    override fun getBaseUrl(): String {
+        return "https://yts.mx"
     }
 
-    private List<Torrent> parseTorrentsOnResultPage(String pageContent, String searchName) {
-        ArrayList<Torrent> torrentList = new ArrayList<>();
+    private fun parseTorrentsOnResultPage(pageContent: String, searchName: String): List<Torrent> {
+        val torrentList = ArrayList<Torrent>()
         try {
-            JsonElement jsonRoot = JsonParser.parseString(pageContent);
-            if (jsonRoot == null || !jsonRoot.isJsonObject()) {
-                return torrentList;
+            val jsonRoot = JsonParser.parseString(pageContent)
+            if (jsonRoot == null || !jsonRoot.isJsonObject) {
+                return torrentList
             }
-            JsonElement data = jsonRoot.getAsJsonObject().get("data");
-            if (data == null) {
-                return torrentList;
-            }
-            JsonElement results = data.getAsJsonObject().get("movies");
-            if (results == null) {
-                return torrentList;
-            }
-            JsonArray jsonArray = results.getAsJsonArray();
-            jsonArray.forEach(jsonTorrentElement -> {
-                Torrent tempTorrent = new Torrent(toString());
-                final JsonObject jsonTorrent = jsonTorrentElement.getAsJsonObject();
-                tempTorrent.name = jsonTorrent.get("title").getAsString() + " " + jsonTorrent.get("year").getAsInt();
-                JsonObject bestTorrentSource = retrieveBestTorrent(jsonTorrent.get("torrents").getAsJsonArray());
-                tempTorrent.isVerified = true;
+            val data = jsonRoot.asJsonObject["data"] ?: return torrentList
+            val results = data.asJsonObject["movies"] ?: return torrentList
+            val jsonArray = results.asJsonArray
+            jsonArray.forEach(Consumer { jsonTorrentElement: JsonElement ->
+                val tempTorrent = Torrent(toString())
+                val jsonTorrent = jsonTorrentElement.asJsonObject
+                tempTorrent.name = jsonTorrent["title"].asString + " " + jsonTorrent["year"].asInt
+                val bestTorrentSource = retrieveBestTorrent(jsonTorrent["torrents"].asJsonArray)
+                tempTorrent.isVerified = true
                 tempTorrent.magnetUri = TorrentHelper
-                    .buildMagnetUriFromHash(bestTorrentSource.get("hash").getAsString().toLowerCase(), tempTorrent.name);
-                tempTorrent.seeder = bestTorrentSource.get("seeds").getAsInt();
-                tempTorrent.leecher = bestTorrentSource.get("peers").getAsInt();
-                tempTorrent.size = bestTorrentSource.get("size").getAsString();
-                tempTorrent.lsize = bestTorrentSource.get("size_bytes").getAsLong() / 1024.0f / 1024.0f;
-                tempTorrent.date = new Date(bestTorrentSource.get("date_uploaded_unix").getAsLong() * 1000);
-
-                TorrentHelper.evaluateRating(tempTorrent, searchName);
+                    .buildMagnetUriFromHash(bestTorrentSource!!["hash"].asString.lowercase(Locale.getDefault()), tempTorrent.name)
+                tempTorrent.seeder = bestTorrentSource["seeds"].asInt
+                tempTorrent.leecher = bestTorrentSource["peers"].asInt
+                tempTorrent.size = bestTorrentSource["size"].asString
+                tempTorrent.lsize = (bestTorrentSource["size_bytes"].asLong / 1024.0f / 1024.0f).toDouble()
+                tempTorrent.date = Date(bestTorrentSource["date_uploaded_unix"].asLong * 1000)
+                TorrentHelper.evaluateRating(tempTorrent, searchName)
                 if (TorrentHelper.isValidTorrent(tempTorrent)) {
-                    torrentList.add(tempTorrent);
+                    torrentList.add(tempTorrent)
                 }
-            });
-
-        } catch (Exception exception) {
-            log.error("failed to parse string:\n{}\nException:\n{}", pageContent, exception);
+            })
+        } catch (exception: Exception) {
+            logger.error("failed to parse string:\n{}\nException:\n{}", pageContent, exception)
         }
-
-        return torrentList;
+        return torrentList
     }
 
-    private JsonObject retrieveBestTorrent(JsonArray torrentElements) {
-        AtomicReference<JsonObject> bestTorrent = new AtomicReference<>();
-        torrentElements.forEach(torrentElement -> {
-            if (bestTorrent.get() == null || bestTorrent.get().get("size_bytes").getAsLong() < torrentElement
-                .getAsJsonObject().get("size_bytes").getAsLong()) {
-                bestTorrent.set(torrentElement.getAsJsonObject());
+    private fun retrieveBestTorrent(torrentElements: JsonArray): JsonObject? {
+        val bestTorrent = AtomicReference<JsonObject?>()
+        torrentElements.forEach(Consumer { torrentElement: JsonElement ->
+            if (bestTorrent.get() == null || bestTorrent.get()!!["size_bytes"].asLong < torrentElement
+                    .asJsonObject["size_bytes"].asLong
+            ) {
+                bestTorrent.set(torrentElement.asJsonObject)
             }
-        });
-        return bestTorrent.get();
+        })
+        return bestTorrent.get()
     }
 
-    @Override
-    public String toString() {
-        return this.getClass().getSimpleName();
+    override fun toString(): String {
+        return this.javaClass.simpleName
     }
-
 }

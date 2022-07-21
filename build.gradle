@@ -16,12 +16,14 @@ buildscript {
         classpath("org.owasp:dependency-check-gradle:7.1.1")
         classpath("gradle.plugin.org.kt3k.gradle.plugin:coveralls-gradle-plugin:2.12.0")
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        classpath "org.jetbrains.kotlin:kotlin-allopen:$kotlin_version"
         classpath "com.palantir.git-version:com.palantir.git-version.gradle.plugin:0.15.0"
     }
 }
 
 apply plugin: 'java'
 apply plugin: 'kotlin'
+apply plugin: "kotlin-spring"
 apply plugin: 'eclipse'
 apply plugin: 'idea'
 apply plugin: 'org.springframework.boot'

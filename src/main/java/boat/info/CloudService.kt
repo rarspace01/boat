@@ -1,134 +1,136 @@
-package boat.info;
+package boat.info
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
+import boat.torrent.TorrentFile
+import boat.torrent.TorrentHelper.determineTypeOfMedia
+import boat.torrent.TorrentHelper.prepareTorrentName
+import boat.torrent.TorrentType
+import boat.utilities.LoggerDelegate
+import boat.utilities.PropertiesHelper
+import lombok.extern.log4j.Log4j2
+import org.springframework.stereotype.Service
+import org.springframework.util.StringUtils
+import java.util.Arrays
+import java.util.Locale
+import java.util.stream.Collectors
 
-import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
-
-import boat.torrent.TorrentFile;
-import boat.torrent.TorrentHelper;
-import boat.torrent.TorrentType;
-import boat.utilities.PropertiesHelper;
-import lombok.extern.log4j.Log4j2;
-import org.jetbrains.annotations.NotNull;
-
-@Log4j2
 @Service
-public class CloudService {
+class CloudService internal constructor(private val cloudFileService: CloudFileService) {
 
-    public static final String RCLONE_DIR = "RCLONEDIR";
-    private final CloudFileService cloudFileService;
-
-    CloudService(CloudFileService cloudFileService) {
-        this.cloudFileService = cloudFileService;
+    companion object {
+        private val logger by LoggerDelegate()
+        const val RCLONE_DIR = "RCLONEDIR"
     }
 
-    public boolean isCloudTokenValid() {
-        return !cloudFileService.getFilesInPath(PropertiesHelper.getProperty(RCLONE_DIR)).isEmpty();
-    }
+    val isCloudTokenValid: Boolean
+        get() = !cloudFileService.getFilesInPath(PropertiesHelper.getProperty(RCLONE_DIR)).isEmpty()
 
-    public String buildDestinationPath(final String torrentName) {
-        String basePath = PropertiesHelper.getProperty(RCLONE_DIR);
-        String preparedTorrentName = TorrentHelper.prepareTorrentName(torrentName);
-        final TorrentType typeOfMedia = TorrentHelper.determineTypeOfMedia(torrentName);
-        String torrentNameFirstLetterDeducted = deductFirstTorrentLetter(preparedTorrentName);
-        String optionalSeriesString = "";
-        if (TorrentType.SERIES_SHOWS.equals(typeOfMedia)) {
-            optionalSeriesString = deductSeriesNameFrom(preparedTorrentName) + "/";
+    fun buildDestinationPath(torrentName: String?): String {
+        val basePath = PropertiesHelper.getProperty(RCLONE_DIR)
+        val preparedTorrentName = prepareTorrentName(torrentName)
+        val typeOfMedia = determineTypeOfMedia(torrentName)
+        val torrentNameFirstLetterDeducted = deductFirstTorrentLetter(preparedTorrentName)
+        var optionalSeriesString = ""
+        if (TorrentType.SERIES_SHOWS == typeOfMedia) {
+            optionalSeriesString = deductSeriesNameFrom(preparedTorrentName) + "/"
         }
-        return basePath + "/" + typeOfMedia.getType() + "/" + torrentNameFirstLetterDeducted + "/"
-            + optionalSeriesString;
+        return (basePath + "/" + typeOfMedia.type + "/" + torrentNameFirstLetterDeducted + "/"
+                + optionalSeriesString)
     }
 
-    private String deductSeriesNameFrom(String preparedTorrentName) {
+    private fun deductSeriesNameFrom(preparedTorrentName: String): String {
         return Arrays.stream(preparedTorrentName
-                .toLowerCase()
-                .trim()
-                .replaceAll("s[0-9]+e[0-9]+.*", "")
-                .replaceAll("season[.\\s]?[0-9-]+.*", "")
-                .trim()
-                .replaceAll("\\s+", ".")
-                .split("\\."))
-            .map(StringUtils::capitalize)
-            .collect(Collectors.joining("."));
+            .lowercase(Locale.getDefault())
+            .trim { it <= ' ' }
+            .replace("s[0-9]+e[0-9]+.*".toRegex(), "")
+            .replace("season[.\\s]?[0-9-]+.*".toRegex(), "")
+            .trim { it <= ' ' }
+            .replace("\\s+".toRegex(), ".")
+            .split("\\.".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
+        )
+            .map { str: String? -> StringUtils.capitalize(str) }
+            .collect(Collectors.joining("."))
     }
 
-    public String buildDestinationPathWithTypeOfMediaWithoutSubFolders(final String torrentName,
-                                                                       TorrentType typeOfMedia) {
-        String basePath = PropertiesHelper.getProperty(RCLONE_DIR);
-        String preparedTorrentName = TorrentHelper.prepareTorrentName(torrentName);
-        String firstTorrentLetter = deductFirstTorrentLetter(preparedTorrentName);
-        return basePath + "/" + typeOfMedia.getType() + "/" + firstTorrentLetter + "/";
+    fun buildDestinationPathWithTypeOfMediaWithoutSubFolders(
+        torrentName: String?,
+        typeOfMedia: TorrentType
+    ): String {
+        val basePath = PropertiesHelper.getProperty(RCLONE_DIR)
+        val preparedTorrentName = prepareTorrentName(torrentName)
+        val firstTorrentLetter = deductFirstTorrentLetter(preparedTorrentName)
+        return basePath + "/" + typeOfMedia.type + "/" + firstTorrentLetter + "/"
     }
 
-    @NotNull
-    private String deductFirstTorrentLetter(String preparedTorrentName) {
+    private fun deductFirstTorrentLetter(preparedTorrentName: String): String {
         // replace Umlauts
-        preparedTorrentName = preparedTorrentName.replaceAll("[äÄ]", "A");
-        preparedTorrentName = preparedTorrentName.replaceAll("[öÖ]", "O");
-        preparedTorrentName = preparedTorrentName.replaceAll("[üÜ]", "Ü");
+        var preparedTorrentName = preparedTorrentName
+        preparedTorrentName = preparedTorrentName.replace("[äÄ]".toRegex(), "A")
+        preparedTorrentName = preparedTorrentName.replace("[öÖ]".toRegex(), "O")
+        preparedTorrentName = preparedTorrentName.replace("[üÜ]".toRegex(), "Ü")
 
         // take only name infront of year
-        String[] split = preparedTorrentName.split("[1-2][0-9]{3}");
-        if (split.length > 0) {
-            preparedTorrentName = split[0];
+        val split = preparedTorrentName.split("[1-2][0-9]{3}".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
+        if (split.size > 0) {
+            preparedTorrentName = split[0]
         }
         // remove articles
-        preparedTorrentName = preparedTorrentName.replaceAll("(a[ .]|the[ .]|der[ .])", "");
+        preparedTorrentName = preparedTorrentName.replace("(a[ .]|the[ .]|der[ .])".toRegex(), "")
         //
-        preparedTorrentName = preparedTorrentName.trim();
-        preparedTorrentName = preparedTorrentName.replaceAll("[\".]", "");
-        if (preparedTorrentName.length() > 0) {
-            preparedTorrentName = preparedTorrentName.substring(0, 1);
+        preparedTorrentName = preparedTorrentName.trim { it <= ' ' }
+        preparedTorrentName = preparedTorrentName.replace("[\".]".toRegex(), "")
+        if (preparedTorrentName.length > 0) {
+            preparedTorrentName = preparedTorrentName.substring(0, 1)
         }
-        preparedTorrentName = preparedTorrentName.replaceAll("[\\W]", "?");
-        preparedTorrentName = preparedTorrentName.replaceAll("[0-9]", "0-9");
-        preparedTorrentName = preparedTorrentName.toUpperCase();
+        preparedTorrentName = preparedTorrentName.replace("[\\W]".toRegex(), "?")
+        preparedTorrentName = preparedTorrentName.replace("[0-9]".toRegex(), "0-9")
+        preparedTorrentName = preparedTorrentName.uppercase(Locale.getDefault())
         //
-        return preparedTorrentName;
+        return preparedTorrentName
     }
 
-    public List<String> findExistingFiles(String searchName) {
-        final String[] strings = searchName.split(" ");
+    fun findExistingFiles(searchName: String): List<String?> {
+        val strings = searchName.split(" ".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
         return Arrays.stream(TorrentType.values())
-            .map(torrentType -> findFilesBasedOnStringsAndMediaType(searchName, strings, torrentType))
-            .flatMap(List::stream)
-            .collect(Collectors.toList());
+            .map { torrentType: TorrentType -> findFilesBasedOnStringsAndMediaType(searchName, strings, torrentType) }
+            .flatMap { obj: List<String?> -> obj.stream() }
+            .collect(Collectors.toList())
     }
 
-
-    private List<String> findFilesBasedOnStringsAndMediaType(String searchName, String[] strings,
-                                                             TorrentType torrentType) {
-        final String destinationPath = buildDestinationPathWithTypeOfMediaWithoutSubFolders(searchName, torrentType);
-        log.info("Searching for: {} with {} in {}", searchName, torrentType.getType(), destinationPath);
+    private fun findFilesBasedOnStringsAndMediaType(
+        searchName: String, strings: Array<String>,
+        torrentType: TorrentType
+    ): List<String?> {
+        val destinationPath = buildDestinationPathWithTypeOfMediaWithoutSubFolders(searchName, torrentType)
+        logger.info("Searching for: {} with {} in {}", searchName, torrentType.type, destinationPath)
         return cloudFileService.getFilesInPath(destinationPath).stream()
-            .filter(fileName -> Arrays.stream(strings).allMatch(
-                searchStringPart -> fileName.toLowerCase().matches(".*" + searchStringPart.toLowerCase() + ".*")))
-            .collect(Collectors.toList());
+            .filter { fileName: String ->
+                Arrays.stream(strings).allMatch { searchStringPart: String ->
+                    fileName.lowercase(Locale.getDefault()).matches((".*" + searchStringPart.lowercase(Locale.getDefault()) + ".*").toRegex())
+                }
+            }
+            .collect(Collectors.toList())
     }
 
-
-    public String buildDestinationPath(String name, List<TorrentFile> filesFromTorrent) {
-        final TorrentType typeOfMedia = TorrentHelper.determineTypeOfMedia(name);
-        if (TorrentType.TRANSFER.equals(typeOfMedia)) {
-            final TorrentType torrentType = TorrentHelper.determineTypeOfMedia(filesFromTorrent);
-            return buildDestinationPathWithTypeOfMedia(name, torrentType);
+    fun buildDestinationPath(name: String?, filesFromTorrent: List<TorrentFile>): String {
+        val typeOfMedia = determineTypeOfMedia(name)
+        return if (TorrentType.TRANSFER == typeOfMedia) {
+            val torrentType: TorrentType = determineTypeOfMedia(filesFromTorrent)
+            buildDestinationPathWithTypeOfMedia(name, torrentType)
         } else {
-            return buildDestinationPath(name);
+            buildDestinationPath(name)
         }
     }
 
-    private String buildDestinationPathWithTypeOfMedia(String name, TorrentType torrentType) {
-        String basePath = PropertiesHelper.getProperty(RCLONE_DIR);
-        String preparedTorrentName = TorrentHelper.prepareTorrentName(name);
-        String torrentNameFirstLetterDeducted = deductFirstTorrentLetter(preparedTorrentName);
-        String optionalSeriesString = "";
-        if (TorrentType.SERIES_SHOWS.equals(torrentType)) {
-            optionalSeriesString = deductSeriesNameFrom(preparedTorrentName) + "/";
+    private fun buildDestinationPathWithTypeOfMedia(name: String?, torrentType: TorrentType): String {
+        val basePath = PropertiesHelper.getProperty(RCLONE_DIR)
+        val preparedTorrentName = prepareTorrentName(name)
+        val torrentNameFirstLetterDeducted = deductFirstTorrentLetter(preparedTorrentName)
+        var optionalSeriesString = ""
+        if (TorrentType.SERIES_SHOWS == torrentType) {
+            optionalSeriesString = deductSeriesNameFrom(preparedTorrentName) + "/"
         }
-        return basePath + "/" + torrentType.getType() + "/" + torrentNameFirstLetterDeducted + "/"
-            + optionalSeriesString;
+        return (basePath + "/" + torrentType.type + "/" + torrentNameFirstLetterDeducted + "/"
+                + optionalSeriesString)
     }
+
 }

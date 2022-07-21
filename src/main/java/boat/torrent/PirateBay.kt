@@ -1,84 +1,74 @@
-package boat.torrent;
+package boat.torrent
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
+import boat.utilities.HttpHelper
+import boat.utilities.LoggerDelegate
+import com.google.gson.JsonElement
+import com.google.gson.JsonParser
+import com.google.gson.JsonSyntaxException
+import lombok.extern.slf4j.Slf4j
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
+import java.util.concurrent.CopyOnWriteArrayList
+import java.util.function.Consumer
 
-import boat.utilities.HttpHelper;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import com.google.gson.JsonSyntaxException;
-import lombok.extern.slf4j.Slf4j;
+class PirateBay internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper), TorrentSearchEngine {
 
-@Slf4j
-public class PirateBay extends HttpUser implements TorrentSearchEngine {
-
-    PirateBay(HttpHelper httpHelper) {
-        super(httpHelper);
+    companion object {
+        private val logger by LoggerDelegate()
     }
 
-    @Override
-    public List<Torrent> searchTorrents(String searchName) {
-
-        String resultString = httpHelper.getPageWithShortTimeout(buildSearchUrl(searchName), null, "lw=s");
-
-        CopyOnWriteArrayList<Torrent> torrentList = new CopyOnWriteArrayList<>(
-            parseTorrentsOnResultPage(resultString, searchName));
+    override fun searchTorrents(searchName: String): List<Torrent> {
+        val resultString = httpHelper.getPageWithShortTimeout(buildSearchUrl(searchName), null, "lw=s")
+        val torrentList = CopyOnWriteArrayList(
+            parseTorrentsOnResultPage(resultString, searchName)
+        )
 
         // sort the findings
-        torrentList.sort(TorrentHelper.torrentSorter);
-
-        return torrentList;
+        torrentList.sortWith(TorrentComparator)
+        return torrentList
     }
 
-    private String buildSearchUrl(String searchName) {
-        return String.format("%s/q.php?q=%s&cat=", getBaseUrl(), URLEncoder.encode(searchName, StandardCharsets.UTF_8));
+    private fun buildSearchUrl(searchName: String): String {
+        return String.format("%s/q.php?q=%s&cat=", baseUrl, URLEncoder.encode(searchName, StandardCharsets.UTF_8))
     }
 
-    @Override
-    public String getBaseUrl() {
-        return "https://apibay.org";
+    override fun getBaseUrl(): String {
+        return "https://apibay.org"
     }
 
-    private List<Torrent> parseTorrentsOnResultPage(String pageContent, String searchName) {
-
-        ArrayList<Torrent> torrentList = new ArrayList<>();
-
+    private fun parseTorrentsOnResultPage(pageContent: String, searchName: String): List<Torrent> {
+        val torrentList = ArrayList<Torrent>()
         try {
-            JsonElement jsonRoot = JsonParser.parseString(pageContent);
-            if (jsonRoot.isJsonArray()) {
-                JsonArray listOfTorrents = jsonRoot.getAsJsonArray();
-                listOfTorrents.forEach(jsonElement -> {
-                    Torrent tempTorrent = new Torrent(toString());
-                    final JsonObject jsonObject = jsonElement.getAsJsonObject();
-                    tempTorrent.name = jsonObject.get("name").getAsString();
+            val jsonRoot = JsonParser.parseString(pageContent)
+            if (jsonRoot.isJsonArray) {
+                val listOfTorrents = jsonRoot.asJsonArray
+                listOfTorrents.forEach(Consumer { jsonElement: JsonElement ->
+                    val tempTorrent = Torrent(toString())
+                    val jsonObject = jsonElement.asJsonObject
+                    tempTorrent.name = jsonObject["name"].asString
                     tempTorrent.magnetUri = TorrentHelper
-                        .buildMagnetUriFromHash(jsonObject.get("info_hash").getAsString(), tempTorrent.name);
-                    tempTorrent.seeder = jsonObject.get("seeders").getAsInt();
-                    tempTorrent.leecher = jsonObject.get("leechers").getAsInt();
-                    tempTorrent.isVerified = "vip".equals(jsonObject.get("status").getAsString());
-                    final long size = jsonObject.get("size").getAsLong();
-                    tempTorrent.lsize = size / 1024.0f / 1024.0f;
-                    tempTorrent.size = String.format("%s", TorrentHelper.humanReadableByteCountBinary(size));
-                    TorrentHelper.evaluateRating(tempTorrent, searchName);
+                        .buildMagnetUriFromHash(jsonObject["info_hash"].asString, tempTorrent.name)
+                    tempTorrent.seeder = jsonObject["seeders"].asInt
+                    tempTorrent.leecher = jsonObject["leechers"].asInt
+                    tempTorrent.isVerified = "vip" == jsonObject["status"].asString
+                    val size = jsonObject["size"].asLong
+                    tempTorrent.lsize = (size / 1024.0f / 1024.0f).toDouble()
+                    tempTorrent.size = String.format("%s", TorrentHelper.humanReadableByteCountBinary(size))
+                    TorrentHelper.evaluateRating(tempTorrent, searchName)
                     if (TorrentHelper.isValidTorrent(tempTorrent)) {
-                        torrentList.add(tempTorrent);
+                        torrentList.add(tempTorrent)
                     }
-                });
+                })
             }
-
-        } catch (JsonSyntaxException | IllegalStateException e) {
-            log.error("[{}] couldn't extract torrent: {} ", this, e.getStackTrace());
+        } catch (e: JsonSyntaxException) {
+            logger.error("[{}] couldn't extract torrent: {} ", this, e.stackTrace)
+        } catch (e: IllegalStateException) {
+            logger.error("[{}] couldn't extract torrent: {} ", this, e.stackTrace)
         }
-        return torrentList;
+        return torrentList
     }
 
-    @Override
-    public String toString() {
-        return this.getClass().getSimpleName();
+    override fun toString(): String {
+        return this.javaClass.simpleName
     }
 }

@@ -1,63 +1,45 @@
-package boat.model;
+package boat.model
 
-import java.time.Duration;
-import java.time.Instant;
+import boat.torrent.TorrentHelper.formatDuration
+import org.springframework.data.annotation.Id
+import java.time.Duration
+import java.time.Instant
 
-import org.springframework.data.annotation.Id;
 
-import boat.torrent.TorrentHelper;
-import lombok.Data;
-
-@Data
-public class Transfer {
-
+data class Transfer(
     @Id
-    public String id;
-
-    public String name;
-
-    public String remoteId;
-
-    public String source;
-
-    public String uri;
-
-    public TransferStatus transferStatus = TransferStatus.NONE;
-
-    public TransferType transferType = TransferType.TORRENT;
-
-    public Double progressInPercentage = 0.0;
-
-    public Long sizeInBytes;
-
-    public String feedbackMessage;
-
-    public Duration eta;
-
-    public Instant updated;
-
-    @Override
-    public String toString() {
-        return String.format("\n<br/>[<!-- ID:[%s]RID:[%s] -->%s,\uD83C\uDFE0%s,%s,%s,%s<!-- MSG: %s -->%s<!-- ,%s -->]", id, remoteId, name,
-            source != null ? source.charAt(0) : "", transferStatus.getString(), getType(), getPercentageString(), feedbackMessage,
+    var id: String? = null,
+    var name: String,
+    var remoteId: String? = null,
+    var source: String? = null,
+    var uri: String,
+    var transferStatus: TransferStatus = TransferStatus.NONE,
+    var transferType: TransferType = TransferType.TORRENT,
+    var progressInPercentage: Double = 0.0,
+    var sizeInBytes: Long? = null,
+    var feedbackMessage: String? = null,
+    var eta: Duration = Duration.ZERO,
+    var updated: Instant = Instant.now(),
+) {
+    override fun toString(): String {
+        return String.format(
+            "\n<br/>[<!-- ID:[%s]RID:[%s] -->%s,\uD83C\uDFE0%s,%s,%s,%s<!-- MSG: %s -->%s<!-- ,%s -->]", id, remoteId, name,
+            if (source != null) source!![0] else "", transferStatus.string, type, percentageString, feedbackMessage,
             printDuration(),
-            updated);
+            updated
+        )
     }
 
-    private String getType() {
-        return transferType.getString();
-    }
+    private val type: String
+        get() = transferType.string
+    private val percentageString: String
+        get() = String.format("%.2f%%", progressInPercentage * 100.0)
 
-    private String getPercentageString() {
-        return String.format("%.2f%%", progressInPercentage * 100.0);
-    }
-
-    private String printDuration() {
-        if (eta == null || eta.equals(Duration.ZERO)) {
-            return "";
+    private fun printDuration(): String {
+        return if (eta == Duration.ZERO) {
+            ""
         } else {
-            return ", " + TorrentHelper.formatDuration(eta);
+            ", " + formatDuration(eta)
         }
     }
-
 }

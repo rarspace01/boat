@@ -16,7 +16,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import java.util.function.Consumer
 import java.util.stream.Collectors
 
-class Alldebrid(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoster {
+class Alldebrid(httpHelper: HttpHelper) : HttpUser(httpHelper), MultifileHoster {
     override fun addTorrentToDownloadQueue(toBeAddedTorrent: Torrent): String {
         val requestUrl =
             "https://api.alldebrid.com/v4/magnet/upload?agent=pirateboat&apikey=" + PropertiesHelper.getProperty("ALLDEBRID_APIKEY") + "%s"
@@ -114,14 +114,14 @@ class Alldebrid(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoster
                 torrentFiles.add(torrentFile)
             }
         )
-        torrentFiles.forEach(Consumer { torrentFile: TorrentFile -> resolveDirectLink(torrentFile) })
+        torrentFiles.map { torrentFile: TorrentFile -> resolveDirectLink(torrentFile) }
         return torrentFiles
     }
 
     private fun resolveDirectLink(torrentFile: TorrentFile) {
         val baseUrl =
             "https://api.alldebrid.com/v4/link/unlock?agent=pirateboat&apikey=" + PropertiesHelper.getProperty("ALLDEBRID_APIKEY") + "&link=%s"
-        val requestUrl = String.format(baseUrl, TorrentHelper.urlEncode(torrentFile.url))
+        val requestUrl = String.format(baseUrl, TorrentHelper.urlEncode(torrentFile.url.toString()))
         val pageContent = httpHelper.getPage(requestUrl)
         val jsonRoot = JsonParser.parseString(pageContent)
         val data = jsonRoot.asJsonObject["data"]

@@ -1,132 +1,123 @@
-package boat.info;
+package boat.info
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.List;
-import java.util.Optional;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
-import boat.torrent.Torrent;
-import boat.torrent.TorrentHelper;
-import boat.utilities.HttpHelper;
-import boat.utilities.PropertiesHelper;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import boat.torrent.Torrent
+import boat.torrent.TorrentHelper.getNormalizedTorrentStringWithSpaces
+import boat.torrent.TorrentHelper.urlEncode
+import boat.utilities.HttpHelper
+import boat.utilities.PropertiesHelper
+import com.google.gson.JsonElement
+import com.google.gson.JsonParser
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.stereotype.Service
+import java.text.ParseException
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
+import java.util.function.Consumer
+import java.util.regex.Pattern
 
 @Service
-public class TheFilmDataBaseService {
+class TheFilmDataBaseService @Autowired constructor(private val httpHelper: HttpHelper) {
+    private val baseUrl = String.format(
+        "https://api.themoviedb.org/3/search/multi?api_key=%s",
+        PropertiesHelper.getProperty("TFDB_APIKEY")
+    )
 
-    private final HttpHelper httpHelper;
-    private final String baseUrl = String.format("https://api.themoviedb.org/3/search/multi?api_key=%s",
-        PropertiesHelper.getProperty("TFDB_APIKEY"));
-
-    @Autowired
-    public TheFilmDataBaseService(HttpHelper httpHelper) {
-        this.httpHelper = httpHelper;
+    fun search(name: String?): List<MediaItem>? {
+        val page = httpHelper.getPage(String.format("%s&query=%s", baseUrl, urlEncode(name!!)))
+        return parseResponsePage(page)
     }
 
-    public List<MediaItem> search(String name) {
-        String page = httpHelper.getPage(String.format("%s&query=%s", baseUrl, TorrentHelper.urlEncode(name)));
-        return parseResponsePage(page);
+    fun search(name: String?, year: Int): List<MediaItem>? {
+        val urlString = String.format("%s&query=%s&year=%d", baseUrl, urlEncode(name!!), year)
+        val page = httpHelper.getPage(urlString)
+        return parseResponsePage(page)
     }
 
-    public List<MediaItem> search(String name, int year) {
-        String urlString = String.format("%s&query=%s&year=%d", baseUrl, TorrentHelper.urlEncode(name), year);
-        String page = httpHelper.getPage(urlString);
-
-        return parseResponsePage(page);
-    }
-
-    public List<MediaItem> parseResponsePage(String pageContent) {
+    fun parseResponsePage(pageContent: String?): List<MediaItem>? {
         if (pageContent == null) {
-            return null;
+            return null
         }
-        List<MediaItem> mediaItems = new ArrayList<>();
-        JsonElement jsonRoot = JsonParser.parseString(pageContent);
-        JsonElement results = jsonRoot.getAsJsonObject().get("results");
-        JsonArray jsonArray = results.getAsJsonArray();
-        jsonArray.forEach(jsonMedia -> {
-            JsonObject jsonMediaObject = jsonMedia.getAsJsonObject();
-            String mediaTypeString = jsonMediaObject.get("media_type").getAsString().toLowerCase();
-            String title = null;
-            String originalTitle = null;
+        val mediaItems: MutableList<MediaItem> = ArrayList()
+        val jsonRoot = JsonParser.parseString(pageContent)
+        val results = jsonRoot.asJsonObject["results"]
+        val jsonArray = results.asJsonArray
+        jsonArray.forEach(Consumer { jsonMedia: JsonElement ->
+            val jsonMediaObject = jsonMedia.asJsonObject
+            val mediaTypeString = jsonMediaObject["media_type"].asString.lowercase(Locale.getDefault())
+            var title: String? = null
+            var originalTitle: String? = null
             if (mediaTypeString.contains("tv")) {
-                title = jsonMediaObject.get("name").getAsString();
-                originalTitle = jsonMediaObject.get("original_name").getAsString();
+                title = jsonMediaObject["name"].asString
+                originalTitle = jsonMediaObject["original_name"].asString
             } else {
-                JsonElement titleElement = jsonMediaObject.get("title");
-                JsonElement originalTitleElement = jsonMediaObject.get("original_title");
+                val titleElement = jsonMediaObject["title"]
+                val originalTitleElement = jsonMediaObject["original_title"]
                 if (titleElement != null) {
-                    title = titleElement.getAsString();
+                    title = titleElement.asString
                 }
                 if (originalTitleElement != null) {
-                    originalTitle = originalTitleElement.getAsString();
+                    originalTitle = originalTitleElement.asString
                 }
             }
-            MediaType mediaType = determineMediaType(mediaTypeString);
-            Integer year = null;
+            val mediaType = determineMediaType(mediaTypeString)
+            var year: Int? = null
             try {
-                Calendar calendar = Calendar.getInstance();
-                JsonElement releaseDate = jsonMediaObject.get("release_date");
-                JsonElement firstAirDate = jsonMediaObject.get("first_air_date");
-                String releaseDateString = releaseDate != null ? releaseDate.getAsString()
-                    : (firstAirDate != null ? firstAirDate.getAsString() : null);
+                val calendar = Calendar.getInstance()
+                val releaseDate = jsonMediaObject["release_date"]
+                val firstAirDate = jsonMediaObject["first_air_date"]
+                val releaseDateString = if (releaseDate != null) releaseDate.asString else firstAirDate?.asString
                 if (releaseDateString != null) {
-                    calendar.setTime(new SimpleDateFormat("yyyy-MM-dd").parse(releaseDateString));
-                    year = calendar.get(Calendar.YEAR);
+                    calendar.time = SimpleDateFormat("yyyy-MM-dd").parse(releaseDateString)
+                    year = calendar[Calendar.YEAR]
                 }
-            } catch (ParseException ignored) {
+            } catch (ignored: ParseException) {
             }
             if (title != null || originalTitle != null) {
-                mediaItems.add(new MediaItem(title, originalTitle, year, mediaType));
+                mediaItems.add(MediaItem(title!!, originalTitle, year, mediaType))
             }
-        });
-        return mediaItems;
+        })
+        return mediaItems
     }
 
-    private MediaType determineMediaType(String mediaTypeString) {
-        String mediaTypeStringCleaned = mediaTypeString.toLowerCase();
-        if (mediaTypeStringCleaned.contains("movie")) {
-            return MediaType.Movie;
+    private fun determineMediaType(mediaTypeString: String): MediaType {
+        val mediaTypeStringCleaned = mediaTypeString.lowercase(Locale.getDefault())
+        return if (mediaTypeStringCleaned.contains("movie")) {
+            MediaType.Movie
         } else if (mediaTypeStringCleaned.contains("series") || mediaTypeStringCleaned.contains("tv")) {
-            return MediaType.Series;
+            MediaType.Series
         } else {
-            return MediaType.Other;
+            MediaType.Other
         }
     }
 
-    public MediaType determineMediaType(Torrent remoteTorrent) {
-        Integer yearOfRelease = extractYearInTorrent(remoteTorrent.name);
-        List<MediaItem> mediaItems = new ArrayList<>();
+    fun determineMediaType(remoteTorrent: Torrent): MediaType? {
+        val yearOfRelease = extractYearInTorrent(remoteTorrent.name)
+        val mediaItems: MutableList<MediaItem> = ArrayList()
         if (yearOfRelease != null) {
             mediaItems.addAll(
-                search(TorrentHelper.getNormalizedTorrentStringWithSpaces(remoteTorrent.name).replaceAll(yearOfRelease.toString(), "").trim(), yearOfRelease));
+                search(
+                    getNormalizedTorrentStringWithSpaces(remoteTorrent.name).replace(yearOfRelease.toString().toRegex(), "").trim { it <= ' ' },
+                    yearOfRelease
+                )!!
+            )
         } else {
-            mediaItems.addAll(search(TorrentHelper.getNormalizedTorrentStringWithSpaces(remoteTorrent.name).trim()));
+            mediaItems.addAll(search(getNormalizedTorrentStringWithSpaces(remoteTorrent.name).trim { it <= ' ' })!!)
         }
-        Optional<MediaItem> mediaItem = mediaItems.stream().findFirst();
-        return mediaItem.map(MediaItem::getType).orElse(null);
+        val mediaItem = mediaItems.stream().findFirst()
+        return mediaItem.map(MediaItem::type).orElse(null)
     }
 
-    private Integer extractYearInTorrent(String torrentName) {
-        Pattern pattern = Pattern.compile("([0-9]{4})[^\\w]");
-        Matcher matcher = pattern.matcher(torrentName);
+    private fun extractYearInTorrent(torrentName: String): Int? {
+        val pattern = Pattern.compile("([0-9]{4})[^\\w]")
+        val matcher = pattern.matcher(torrentName)
         while (matcher.find()) {
             // Get the group matched using group() method
-            String group = matcher.group(1);
+            val group = matcher.group(1)
             if (group != null) {
-                return Integer.parseInt(group);
+                return group.toInt()
             }
         }
-        return null;
+        return null
     }
-
 }

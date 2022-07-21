@@ -1,271 +1,255 @@
-package boat;
+package boat
 
-import java.lang.management.ManagementFactory;
-import java.lang.management.RuntimeMXBean;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Base64;
-import java.util.Date;
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import boat.info.CloudFileService
+import boat.info.CloudService
+import boat.info.MediaItem
+import boat.info.QueueService
+import boat.info.TheFilmDataBaseService
+import boat.info.TorrentMetaService
+import boat.model.TransferStatus
+import boat.multifileHoster.MultifileHosterService
+import boat.services.TransferService
+import boat.torrent.Torrent
+import boat.torrent.TorrentHelper.getSearchNameFrom
+import boat.torrent.TorrentHelper.humanReadableByteCountBinary
+import boat.torrent.TorrentSearchEngineService
+import boat.utilities.HttpHelper
+import boat.utilities.LoggerDelegate
+import boat.utilities.PropertiesHelper
+import org.apache.commons.validator.routines.UrlValidator
+import org.apache.logging.log4j.util.Strings
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.http.MediaType
+import org.springframework.web.HttpMediaTypeNotAcceptableException
+import org.springframework.web.bind.annotation.ExceptionHandler
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
+import org.springframework.web.bind.annotation.ResponseBody
+import org.springframework.web.bind.annotation.RestController
+import java.lang.management.ManagementFactory
+import java.nio.charset.StandardCharsets
+import java.util.Arrays
+import java.util.Base64
+import java.util.Date
+import java.util.function.Consumer
+import java.util.stream.Collectors
+import java.util.stream.Stream
+import kotlin.concurrent.thread
+import kotlin.system.exitProcess
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.MediaType;
-import org.springframework.web.HttpMediaTypeNotAcceptableException;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.bind.annotation.RestController;
-
-import boat.info.CloudFileService;
-import boat.info.CloudService;
-import boat.info.MediaItem;
-import boat.info.QueueService;
-import boat.info.TheFilmDataBaseService;
-import boat.info.TorrentMetaService;
-import boat.multifileHoster.MultifileHosterService;
-import boat.services.TransferService;
-import boat.torrent.Torrent;
-import boat.torrent.TorrentHelper;
-import boat.torrent.TorrentSearchEngineService;
-import boat.utilities.HttpHelper;
-import boat.utilities.PropertiesHelper;
-import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.validator.routines.UrlValidator;
-import org.apache.logging.log4j.util.Strings;
-
-@Slf4j
 @RestController
-public final class BoatController {
+class BoatController @Autowired constructor(
+    private val httpHelper: HttpHelper,
+    private val torrentSearchEngineService: TorrentSearchEngineService,
+    private val cloudService: CloudService,
+    torrentMetaService: TorrentMetaService?,
+    private val theFilmDataBaseService: TheFilmDataBaseService,
+    private val multifileHosterService: MultifileHosterService,
+    private val queueService: QueueService,
+    private val cloudFileService: CloudFileService,
+    private val transferService: TransferService
+) {
 
-    public static final String BREAK_LINK_HTML = "  <br>\n";
-    private final String switchToProgress = "<a href=\"../debug\">Show Progress</a> ";
-    private final String switchToSearchList = "<a href=\"../searchList\">Search a List</a> ";
-    private final String switchToSearch = "<a href=\"../search\">Search a single Title</a> ";
-    private final HttpHelper httpHelper;
-    private final TorrentSearchEngineService torrentSearchEngineService;
-    private final CloudService cloudService;
-    private final TheFilmDataBaseService theFilmDataBaseService;
-    private final MultifileHosterService multifileHosterService;
-    private final QueueService queueService;
-    private final CloudFileService cloudFileService;
-    private final TransferService transferService;
-
-    @Autowired
-    public BoatController(
-        HttpHelper httpHelper,
-        TorrentSearchEngineService torrentSearchEngineService,
-        CloudService cloudService,
-        TorrentMetaService torrentMetaService,
-        TheFilmDataBaseService theFilmDataBaseService,
-        MultifileHosterService multifileHosterService,
-        QueueService queueService,
-        CloudFileService cloudFileService,
-        TransferService transferService) {
-        this.httpHelper = httpHelper;
-        this.torrentSearchEngineService = torrentSearchEngineService;
-        this.cloudService = cloudService;
-        this.theFilmDataBaseService = theFilmDataBaseService;
-        this.multifileHosterService = multifileHosterService;
-        this.queueService = queueService;
-        this.cloudFileService = cloudFileService;
-        this.transferService = transferService;
+    companion object {
+        private val logger by LoggerDelegate()
+        const val BREAK_LINK_HTML = "  <br>\n"
     }
 
-    @GetMapping({"/"})
-    @NonNull
-    public final String index() {
-        return "Greetings from Spring Boot!";
+    private val switchToProgress = "<a href=\"../debug\">Show Progress</a> "
+    private val switchToSearchList = "<a href=\"../searchList\">Search a List</a> "
+    private val switchToSearch = "<a href=\"../search\">Search a single Title</a> "
+
+    @GetMapping("/")
+    fun index(): String {
+        return "Greetings from Spring Boot!"
     }
 
     @ResponseBody
-    @ExceptionHandler(HttpMediaTypeNotAcceptableException.class)
-    public String handleHttpMediaTypeNotAcceptableException() {
-        return "acceptable MIME type:" + MediaType.TEXT_HTML;
+    @ExceptionHandler(HttpMediaTypeNotAcceptableException::class)
+    fun handleHttpMediaTypeNotAcceptableException(): String {
+        return "acceptable MIME type:" + MediaType.TEXT_HTML
     }
 
-    @GetMapping({"/search"})
-    @NonNull
-    public final String search() {
-        return "<!DOCTYPE html>\n" +
-            "<html>\n" +
-            "<body style=\"font-size: 2em;\">\n" +
-            "\n" +
-            "<h2>Here to serve you</h2>\n" +
-            "\n" +
-            "<form action=\"../boat\" target=\"_blank\" method=\"GET\">\n" +
-            "  Title:<br>\n" +
-            "  <input type=\"text\" name=\"qq\" value=\"\" style=\"font-size: 2em; \">\n" +
-            BREAK_LINK_HTML +
-            "  <input type=\"reset\" value=\"Reset\" style=\"font-size: 2em; \">\n" +
-            "  <input type=\"submit\" value=\"Search\" style=\"font-size: 2em; \">\n" +
-            "</form>\n" +
-            BREAK_LINK_HTML +
-            BREAK_LINK_HTML +
-            "<form action=\"../boat/download\" target=\"_blank\" method=\"POST\">\n" +
-            "  Direct download URL (multiple seperate by comma):<br>\n" +
-            "  <input type=\"text\" name=\"dd\" value=\"\" style=\"font-size: 2em; \">\n" +
-            BREAK_LINK_HTML +
-            "  <input type=\"reset\" value=\"Reset\" style=\"font-size: 2em; \">\n" +
-            "  <input type=\"submit\" value=\"Download\" style=\"font-size: 2em; \">\n" +
-            "</form>\n" +
-            "<br/>\n" +
-            switchToSearchList +
-            switchToProgress.replace("..", "../boat") +
-            "</body>\n" +
-            "</html>\n";
+    @GetMapping("/search")
+    fun search(): String {
+        return """<!DOCTYPE html>
+<html>
+<body style="font-size: 2em;">
+
+<h2>Here to serve you</h2>
+
+<form action="../boat" target="_blank" method="GET">
+  Title:<br>
+  <input type="text" name="qq" value="" style="font-size: 2em; ">
+$BREAK_LINK_HTML  <input type="reset" value="Reset" style="font-size: 2em; ">
+  <input type="submit" value="Search" style="font-size: 2em; ">
+</form>
+$BREAK_LINK_HTML$BREAK_LINK_HTML<form action="../boat/download" target="_blank" method="POST">
+  Direct download URL (multiple seperate by comma):<br>
+  <input type="text" name="dd" value="" style="font-size: 2em; ">
+$BREAK_LINK_HTML  <input type="reset" value="Reset" style="font-size: 2em; ">
+  <input type="submit" value="Download" style="font-size: 2em; ">
+</form>
+<br/>
+$switchToSearchList${switchToProgress.replace("..", "../boat")}</body>
+</html>
+"""
     }
 
-    @GetMapping({"/searchList"})
-    @NonNull
-    public final String searchList() {
-        return "<!DOCTYPE html>\n" +
-            "<html>\n" +
-            "<body style=\"font-size: 2em;\">\n" +
-            "\n" +
-            "<h2>Here to serve you</h2>\n" +
-            "<form action=\"../boat\" target=\"_blank\" method=\"POST\">\n" +
-            "Download multiple movies (one per line):<br>\n" +
-            "<textarea id=\"qqq\" name=\"qqq\" rows=\"25\" cols=\"25\" style=\"font-size: 2em; \">\n"
-            + "</textarea>\n" +
-            BREAK_LINK_HTML +
-            "  <input type=\"reset\" value=\"Reset\" style=\"font-size: 2em; \">\n" +
-            "  <input type=\"submit\" value=\"Download\" style=\"font-size: 2em; \">\n" +
-            "</form>\n" +
-            "<br/>\n" +
-            switchToSearch +
-            switchToProgress.replace("..", "../boat") +
-            "</body>\n" +
-            "</html>\n";
+    @GetMapping("/searchList")
+    fun searchList(): String {
+        return """<!DOCTYPE html>
+<html>
+<body style="font-size: 2em;">
+
+<h2>Here to serve you</h2>
+<form action="../boat" target="_blank" method="POST">
+Download multiple movies (one per line):<br>
+<textarea id="qqq" name="qqq" rows="25" cols="25" style="font-size: 2em; ">
+</textarea>
+$BREAK_LINK_HTML  <input type="reset" value="Reset" style="font-size: 2em; ">
+  <input type="submit" value="Download" style="font-size: 2em; ">
+</form>
+<br/>
+$switchToSearch${switchToProgress.replace("..", "../boat")}</body>
+</html>
+"""
     }
 
-    @RequestMapping({"/boat"})
-    @NonNull
-    public final String searchTorrents(@RequestParam(value = "q", required = false) String searchString,
-                                       @RequestParam(value = "qq", required = false) String localSearchString,
-                                       @RequestParam(value = "qqq", required = false) String luckySearchList) {
-        long startTime = System.currentTimeMillis();
+    @RequestMapping("/boat")
+    fun searchTorrents(
+        @RequestParam(value = "q", required = false) searchString: String?,
+        @RequestParam(value = "qq", required = false) localSearchString: String,
+        @RequestParam(value = "qqq", required = false) luckySearchList: String
+    ): String {
+        var searchString = searchString
+        val startTime = System.currentTimeMillis()
         if (Strings.isNotEmpty(localSearchString)) {
-            final List<String> existingFiles = cloudService.findExistingFiles(localSearchString);
-            if (!existingFiles.isEmpty()) {
-                return "We already found some files:<br/>" + String.join("<br/>", existingFiles)
-                    + "<br/>Still want to search? <a href=\"?q=" + localSearchString + "\">Yes</a>";
+            val existingFiles = cloudService.findExistingFiles(localSearchString)
+            searchString = if (!existingFiles.isEmpty()) {
+                return ("We already found some files:<br/>" + java.lang.String.join("<br/>", existingFiles)
+                        + "<br/>Still want to search? <a href=\"?q=" + localSearchString + "\">Yes</a>")
             } else {
-                searchString = localSearchString;
+                localSearchString
             }
         }
-        if (Strings.isNotEmpty(localSearchString) || Strings.isNotEmpty(searchString)) {
-            List<Torrent> torrentList = torrentSearchEngineService.searchTorrents(searchString);
-            log.info("Took: [{}]ms for [{}] found [{}]", (System.currentTimeMillis() - startTime), searchString,
-                torrentList.size());
-            return "G: " + torrentList.stream().limit(25).collect(Collectors.toList());
+        return if (Strings.isNotEmpty(localSearchString) || Strings.isNotEmpty(searchString)) {
+            val torrentList = torrentSearchEngineService.searchTorrents(searchString!!)
+            logger.info(
+                "Took: [{}]ms for [{}] found [{}]", System.currentTimeMillis() - startTime, searchString,
+                torrentList.size
+            )
+            "G: " + torrentList.stream().limit(25).collect(Collectors.toList())
         } else if (Strings.isNotEmpty(luckySearchList)) {
-            String[] schemes = {"http", "https"};
-            UrlValidator urlValidator = new UrlValidator(schemes);
-            final String pageWithEntries;
-            if (urlValidator.isValid(luckySearchList)) {
-                pageWithEntries = httpHelper.getPage(luckySearchList);
+            val schemes = arrayOf("http", "https")
+            val urlValidator = UrlValidator(schemes)
+            val pageWithEntries: String
+            pageWithEntries = if (urlValidator.isValid(luckySearchList)) {
+                httpHelper.getPage(luckySearchList)
             } else {
-                pageWithEntries = luckySearchList;
+                luckySearchList
             }
             if (Strings.isNotEmpty(pageWithEntries)) {
-                final String[] titles = pageWithEntries.split("\n");
-                final List<MediaItem> listOfMediaItems = Arrays.stream(titles).map(title ->
-                        new MediaItem(title, title, null, boat.info.MediaType.Other)
-                    )
-                    .filter(this::isNotAlreadyDownloaded)
-                    .collect(Collectors.toList());
-                queueService.addAll(listOfMediaItems);
-                queueService.saveQueue();
-                return switchToProgress.replace("..", "../boat") + listOfMediaItems;
+                val titles = pageWithEntries.split("\n".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
+                val listOfMediaItems = Arrays.stream(titles).map { title: String? -> MediaItem(title!!, title, null, boat.info.MediaType.Other) }
+                    .filter { mediaItem: MediaItem -> isNotAlreadyDownloaded(mediaItem) }
+                    .collect(Collectors.toList())
+                queueService.addAll(listOfMediaItems)
+                queueService.saveQueue()
+                switchToProgress.replace("..", "../boat") + listOfMediaItems
             } else {
-                return "Error: nothing in remote url";
+                "Error: nothing in remote url"
             }
         } else {
-            return "Error: nothing to search";
+            "Error: nothing to search"
         }
     }
 
-
-    @RequestMapping({"/boat/download"})
-    @NonNull
-    public final String downloadTorrentToMultifileHoster(
-        @RequestParam(value = "d", required = false) String downloadUri,
-        @RequestParam(value = "dd", required = false) String directDownloadUri) {
-        List<Torrent> torrentsToBeDownloaded = new ArrayList<>();
-        String decodedUri;
+    @RequestMapping("/boat/download")
+    fun downloadTorrentToMultifileHoster(
+        @RequestParam(value = "d", required = false) downloadUri: String?,
+        @RequestParam(value = "dd", required = false) directDownloadUri: String
+    ): String {
+        val torrentsToBeDownloaded: MutableList<Torrent> = ArrayList()
+        val decodedUri: String
         if (Strings.isNotEmpty(downloadUri)) {
-            byte[] magnetUri = Base64.getUrlDecoder().decode(downloadUri);
-            decodedUri = new String(magnetUri, StandardCharsets.UTF_8);
-            addUriToQueue(torrentsToBeDownloaded, decodedUri);
+            val magnetUri = Base64.getUrlDecoder().decode(downloadUri)
+            decodedUri = String(magnetUri, StandardCharsets.UTF_8)
+            torrentsToBeDownloaded.add(
+                Torrent.of(
+                    magnetUri = decodedUri,
+                )
+            )
         } else if (Strings.isNotEmpty(directDownloadUri)) {
-            decodedUri = directDownloadUri;
+            decodedUri = directDownloadUri
             if (!decodedUri.contains(",")) {
-                addUriToQueue(torrentsToBeDownloaded, decodedUri);
+                torrentsToBeDownloaded.add(
+                    Torrent.of(
+                        magnetUri = decodedUri,
+                    )
+                )
             } else {
-                String[] uris = decodedUri.split(",");
-                Stream.of(uris).forEach(uri -> addUriToQueue(torrentsToBeDownloaded, uri));
+                val uris = decodedUri.split(",".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
+                Stream.of(*uris).forEach { uri: String -> torrentsToBeDownloaded.add(
+                    Torrent.of(
+                        magnetUri = uri,
+                    )
+                ) }
             }
         }
-        torrentsToBeDownloaded.forEach(multifileHosterService::addTorrentToTransfer);
-        multifileHosterService.addTransfersToDownloadQueue();
-        multifileHosterService.updateTransferStatus();
-        return switchToProgress;
+        torrentsToBeDownloaded.forEach(Consumer { torrent: Torrent -> multifileHosterService.addTorrentToTransfer(torrent) })
+        multifileHosterService.addTransfersToDownloadQueue()
+        multifileHosterService.updateTransferStatus()
+        return switchToProgress
     }
 
-    private void addUriToQueue(List<Torrent> torrentsToBeDownloaded, String decodedUri) {
-        Torrent torrentToBeDownloaded = new Torrent("BoatController");
-        torrentToBeDownloaded.magnetUri = decodedUri;
-        torrentsToBeDownloaded.add(torrentToBeDownloaded);
+    @RequestMapping("/boat/tfdb")
+    fun searchTfdb(@RequestParam(value = "q") query: String?): String {
+        return theFilmDataBaseService.search(query).toString()
     }
 
-    @RequestMapping({"/boat/tfdb"})
-    @NonNull
-    public final String searchTfdb(@RequestParam(value = "q") String query) {
-        return theFilmDataBaseService.search(query).toString();
+    @get:GetMapping("/boat/debug")
+    val debugInfo: String
+        get() {
+            multifileHosterService.refreshTorrents()
+            val remoteTorrents: List<Torrent> = multifileHosterService.activeTorrents
+            val runtimeBean = ManagementFactory.getRuntimeMXBean()
+            val startTime = runtimeBean.startTime
+            val startDate = Date(startTime)
+            return ("v:" + PropertiesHelper.getVersion() + " started: " + startDate
+                    + "<br/>remote host: " + httpHelper.externalHostname
+                    + "<br/>cloud token: " + (if (cloudService.isCloudTokenValid) "✅" else "❌")
+                    + "<br/>search Cache: " + (if (cloudFileService.isCacheFilled) "✅" else "❌")
+                    + "<br/>ActiveSearchEngines: " + torrentSearchEngineService.getActiveSearchEngines()
+                    + "<br/>InActiveSearchEngines: " + torrentSearchEngineService.inActiveSearchEngines
+                    + "<br/>Active MultifileHoster: " + multifileHosterService.getActiveMultifileHosters()
+                    + "<br/>Active DL MultifileHoster: " + multifileHosterService.getActiveMultifileHosterForDownloads()
+                    + "<br/>TrafficLeft: " + humanReadableByteCountBinary(multifileHosterService.getRemainingTrafficInMB().toLong() * 1024 * 1024)
+                    + String.format(
+                "<br/>Transfers [%d]: %s",
+                transferService.getAll().size,
+                transferService.getAll()
+            ) + String.format("<br/><!-- D [%d]: %s -->", remoteTorrents.size, remoteTorrents) + String.format(
+                "<br/>Queue [%d]: %s",
+                queueService.getQueue().size,
+                queueService.getQueue()
+            ))
+        }
+
+    @GetMapping("/boat/shutdown")
+    fun shutdownServer(): String {
+        logger.info("shutdown request received")
+        thread(start = true) {
+            Thread.sleep(1000)
+            exitProcess(0)
+        }
+        return "shutting down/restarting"
     }
 
-    @GetMapping({"/boat/debug"})
-    @NonNull
-    public final String getDebugInfo() {
-        multifileHosterService.refreshTorrents();
-        List<Torrent> remoteTorrents = multifileHosterService.getActiveTorrents();
-        RuntimeMXBean runtimeBean = ManagementFactory.getRuntimeMXBean();
-        long startTime = runtimeBean.getStartTime();
-        Date startDate = new Date(startTime);
-        return "v:" + PropertiesHelper.getVersion() + " started: " + startDate
-            + "<br/>remote host: " + httpHelper.getExternalHostname()
-            + "<br/>cloud token: " + (cloudService.isCloudTokenValid() ? "✅" : "❌")
-            + "<br/>search Cache: " + (cloudFileService.isCacheFilled() ? "✅" : "❌")
-            + "<br/>ActiveSearchEngines: " + torrentSearchEngineService.getActiveSearchEngines()
-            + "<br/>InActiveSearchEngines: " + torrentSearchEngineService.getInActiveSearchEngines()
-            + "<br/>Active MultifileHoster: " + multifileHosterService.getActiveMultifileHosters()
-            + "<br/>Active DL MultifileHoster: " + multifileHosterService.getActiveMultifileHosterForDownloads()
-            + "<br/>TrafficLeft: " + TorrentHelper
-            .humanReadableByteCountBinary((long) multifileHosterService.getRemainingTrafficInMB() * 1024 * 1024)
-            + String.format("<br/>Transfers [%d]: %s", transferService.getAll().size(), transferService.getAll())
-            + String.format("<br/><!-- D [%d]: %s -->", remoteTorrents.size(), remoteTorrents)
-            + String.format("<br/>Queue [%d]: %s", queueService.getQueue().size(), queueService.getQueue())
-            ;
+    private fun isNotAlreadyDownloaded(mediaItem: MediaItem): Boolean {
+        val existingFiles = cloudService
+            .findExistingFiles(getSearchNameFrom(mediaItem))
+        return existingFiles.isEmpty()
     }
-
-    @GetMapping({"/boat/shutdown"})
-    @NonNull
-    public final String shutdownServer() {
-        log.info("shutdown request received");
-        System.exit(0);
-        return "off we go";
-    }
-
-    private boolean isNotAlreadyDownloaded(MediaItem mediaItem) {
-        final List<String> existingFiles = cloudService
-            .findExistingFiles(TorrentHelper.getSearchNameFrom(mediaItem));
-        return existingFiles.isEmpty();
-    }
-
 }

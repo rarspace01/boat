@@ -87,12 +87,13 @@ class MultifileHosterService(
                 .min(Comparator.comparingInt(MultifileHoster::getPrio))
                 .orElse(potentialMultiHosters.first())
         }
-        val transfer = Transfer()
-        transfer.name = TorrentHelper.extractTorrentName(torrent)
-        transfer.transferType = extractType(torrent.magnetUri)
-        transfer.transferStatus = TransferStatus.ADDED
-        transfer.source = selectedMultiFileHosterSource.getName()
-        transfer.uri = torrent.magnetUri
+        val transfer = Transfer(
+            name = TorrentHelper.extractTorrentName(torrent),
+            transferType = extractType(torrent.magnetUri),
+            transferStatus = TransferStatus.ADDED,
+            source = selectedMultiFileHosterSource.getName(),
+            uri = torrent.magnetUri,
+        )
         transferService.save(transfer)
 //        val listOfMultihostersWithTrafficLeft = multifileHosterList.filter { multifileHoster -> multifileHoster.getRemainingTrafficInMB() > 30000 }
 //        val potentialMultihosters = listOfMultihostersWithTrafficLeft.ifEmpty { multifileHosterList }
@@ -140,7 +141,7 @@ class MultifileHosterService(
                         transfer.transferStatus = TransferStatus.SERVER_ERROR
                     }
                 } else {
-                    transfer.remoteId = extractRemoteIdFromMessage(transfer.feedbackMessage)
+                    transfer.remoteId = extractRemoteIdFromMessage(transfer)
                     transfer.transferStatus = TransferStatus.ADDED_TO_MULTIHOSTER
                 }
                 transferService.save(transfer)
@@ -148,13 +149,16 @@ class MultifileHosterService(
         }
     }
 
-    fun extractRemoteIdFromMessage(feedbackMessage: String): String? {
-        if (Strings.isNotEmpty(feedbackMessage)) {
+    fun extractRemoteIdFromMessage(transfer: Transfer): String? {
+        if (Strings.isNotEmpty(transfer.feedbackMessage)) {
             val pattern = Pattern.compile("\"id\":\"([^\"]+)\"")
-            val matcher = pattern.matcher(feedbackMessage)
-            if (matcher.find()) {
-                return matcher.group(1)
+            transfer.feedbackMessage?.let {
+                val matcher = pattern.matcher(it)
+                if (matcher.find()) {
+                    return matcher.group(1)
+                }
             }
+
         }
         return null
     }
@@ -257,9 +261,9 @@ class MultifileHosterService(
         val torrentsForDownload = remoteTorrentsForDownload
         torrentsForDownload.forEach { torrent ->
             transfers.find { transfer ->
-                transfer.uri.lowercase().contains(torrent.torrentId.lowercase()) ||
-                    transfer.remoteId != null && transfer.remoteId == torrent.remoteId ||
-                    transferMatchedTorrentBySource(transfer, torrent)
+                transfer.uri?.lowercase()?.contains(torrent.torrentId.lowercase()) ?: false ||
+                        transfer.remoteId != null && transfer.remoteId == torrent.remoteId ||
+                        transferMatchedTorrentBySource(transfer, torrent)
             }
                 ?.also { transfer ->
                     transfer.transferStatus = torrent.remoteTransferStatus
@@ -313,7 +317,8 @@ class MultifileHosterService(
                     }
                 }
                 listOfUnmatchedTransfers = transfers.filter { matchedTransfers.none { matchedTransfer -> matchedTransfer.id.equals(it.id) } }
-                listOfUnmatchedTorrents = torrentsForDownload.filter { matchedTorrents.none { matchedTorrent -> matchedTorrent.torrentId.equals((it.torrentId)) } }
+                listOfUnmatchedTorrents =
+                    torrentsForDownload.filter { matchedTorrents.none { matchedTorrent -> matchedTorrent.torrentId.equals((it.torrentId)) } }
 
                 if (listOfUnmatchedTorrents.isNotEmpty() && listOfUnmatchedTorrents.isNotEmpty()) {
                     listOfUnmatchedTorrents.forEach { torrent ->
@@ -364,9 +369,9 @@ class MultifileHosterService(
             val transferDiffCount = transferWordList.size - transferInTorrentCount
             val torrentDiffCount = torrentWordList.size - torrentInTransferCount
             (
-                (transferInTorrentCount.toDouble() / transferWordList.count().toDouble() > 0.75) && transferDiffCount <= maxDiff &&
-                    (torrentInTransferCount.toDouble() / torrentWordList.count().toDouble() > 0.75) && torrentDiffCount <= maxDiff
-                )
+                    (transferInTorrentCount.toDouble() / transferWordList.count().toDouble() > 0.75) && transferDiffCount <= maxDiff &&
+                            (torrentInTransferCount.toDouble() / torrentWordList.count().toDouble() > 0.75) && torrentDiffCount <= maxDiff
+                    )
         }
     }
 
@@ -434,9 +439,9 @@ class MultifileHosterService(
                         var targetFilePath: String
                         targetFilePath = if (destinationPath.contains("transfer")) {
                             (
-                                PropertiesHelper.getProperty("RCLONEDIR") + "/transfer/multipart/" +
-                                    torrentToBeDownloaded.name + "/" + torrentFile.name
-                                )
+                                    PropertiesHelper.getProperty("RCLONEDIR") + "/transfer/multipart/" +
+                                            torrentToBeDownloaded.name + "/" + torrentFile.name
+                                    )
                         } else {
                             if (destinationPath.contains(TorrentType.SERIES_SHOWS.type)) {
                                 destinationPath + torrentFile.name
@@ -580,7 +585,7 @@ class MultifileHosterService(
         )
     }
 
-    private fun extractFileNameFromUrl(fileURLFromTorrent: String): String? {
+    private fun extractFileNameFromUrl(fileURLFromTorrent: String): String {
         val fileString = URLDecoder.decode(fileURLFromTorrent, StandardCharsets.UTF_8)
         val pattern = Pattern.compile("([\\w.%\\-]+)$")
         var foundMatch: String? = null
@@ -589,10 +594,10 @@ class MultifileHosterService(
             foundMatch = matcher.group()
         }
         foundMatch?.replace("\\s".toRegex(), ".")
-        return foundMatch
+        return foundMatch.toString()
     }
 
-    private fun rcloneDownloadFileToGdrive(fileURLFromTorrent: String, destinationPath: String): Boolean {
+    private fun rcloneDownloadFileToGdrive(fileURLFromTorrent: String?, destinationPath: String): Boolean {
         log.info("D>[{}]", destinationPath)
         val builder = ProcessBuilder()
         val commandToRun = String.format("rclone copyurl '%s' '%s'", fileURLFromTorrent, destinationPath.replace("'".toRegex(), ""))

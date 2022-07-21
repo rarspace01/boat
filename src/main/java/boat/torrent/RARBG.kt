@@ -1,113 +1,95 @@
-package boat.torrent;
+package boat.torrent
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.Objects;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
+import boat.utilities.HttpHelper
+import boat.utilities.LoggerDelegate
+import org.jsoup.Jsoup
+import org.jsoup.nodes.Element
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
+import java.util.Objects
+import java.util.concurrent.CopyOnWriteArrayList
+import java.util.regex.Pattern
 
-import boat.utilities.HttpHelper;
-import lombok.extern.slf4j.Slf4j;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Node;
-import org.jsoup.select.Elements;
+class RARBG(httpHelper: HttpHelper) : HttpUser(httpHelper), TorrentSearchEngine {
 
-@Slf4j
-public class RARBG extends HttpUser implements TorrentSearchEngine {
-
-    public RARBG(HttpHelper httpHelper) {
-        super(httpHelper);
+    companion object {
+        private val logger by LoggerDelegate()
     }
 
-    @Override
-    public List<Torrent> searchTorrents(String searchName) {
-        CopyOnWriteArrayList<Torrent> torrentList = new CopyOnWriteArrayList<>();
-
-        String resultString = httpHelper.getPage(buildSearchUrl(searchName));
-
-        torrentList.addAll(parseTorrentsOnResultPage(resultString, searchName));
-        torrentList.sort(TorrentHelper.torrentSorter);
-        return torrentList;
+    override fun searchTorrents(searchName: String): List<Torrent> {
+        val torrentList = CopyOnWriteArrayList<Torrent>()
+        val resultString = httpHelper.getPage(buildSearchUrl(searchName))
+        torrentList.addAll(parseTorrentsOnResultPage(resultString, searchName))
+        torrentList.sortWith(TorrentComparator)
+        return torrentList
     }
 
-    @Override
-    public String getBaseUrl() {
-        return "http://rarbg.to";
+    override fun getBaseUrl(): String {
+        return "http://rarbg.to"
     }
 
-    private String buildSearchUrl(String searchName) {
-        return String.format("%s/torrents.php?search=%s&order=seeders&by=DESC", getBaseUrl(),
-            URLEncoder.encode(searchName, StandardCharsets.UTF_8));
+    private fun buildSearchUrl(searchName: String): String {
+        return String.format(
+            "%s/torrents.php?search=%s&order=seeders&by=DESC", baseUrl,
+            URLEncoder.encode(searchName, StandardCharsets.UTF_8)
+        )
     }
 
-    private List<Torrent> parseTorrentsOnResultPage(String pageContent, String searchName) {
+    private fun parseTorrentsOnResultPage(pageContent: String, searchName: String): List<Torrent> {
+        val doc = Jsoup.parse(pageContent)
+        val torrentsOnPage = doc.select(".lista2")
+        return torrentsOnPage
+            .map { obj: Element -> obj.toString() }
+            .mapNotNull { elementString: String -> extractSubUrl(elementString) }
+            .mapNotNull { url: String -> parseTorrentsOnSubPage(httpHelper.getPage(url), searchName) }
 
-        Document doc = Jsoup.parse(pageContent);
-
-        Elements torrentsOnPage = doc.select(".lista2");
-        return torrentsOnPage.stream()
-            .map(Node::toString)
-            .map(this::extractSubUrl)
-            .filter(Objects::nonNull)
-            .map(url -> parseTorrentsOnSubPage(httpHelper.getPage(url), searchName))
-            .filter(Objects::nonNull)
-            .collect(Collectors.toList());
     }
 
-    private Torrent parseTorrentsOnSubPage(String page, String searchName) {
-        Document doc = Jsoup.parse(page);
-        final Torrent torrent = new Torrent(toString());
-        torrent.name = doc.title().replaceAll(" Torrent download", "");
+    private fun parseTorrentsOnSubPage(page: String, searchName: String): Torrent? {
+        val doc = Jsoup.parse(page)
+        val torrent = Torrent(toString())
+        torrent.name = doc.title().replace(" Torrent download".toRegex(), "")
         torrent.magnetUri = doc.select("a[href*=magnet]")
             .stream()
-            .map(element -> element.attributes().get("href"))
-            .filter(Objects::nonNull)
-            .findFirst().orElse(null);
-        final String text = doc.text();
-
-        torrent.size = TorrentHelper.cleanNumberString(getValueBetweenStrings(text, "Size: ", "Show Files").trim());
-        torrent.lsize = TorrentHelper.extractTorrentSizeFromString(torrent);
-
+            .map { element: Element -> element.attributes()["href"] }
+            .filter { obj: String? -> Objects.nonNull(obj) }
+            .findFirst().orElse(null)
+        val text = doc.text()
+        torrent.size = TorrentHelper.cleanNumberString(getValueBetweenStrings(text, "Size: ", "Show Files").trim { it <= ' ' })
+        torrent.lsize = TorrentHelper.extractTorrentSizeFromString(torrent)
         try {
-            torrent.seeder = Integer.parseInt(getValueBetweenStrings(text, "Seeders : ", " ,").trim());
-            torrent.leecher = Integer.parseInt(getValueBetweenStrings(text, "Leechers : ", " ,").trim());
-        } catch (Exception exception) {
-            log.error("parsing exception", exception);
+            torrent.seeder = getValueBetweenStrings(text, "Seeders : ", " ,").trim { it <= ' ' }.toInt()
+            torrent.leecher = getValueBetweenStrings(text, "Leechers : ", " ,").trim { it <= ' ' }.toInt()
+        } catch (exception: Exception) {
+            logger.error("parsing exception", exception)
         }
-        TorrentHelper.evaluateRating(torrent, searchName);
-        if (TorrentHelper.isValidTorrent(torrent)) {
-            return torrent;
+        TorrentHelper.evaluateRating(torrent, searchName)
+        return if (TorrentHelper.isValidTorrent(torrent)) {
+            torrent
         } else {
-            return null;
+            null
         }
     }
 
-    private String extractSubUrl(String elementString) {
-        Pattern subUrlPattern = Pattern.compile("href=\"(\\/torrent\\/[A-Za-z0-9]+)\"");
-        Matcher matcher = subUrlPattern.matcher(elementString);
+    private fun extractSubUrl(elementString: String): String? {
+        val subUrlPattern = Pattern.compile("href=\"(\\/torrent\\/[A-Za-z0-9]+)\"")
+        val matcher = subUrlPattern.matcher(elementString)
         while (matcher.find()) {
-            return getBaseUrl() + matcher.group(1);
+            return baseUrl + matcher.group(1)
         }
-        return null;
+        return null
     }
 
-    private String getValueBetweenStrings(String input, String firstString, String secondString) {
-        Pattern betweenPattern = Pattern.compile(firstString + "(.*)" + secondString);
-        Matcher matcher = betweenPattern.matcher(input);
+    private fun getValueBetweenStrings(input: String, firstString: String, secondString: String): String {
+        val betweenPattern = Pattern.compile("$firstString(.*)$secondString")
+        val matcher = betweenPattern.matcher(input)
         while (matcher.find()) {
-            return matcher.group(1);
+            return matcher.group(1)
         }
-        return "";
+        return ""
     }
 
-    @Override
-    public String toString() {
-        return this.getClass().getSimpleName();
+    override fun toString(): String {
+        return this.javaClass.simpleName
     }
-
-
 }

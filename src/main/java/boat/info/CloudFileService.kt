@@ -1,71 +1,65 @@
-package boat.info;
+package boat.info
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
+import boat.utilities.LoggerDelegate
+import com.google.gson.JsonElement
+import com.google.gson.JsonParser
+import lombok.Getter
+import lombok.Setter
+import lombok.extern.slf4j.Slf4j
+import org.springframework.cache.annotation.Cacheable
+import org.springframework.stereotype.Service
+import java.io.File
+import java.util.concurrent.TimeUnit
+import java.util.function.Consumer
 
-import org.springframework.cache.annotation.Cacheable;
-import org.springframework.stereotype.Service;
-
-import com.google.gson.JsonElement;
-import com.google.gson.JsonParser;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
-
-@Slf4j
 @Service
-public class CloudFileService {
+class CloudFileService {
+    var isCacheFilled = false
 
-    @Getter
-    @Setter
-    private boolean isCacheFilled = false;
+    companion object {
+        private val logger by LoggerDelegate()
+    }
 
     @Cacheable("filesCache")
-    public List<String> getFilesInPath(String destinationPath) {
-        return getFilesInPathWithRetries(destinationPath, 3);
+    fun getFilesInPath(destinationPath: String): List<String> {
+        return getFilesInPathWithRetries(destinationPath, 3)
     }
 
-    public List<String> getFilesInPathWithRetries(String destinationPath, int retriesLeft) {
-        final List<String> fileList = new ArrayList<>();
-        final long startCounter = System.currentTimeMillis();
-        log.debug("Search in [" + destinationPath + "]");
-        ProcessBuilder builder = new ProcessBuilder();
-        final String commandToRun = String.format("rclone lsjson '%s'", destinationPath);
-        log.debug(commandToRun);
-        builder.command("bash", "-c", commandToRun);
-        builder.directory(new File(System.getProperty("user.home")));
-        String output = "";
-        String error = "";
+    fun getFilesInPathWithRetries(destinationPath: String, retriesLeft: Int): List<String> {
+        val fileList: MutableList<String> = ArrayList()
+        val startCounter = System.currentTimeMillis()
+        logger.debug("Search in [$destinationPath]")
+        val builder = ProcessBuilder()
+        val commandToRun = String.format("rclone lsjson '%s'", destinationPath)
+        logger.debug(commandToRun)
+        builder.command("bash", "-c", commandToRun)
+        builder.directory(File(System.getProperty("user.home")))
+        var output = ""
+        var error = ""
         try {
-            Process process = builder.start();
-            process.waitFor(5, TimeUnit.SECONDS);
-            output = new String(process.getInputStream().readAllBytes());
-            error = new String(process.getErrorStream().readAllBytes());
-            if (error.contains("limit") && output.length() == 0 && retriesLeft > 0) {
-                Thread.sleep(2000);
-                return getFilesInPathWithRetries(destinationPath, retriesLeft - 1);
+            val process = builder.start()
+            process.waitFor(5, TimeUnit.SECONDS)
+            output = String(process.inputStream.readAllBytes())
+            error = String(process.errorStream.readAllBytes())
+            if (error.contains("limit") && output.length == 0 && retriesLeft > 0) {
+                Thread.sleep(2000)
+                return getFilesInPathWithRetries(destinationPath, retriesLeft - 1)
             }
             if (error.contains("directory not found")) {
-                return Collections.emptyList();
+                return emptyList()
             }
-            final JsonElement jsonElement = JsonParser.parseString(output);
-            if (jsonElement.isJsonArray()) {
-                jsonElement.getAsJsonArray()
-                    .forEach(jsonElement1 -> {
-                        fileList.add(destinationPath + jsonElement1.getAsJsonObject().get("Path").getAsString());
-                    });
-            } else if (jsonElement.isJsonObject()) {
-                fileList.add(destinationPath + jsonElement.getAsJsonObject().get("Path").getAsString());
+            val jsonElement = JsonParser.parseString(output)
+            if (jsonElement.isJsonArray) {
+                jsonElement.asJsonArray
+                    .forEach(Consumer { jsonElement1: JsonElement -> fileList.add(destinationPath + jsonElement1.asJsonObject["Path"].asString) })
+            } else if (jsonElement.isJsonObject) {
+                fileList.add(destinationPath + jsonElement.asJsonObject["Path"].asString)
             }
-        } catch (Exception e) {
-            log.error("{}\nPath: [{}]\nOutput from process:\n{}\nError from Process:\n{}", e.getMessage(), destinationPath, output, error);
-            e.printStackTrace();
+        } catch (e: Exception) {
+            logger.error("{}\nPath: [{}]\nOutput from process:\n{}\nError from Process:\n{}", e.message, destinationPath, output, error)
+            e.printStackTrace()
         }
-        log.info("Took {}ms with [{}]", System.currentTimeMillis() - startCounter, destinationPath);
-        return fileList;
+        logger.info("Took {}ms with [{}]", System.currentTimeMillis() - startCounter, destinationPath)
+        return fileList
     }
-
 }

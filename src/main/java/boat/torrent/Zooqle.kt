@@ -1,79 +1,61 @@
-package boat.torrent;
+package boat.torrent
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
+import boat.utilities.HttpHelper
+import boat.utilities.LoggerDelegate
+import org.jsoup.Jsoup
+import org.jsoup.nodes.Element
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
+import java.util.concurrent.CopyOnWriteArrayList
+import java.util.function.Consumer
 
-import boat.utilities.HttpHelper;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.select.Elements;
+class Zooqle internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper), TorrentSearchEngine {
 
-public class Zooqle extends HttpUser implements TorrentSearchEngine {
-
-    Zooqle(HttpHelper httpHelper) {
-        super(httpHelper);
+    companion object {
+        private val logger by LoggerDelegate()
     }
 
-    @Override
-    public List<Torrent> searchTorrents(String searchName) {
-
-        CopyOnWriteArrayList<Torrent> torrentList = new CopyOnWriteArrayList<>();
-
-        String resultString = httpHelper.getPage(buildSearchUrl(searchName));
-
-        torrentList.addAll(parseTorrentsOnResultPage(resultString, searchName));
-        torrentList.sort(TorrentHelper.torrentSorter);
-        return torrentList;
+    override fun searchTorrents(searchName: String): List<Torrent> {
+        val torrentList = CopyOnWriteArrayList<Torrent>()
+        val resultString = httpHelper.getPage(buildSearchUrl(searchName))
+        torrentList.addAll(parseTorrentsOnResultPage(resultString, searchName))
+        torrentList.sortWith(TorrentComparator)
+        return torrentList
     }
 
-    private String buildSearchUrl(String searchName) {
-        return String
-            .format("%s/search?q=%s&fmt=rss", getBaseUrl(), URLEncoder.encode(searchName, StandardCharsets.UTF_8));
+    private fun buildSearchUrl(searchName: String): String {
+        return String.format("%s/search?q=%s&fmt=rss", baseUrl, URLEncoder.encode(searchName, StandardCharsets.UTF_8))
     }
 
-    @Override
-    public String getBaseUrl() {
-        return "https://zooqle.com";
+    override fun getBaseUrl(): String {
+        return "https://zooqle.com"
     }
 
-    private List<Torrent> parseTorrentsOnResultPage(String pageContent, String searchName) {
-        ArrayList<Torrent> torrentList = new ArrayList<>();
-
-        Document doc = Jsoup.parse(pageContent);
-        Elements torrentListOnPage = doc.select("item");
-
-        if (torrentListOnPage == null) {
-            return torrentList;
-        }
-
-        torrentListOnPage.forEach(torrentElement -> {
-            Torrent tempTorrent = new Torrent(toString());
-
-            tempTorrent.name = torrentElement.getElementsByTag("title").text();
+    private fun parseTorrentsOnResultPage(pageContent: String, searchName: String): List<Torrent> {
+        val torrentList = ArrayList<Torrent>()
+        val doc = Jsoup.parse(pageContent)
+        val torrentListOnPage = doc.select("item") ?: return torrentList
+        torrentListOnPage.forEach(Consumer { torrentElement: Element ->
+            val tempTorrent = Torrent(toString())
+            tempTorrent.name = torrentElement.getElementsByTag("title").text()
             tempTorrent.magnetUri = TorrentHelper.buildMagnetUriFromHash(
-                torrentElement.getElementsByTag("torrent").first().getElementsByTag("infohash").text(),
-                tempTorrent.name);
-            tempTorrent.seeder = Integer.parseInt(torrentElement.getElementsByTag("torrent:seeds").text());
-            tempTorrent.leecher = Integer.parseInt(torrentElement.getElementsByTag("torrent:peers").text());
-            tempTorrent.lsize =
-                Long.parseLong(torrentElement.getElementsByTag("torrent:contentlength").text()) / 1024.0f / 1024.0f;
-            tempTorrent.size = TorrentHelper.humanReadableByteCountBinary((long) (tempTorrent.lsize * 1024.0 * 1024.0));
-            tempTorrent.isVerified = "1".equals(torrentElement.getElementsByTag("torrent:verified").text());
-            TorrentHelper.evaluateRating(tempTorrent, searchName);
+                torrentElement.getElementsByTag("torrent").first()!!.getElementsByTag("infohash").text(),
+                tempTorrent.name
+            )
+            tempTorrent.seeder = torrentElement.getElementsByTag("torrent:seeds").text().toInt()
+            tempTorrent.leecher = torrentElement.getElementsByTag("torrent:peers").text().toInt()
+            tempTorrent.lsize = (torrentElement.getElementsByTag("torrent:contentlength").text().toLong() / 1024.0f / 1024.0f).toDouble()
+            tempTorrent.size = TorrentHelper.humanReadableByteCountBinary((tempTorrent.lsize * 1024.0 * 1024.0).toLong())
+            tempTorrent.isVerified = "1" == torrentElement.getElementsByTag("torrent:verified").text()
+            TorrentHelper.evaluateRating(tempTorrent, searchName)
             if (TorrentHelper.isValidTorrent(tempTorrent)) {
-                torrentList.add(tempTorrent);
+                torrentList.add(tempTorrent)
             }
-        });
-
-        return torrentList;
+        })
+        return torrentList
     }
 
-    @Override
-    public String toString() {
-        return this.getClass().getSimpleName();
+    override fun toString(): String {
+        return this.javaClass.simpleName
     }
-
 }

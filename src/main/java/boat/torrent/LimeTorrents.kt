@@ -1,89 +1,70 @@
-package boat.torrent;
+package boat.torrent
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
+import boat.utilities.HttpHelper
+import boat.utilities.LoggerDelegate
+import org.jsoup.Jsoup
+import org.jsoup.nodes.Element
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
+import java.util.concurrent.CopyOnWriteArrayList
+import java.util.function.Consumer
 
-import boat.utilities.HttpHelper;
-import lombok.extern.slf4j.Slf4j;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.select.Elements;
+class LimeTorrents internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper), TorrentSearchEngine {
 
-@Slf4j
-public class LimeTorrents extends HttpUser implements TorrentSearchEngine {
-
-    LimeTorrents(HttpHelper httpHelper) {
-        super(httpHelper);
+    companion object {
+        private val logger by LoggerDelegate()
     }
 
-    @Override
-    public List<Torrent> searchTorrents(String searchName) {
-
-        CopyOnWriteArrayList<Torrent> torrentList = new CopyOnWriteArrayList<>();
-
-        String resultString = httpHelper.getPage(buildSearchUrl(searchName));
-
-        torrentList.addAll(parseTorrentsOnResultPage(resultString, searchName));
-        torrentList.sort(TorrentHelper.torrentSorter);
-        return torrentList;
+    override fun searchTorrents(searchName: String): List<Torrent> {
+        val torrentList = CopyOnWriteArrayList<Torrent>()
+        val resultString = httpHelper.getPage(buildSearchUrl(searchName))
+        torrentList.addAll(parseTorrentsOnResultPage(resultString, searchName))
+        torrentList.sortWith(TorrentComparator)
+        return torrentList
     }
 
-    private String buildSearchUrl(String searchName) {
-        final String encodedSearch = URLEncoder.encode(searchName, StandardCharsets.UTF_8);
-        return String.format("%s/search/all/%s/seeds/1/", getBaseUrl(), encodedSearch);
+    private fun buildSearchUrl(searchName: String): String {
+        val encodedSearch = URLEncoder.encode(searchName, StandardCharsets.UTF_8)
+        return String.format("%s/search/all/%s/seeds/1/", baseUrl, encodedSearch)
     }
 
-    @Override
-    public String getBaseUrl() {
-        return "https://www.limetorrents.pro/";
+    override fun getBaseUrl(): String {
+        return "https://www.limetorrents.pro/"
     }
 
-    private List<Torrent> parseTorrentsOnResultPage(String pageContent, String searchName) {
-        ArrayList<Torrent> torrentList = new ArrayList<>();
-
-        Document doc = Jsoup.parse(pageContent);
-        Elements torrentListOnPage = doc.select(".table2 tr:has(td)");
-
+    private fun parseTorrentsOnResultPage(pageContent: String, searchName: String): List<Torrent> {
+        val torrentList = ArrayList<Torrent>()
+        val doc = Jsoup.parse(pageContent)
+        val torrentListOnPage = doc.select(".table2 tr:has(td)")
         if (torrentListOnPage.isEmpty()) {
-            return torrentList;
+            return torrentList
         }
-
-        torrentListOnPage.forEach(torrentElement -> {
-            Torrent tempTorrent = new Torrent(toString());
-
-            tempTorrent.name = torrentElement.getElementsByClass("tt-name").first().text();
-            final String torrentHash = torrentElement.getElementsByClass("tt-name").first()
-                .getElementsByAttributeValueContaining("href", "itorrents").first().attr("href")
-                .replaceAll("http://itorrents.org/torrent/", "").replaceAll("\\.torrent.*", "");
-            tempTorrent.magnetUri = TorrentHelper.buildMagnetUriFromHash(torrentHash, tempTorrent.name);
+        torrentListOnPage.forEach(Consumer { torrentElement: Element ->
+            val tempTorrent = Torrent(toString())
+            tempTorrent.name = torrentElement.getElementsByClass("tt-name").first()?.text()
+            val torrentHash = torrentElement.getElementsByClass("tt-name").first()
+                ?.getElementsByAttributeValueContaining("href", "itorrents")?.first()?.attr("href")
+                ?.replace("http://itorrents.org/torrent/".toRegex(), "")?.replace("\\.torrent.*".toRegex(), "")
+            tempTorrent.magnetUri = TorrentHelper.buildMagnetUriFromHash(torrentHash, tempTorrent.name)
             try {
-                tempTorrent.seeder = Integer
-                    .parseInt(torrentElement.getElementsByClass("tdseed").first().text().replaceAll("[,.]", ""));
-                tempTorrent.leecher = Integer
-                    .parseInt(torrentElement.getElementsByClass("tdleech").first().text().replaceAll("[,.]", ""));
+                tempTorrent.seeder = torrentElement.getElementsByClass("tdseed").first()!!.text().replace("[,.]".toRegex(), "").toInt()
+                tempTorrent.leecher = torrentElement.getElementsByClass("tdleech").first()!!.text().replace("[,.]".toRegex(), "").toInt()
                 tempTorrent.lsize = TorrentHelper
-                    .extractTorrentSizeFromString(torrentElement.getElementsByClass("tdnormal").get(1).text());
+                    .extractTorrentSizeFromString(torrentElement.getElementsByClass("tdnormal")[1].text())
                 tempTorrent.size = TorrentHelper
-                    .humanReadableByteCountBinary((long) (tempTorrent.lsize * 1024.0 * 1024.0));
-            } catch (Exception exception) {
-                log.error("parsing exception", exception);
+                    .humanReadableByteCountBinary((tempTorrent.lsize * 1024.0 * 1024.0).toLong())
+            } catch (exception: Exception) {
+                logger.error("parsing exception", exception)
             }
-
-            TorrentHelper.evaluateRating(tempTorrent, searchName);
+            TorrentHelper.evaluateRating(tempTorrent, searchName)
             if (TorrentHelper.isValidTorrent(tempTorrent)) {
-                torrentList.add(tempTorrent);
+                torrentList.add(tempTorrent)
             }
-        });
-
-        return torrentList;
+        })
+        return torrentList
     }
 
-    @Override
-    public String toString() {
-        return this.getClass().getSimpleName();
+    override fun toString(): String {
+        return this.javaClass.simpleName
     }
-
 }
