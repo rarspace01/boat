@@ -22,7 +22,7 @@ import java.util.function.Consumer
 import java.util.regex.Pattern
 import java.util.stream.Collectors
 
-class Premiumize(httpHelper: HttpHelper?) : HttpUser(httpHelper), MultifileHoster {
+class Premiumize(httpHelper: HttpHelper) : HttpUser(httpHelper), MultifileHoster {
     override fun addTorrentToDownloadQueue(toBeAddedTorrent: Torrent): String {
         val response: String
         val addTorrenntUrl =

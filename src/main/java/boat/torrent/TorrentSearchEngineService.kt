@@ -2,8 +2,7 @@ package boat.torrent
 
 import boat.multifileHoster.MultifileHosterService
 import boat.utilities.HttpHelper
-import lombok.extern.slf4j.Slf4j
-import org.slf4j.LoggerFactory
+import boat.utilities.LoggerDelegate
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import java.time.Instant
@@ -13,13 +12,17 @@ import java.util.concurrent.TimeUnit
 import java.util.function.Consumer
 import java.util.stream.Collectors
 
-@Slf4j
 @Service
 class TorrentSearchEngineService @Autowired constructor(
     httpHelper: HttpHelper,
     multifileHosterService: MultifileHosterService,
     torrentInfoService: TorrentInfoService
 ) {
+
+    companion object {
+        private val logger by LoggerDelegate()
+    }
+
     private val activeSearchEngines: MutableList<TorrentSearchEngine> = ArrayList()
     private val allSearchEngines: List<TorrentSearchEngine>
     private val multifileHosterService: MultifileHosterService
@@ -45,7 +48,7 @@ class TorrentSearchEngineService @Autowired constructor(
             .filter { torrentSearchEngine: TorrentSearchEngine -> !activeSearchEngines.contains(torrentSearchEngine) }
             .collect(Collectors.toList())
 
-    fun searchTorrents(searchString: String?): List<Torrent?> {
+    fun searchTorrents(searchString: String): List<Torrent> {
         val combineResults: MutableList<Torrent> = ArrayList()
         val activeSearchEngines: List<TorrentSearchEngine> = ArrayList(
             getActiveSearchEngines()
@@ -60,7 +63,7 @@ class TorrentSearchEngineService @Autowired constructor(
                         .forEach { torrentSearchEngine: TorrentSearchEngine ->
                             val start = Instant.now()
                             combineResults.addAll(torrentSearchEngine.searchTorrents(searchString))
-                            log.info(
+                            logger.info(
                                 "{} took {}ms", torrentSearchEngine,
                                 Instant.now().toEpochMilli() - start.toEpochMilli()
                             )
@@ -68,40 +71,37 @@ class TorrentSearchEngineService @Autowired constructor(
                 }
             ).get()
         } catch (e: InterruptedException) {
-            log.error("Parallel search execution failed", e)
+            logger.error("Parallel search execution failed", e)
         } catch (e: ExecutionException) {
-            log.error("Parallel search execution failed", e)
+            logger.error("Parallel search execution failed", e)
         } finally {
             if (forkJoinPool != null) {
                 forkJoinPool.shutdown()
                 val awaitTermination = forkJoinPool.awaitTermination(30, TimeUnit.SECONDS)
                 if (!awaitTermination) {
                     forkJoinPool.shutdownNow()
-                    log.error("searchTorrents() terminated after timeout")
+                    logger.error("searchTorrents() terminated after timeout")
                 }
                 forkJoinPool = null
             }
         }
 
-        // log.info("RemoteSearch took {}ms", Instant.now().toEpochMilli() - startRemoteSearch.toEpochMilli());
+        // logger.info("RemoteSearch took {}ms", Instant.now().toEpochMilli() - startRemoteSearch.toEpochMilli());
         // final Instant afterRemoteSearch = Instant.now();
         val returnResults: List<Torrent> = ArrayList(cleanDuplicates(combineResults))
-        // log.info("Cleanup took {}ms", Instant.now().toEpochMilli() - afterRemoteSearch.toEpochMilli());
+        // logger.info("Cleanup took {}ms", Instant.now().toEpochMilli() - afterRemoteSearch.toEpochMilli());
         // final Instant afterCleanup = Instant.now();
         val cacheStateOfTorrents = mutableListOf<Torrent>()
         cacheStateOfTorrents.addAll(multifileHosterService.getCachedStateOfTorrents(returnResults))
 
         // final Instant preRefresh = Instant.now();
         torrentInfoService.refreshTorrentStats(cacheStateOfTorrents)
-        // log.info("refreshTorrentStats took {}ms", Instant.now().toEpochMilli() - preRefresh.toEpochMilli());
+        // logger.info("refreshTorrentStats took {}ms", Instant.now().toEpochMilli() - preRefresh.toEpochMilli());
 
-        // log.info("Cache info took {}ms", Instant.now().toEpochMilli() - afterCleanup.toEpochMilli());
-        return cacheStateOfTorrents
-            .stream()
-            .filter { torrent: Torrent -> torrent.seeder > 0 }
-            .map { torrent: Torrent? -> TorrentHelper.evaluateRating(torrent, searchString) }
-            .sorted(TorrentHelper.torrentSorter)
-            .collect(Collectors.toList())
+        // logger.info("Cache info took {}ms", Instant.now().toEpochMilli() - afterCleanup.toEpochMilli());
+        return cacheStateOfTorrents.filter { torrent: Torrent -> torrent.seeder > 0 }
+            .map { torrent: Torrent -> TorrentHelper.evaluateRating(torrent, searchString) }
+            .sortedWith(TorrentComparator)
     }
 
     fun cleanDuplicates(combineResults: List<Torrent>): List<Torrent> {
@@ -139,7 +139,4 @@ class TorrentSearchEngineService @Autowired constructor(
         activeSearchEngines.addAll(allSearchEngines)
     }
 
-    companion object {
-        private val log = LoggerFactory.getLogger(this::class.java)
-    }
 }

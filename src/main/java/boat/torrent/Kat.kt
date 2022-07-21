@@ -13,7 +13,7 @@ class Kat internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper), T
         val torrentList = CopyOnWriteArrayList<Torrent>()
         val resultString = httpHelper.getPage(buildSearchUrl(searchName))
         torrentList.addAll(parseTorrentsOnResultPage(resultString, searchName))
-        torrentList.sortWith(TorrentHelper.torrentSorter)
+        torrentList.sortWith(TorrentComparator)
         return torrentList
     }
 
