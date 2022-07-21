@@ -17,7 +17,6 @@ import boat.utilities.LoggerDelegate
 import boat.utilities.PropertiesHelper
 import com.google.gson.JsonParser
 import org.apache.logging.log4j.util.Strings
-import org.slf4j.LoggerFactory
 import org.springframework.cache.CacheManager
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
