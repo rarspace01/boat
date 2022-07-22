@@ -105,7 +105,7 @@ class CloudService internal constructor(private val cloudFileService: CloudFileS
         }.flatten()
             .filter { fileString: String ->
                 strings.all {
-                    fileString.contains(it)
+                    fileString.lowercase().contains(it.lowercase())
                 }
             }
     }
