@@ -11,7 +11,7 @@ data class Transfer(
     var id: String? = null,
     var name: String = "",
     var remoteId: String? = null,
-    var source: String = "NONE",
+    var source: String = "☕",
     var uri: String = "",
     var transferStatus: TransferStatus = TransferStatus.NONE,
     var transferType: TransferType = TransferType.TORRENT,
@@ -24,7 +24,7 @@ data class Transfer(
     override fun toString(): String {
         return String.format(
             "\n<br/>[<!-- ID:[%s]RID:[%s] -->%s,\uD83C\uDFE0%s,%s,%s,%s<!-- MSG: %s -->%s<!-- ,%s -->]", id, remoteId, name,
-            if (source != null) source!![0] else "", transferStatus.string, type, percentageString, feedbackMessage,
+            source[0], transferStatus.string, type, percentageString, feedbackMessage,
             printDuration(),
             updated
         )
