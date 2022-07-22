@@ -51,9 +51,9 @@ data class Torrent(
         } else {
             seeder.toDouble()
         }
-        var magnetUriBase64: String? = ""
-        if (magnetUri != null) {
-            magnetUriBase64 = Base64.getUrlEncoder().encodeToString(magnetUri!!.toByteArray(StandardCharsets.UTF_8))
+        var magnetUriBase64 = ""
+        if (magnetUri.isNotEmpty()) {
+            magnetUriBase64 = Base64.getUrlEncoder().encodeToString(magnetUri.toByteArray(StandardCharsets.UTF_8))
         }
         stringBuilder.append(String.format("[%s]\uD83C\uDFE0[%s]", name, retrieveSourceName()))
         if (!isRemoteTorrent) {
@@ -70,15 +70,15 @@ data class Torrent(
 
         /*        if (getTorrentId() != null) {
             stringBuilder.append(" TID:" + getTorrentId());
-        }*/if (remoteStatusText != null && remoteProgress != null) {
+        }*/if (remoteStatusText.isNotEmpty() && remoteProgress != null) {
             var progress = "/" + remoteProgress
-            if (remoteStatusText!!.contains("Uploading")) {
+            if (remoteStatusText.contains("Uploading")) {
                 progress = ""
             }
-            stringBuilder.append(" ").append(remoteStatusText!!.replace("finished".toRegex(), "Waiting for Upload"))
+            stringBuilder.append(" ").append(remoteStatusText.replace("finished".toRegex(), "Waiting for Upload"))
                 .append(progress)
         }
-        if (eta != null) {
+        if (eta != Duration.ZERO) {
             stringBuilder.append(" ETA:").append(eta)
         }
         if (!isNotARemoteTorrent(magnetUriBase64)) {
@@ -88,24 +88,24 @@ data class Torrent(
         return stringBuilder.toString()
     }
 
-    private fun isNotARemoteTorrent(magnetUriBase64: String?): Boolean {
-        return magnetUriBase64 != null && magnetUriBase64.length > 0 && remoteStatusText == null
+    private fun isNotARemoteTorrent(magnetUriBase64: String): Boolean {
+        return magnetUriBase64.isNotEmpty() && remoteStatusText.isEmpty()
     }
 
     private fun retrieveSourceName(): String {
-        return if (isRemoteTorrent && source != null) source!![0].toString() else source!!
+        return if (isRemoteTorrent && source.isNotEmpty()) source[0].toString() else source
     }
 
     private val isRemoteTorrent: Boolean
-        private get() = remoteId != null && remoteId!!.length > 0
+        get() = remoteId.isNotEmpty()
 
-    override fun equals(obj: Any?): Boolean {
-        return torrentId == if (obj != null) (obj as Torrent).torrentId else null
+    override fun equals(other: Any?): Boolean {
+        return torrentId == if (other != null) (other as Torrent).torrentId else null
     }
 
     val torrentId: String
         get() {
-            if (magnetUri == null) {
+            if (magnetUri.isEmpty()) {
                 return remoteIdOrHash
             }
             val matcher = magnetPattern.matcher(magnetUri)
@@ -117,7 +117,7 @@ data class Torrent(
         }
     val torrentNameFromUri: String?
         get() {
-            if (magnetUri == null) {
+            if (magnetUri.isEmpty()) {
                 return null
             }
             val matcher = magnetNamePattern.matcher(magnetUri)
@@ -128,10 +128,10 @@ data class Torrent(
             }
         }
     private val remoteIdOrHash: String
-        private get() = Objects.requireNonNullElseGet(remoteId) { this.hashCode().toString() }
+        get() = Objects.requireNonNullElseGet(remoteId) { this.hashCode().toString() }
 
-    override fun compareTo(o: Torrent): Int {
-        return if (sizeInMB < o.sizeInMB) -1 else 1
+    override fun compareTo(other: Torrent): Int {
+        return if (sizeInMB < other.sizeInMB) -1 else 1
     }
 
     fun getByteSize(): Long {
