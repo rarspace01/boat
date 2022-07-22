@@ -117,12 +117,12 @@ $switchToSearch${switchToProgress.replace("..", "../boat")}</body>
     @RequestMapping("/boat")
     fun searchTorrents(
         @RequestParam(value = "q", required = false) searchString: String?,
-        @RequestParam(value = "qq", required = false) localSearchString: String,
-        @RequestParam(value = "qqq", required = false) luckySearchList: String
+        @RequestParam(value = "qq", required = false) localSearchString: String?,
+        @RequestParam(value = "qqq", required = false) luckySearchList: String?
     ): String {
         var searchString = searchString
         val startTime = System.currentTimeMillis()
-        if (Strings.isNotEmpty(localSearchString)) {
+        if (localSearchString != null && Strings.isNotEmpty(localSearchString)) {
             val existingFiles = cloudService.findExistingFiles(localSearchString)
             searchString = if (existingFiles.isNotEmpty()) {
                 return ("We already found some files:<br/>" + java.lang.String.join("<br/>", existingFiles)
@@ -138,11 +138,10 @@ $switchToSearch${switchToProgress.replace("..", "../boat")}</body>
                 torrentList.size
             )
             "G: " + torrentList.stream().limit(25).collect(Collectors.toList())
-        } else if (Strings.isNotEmpty(luckySearchList)) {
+        } else if (luckySearchList != null && Strings.isNotEmpty(luckySearchList)) {
             val schemes = arrayOf("http", "https")
             val urlValidator = UrlValidator(schemes)
-            val pageWithEntries: String
-            pageWithEntries = if (urlValidator.isValid(luckySearchList)) {
+            val pageWithEntries: String = if (urlValidator.isValid(luckySearchList)) {
                 httpHelper.getPage(luckySearchList)
             } else {
                 luckySearchList
