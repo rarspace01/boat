@@ -101,22 +101,6 @@ class CloudService internal constructor(private val cloudFileService: CloudFileS
         }
     }
 
-//    private fun findFilesBasedOnStringsAndMediaType(
-//        searchName: String, strings: List<String>,
-//        torrentType: TorrentType
-//    ): List<String> {
-//        return strings.map {
-//            val destinationPath = buildDestinationPathWithTypeOfMediaWithoutSubFolders(it, torrentType)
-//            logger.info("Searching for: [$it] with ${torrentType.type} in $destinationPath")
-//            cloudFileService.getFilesInPath(destinationPath)
-//        }.flatten()
-//            .filter { fileString: String ->
-//                strings.all {
-//                    fileString.lowercase().contains(it.lowercase())
-//                }
-//            }
-//    }
-
     fun getAllFiles():List<String> {
         return "abcdefghijklmnopqrstuvwxyz+0".split(Regex("")).filter { it.isNotEmpty() }.map { searchName: String ->
             TorrentType.values().map {
