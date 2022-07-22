@@ -22,8 +22,6 @@ import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import java.time.Instant
 import java.time.temporal.ChronoUnit
-import java.util.Arrays
-import java.util.stream.Stream
 import kotlin.system.exitProcess
 
 @Component
@@ -66,8 +64,8 @@ class DownloadMonitor(
         val startOfCache = System.currentTimeMillis()
         if (multifileHosterService.isRcloneInstalled()) {
             val filesCache = cacheManager.getCache("filesCache")
-            Arrays.stream("abcdefghijklmnopqrstuvwxyz+0".split("".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()).forEach { searchName: String? ->
-                Stream.of(*TorrentType.values())
+            "abcdefghijklmnopqrstuvwxyz+0".split(Regex("")).map { searchName: String ->
+                TorrentType.values()
                     .forEach { torrentType: TorrentType ->
                         val destinationPath = cloudService
                             .buildDestinationPathWithTypeOfMediaWithoutSubFolders(searchName, torrentType)
@@ -119,13 +117,9 @@ class DownloadMonitor(
 
     private fun checkForQueueEntryAndAddToTransfers() {
         val remoteTorrents = multifileHosterService.remoteTorrents
-        val numberOfActiveRemoteTorrents = remoteTorrents
-            .stream().filter { torrent: Torrent -> torrent.remoteTransferStatus != TransferStatus.READY_TO_BE_DOWNLOADED }
-            .count()
-        val numberOfTorrentsReadyToDownload = remoteTorrents
-            .stream().filter { torrent: Torrent -> torrent.remoteTransferStatus == TransferStatus.READY_TO_BE_DOWNLOADED }
-            .count()
-        if (numberOfTorrentsReadyToDownload == 0L && numberOfActiveRemoteTorrents < MAX_QUEUE_DOWNLOADS_LIMIT && multifileHosterService.getRemainingTrafficInMB() > MIN_GB_FOR_QUEUE * 1024) {
+        val numberOfActiveRemoteTorrents = remoteTorrents.count { torrent: Torrent -> torrent.remoteTransferStatus != TransferStatus.READY_TO_BE_DOWNLOADED }
+        val numberOfTorrentsReadyToDownload = remoteTorrents.count { torrent: Torrent -> torrent.remoteTransferStatus == TransferStatus.READY_TO_BE_DOWNLOADED }
+        if (numberOfTorrentsReadyToDownload == 0 && numberOfActiveRemoteTorrents < MAX_QUEUE_DOWNLOADS_LIMIT && multifileHosterService.getRemainingTrafficInMB() > MIN_GB_FOR_QUEUE * 1024) {
             queueService.getQueue().stream().findFirst().ifPresent { mediaItem: MediaItem ->
                 logger.info("picked {}", mediaItem)
                 val searchName = getSearchNameFrom(mediaItem)

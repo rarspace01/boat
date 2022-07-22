@@ -8,6 +8,8 @@ import boat.utilities.LoggerDelegate
 import boat.utilities.PropertiesHelper
 import org.springframework.stereotype.Service
 import org.springframework.util.StringUtils
+import java.time.Duration
+import java.time.Instant
 import java.util.Arrays
 import java.util.Locale
 import java.util.stream.Collectors
@@ -88,26 +90,41 @@ class CloudService internal constructor(private val cloudFileService: CloudFileS
     }
 
     fun findExistingFiles(searchName: String): List<String> {
-        val strings = searchName.split(" ".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
-        return TorrentType.values()
-            .map { torrentType: TorrentType -> findFilesBasedOnStringsAndMediaType(searchName, strings, torrentType) }
-            .flatten()
+        val start = Instant.now()
+        val strings = searchName.split(Regex("\\s")).dropLastWhile { it.isEmpty() }
+        return getAllFiles().filter { fileString: String ->
+            strings.all {
+                fileString.lowercase().contains(it.lowercase())
+            }
+        }.also {
+            logger.info("Find files took: ${Duration.between(start,Instant.now())}")
+        }
     }
 
-    private fun findFilesBasedOnStringsAndMediaType(
-        searchName: String, strings: Array<String>,
-        torrentType: TorrentType
-    ): List<String> {
-        return strings.map {
-            val destinationPath = buildDestinationPathWithTypeOfMediaWithoutSubFolders(it, torrentType)
-            logger.info("Searching for: [$it] with ${torrentType.type} in $destinationPath")
-            cloudFileService.getFilesInPath(destinationPath)
+//    private fun findFilesBasedOnStringsAndMediaType(
+//        searchName: String, strings: List<String>,
+//        torrentType: TorrentType
+//    ): List<String> {
+//        return strings.map {
+//            val destinationPath = buildDestinationPathWithTypeOfMediaWithoutSubFolders(it, torrentType)
+//            logger.info("Searching for: [$it] with ${torrentType.type} in $destinationPath")
+//            cloudFileService.getFilesInPath(destinationPath)
+//        }.flatten()
+//            .filter { fileString: String ->
+//                strings.all {
+//                    fileString.lowercase().contains(it.lowercase())
+//                }
+//            }
+//    }
+
+    fun getAllFiles():List<String> {
+        return "abcdefghijklmnopqrstuvwxyz+0".split(Regex("")).map { searchName: String ->
+            TorrentType.values().map {
+                val destinationPath = buildDestinationPathWithTypeOfMediaWithoutSubFolders(searchName, it)
+                logger.info("Searching for: [$searchName] with $it in $destinationPath")
+                cloudFileService.getFilesInPath(destinationPath)
+            }.flatten()
         }.flatten()
-            .filter { fileString: String ->
-                strings.all {
-                    fileString.lowercase().contains(it.lowercase())
-                }
-            }
     }
 
     fun buildDestinationPath(name: String?, filesFromTorrent: List<TorrentFile>): String {
