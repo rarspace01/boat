@@ -118,7 +118,7 @@ class CloudService internal constructor(private val cloudFileService: CloudFileS
 //    }
 
     fun getAllFiles():List<String> {
-        return "abcdefghijklmnopqrstuvwxyz+0".split(Regex("")).map { searchName: String ->
+        return "abcdefghijklmnopqrstuvwxyz+0".split(Regex("")).filter { it.isNotEmpty() }.map { searchName: String ->
             TorrentType.values().map {
                 val destinationPath = buildDestinationPathWithTypeOfMediaWithoutSubFolders(searchName, it)
                 logger.info("Searching for: [$searchName] with $it in $destinationPath")

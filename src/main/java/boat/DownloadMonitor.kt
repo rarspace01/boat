@@ -64,7 +64,7 @@ class DownloadMonitor(
         val startOfCache = System.currentTimeMillis()
         if (multifileHosterService.isRcloneInstalled()) {
             val filesCache = cacheManager.getCache("filesCache")
-            "abcdefghijklmnopqrstuvwxyz+0".split(Regex("")).map { searchName: String ->
+            "abcdefghijklmnopqrstuvwxyz+0".split(Regex("")).filter { it.isNotEmpty() }.map { searchName: String ->
                 TorrentType.values()
                     .forEach { torrentType: TorrentType ->
                         val destinationPath = cloudService
