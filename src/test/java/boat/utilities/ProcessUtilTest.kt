@@ -1,18 +1,20 @@
-package boat.utilities;
+package boat.utilities
 
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Test
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-
-class ProcessUtilTest {
-
-
-    @Test
-    void isRcloneInstalled() {
-        // Given
-        // When
-        boolean rcloneInstalled = ProcessUtil.isRcloneInstalled();
-        // Then
-        assertNotNull(rcloneInstalled);
-    }
+internal class ProcessUtilTest {
+    // Given
+    // When
+    @get:Test
+    val isRcloneInstalled:
+    // Then
+            Unit
+        get() {
+            // Given
+            // When
+            val rcloneInstalled = ProcessUtil.isRcloneInstalled()
+            // Then
+            Assertions.assertNotNull(rcloneInstalled)
+        }
 }

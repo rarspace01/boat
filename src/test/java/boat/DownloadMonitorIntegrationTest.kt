@@ -1,30 +1,24 @@
-package boat;
+package boat
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-
-import boat.torrent.TorrentSearchEngineService;
-import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import boat.torrent.TorrentSearchEngineService
+import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Test
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.context.SpringBootTest
 
 @SpringBootTest
-class DownloadMonitorIntegrationTest {
+internal class DownloadMonitorIntegrationTest {
+    @Autowired
+    var downloadMonitor: DownloadMonitor? = null
 
     @Autowired
-    DownloadMonitor downloadMonitor;
-
-    @Autowired
-    TorrentSearchEngineService torrentSearchEngineService;
-
+    var torrentSearchEngineService: TorrentSearchEngineService? = null
     @Test
-    void refreshTorrentSearchEngines() {
+    fun refreshTorrentSearchEngines() {
         // Given
         // When
-        downloadMonitor.refreshTorrentSearchEngines();
+        downloadMonitor!!.refreshTorrentSearchEngines()
         // Then
-        assertTrue(torrentSearchEngineService.getActiveSearchEngines().size() > 0);
-
+        Assertions.assertTrue(torrentSearchEngineService!!.getActiveSearchEngines().size > 0)
     }
-
 }

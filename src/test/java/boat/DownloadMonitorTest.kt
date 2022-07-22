@@ -1,50 +1,51 @@
-package boat;
+package boat
 
-import org.springframework.cache.CacheManager;
+import boat.info.BluRayComService
+import boat.info.CloudFileService
+import boat.info.CloudService
+import boat.info.QueueService
+import boat.info.TorrentMetaService
+import boat.multifileHoster.MultifileHosterService
+import boat.services.TransferService
+import boat.torrent.TorrentSearchEngineService
+import boat.utilities.HttpHelper
+import org.mockito.Mock
+import org.springframework.cache.CacheManager
 
-import boat.info.BluRayComService;
-import boat.info.CloudFileService;
-import boat.info.CloudService;
-import boat.info.QueueService;
-import boat.info.TorrentMetaService;
-import boat.multifileHoster.MultifileHosterService;
-import boat.services.TransferService;
-import boat.torrent.TorrentSearchEngineService;
-import boat.utilities.HttpHelper;
-import org.mockito.Mock;
-
-class DownloadMonitorTest {
+internal class DownloadMonitorTest {
+    @Mock
+    private val torrentSearchEngineService: TorrentSearchEngineService? = null
 
     @Mock
-    private TorrentSearchEngineService torrentSearchEngineService;
-    @Mock
-    private TorrentMetaService torrentMetaService;
-    @Mock
-    private CloudService cloudService;
-    @Mock
-    private MultifileHosterService multiHosterService;
-    @Mock
-    private CloudFileService cloudFileService;
-    @Mock
-    private CacheManager cacheManager;
-    @Mock
-    private QueueService queueService;
-    @Mock
-    private BluRayComService blurayComService;
-    @Mock
-    private TransferService transferService;
-    @Mock
-    private HttpHelper httpHelper;
+    private val torrentMetaService: TorrentMetaService? = null
 
-    private DownloadMonitor downloadMonitor;
+    @Mock
+    private val cloudService: CloudService? = null
 
-//    @BeforeEach
-//    void beforeEach() {
-//        downloadMonitor = new DownloadMonitor(torrentSearchEngineService, cloudService,
-//            multiHosterService,
-//            cloudFileService, cacheManager, queueService, blurayComService, transferService, httpHelper);
-//    }
+    @Mock
+    private val multiHosterService: MultifileHosterService? = null
 
+    @Mock
+    private val cloudFileService: CloudFileService? = null
 
+    @Mock
+    private val cacheManager: CacheManager? = null
 
+    @Mock
+    private val queueService: QueueService? = null
+
+    @Mock
+    private val blurayComService: BluRayComService? = null
+
+    @Mock
+    private val transferService: TransferService? = null
+
+    @Mock
+    private val httpHelper: HttpHelper? = null
+    private val downloadMonitor: DownloadMonitor? = null //    @BeforeEach
+    //    void beforeEach() {
+    //        downloadMonitor = new DownloadMonitor(torrentSearchEngineService, cloudService,
+    //            multiHosterService,
+    //            cloudFileService, cacheManager, queueService, blurayComService, transferService, httpHelper);
+    //    }
 }

@@ -1,32 +1,26 @@
-package boat.torrent;
+package boat.torrent
 
-import java.util.List;
+import boat.utilities.HttpHelper
+import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Disabled
+import org.junit.jupiter.api.Test
 
-import boat.utilities.HttpHelper;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
-class ZooqleTest {
-
+internal class ZooqleTest {
     @Disabled
     @Test
-    void shouldFindTorrents() {
+    fun shouldFindTorrents() {
         // Given
         // When
-        assertDoesNotThrow(() -> new Zooqle(new HttpHelper()).searchTorrents("planet"));
+        Assertions.assertDoesNotThrow<List<Torrent>> { Zooqle(HttpHelper()).searchTorrents("planet") }
     }
 
     @Disabled
     @Test
-    void shouldFindNoTorrents() {
+    fun shouldFindNoTorrents() {
         // Given
         // When
-        List<Torrent> torrentList = new Zooqle(new HttpHelper()).searchTorrents("ThisshouldntbeafindableStringAtall");
+        val torrentList = Zooqle(HttpHelper()).searchTorrents("ThisshouldntbeafindableStringAtall")
         // Then
-        assertEquals(0, torrentList.size());
+        Assertions.assertEquals(0, torrentList.size)
     }
-
 }

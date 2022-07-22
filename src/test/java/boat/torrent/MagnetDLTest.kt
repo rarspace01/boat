@@ -1,28 +1,23 @@
-package boat.torrent;
+package boat.torrent
 
-import java.util.List;
+import boat.utilities.HttpHelper
+import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Test
 
-import boat.utilities.HttpHelper;
-import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
-class MagnetDLTest {
-
+internal class MagnetDLTest {
     @Test
-    void shouldFindTorrents() {
+    fun shouldFindTorrents() {
         // Given
         // When
-        assertDoesNotThrow(() -> new MagnetDL(new HttpHelper()).searchTorrents("planet"));
+        Assertions.assertDoesNotThrow<List<Torrent>> { MagnetDL(HttpHelper()).searchTorrents("planet") }
     }
 
     @Test
-    void shouldFindNoTorrents() {
+    fun shouldFindNoTorrents() {
         // Given
         // When
-        List<Torrent> torrentList = new MagnetDL(new HttpHelper()).searchTorrents("ThisshouldntbeafindableStringAtall");
+        val torrentList = MagnetDL(HttpHelper()).searchTorrents("ThisshouldntbeafindableStringAtall")
         // Then
-        assertEquals(0, torrentList.size());
+        Assertions.assertEquals(0, torrentList.size)
     }
 }

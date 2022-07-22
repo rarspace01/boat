@@ -1,28 +1,33 @@
-package boat.utilities;
+package boat.utilities
 
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Test
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-class PropertiesHelperTest {
-
-    @Test
-    void getVersion() {
-        // Given
-        // When
-        String version = PropertiesHelper.getVersion();
+internal class PropertiesHelperTest {
+    // Given
+    // When
+    @get:Test
+    val version: Unit
         // Then
-        assertTrue(!version.contains("version-missing"));
-    }
+        get() {
+            // Given
+            // When
+            val version = PropertiesHelper.getVersion()
+            // Then
+            Assertions.assertTrue(!version.contains("version-missing"))
+        }
 
-    @Test
-    void getProperty() {
-        // Given
-        // When
-        String property = PropertiesHelper.getProperty("RCLONEDIR");
+    // Given
+    // When
+    @get:Test
+    val property: Unit
         // Then
-        assertNotNull(property);
-        assertTrue(property.length() > 0);
-    }
+        get() {
+            // Given
+            // When
+            val property = PropertiesHelper.getProperty("RCLONEDIR")
+            // Then
+            Assertions.assertNotNull(property)
+            Assertions.assertTrue(property.length > 0)
+        }
 }
