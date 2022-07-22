@@ -6,7 +6,6 @@ import boat.torrent.TorrentHelper.prepareTorrentName
 import boat.torrent.TorrentType
 import boat.utilities.LoggerDelegate
 import boat.utilities.PropertiesHelper
-import lombok.extern.log4j.Log4j2
 import org.springframework.stereotype.Service
 import org.springframework.util.StringUtils
 import java.util.Arrays
@@ -88,27 +87,27 @@ class CloudService internal constructor(private val cloudFileService: CloudFileS
         return preparedTorrentName
     }
 
-    fun findExistingFiles(searchName: String): List<String?> {
+    fun findExistingFiles(searchName: String): List<String> {
         val strings = searchName.split(" ".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
-        return Arrays.stream(TorrentType.values())
+        return TorrentType.values()
             .map { torrentType: TorrentType -> findFilesBasedOnStringsAndMediaType(searchName, strings, torrentType) }
-            .flatMap { obj: List<String?> -> obj.stream() }
-            .collect(Collectors.toList())
+            .flatten()
     }
 
     private fun findFilesBasedOnStringsAndMediaType(
         searchName: String, strings: Array<String>,
         torrentType: TorrentType
-    ): List<String?> {
-        val destinationPath = buildDestinationPathWithTypeOfMediaWithoutSubFolders(searchName, torrentType)
-        logger.info("Searching for: {} with {} in {}", searchName, torrentType.type, destinationPath)
-        return cloudFileService.getFilesInPath(destinationPath).stream()
-            .filter { fileName: String ->
-                Arrays.stream(strings).allMatch { searchStringPart: String ->
-                    fileName.lowercase(Locale.getDefault()).matches((".*" + searchStringPart.lowercase(Locale.getDefault()) + ".*").toRegex())
+    ): List<String> {
+        return strings.map {
+            val destinationPath = buildDestinationPathWithTypeOfMediaWithoutSubFolders(it, torrentType)
+            logger.info("Searching for: {} with {} in {}", searchName, torrentType.type, destinationPath)
+            cloudFileService.getFilesInPath(destinationPath)
+        }.flatten()
+            .filter { fileString: String ->
+                strings.all {
+                    fileString.contains(it)
                 }
             }
-            .collect(Collectors.toList())
     }
 
     fun buildDestinationPath(name: String?, filesFromTorrent: List<TorrentFile>): String {
