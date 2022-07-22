@@ -6,7 +6,6 @@ import boat.info.MediaItem
 import boat.info.QueueService
 import boat.info.TheFilmDataBaseService
 import boat.info.TorrentMetaService
-import boat.model.TransferStatus
 import boat.multifileHoster.MultifileHosterService
 import boat.services.TransferService
 import boat.torrent.Torrent
@@ -32,9 +31,7 @@ import java.nio.charset.StandardCharsets
 import java.util.Arrays
 import java.util.Base64
 import java.util.Date
-import java.util.function.Consumer
 import java.util.stream.Collectors
-import java.util.stream.Stream
 import kotlin.concurrent.thread
 import kotlin.system.exitProcess
 
@@ -127,7 +124,7 @@ $switchToSearch${switchToProgress.replace("..", "../boat")}</body>
         val startTime = System.currentTimeMillis()
         if (Strings.isNotEmpty(localSearchString)) {
             val existingFiles = cloudService.findExistingFiles(localSearchString)
-            searchString = if (!existingFiles.isEmpty()) {
+            searchString = if (existingFiles.isNotEmpty()) {
                 return ("We already found some files:<br/>" + java.lang.String.join("<br/>", existingFiles)
                         + "<br/>Still want to search? <a href=\"?q=" + localSearchString + "\">Yes</a>")
             } else {
@@ -191,16 +188,19 @@ $switchToSearch${switchToProgress.replace("..", "../boat")}</body>
                 )
             } else {
                 val uris = decodedUri.split(",".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
-                Stream.of(*uris).forEach { uri: String -> torrentsToBeDownloaded.add(
-                    Torrent.of(
-                        magnetUri = uri,
+                uris.map {
+                    torrentsToBeDownloaded.add(
+                        Torrent.of(
+                            magnetUri = it,
+                        )
                     )
-                ) }
+                }
             }
         }
-        torrentsToBeDownloaded.forEach(Consumer { torrent: Torrent -> multifileHosterService.addTorrentToTransfer(torrent) })
+        torrentsToBeDownloaded.map {
+            multifileHosterService.addTorrentToTransfer(it)
+        }
         multifileHosterService.addTransfersToDownloadQueue()
-        multifileHosterService.updateTransferStatus()
         return switchToProgress
     }
 

@@ -12,6 +12,7 @@ import boat.torrent.TorrentFile
 import boat.torrent.TorrentHelper
 import boat.torrent.TorrentType
 import boat.utilities.HttpHelper
+import boat.utilities.LoggerDelegate
 import boat.utilities.ProcessUtil
 import boat.utilities.PropertiesHelper
 import boat.utilities.StreamGobbler
@@ -30,7 +31,6 @@ import java.util.Locale
 import java.util.concurrent.Executors
 import java.util.function.Consumer
 import java.util.regex.Pattern
-import java.util.stream.Collectors
 
 @Service
 class MultifileHosterService(
@@ -45,7 +45,7 @@ class MultifileHosterService(
 
     private val localStatusStorage = HashMap<String, String>()
 
-    var activeTorrents: MutableList<Torrent> = java.util.ArrayList()
+    var activeTorrents: MutableList<Torrent> = mutableListOf()
 
     private fun getEligibleMultifileHoster(httpHelper: HttpHelper): MutableList<MultifileHoster> {
         val eligibleList = mutableListOf<MultifileHoster>()
@@ -71,21 +71,12 @@ class MultifileHosterService(
     fun addTorrentToTransfer(torrent: Torrent) {
         val listOfMultiHostersWithTrafficLeft = multifileHosterList.filter { multifileHoster -> multifileHoster.getRemainingTrafficInMB() > 30000 }
         val potentialMultiHosters = listOfMultiHostersWithTrafficLeft.ifEmpty { multifileHosterList }
-        val selectedMultiFileHosterSource: MultifileHoster
-        if (potentialMultiHosters.size == 1) {
-            selectedMultiFileHosterSource = potentialMultiHosters[0]
+        val selectedMultiFileHosterSource: MultifileHoster = if (potentialMultiHosters.size == 1) {
+            potentialMultiHosters.first()
         } else {
-//            val potentialCachedTorrentToDownload = torrent;
-// //                getCachedStateOfTorrents(listOf(torrent)).stream().findFirst().orElse(torrent)
-//            val cachedMultihosters = potentialMultihosters
-//                .filter { multifileHoster: MultifileHoster ->
-//                    potentialCachedTorrentToDownload.cached.contains(multifileHoster.getName())
-//                }
-//            val multiHostersToDownload = cachedMultihosters.ifEmpty { potentialMultiHosters }
-            selectedMultiFileHosterSource = potentialMultiHosters
-                .stream()
-                .min(Comparator.comparingInt(MultifileHoster::getPrio))
-                .orElse(potentialMultiHosters.first())
+            potentialMultiHosters
+                .minByOrNull { it.getPrio() }
+                ?: potentialMultiHosters.first()
         }
         val transfer = Transfer(
             name = TorrentHelper.extractTorrentName(torrent),
@@ -96,25 +87,6 @@ class MultifileHosterService(
             sizeInBytes = torrent.getByteSize()
         )
         transferService.save(transfer)
-//        val listOfMultihostersWithTrafficLeft = multifileHosterList.filter { multifileHoster -> multifileHoster.getRemainingTrafficInMB() > 30000 }
-//        val potentialMultihosters = listOfMultihostersWithTrafficLeft.ifEmpty { multifileHosterList }
-//
-//        return if (potentialMultihosters.size == 1) {
-//            potentialMultihosters[0].addTorrentToQueue(torrent)
-//        } else {
-//            val potentialCachedTorrentToDownload =
-//                getCachedStateOfTorrents(listOf(torrent)).stream().findFirst().orElse(torrent)
-//            val cachedMultihosters = potentialMultihosters
-//                .filter { multifileHoster: MultifileHoster ->
-//                    potentialCachedTorrentToDownload.cached.contains(multifileHoster.getName())
-//                }
-//            val multihostersToDownload = cachedMultihosters.ifEmpty { potentialMultihosters }
-//            multihostersToDownload
-//                .stream()
-//                .min(Comparator.comparingInt(MultifileHoster::getPrio))
-//                .orElse(potentialMultihosters.first())
-//                .addTorrentToQueue(torrent)
-//        }
     }
 
     private fun extractType(magnetUri: String?): TransferType {
@@ -126,11 +98,11 @@ class MultifileHosterService(
 
     fun addTransfersToDownloadQueue() {
         // filter for traffic left
-        val transfersToBeAdded = transferService.getAll()
+        val transfersToBeDownloaded = transferService.getAll()
             .filter { transfer -> TransferStatus.ADDED == transfer.transferStatus || TransferStatus.SERVER_ERROR == transfer.transferStatus }
             .filter { transfer -> multifileHosterListForDownloads.any { multifileHoster -> multifileHoster.getName() == transfer.source } }
         multifileHosterListForDownloads.forEach { multifileHoster ->
-            val transfersForHoster = transfersToBeAdded.filter { transfer -> transfer.source.equals(multifileHoster.getName()) }
+            val transfersForHoster = transfersToBeDownloaded.filter { transfer -> transfer.source == multifileHoster.getName() }
             transfersForHoster.forEach { transfer ->
                 val addTorrentToQueueMessage = multifileHoster.addTorrentToDownloadQueue(TorrentMapper.mapTransferToTorrent(transfer))
                 transfer.feedbackMessage = addTorrentToQueueMessage
@@ -146,6 +118,7 @@ class MultifileHosterService(
                     transfer.transferStatus = TransferStatus.ADDED_TO_MULTIHOSTER
                 }
                 transferService.save(transfer)
+                updateTransferStatus()
             }
         }
     }
@@ -163,34 +136,14 @@ class MultifileHosterService(
         }
         return null
     }
-//        val listOfMultihostersWithTrafficLeft = multifileHosterList.filter { multifileHoster -> multifileHoster.getRemainingTrafficInMB() > 30000 }
-//        val potentialMultihosters = listOfMultihostersWithTrafficLeft.ifEmpty { multifileHosterList }
-//
-//        return if (potentialMultihosters.size == 1) {
-//            potentialMultihosters[0].addTorrentToQueue(torrent)
-//        } else {
-//            val potentialCachedTorrentToDownload =
-//                getCachedStateOfTorrents(listOf(torrent)).stream().findFirst().orElse(torrent)
-//            val cachedMultihosters = potentialMultihosters
-//                .filter { multifileHoster: MultifileHoster ->
-//                    potentialCachedTorrentToDownload.cached.contains(multifileHoster.getName())
-//                }
-//            val multihostersToDownload = cachedMultihosters.ifEmpty { potentialMultihosters }
-//            multihostersToDownload
-//                .stream()
-//                .min(Comparator.comparingInt(MultifileHoster::getPrio))
-//                .orElse(potentialMultihosters.first())
-//                .addTorrentToQueue(torrent)
 
     val remoteTorrents: List<Torrent>
-        get() = multifileHosterListForDownloads.stream()
-            .flatMap { multifileHoster: MultifileHoster -> multifileHoster.getRemoteTorrents().stream() }
-            .collect(Collectors.toList())
+        get() = multifileHosterListForDownloads
+            .flatMap { multifileHoster: MultifileHoster -> multifileHoster.getRemoteTorrents() }
 
     val remoteTorrentsForDownload: List<Torrent>
-        get() = multifileHosterListForDownloads.stream()
-            .flatMap { multifileHoster: MultifileHoster -> multifileHoster.getRemoteTorrents().stream() }
-            .collect(Collectors.toList())
+        get() = multifileHosterListForDownloads
+            .flatMap { multifileHoster: MultifileHoster -> multifileHoster.getRemoteTorrents() }
 
     private fun isSingleFileDownload(torrentFiles: List<TorrentFile>): Boolean {
         var sumFileSize = 0L
@@ -256,31 +209,13 @@ class MultifileHosterService(
     fun updateTransferStatus() {
         val transfers = transferService.getAll()
             .filter { transfer -> multifileHosterListForDownloads.any { multifileHoster -> multifileHoster.getName() == transfer.source } }
-            .filter { transfer -> !transfer.transferStatus.equals(TransferStatus.UPLOADING_TO_DRIVE) && !transfer.transferStatus.equals(TransferStatus.UPLOADED) }
+            .filter { transfer -> transfer.transferStatus != TransferStatus.UPLOADING_TO_DRIVE && transfer.transferStatus != TransferStatus.UPLOADED }
         val matchedTransfers = mutableListOf<Transfer>()
         val matchedTorrents = mutableListOf<Torrent>()
-        val torrentsForDownload = remoteTorrentsForDownload
-        torrentsForDownload.forEach { torrent ->
-            transfers.find { transfer ->
-                transfer.uri?.lowercase()?.contains(torrent.torrentId.lowercase()) ?: false ||
-                        transfer.remoteId != null && transfer.remoteId == torrent.remoteId ||
-                        transferMatchedTorrentBySource(transfer, torrent)
-            }
-                ?.also { transfer ->
-                    transfer.transferStatus = torrent.remoteTransferStatus
-                    transfer.progressInPercentage = torrent.remoteProgressInPercent
-                    transfer.name = torrent.name
-                    transfer.eta = torrent.eta
-                    transfer.remoteId = torrent.remoteId
-                    transferService.save(transfer)
-                    matchedTransfers.add(transfer)
-                    matchedTorrents.add(torrent)
-                } ?: also {
-                log.warn("no transfer for torrent found: {}", torrent)
-            }
-        }
+        val torrentsForDownload = remoteTorrents
+        matchTransfersAndTorrentsByIdAndUpdateStatus(torrentsForDownload, transfers, matchedTransfers, matchedTorrents)
         var listOfUnmatchedTransfers = transfers.filter { matchedTransfers.none { matchedTransfer -> matchedTransfer.id.equals(it.id) } }
-        var listOfUnmatchedTorrents = torrentsForDownload.filter { matchedTorrents.none { matchedTorrent -> matchedTorrent.torrentId.equals((it.torrentId)) } }
+        var listOfUnmatchedTorrents = torrentsForDownload.filter { matchedTorrents.none { matchedTorrent -> matchedTorrent.torrentId == (it.torrentId) } }
         if (listOfUnmatchedTorrents.isNotEmpty() && listOfUnmatchedTorrents.isNotEmpty()) {
             listOfUnmatchedTorrents.forEach { torrent ->
                 transfers.find { transfer ->
@@ -299,11 +234,13 @@ class MultifileHosterService(
                 }
             }
             listOfUnmatchedTransfers = transfers.filter { matchedTransfers.none { matchedTransfer -> matchedTransfer.id.equals(it.id) } }
-            listOfUnmatchedTorrents = torrentsForDownload.filter { matchedTorrents.none { matchedTorrent -> matchedTorrent.torrentId.equals((it.torrentId)) } }
+            listOfUnmatchedTorrents =
+                torrentsForDownload.filter { matchedTorrents.none { matchedTorrent -> matchedTorrent.torrentId == (it.torrentId) } }
+
             if (listOfUnmatchedTorrents.isNotEmpty() && listOfUnmatchedTorrents.isNotEmpty()) {
                 listOfUnmatchedTorrents.forEach { torrent ->
                     transfers.find { transfer ->
-                        transferMatchedTorrentByName(transfer, torrent, 1)
+                        transferMatchedTorrentByName(transfer, torrent, 2)
                     }?.also { transfer ->
                         transfer.transferStatus = torrent.remoteTransferStatus
                         transfer.progressInPercentage = torrent.remoteProgressInPercent
@@ -319,46 +256,50 @@ class MultifileHosterService(
                 }
                 listOfUnmatchedTransfers = transfers.filter { matchedTransfers.none { matchedTransfer -> matchedTransfer.id.equals(it.id) } }
                 listOfUnmatchedTorrents =
-                    torrentsForDownload.filter { matchedTorrents.none { matchedTorrent -> matchedTorrent.torrentId.equals((it.torrentId)) } }
-
-                if (listOfUnmatchedTorrents.isNotEmpty() && listOfUnmatchedTorrents.isNotEmpty()) {
-                    listOfUnmatchedTorrents.forEach { torrent ->
-                        transfers.find { transfer ->
-                            transferMatchedTorrentByName(transfer, torrent, 2)
-                        }?.also { transfer ->
-                            transfer.transferStatus = torrent.remoteTransferStatus
-                            transfer.progressInPercentage = torrent.remoteProgressInPercent
-                            transfer.name = torrent.name
-                            transfer.eta = torrent.eta
-                            transfer.remoteId = torrent.remoteId
-                            transferService.save(transfer)
-                            matchedTransfers.add(transfer)
-                            matchedTorrents.add(torrent)
-                        } ?: also {
-                            log.warn("no transfer for torrent found after name match: {}", torrent)
-                        }
-                    }
-                    listOfUnmatchedTransfers = transfers.filter { matchedTransfers.none { matchedTransfer -> matchedTransfer.id.equals(it.id) } }
-                    listOfUnmatchedTorrents =
-                        torrentsForDownload.filter { matchedTorrents.none { matchedTorrent -> matchedTorrent.torrentId.equals((it.torrentId)) } }
-                }
+                    torrentsForDownload.filter { matchedTorrents.none { matchedTorrent -> matchedTorrent.torrentId == (it.torrentId) } }
             }
         }
-
-        if (listOfUnmatchedTransfers.isNotEmpty()) {
+        if (listOfUnmatchedTransfers.isNotEmpty() || listOfUnmatchedTorrents.isNotEmpty()) {
             log.warn("listOfUnmatchedTransfers: [{}]", listOfUnmatchedTransfers)
             log.warn("listOfUnmatchedTorrents: [{}]", listOfUnmatchedTorrents)
         }
     }
 
+    private fun matchTransfersAndTorrentsByIdAndUpdateStatus(
+        torrentsForDownload: List<Torrent>,
+        transfers: List<Transfer>,
+        matchedTransfers: MutableList<Transfer>,
+        matchedTorrents: MutableList<Torrent>
+    ) {
+        torrentsForDownload.forEach { torrent ->
+            transfers.find { transfer ->
+                transfer.uri.lowercase().contains(torrent.torrentId.lowercase()) ||
+                        transfer.remoteId != null && transfer.remoteId == torrent.remoteId ||
+                        transferMatchedTorrentBySource(transfer, torrent)
+            }
+                ?.also { transfer ->
+                    transfer.transferStatus = torrent.remoteTransferStatus
+                    transfer.progressInPercentage = torrent.remoteProgressInPercent
+                    transfer.name = torrent.name
+                    transfer.eta = torrent.eta
+                    transfer.remoteId = torrent.remoteId
+                    transferService.save(transfer)
+                    matchedTransfers.add(transfer)
+                    matchedTorrents.add(torrent)
+                } ?: also {
+                log.warn("no transfer for torrent found: {}", torrent)
+            }
+        }
+    }
+
     private fun transferMatchedTorrentBySource(transfer: Transfer, torrent: Torrent): Boolean {
-        return Strings.isNotEmpty(transfer.uri) && transfer.source.equals(torrent.magnetUri)
+        return Strings.isNotEmpty(transfer.uri) && transfer.source == torrent.magnetUri
     }
 
     fun transferMatchedTorrentByName(transfer: Transfer, torrent: Torrent, maxDiff: Int = 0): Boolean {
         val transferName = TorrentHelper.getNormalizedTorrentStringWithSpaces(transfer.name).lowercase()
         val torrentName = TorrentHelper.getNormalizedTorrentStringWithSpaces(torrent.name).lowercase()
-        val matchedByName = transfer.name != null && transferName.lowercase() == torrentName.lowercase()
+        val matchedByName = transfer.name.isNotEmpty() && transferName.lowercase() == torrentName.lowercase()
         return if (matchedByName) {
             log.warn("transfer only matched by name: {} <-> {}", transfer, torrent)
             true
@@ -387,7 +328,7 @@ class MultifileHosterService(
         if (torrentToBeDownloaded != null) {
             var transferToBeDownloaded = transferService.getAll().stream()
                 .filter { transfer: Transfer ->
-                    transfer.uri != null && transfer.uri.lowercase(Locale.ROOT).contains(
+                    transfer.uri.isNotEmpty() && transfer.uri.lowercase(Locale.ROOT).contains(
                         torrentToBeDownloaded.torrentId.lowercase(
                             Locale.ROOT
                         )
@@ -488,7 +429,7 @@ class MultifileHosterService(
         startTime: Instant?
     ) {
         val transferOptional = transferService.getAll().stream().filter { transfer: Transfer ->
-            transfer.uri != null && transfer.uri.lowercase(Locale.ROOT).contains(
+            transfer.uri.isNotEmpty() && transfer.uri.lowercase(Locale.ROOT).contains(
                 torrentToBeDownloaded.torrentId.lowercase(
                     Locale.ROOT
                 )
@@ -694,12 +635,12 @@ class MultifileHosterService(
 
     private fun updateTorrent(torrentUpdate: Torrent) {
         localStatusStorage[torrentUpdate.torrentId] = torrentUpdate.remoteStatusText
-        torrentUpdate.remoteId?.let {
+        torrentUpdate.remoteId.let {
             localStatusStorage[torrentUpdate.remoteId] = torrentUpdate.remoteStatusText
         }
     }
 
     companion object {
-        private val log = LoggerFactory.getLogger(MultifileHosterService::class.java)
+        private val log by LoggerDelegate()
     }
 }
