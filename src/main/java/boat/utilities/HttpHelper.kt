@@ -154,7 +154,7 @@ class HttpHelper {
         return getPage(baseUrl, timeout).isNotEmpty()
     }
 
-    @Cacheable
+    @Cacheable("externalHostname")
     fun externalHostname(): String
         {
             val builder = ProcessBuilder()

@@ -70,8 +70,7 @@ class DownloadMonitor(
                         val destinationPath = cloudService
                             .buildDestinationPathWithTypeOfMediaWithoutSubFolders(searchName, torrentType)
                         filesCache?.evictIfPresent(destinationPath)
-                        val filesInPath = cloudFileService.getFilesInPath(destinationPath)
-                        logger.info("Files in Path: {}", filesInPath.size)
+                        cloudFileService.getFilesInPath(destinationPath)
                     }
                 logger.info("Cache refresh done for: {}", searchName)
             }

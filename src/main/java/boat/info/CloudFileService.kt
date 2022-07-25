@@ -57,10 +57,10 @@ class CloudFileService {
                 fileList.add(destinationPath + jsonElement.asJsonObject["Path"].asString)
             }
         } catch (e: Exception) {
-            logger.error("{}\nPath: [{}]\nOutput from process:\n{}\nError from Process:\n{}", e.message, destinationPath, output, error)
+            logger.error("{}\nPath: [$destinationPath]\nOutput from process:\n{}\nError from Process:\n{}", e.message, output, error)
             e.printStackTrace()
         }
-        logger.info("Took {}ms with [{}]", System.currentTimeMillis() - startCounter, destinationPath)
+        logger.info("Took {}ms with [$destinationPath] for ${fileList.size} files", System.currentTimeMillis() - startCounter)
         return fileList
     }
 }
