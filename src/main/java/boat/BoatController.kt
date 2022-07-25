@@ -165,7 +165,7 @@ $switchToSearch${switchToProgress.replace("..", "../boat")}</body>
     @RequestMapping("/boat/download")
     fun downloadTorrentToMultifileHoster(
         @RequestParam(value = "d", required = false) downloadUri: String?,
-        @RequestParam(value = "dd", required = false) directDownloadUri: String
+        @RequestParam(value = "dd", required = false) directDownloadUri: String?,
     ): String {
         val torrentsToBeDownloaded: MutableList<Torrent> = ArrayList()
         val decodedUri: String
@@ -178,7 +178,7 @@ $switchToSearch${switchToProgress.replace("..", "../boat")}</body>
                 )
             )
         } else if (Strings.isNotEmpty(directDownloadUri)) {
-            decodedUri = directDownloadUri
+            decodedUri = directDownloadUri ?: ""
             if (!decodedUri.contains(",")) {
                 torrentsToBeDownloaded.add(
                     Torrent.of(

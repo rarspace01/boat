@@ -42,7 +42,7 @@ class CloudFileService {
             process.waitFor(5, TimeUnit.SECONDS)
             output = String(process.inputStream.readAllBytes())
             error = String(process.errorStream.readAllBytes())
-            if (error.contains("limit") && output.length == 0 && retriesLeft > 0) {
+            if (error.contains("limit") && output.isEmpty() && retriesLeft > 0) {
                 Thread.sleep(2000)
                 return getFilesInPathWithRetries(destinationPath, retriesLeft - 1)
             }
