@@ -118,7 +118,7 @@ $switchToSearch${switchToProgress.replace("..", "../boat")}</body>
     fun searchTorrents(
         @RequestParam(value = "q", required = false) searchString: String?,
         @RequestParam(value = "qq", required = false) localSearchString: String?,
-        @RequestParam(value = "qqq", required = false) luckySearchList: String?
+        @RequestParam(value = "qqq", required = false) luckySearchList: String?,
     ): String {
         var searchString = searchString
         val startTime = System.currentTimeMillis()

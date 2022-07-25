@@ -17,7 +17,6 @@ import boat.utilities.ProcessUtil
 import boat.utilities.PropertiesHelper
 import boat.utilities.StreamGobbler
 import org.apache.logging.log4j.util.Strings
-import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.util.StringUtils
 import java.io.File
@@ -47,12 +46,14 @@ class MultifileHosterService(
 
     var activeTorrents: MutableList<Torrent> = mutableListOf()
 
+    val externalHostname = httpHelper.externalHostname
+
     private fun getEligibleMultifileHoster(httpHelper: HttpHelper): MutableList<MultifileHoster> {
         val eligibleList = mutableListOf<MultifileHoster>()
-        if (!httpHelper.externalHostname.contains("happysrv") && !httpHelper.externalHostname.contains(".com")) {
-            eligibleList.add(Alldebrid(httpHelper))
-        } else {
+        if (PREMIUMIZE_WHITELIST.any { externalHostname.contains(it) }) {
             eligibleList.add(Premiumize(httpHelper))
+        } else {
+            eligibleList.add(Alldebrid(httpHelper))
         }
         return eligibleList
     }
@@ -642,5 +643,6 @@ class MultifileHosterService(
 
     companion object {
         private val log by LoggerDelegate()
+        private val PREMIUMIZE_WHITELIST = listOf("happysrv", "powersrv", ".com", ".club")
     }
 }
