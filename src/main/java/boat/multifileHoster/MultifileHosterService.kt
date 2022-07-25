@@ -46,11 +46,9 @@ class MultifileHosterService(
 
     var activeTorrents: MutableList<Torrent> = mutableListOf()
 
-    val externalHostname = httpHelper.externalHostname
-
     private fun getEligibleMultifileHoster(httpHelper: HttpHelper): MutableList<MultifileHoster> {
         val eligibleList = mutableListOf<MultifileHoster>()
-        if (PREMIUMIZE_WHITELIST.any { externalHostname.contains(it) }) {
+        if (PREMIUMIZE_WHITELIST.any { httpHelper.externalHostname().contains(it) }) {
             eligibleList.add(Premiumize(httpHelper))
         } else {
             eligibleList.add(Alldebrid(httpHelper))

@@ -2,6 +2,7 @@ package boat.utilities
 
 import org.apache.commons.io.IOUtils
 import org.slf4j.LoggerFactory
+import org.springframework.cache.annotation.Cacheable
 import org.springframework.stereotype.Service
 import java.io.BufferedReader
 import java.io.File
@@ -153,8 +154,9 @@ class HttpHelper {
         return getPage(baseUrl, timeout).isNotEmpty()
     }
 
-    val externalHostname: String
-        get() {
+    @Cacheable
+    fun externalHostname(): String
+        {
             val builder = ProcessBuilder()
             builder.command("bash", "-c", "dig -x $(curl -s checkip.amazonaws.com) +short")
             builder.directory(File(System.getProperty("user.home")))
