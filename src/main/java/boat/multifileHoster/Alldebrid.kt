@@ -143,14 +143,19 @@ class Alldebrid(httpHelper: HttpHelper) : HttpUser(httpHelper), MultifileHoster 
             val responseArray = response.asJsonArray
             val index = AtomicInteger()
             if (responseArray.size() == torrents.size) {
-                responseArray.forEach(
-                    Consumer { jsonElement: JsonElement ->
-                        if (jsonElement.asJsonObject["instant"].asBoolean) {
-                            torrents[index.get()].cached.add(this.javaClass.simpleName)
+                responseArray.map {
+                    try {
+                        if (it.isJsonObject) {
+                            if (it.asJsonObject["instant"] != null && it.asJsonObject["instant"].asBoolean) {
+                                torrents[index.get()].cached.add(this.javaClass.simpleName)
+                            }
                         }
-                        index.getAndIncrement()
+                    } catch (exception: Exception) {
+                        log.error("parsing exception on: $it", exception)
                     }
-                )
+
+                    index.getAndIncrement()
+                }
             }
         }
     }
