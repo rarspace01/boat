@@ -9,6 +9,16 @@ from `~/.config/rlcone/rclone.conf` for building the docker-image.
 Run `/runBoat.sh` to have an autoupdate of the
 newest version.
 
+install certbot & generate certifiactes
+```
+sudo apt install certbot
+sudo certbot certonly -d YOUR_DOMAIN
+# renew with
+certbot renew
+sudo cp /etc/letsencrypt/live/YOUR_DOMAIN/privkey.pem /home/downloads/privkey.pem
+sudo chmod 7777 /home/downloads/privkey.pem
+```
+
 tested with:
 
 ```
