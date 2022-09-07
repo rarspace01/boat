@@ -15,8 +15,8 @@ sudo apt install certbot
 sudo certbot certonly -d YOUR_DOMAIN
 # renew with
 certbot renew
-sudo cp /etc/letsencrypt/live/YOUR_DOMAIN/privkey.pem /home/downloads/privkey.pem
-sudo chmod 7777 /home/downloads/privkey.pem
+sudo cp /etc/letsencrypt/live/YOUR_DOMAIN/*.pem /home/downloads/
+sudo chmod 7777 /home/downloads/*.pem
 ```
 
 tested with:
