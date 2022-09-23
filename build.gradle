@@ -1,6 +1,6 @@
 buildscript {
     ext.kotlin_version = '1.7.10'
-    ext.spring_boot_version = '2.7.3'
+    ext.spring_boot_version = '2.7.4'
     ext.jackson_version = '2.13.4'
     ext.lombok_version = '1.18.24'
     ext.mockito_version = '3.10.0'
