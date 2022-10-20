@@ -216,6 +216,7 @@ object TorrentHelper {
                 torrentNameLowerCased.contains("cam-rip") ||
                 torrentNameLowerCased.contains("camrip") ||
                 torrentNameLowerCased.contains(".hdcam.") ||
+                torrentNameLowerCased.contains("hqcam") ||
                 torrentNameLowerCased.contains(" hdts") ||
                 torrentNameLowerCased.contains(" hd-ts") ||
                 torrentNameLowerCased.contains(".hd-ts") ||
