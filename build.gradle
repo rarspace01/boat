@@ -1,7 +1,7 @@
 buildscript {
     ext.kotlin_version = '1.7.21'
     ext.spring_boot_version = '2.7.5'
-    ext.jackson_version = '2.14.0'
+    ext.jackson_version = '2.14.1'
     ext.lombok_version = '1.18.24'
     ext.mockito_version = '3.10.0'
     repositories {
@@ -80,7 +80,7 @@ dependencies {
     implementation group: 'org.springframework.boot', name: 'spring-boot-properties-migrator', version: "$spring_boot_version"
     implementation group: 'org.springframework.boot', name: 'spring-boot-starter-cache', version: "$spring_boot_version"
     implementation group: 'org.springframework.boot', name: 'spring-boot-starter-data-mongodb', version: "$spring_boot_version"
-    implementation group: 'com.github.ben-manes.caffeine', name: 'caffeine', version: "3.1.1"
+    implementation group: 'com.github.ben-manes.caffeine', name: 'caffeine', version: "3.1.2"
     implementation group: 'commons-io', name: 'commons-io', version: '2.11.0'
     implementation group: 'commons-codec', name: 'commons-codec', version: '1.15'
     implementation group: 'commons-validator', name: 'commons-validator', version: '1.7'
