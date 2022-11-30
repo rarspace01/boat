@@ -63,9 +63,9 @@ targetCompatibility = 17
 dependencies {
     // tag::jetty[]
     implementation("org.springframework.boot:spring-boot-starter-web:$spring_boot_version") {
-        exclude module: "spring-boot-starter-tomcat"
+        //exclude module: "spring-boot-starter-tomcat"
     }
-    implementation group: 'org.springframework.boot', name: 'spring-boot-starter-jetty', version: "$spring_boot_version"
+    //implementation group: 'org.springframework.boot', name: 'spring-boot-starter-jetty', version: "$spring_boot_version"
     // end::jetty[]
     // tag::actuator[]
     implementation("org.springframework.boot:spring-boot-starter-actuator:$spring_boot_version")
