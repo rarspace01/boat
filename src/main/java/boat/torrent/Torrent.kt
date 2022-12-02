@@ -61,7 +61,7 @@ data class Torrent(
             stringBuilder.append(String.format("R: %.2f ", searchRating))
         }
         if (isNotARemoteTorrent(magnetUriBase64)) {
-            stringBuilder.append("<a href=\"./boat/download/?d=").append(magnetUriBase64).append("\">Download</a>")
+            stringBuilder.append("<a href=\"./boat/download?d=").append(magnetUriBase64).append("\">Download</a>")
         }
         if (Strings.isNotEmpty(debugRating)) {
             stringBuilder.append(" 🏭").append(debugRating)
