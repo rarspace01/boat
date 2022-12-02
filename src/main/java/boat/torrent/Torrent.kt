@@ -120,7 +120,7 @@ data class Torrent(
             if (magnetUri.isEmpty()) {
                 return null
             }
-            val matcher = magnetNamePattern.matcher(magnetUri)
+            val matcher = magnetNamePattern.matcher(magnetUri.lowercase())
             return if (matcher.find()) {
                 matcher.group(1).lowercase(Locale.getDefault())
             } else {
