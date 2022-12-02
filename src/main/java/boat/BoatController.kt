@@ -150,7 +150,7 @@ $switchToSearch${switchToProgress}")}</body>
                 "Took: [{}]ms for [{}] found [{}]", System.currentTimeMillis() - startTime, searchString,
                 torrentList.size
             )
-            "G: " + torrentList.stream().limit(25).collect(Collectors.toList())
+            "G: " + torrentList.stream().limit(50).collect(Collectors.toList())
         } else if (luckySearchList != null && Strings.isNotEmpty(luckySearchList)) {
             val schemes = arrayOf("http", "https")
             val urlValidator = UrlValidator(schemes)
