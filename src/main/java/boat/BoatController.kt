@@ -53,7 +53,7 @@ class BoatController @Autowired constructor(
         const val BREAK_LINK_HTML = "  <br>\n"
     }
 
-    private val switchToProgress = "<a href=\"../debug\">Show Progress</a> "
+    private val switchToProgress = "<a href=\"./debug\">Show Progress</a> "
     private val switchToSearchList = "<a href=\"../searchList\">Search a List</a> "
     private val switchToSearch = "<a href=\"../search\">Search a single Title</a> "
 
