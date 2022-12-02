@@ -54,8 +54,8 @@ class BoatController @Autowired constructor(
     }
 
     private val switchToProgress = "<a href=\"./debug\">Show Progress</a> "
-    private val switchToSearchList = "<a href=\"../searchList\">Search a List</a> "
-    private val switchToSearch = "<a href=\"../search\">Search a single Title</a> "
+    private val switchToSearchList = "<a href=\"./searchList\">Search a List</a> "
+    private val switchToSearch = "<a href=\"./search\">Search a single Title</a> "
 
     @GetMapping("/")
     fun index(): String {
@@ -69,6 +69,19 @@ class BoatController @Autowired constructor(
     }
 
     @GetMapping("/search")
+    fun searchRedirect(): String {
+        return """<html>
+<head>
+  <meta http-equiv="Refresh" content="0; url=./boat/search" />
+</head>
+<body>
+  <p>Please follow <a href="./boat/search">this link</a>.</p>
+</body>
+</html>
+"""
+    }
+
+    @GetMapping("/boat/search")
     fun search(): String {
         return """<!DOCTYPE html>
 <html>
@@ -82,7 +95,7 @@ class BoatController @Autowired constructor(
 $BREAK_LINK_HTML  <input type="reset" value="Reset" style="font-size: 2em; ">
   <input type="submit" value="Search" style="font-size: 2em; ">
 </form>
-$BREAK_LINK_HTML$BREAK_LINK_HTML<form action="../boat/download" target="_blank" method="POST">
+$BREAK_LINK_HTML$BREAK_LINK_HTML<form action="./download" target="_blank" method="POST">
   Direct download URL (multiple seperate by comma):<br>
   <input type="text" name="dd" value="" style="font-size: 2em; ">
 $BREAK_LINK_HTML  <input type="reset" value="Reset" style="font-size: 2em; ">
@@ -94,7 +107,7 @@ $switchToSearchList${switchToProgress.replace("..", "../boat")}</body>
 """
     }
 
-    @GetMapping("/searchList")
+    @GetMapping("/boat/searchList")
     fun searchList(): String {
         return """<!DOCTYPE html>
 <html>
@@ -109,7 +122,7 @@ $BREAK_LINK_HTML  <input type="reset" value="Reset" style="font-size: 2em; ">
   <input type="submit" value="Download" style="font-size: 2em; ">
 </form>
 <br/>
-$switchToSearch${switchToProgress.replace("..", "../boat")}</body>
+$switchToSearch${switchToProgress}")}</body>
 </html>
 """
     }
