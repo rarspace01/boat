@@ -15,21 +15,10 @@ class TorrentService {
             if (trackerList.isNotEmpty()) {
                 return trackerList
             }
-            val maxChars = 1000
-            val currentChars = AtomicInteger(0)
-            val trackerList: MutableList<String> = ArrayList()
             return try {
                 val inputStream = TorrentService::class.java.getResourceAsStream("/trackers.txt")
                 val inputStreamReader = InputStreamReader(inputStream, Charset.defaultCharset())
-                val bufferedReader = BufferedReader(inputStreamReader)
-                var line: String
-                while (bufferedReader.readLine().also { line = it } != null) {
-                    if (currentChars.get() + line.length < maxChars) {
-                        trackerList.add(line)
-                        currentChars.addAndGet(line.length)
-                    }
-                }
-                trackerList
+                inputStreamReader.readText().split("\n")
             } catch (e: IOException) {
                 emptyList()
             }
@@ -59,16 +48,10 @@ class TorrentService {
         if (releaseTags.isNotEmpty()) {
             return releaseTags
         }
-        val releaseTags: MutableList<String> = ArrayList()
         return try {
-            val inputStream = TorrentService::class.java.getResourceAsStream("/releasetags.txt")
+            val inputStream = this.javaClass.getResourceAsStream("/releasetags.txt")
             val inputStreamReader = InputStreamReader(inputStream, Charset.defaultCharset())
-            val bufferedReader = BufferedReader(inputStreamReader)
-            var line: String
-            while (bufferedReader.readLine().also { line = it } != null) {
-                releaseTags.add(line.lowercase(Locale.getDefault()))
-            }
-            releaseTags
+            inputStreamReader.readText().split("\n").map { it.lowercase() }
         } catch (e: IOException) {
             emptyList()
         }
