@@ -24,7 +24,7 @@ object TorrentHelper {
 
     val TAG_REGEX = "(" + listOfReleaseTagsPiped() + ")"
     private fun listOfReleaseTagsPiped(): String {
-        return java.lang.String.join("($|[ .-]+)|[ .]", torrentService.getReleaseTags())
+        return torrentService.getReleaseTags().joinToString("($|[ .-]+)|[ .]")
     }
 
     fun extractTorrentSizeFromString(tempTorrent: Torrent): Double {
