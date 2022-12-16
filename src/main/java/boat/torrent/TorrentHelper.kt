@@ -24,7 +24,7 @@ object TorrentHelper {
 
     val TAG_REGEX = "(" + listOfReleaseTagsPiped() + ")"
     private fun listOfReleaseTagsPiped(): String {
-        return java.lang.String.join("($|[ .-]+)|[ .]", torrentService.releaseTags)
+        return java.lang.String.join("($|[ .-]+)|[ .]", torrentService.getReleaseTags())
     }
 
     fun extractTorrentSizeFromString(tempTorrent: Torrent): Double {
@@ -170,7 +170,7 @@ object TorrentHelper {
 
     private fun getRegexCleaned(inputString: String): String {
         val workString = arrayOf(inputString)
-        torrentService.releaseTags.forEach(Consumer { tag: String ->
+        torrentService.getReleaseTags().forEach(Consumer { tag: String ->
             workString[0] = workString[0].replace(
                 "([ .-]+$tag)([ .-]+|$)".toRegex(), "."
             )
@@ -293,7 +293,7 @@ object TorrentHelper {
 
     private fun removeReleaseTags(string: String?): String {
         val releaseTagsRemoved = StringBuilder(string)
-        torrentService.releaseTags.forEach(Consumer { tag: String ->
+        torrentService.getReleaseTags().forEach(Consumer { tag: String ->
             val temporaryString = releaseTagsRemoved.toString().replace("\\s(?i)$tag\\s".toRegex(), " ")
             releaseTagsRemoved.setLength(0)
             releaseTagsRemoved.append(temporaryString)
