@@ -349,9 +349,9 @@ class MultifileHosterService(
                     }
                     val fileToDownload: TorrentFile = getMainFileURLFromTorrent(filesFromTorrent)
                     updateUploadStatus(torrentToBeDownloaded, listOf(fileToDownload), 0, null)
-                    if (torrentToBeDownloaded.name.contains("magnet:?")) {
-                        torrentToBeDownloaded.name = extractFileNameFromUrl(fileToDownload.url)
-                    }
+                    //if (torrentToBeDownloaded.name.lowercase().contains("magnet:")) {
+                    torrentToBeDownloaded.name = extractFileNameFromUrl(fileToDownload.url)
+                    //}
                     wasDownloadSuccessful = rcloneDownloadFileToGdrive(
                         fileToDownload.url,
                         cloudService.buildDestinationPath(torrentToBeDownloaded.name) + buildFilename(
