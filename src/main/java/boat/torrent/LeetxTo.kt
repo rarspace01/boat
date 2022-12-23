@@ -33,7 +33,7 @@ class LeetxTo internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper
         val torrentList = ArrayList<Torrent>()
         val doc = Jsoup.parse(pageContent)
         val torrentListOnPage = doc.select(".table-list > tbody > tr")
-        if (torrentListOnPage != null) {
+        if (torrentListOnPage.isNotEmpty()) {
             for (torrent in torrentListOnPage) {
                 val tempTorrent = Torrent(toString())
                 if (torrent.childNodeSize() > 0) {
@@ -65,7 +65,7 @@ class LeetxTo internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper
 
                 // evaluate result
                 TorrentHelper.evaluateRating(tempTorrent, searchName)
-                if (TorrentHelper.isValidTorrent(tempTorrent, false)) {
+                if (TorrentHelper.isValidTorrent(tempTorrent)) {
                     torrentList.add(tempTorrent)
                 }
             }
