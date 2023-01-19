@@ -18,12 +18,15 @@ import boat.utilities.PropertiesHelper
 import com.google.gson.JsonParser
 import org.apache.logging.log4j.util.Strings
 import org.springframework.cache.CacheManager
+import org.springframework.scheduling.annotation.Async
+import org.springframework.scheduling.annotation.EnableAsync
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import kotlin.system.exitProcess
 
+@EnableAsync
 @Component
 class DownloadMonitor(
     private val torrentSearchEngineService: TorrentSearchEngineService,
@@ -35,6 +38,7 @@ class DownloadMonitor(
     private val transferService: TransferService,
     private val httpHelper: HttpHelper
 ) {
+    @Async
     @Scheduled(fixedRate = (SECONDS_BETWEEN_SEARCH_ENGINE_POLLING * 1000).toLong())
     fun refreshTorrentSearchEngines() {
         logger.debug("refreshTorrentSearchEngines()")
@@ -58,6 +62,7 @@ class DownloadMonitor(
     //            });
     //        queueService.addAll(completeList);
     //    }
+    @Async
     @Scheduled(fixedRate = (SECONDS_BETWEEN_FILE_CACHE_REFRESH * 1000).toLong())
     fun refreshCloudFileServiceCache() {
         logger.info("refreshCloudFileServiceCache()")
@@ -81,17 +86,20 @@ class DownloadMonitor(
         }
     }
 
+    @Async
     @Scheduled(fixedRate = (SECONDS_BETWEEN_TRANSFER_POLLING * 1000).toLong())
     fun addTransfersToDownloadQueueAndUpdateTransferStatus() {
         multifileHosterService.addTransfersToDownloadQueue()
         multifileHosterService.updateTransferStatus()
     }
 
+    @Async
     @Scheduled(fixedRate = (SECONDS_BETWEEN_DOWNLOAD_POLLING * 1000).toLong())
     fun checkForDownloadableTorrents() {
         multifileHosterService.checkForDownloadableTorrents()
     }
 
+    @Async
     @Scheduled(fixedRate = (SECONDS_BETWEEN_VERSION_CHECK * 1000).toLong(), initialDelay = 60 * 5 * 1000)
     fun checkForUpdatedVersionAndShutdownIfUpdateAvailable() {
         logger.info("checkForUpdatedVersionAndShutdown()")
@@ -107,6 +115,7 @@ class DownloadMonitor(
         }
     }
 
+    @Async
     @Scheduled(fixedRate = (SECONDS_BETWEEN_QUEUE_POLLING * 1000).toLong())
     fun checkForQueueEntries() {
         if (cloudService.isCloudTokenValid) {
