@@ -537,8 +537,7 @@ class MultifileHosterService(
         while (matcher.find()) {
             foundMatch = matcher.group()
         }
-        foundMatch?.replace("\\s".toRegex(), ".")
-        return foundMatch.toString()
+        return foundMatch?.replace("\\s".toRegex(), ".") ?: ""
     }
 
     private fun rcloneDownloadFileToGdrive(fileURLFromTorrent: String?, destinationPath: String): Boolean {

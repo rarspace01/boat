@@ -1,6 +1,7 @@
 package boat.info
 
 import boat.torrent.TorrentFile
+import boat.torrent.TorrentHelper
 import boat.torrent.TorrentHelper.determineTypeOfMedia
 import boat.torrent.TorrentHelper.prepareTorrentName
 import boat.torrent.TorrentType
@@ -112,9 +113,11 @@ class CloudService internal constructor(private val cloudFileService: CloudFileS
     }
 
     fun buildDestinationPath(name: String?, filesFromTorrent: List<TorrentFile>): String {
-        val typeOfMedia = determineTypeOfMedia(name)
+        val spacedName = name?.replace(".", " ") ?: ""
+        val normalizedName = TorrentHelper.getNormalizedTorrentStringWithSpaces(spacedName)
+        val typeOfMedia = determineTypeOfMedia(normalizedName)
         logger.info("Deducted from Name: $typeOfMedia")
-        val mediaItems = theFilmDataBaseService.search(name)
+        val mediaItems = theFilmDataBaseService.search(normalizedName)
         logger.info("Deducted from TFDB: $mediaItems")
         return if (TorrentType.TRANSFER == typeOfMedia) {
             val torrentType: TorrentType = determineTypeOfMedia(filesFromTorrent)
