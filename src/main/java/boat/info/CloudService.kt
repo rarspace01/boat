@@ -15,7 +15,7 @@ import java.util.Locale
 import java.util.stream.Collectors
 
 @Service
-class CloudService internal constructor(private val cloudFileService: CloudFileService) {
+class CloudService internal constructor(private val cloudFileService: CloudFileService, val theFilmDataBaseService: TheFilmDataBaseService) {
 
     companion object {
         private val logger by LoggerDelegate()
@@ -113,6 +113,9 @@ class CloudService internal constructor(private val cloudFileService: CloudFileS
 
     fun buildDestinationPath(name: String?, filesFromTorrent: List<TorrentFile>): String {
         val typeOfMedia = determineTypeOfMedia(name)
+        logger.info("Deducted from Name: $typeOfMedia")
+        val mediaItems = theFilmDataBaseService.search(name)
+        logger.info("Deducted from TFDB: $mediaItems")
         return if (TorrentType.TRANSFER == typeOfMedia) {
             val torrentType: TorrentType = determineTypeOfMedia(filesFromTorrent)
             buildDestinationPathWithTypeOfMedia(name, torrentType)
