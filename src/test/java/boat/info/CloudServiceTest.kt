@@ -2,6 +2,7 @@ package boat.info
 
 import boat.torrent.Torrent
 import boat.torrent.TorrentFile
+import boat.utilities.HttpHelper
 import boat.utilities.PropertiesHelper
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeEach
@@ -12,7 +13,7 @@ internal class CloudServiceTest {
     private var cloudService: CloudService? = null
     @BeforeEach
     fun beforeMethod() {
-        cloudService = CloudService(CloudFileService())
+        cloudService = CloudService(CloudFileService(), TheFilmDataBaseService(HttpHelper()))
     }
 
     @EnabledIfEnvironmentVariable(named = "DISABLE_UPDATE_PROMPT", matches = "true")
