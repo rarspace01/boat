@@ -23,7 +23,7 @@ class CloudService internal constructor(private val cloudFileService: CloudFileS
     }
 
     val isCloudTokenValid: Boolean
-        get() = !cloudFileService.getFilesInPath(PropertiesHelper.getProperty(RCLONE_DIR)).isEmpty()
+        get() = cloudFileService.getFilesInPath(buildDestinationPathWithTypeOfMediaWithoutSubFolders("A", TorrentType.MOVIES)).isNotEmpty()
 
     fun buildDestinationPath(torrentName: String?): String {
         val basePath = PropertiesHelper.getProperty(RCLONE_DIR)
