@@ -193,7 +193,15 @@ object TorrentHelper {
 
     fun isBlocklisted(torrent: Torrent): Boolean {
         val torrentNameLowerCased = torrent.name.lowercase(Locale.getDefault())
-        return torrentNameLowerCased.contains("telesync") || torrentNameLowerCased.contains("telecine") || torrentNameLowerCased.contains("hdcam") || torrentNameLowerCased.contains(
+        return isBadQualityName(torrentNameLowerCased) || isExplicitContent(torrentNameLowerCased)
+    }
+
+    private fun isExplicitContent(torrentNameLowerCased: String): Boolean {
+        return torrentNameLowerCased.contains("xxx") || torrentNameLowerCased.contains("porn") || torrentNameLowerCased.contains("sluts")
+    }
+
+    private fun isBadQualityName(torrentNameLowerCased: String) =
+        torrentNameLowerCased.contains("telesync") || torrentNameLowerCased.contains("telecine") || torrentNameLowerCased.contains("hdcam") || torrentNameLowerCased.contains(
             "tscam"
         ) || torrentNameLowerCased.contains(".cam.") || torrentNameLowerCased.contains(" cam ") || torrentNameLowerCased.contains("cam-rip") || torrentNameLowerCased.contains(
             "camrip"
@@ -201,10 +209,7 @@ object TorrentHelper {
             " hd-ts"
         ) || torrentNameLowerCased.contains(".hd-ts") || torrentNameLowerCased.contains(".hdtc.") || torrentNameLowerCased.contains(".ts.") || torrentNameLowerCased.contains(
             "[ts]"
-        ) || torrentNameLowerCased.contains("pdvd") || torrentNameLowerCased.contains("predvdrip") || torrentNameLowerCased.contains("workprint") || torrentNameLowerCased.contains(
-            "xxx"
-        ) || torrentNameLowerCased.contains("porn") || torrentNameLowerCased.contains(".hdts.")
-    }
+        ) || torrentNameLowerCased.contains("pdvd") || torrentNameLowerCased.contains("predvdrip") || torrentNameLowerCased.contains("workprint") || torrentNameLowerCased.contains(".hdts.")
 
     fun isValidTorrent(torrent: Torrent): Boolean {
         return !isBlocklisted(torrent) && torrent.sizeInMB > 0 && torrent.magnetUri.isNotBlank()
