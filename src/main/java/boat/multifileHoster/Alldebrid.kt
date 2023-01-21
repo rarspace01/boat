@@ -128,6 +128,7 @@ class Alldebrid(httpHelper: HttpHelper) : HttpUser(httpHelper), MultifileHoster 
     }
 
     override fun enrichCacheStateOfTorrents(torrents: List<Torrent>) {
+        /*
         val requestUrl =
             "https://api.alldebrid.com/v4/magnet/instant?agent=pirateboat&apikey=" + PropertiesHelper.getProperty("ALLDEBRID_APIKEY") + "%s"
         val urlEncodedBrackets = TorrentHelper.urlEncode("[]")
@@ -157,7 +158,7 @@ class Alldebrid(httpHelper: HttpHelper) : HttpUser(httpHelper), MultifileHoster 
                     index.getAndIncrement()
                 }
             }
-        }
+        }*/
     }
 
     override fun delete(remoteTorrent: Torrent) {
