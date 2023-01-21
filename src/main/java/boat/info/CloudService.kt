@@ -91,6 +91,7 @@ class CloudService internal constructor(private val cloudFileService: CloudFileS
     }
 
     fun findExistingFiles(searchName: String): List<String> {
+        if(!cloudFileService.isCacheFilled) return emptyList()
         val start = Instant.now()
         val strings = searchName.split(Regex("\\s")).dropLastWhile { it.isEmpty() }
         return getAllFiles().filter { fileString: String ->
