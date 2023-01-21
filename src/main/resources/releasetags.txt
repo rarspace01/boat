@@ -127,3 +127,6 @@ Italian
 Complete
 Subtitles
 .torrent
+dual
+audio
+web
