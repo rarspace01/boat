@@ -51,8 +51,8 @@ class SolidTorrents internal constructor(httpHelper: HttpHelper) : HttpUser(http
                 tempTorrent.name = title.text().replace("✅", "").trim()
                 tempTorrent.sizeInMB = TorrentHelper.extractTorrentSizeFromString(stats[0].allElements[3].text())
                 tempTorrent.size = TorrentHelper.humanReadableByteCountBinary((tempTorrent.sizeInMB * 1024 * 1024).toLong())
-                tempTorrent.seeder = stats[0].allElements[7].text().trim().toInt()
-                tempTorrent.leecher = stats[0].allElements[10].text().trim().toInt()
+                tempTorrent.seeder = stats[0].allElements[7].text().trim().replace(Regex(".*\\..*[kK]"),"999").toInt()
+                tempTorrent.leecher = stats[0].allElements[10].text().trim().replace(Regex(".*\\..*[kK]"),"999").toInt()
                 tempTorrent.magnetUri = magnetUri
                 tempTorrent.isVerified = title.text().matches(Regex(".*✅.*"))
                 // evaluate result
