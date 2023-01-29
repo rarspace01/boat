@@ -381,18 +381,12 @@ class MultifileHosterService(
                         val destinationPath: String = cloudService
                             .buildDestinationPath(torrentToBeDownloaded.name, filesFromTorrent)
                         var targetFilePath: String
-                        targetFilePath = if (destinationPath.contains("transfer")) {
-                            (
-                                    PropertiesHelper.getProperty("RCLONEDIR") + "/transfer/multipart/" +
-                                            torrentToBeDownloaded.name + "/" + torrentFile.name
-                                    )
-                        } else {
+                        targetFilePath =
                             if (destinationPath.contains(TorrentType.SERIES_SHOWS.type)) {
                                 destinationPath + torrentFile.name
                             } else {
                                 destinationPath + torrentToBeDownloaded.name + "/" + torrentFile.name
                             }
-                        }
                         if (!rcloneDownloadFileToGdrive(torrentFile.url, targetFilePath)) {
                             failedUploads++
                         }
