@@ -2,8 +2,6 @@ package boat.torrent
 
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
-import java.util.List
-import java.util.stream.Collectors
 
 internal class TorrentTest {
     @Test
@@ -36,7 +34,7 @@ internal class TorrentTest {
         torrent1.sizeInMB = 1.0
         torrent2.sizeInMB = 2.0
         // When
-        val list = List.of(torrent1, torrent2).stream().sorted().collect(Collectors.toList())
+        val list = listOf(torrent1, torrent2).stream().sorted().toList()
         // Then
         org.assertj.core.api.Assertions.assertThat(list[0]).isEqualTo(torrent1)
     }
