@@ -1,5 +1,6 @@
 package boat.multifileHoster
 
+import boat.info.CloudFileService
 import boat.info.CloudService
 import boat.model.Transfer
 import boat.services.TransferService
@@ -12,6 +13,7 @@ import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import org.springframework.cache.CacheManager
 import java.util.List
 
 internal class MultifileHosterServiceTest {
@@ -19,11 +21,13 @@ internal class MultifileHosterServiceTest {
     private val httpHelper: HttpHelper = mockk(relaxed = true)
     private val transferService: TransferService = mockk(relaxed = true)
     private val cloudService: CloudService = mockk(relaxed = true)
+    private val cacheManager: CacheManager = mockk(relaxed = true)
+    private val cloudFileService: CloudFileService = mockk(relaxed = true)
     lateinit var multifileHosterService: MultifileHosterService
 
     @BeforeEach
     fun beforeEach() {
-        multifileHosterService = MultifileHosterService(httpHelper, transferService, cloudService)
+        multifileHosterService = MultifileHosterService(httpHelper, transferService, cloudService, cacheManager, cloudFileService)
     }
 
     @Test

@@ -26,17 +26,17 @@ class CloudService internal constructor(private val cloudFileService: CloudFileS
     val isCloudTokenValid: Boolean
         get() = cloudFileService.getFilesInPath(buildDestinationPathWithTypeOfMediaWithoutSubFolders("A", TorrentType.MOVIES)).isNotEmpty()
 
-    fun buildDestinationPath(torrentName: String?): String {
+    fun buildDestinationPath(torrentName: String?): Pair<String, String> {
         val basePath = PropertiesHelper.getProperty(RCLONE_DIR)
-        val preparedTorrentName = prepareTorrentName(torrentName)
         val typeOfMedia = determineTypeOfMedia(torrentName)
+        val preparedTorrentName = prepareTorrentName(torrentName)
         val torrentNameFirstLetterDeducted = deductFirstTorrentLetter(preparedTorrentName)
         var optionalSeriesString = ""
         if (TorrentType.SERIES_SHOWS == typeOfMedia) {
             optionalSeriesString = deductSeriesNameFrom(preparedTorrentName) + "/"
         }
-        return (basePath + "/" + typeOfMedia.type + "/" + torrentNameFirstLetterDeducted + "/"
-                + optionalSeriesString)
+        return Pair(torrentNameFirstLetterDeducted, (basePath + "/" + typeOfMedia.type + "/" + torrentNameFirstLetterDeducted + "/"
+                + optionalSeriesString))
     }
 
     private fun deductSeriesNameFrom(preparedTorrentName: String): String {
@@ -113,7 +113,7 @@ class CloudService internal constructor(private val cloudFileService: CloudFileS
         }.flatten()
     }
 
-    fun buildDestinationPath(name: String?, filesFromTorrent: List<TorrentFile>): String {
+    fun buildDestinationPath(name: String?, filesFromTorrent: List<TorrentFile>): Pair<String, String> {
         val spacedName = name?.replace(".", " ") ?: ""
         val normalizedName = TorrentHelper.getNormalizedTorrentStringWithSpaces(spacedName)
         val typeOfMedia = determineTypeOfMedia(normalizedName)
@@ -128,7 +128,7 @@ class CloudService internal constructor(private val cloudFileService: CloudFileS
         }
     }
 
-    private fun buildDestinationPathWithTypeOfMedia(name: String?, torrentType: TorrentType): String {
+    private fun buildDestinationPathWithTypeOfMedia(name: String?, torrentType: TorrentType): Pair<String, String> {
         val basePath = PropertiesHelper.getProperty(RCLONE_DIR)
         val preparedTorrentName = prepareTorrentName(name)
         val torrentNameFirstLetterDeducted = deductFirstTorrentLetter(preparedTorrentName)
@@ -136,8 +136,8 @@ class CloudService internal constructor(private val cloudFileService: CloudFileS
         if (TorrentType.SERIES_SHOWS == torrentType) {
             optionalSeriesString = deductSeriesNameFrom(preparedTorrentName) + "/"
         }
-        return (basePath + "/" + torrentType.type + "/" + torrentNameFirstLetterDeducted + "/"
-                + optionalSeriesString)
+        return Pair(torrentNameFirstLetterDeducted, (basePath + "/" + torrentType.type + "/" + torrentNameFirstLetterDeducted + "/"
+                + optionalSeriesString))
     }
 
 }

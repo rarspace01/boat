@@ -1,5 +1,6 @@
 package boat.multifileHoster
 
+import boat.info.CloudFileService
 import boat.info.CloudService
 import boat.mapper.TorrentMapper
 import boat.model.Transfer
@@ -14,9 +15,9 @@ import boat.torrent.TorrentType
 import boat.utilities.HttpHelper
 import boat.utilities.LoggerDelegate
 import boat.utilities.ProcessUtil
-import boat.utilities.PropertiesHelper
 import boat.utilities.StreamGobbler
 import org.apache.logging.log4j.util.Strings
+import org.springframework.cache.CacheManager
 import org.springframework.stereotype.Service
 import org.springframework.util.StringUtils
 import java.io.File
@@ -36,6 +37,8 @@ class MultifileHosterService(
     httpHelper: HttpHelper,
     private val transferService: TransferService,
     private val cloudService: CloudService,
+    private val cacheManager: CacheManager,
+    private val cloudFileService: CloudFileService,
 ) : HttpUser(httpHelper) {
     private var isDownloadInProgress: Boolean = false
     private var isRcloneInstalled: Boolean? = null
@@ -354,16 +357,19 @@ class MultifileHosterService(
                     log.info("Name before: [${torrentToBeDownloaded.name}] after [$extractFileNameFromUrl]")
                     torrentToBeDownloaded.name = extractFileNameFromUrl
                     //}
+                    val destination = cloudService.buildDestinationPath(torrentToBeDownloaded.name)
                     wasDownloadSuccessful = rcloneDownloadFileToGdrive(
                         fileToDownload.url,
-                        cloudService.buildDestinationPath(torrentToBeDownloaded.name) + buildFilename(
+                        destination.second + buildFilename(
                             torrentToBeDownloaded.name, fileToDownload.url
                         )
                     )
                     updateUploadStatus(torrentToBeDownloaded, listOf(fileToDownload), 1, null)
                     delete(torrentToBeDownloaded)
+
                     transferToBeDownloaded = transferService.get(transferToBeDownloaded)
                     transferToBeDownloaded.ifPresent { transfer: Transfer? -> transferService.delete(transfer!!) }
+                    updateIndexForLetters(destination.first)
                 } else {
                     transferToBeDownloaded.ifPresent { transfer: Transfer? ->
                         log.info(
@@ -374,12 +380,15 @@ class MultifileHosterService(
                     var currentFileNumber = 0
                     var failedUploads = 0
                     val startTime = Instant.now()
+                    val listOfCharactersToIndexUpdate = mutableSetOf<String>()
                     for (torrentFile in filesFromTorrent) {
                         // check fileSize to get rid of samples and NFO files?
                         updateUploadStatus(torrentToBeDownloaded, filesFromTorrent, currentFileNumber, startTime)
                         log.info("Name before: [${torrentToBeDownloaded.name}]")
-                        val destinationPath: String = cloudService
+                        val destination = cloudService
                             .buildDestinationPath(torrentToBeDownloaded.name, filesFromTorrent)
+                        listOfCharactersToIndexUpdate.add(destination.first)
+                        val destinationPath: String = destination.second
                         var targetFilePath: String
                         targetFilePath =
                             if (destinationPath.contains(TorrentType.SERIES_SHOWS.type)) {
@@ -397,6 +406,9 @@ class MultifileHosterService(
                     delete(torrentToBeDownloaded)
                     transferToBeDownloaded = transferService.get(transferToBeDownloaded)
                     transferToBeDownloaded.ifPresent { transfer: Transfer? -> transferService.delete(transfer!!) }
+
+                    updateIndexForLetters(listOfCharactersToIndexUpdate.joinToString())
+
                 }
             } catch (exception: Exception) {
                 log.error(String.format("Couldn't download Torrent: %s", torrentToBeDownloaded), exception)
@@ -634,6 +646,22 @@ class MultifileHosterService(
             localStatusStorage[torrentUpdate.remoteId] = torrentUpdate.remoteStatusText
         }
     }
+
+    fun updateIndexForLetters(searchChars: String) {
+        log.info("refreshCloudFileServiceCache for letters: $searchChars")
+        val filesCache = cacheManager.getCache("filesCache")
+        searchChars.split("").forEach { searchChar: String ->
+            TorrentType.values()
+                .forEach { torrentType: TorrentType ->
+                    val destinationPath = cloudService
+                        .buildDestinationPathWithTypeOfMediaWithoutSubFolders(searchChar, torrentType)
+                    filesCache?.evictIfPresent(destinationPath)
+                    cloudFileService.getFilesInPath(destinationPath)
+                }
+            log.info("Cache refresh done for: $searchChars")
+        }
+    }
+
 
     companion object {
         private val log by LoggerDelegate()
