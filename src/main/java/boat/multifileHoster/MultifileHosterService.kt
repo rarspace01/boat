@@ -650,7 +650,7 @@ class MultifileHosterService(
     fun updateIndexForLetters(searchChars: String) {
         log.info("refreshCloudFileServiceCache for letters: $searchChars")
         val filesCache = cacheManager.getCache("filesCache")
-        searchChars.split("").forEach { searchChar: String ->
+        searchChars.split("").filter { it.isNotBlank() }.forEach { searchChar: String ->
             TorrentType.values()
                 .forEach { torrentType: TorrentType ->
                     val destinationPath = cloudService
