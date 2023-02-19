@@ -2,7 +2,9 @@ package boat.torrent
 
 import boat.torrent.TorrentHelper.evaluateRating
 import boat.torrent.TorrentHelper.getNormalizedTorrentString
+import boat.torrent.TorrentHelper.getNormalizedTorrentStringWithSpaces
 import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 
 internal class TorrentHelperTest {
@@ -218,5 +220,12 @@ internal class TorrentHelperTest {
         evaluateRating(torrent2, "Test Title S03E01")
         // Then
         Assertions.assertEquals(torrent1.searchRating, torrent2.searchRating)
+    }
+
+    @Disabled
+    @Test
+    fun shouldCleanTorrentNameAnimeSeries() {
+        val resultString = getNormalizedTorrentStringWithSpaces("Bla Blub (2004) (1080p FUNI Dual Audio WEB-DL KaiDubs)")
+        Assertions.assertEquals("Paranoia Agent 2004", resultString)
     }
 }
