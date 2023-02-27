@@ -77,7 +77,7 @@ jobs:
            ALLDEBRID_APIKEY: ${{ secrets.ALLDEBRID_APIKEY }}
         run: ./gradlew assemble
       - run: native-image --no-fallback --allow-incomplete-classpath -jar "./build/libs/boat.jar" boatImage
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
         with:
           name: graalVmArtifacts-${{ github.sha }}
