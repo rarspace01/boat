@@ -181,7 +181,7 @@ class Alldebrid(httpHelper: HttpHelper) : HttpUser(httpHelper), MultifileHoster 
     }
 
     override fun getRemainingTrafficInMB(): Double {
-        return 9999999.0
+        return 0.0
     }
 
     override fun getMaximumActiveTransfers(): Int {
