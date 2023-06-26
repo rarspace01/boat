@@ -205,7 +205,7 @@ object TorrentHelper {
             "tscam"
         ) || torrentNameLowerCased.contains(".cam.") || torrentNameLowerCased.contains(" cam ") || torrentNameLowerCased.contains("cam-rip") || torrentNameLowerCased.contains(
             "camrip"
-        ) || torrentNameLowerCased.contains(".hdcam.") || torrentNameLowerCased.contains("hqcam") || torrentNameLowerCased.contains(" hdts") || torrentNameLowerCased.contains(
+        ) || torrentNameLowerCased.contains("tsrip") || torrentNameLowerCased.contains(".hdcam.") || torrentNameLowerCased.contains("hqcam") || torrentNameLowerCased.contains("hdts") || torrentNameLowerCased.contains(
             " hd-ts"
         ) || torrentNameLowerCased.contains(".hd-ts") || torrentNameLowerCased.contains(".hdtc.") || torrentNameLowerCased.contains(".ts.") || torrentNameLowerCased.contains(
             "[ts]"
