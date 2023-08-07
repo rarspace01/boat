@@ -14,7 +14,6 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.springframework.cache.CacheManager
-import java.util.List
 
 internal class MultifileHosterServiceTest {
 
@@ -83,7 +82,7 @@ internal class MultifileHosterServiceTest {
             url = ""
         )
         // When
-        val uploadStatusString = multifileHosterService.getUploadStatusString(torrent, List.of(torrentFile), 0, null)
+        val uploadStatusString = multifileHosterService.getUploadStatusString(torrent, listOf(torrentFile), 0, null)
         // Then
         assertThat(uploadStatusString).doesNotMatch("Uploading: 0/1 done ETA: 00:00:00")
     }

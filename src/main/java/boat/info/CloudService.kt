@@ -35,8 +35,10 @@ class CloudService internal constructor(private val cloudFileService: CloudFileS
         if (TorrentType.SERIES_SHOWS == typeOfMedia) {
             optionalSeriesString = deductSeriesNameFrom(preparedTorrentName) + "/"
         }
-        return Pair(torrentNameFirstLetterDeducted, (basePath + "/" + typeOfMedia.type + "/" + torrentNameFirstLetterDeducted + "/"
-                + optionalSeriesString))
+        return Pair(
+            torrentNameFirstLetterDeducted, (basePath + "/" + typeOfMedia.type + "/" + torrentNameFirstLetterDeducted + "/"
+                    + optionalSeriesString)
+        )
     }
 
     private fun deductSeriesNameFrom(preparedTorrentName: String): String {
@@ -91,7 +93,7 @@ class CloudService internal constructor(private val cloudFileService: CloudFileS
     }
 
     fun findExistingFiles(searchName: String): List<String> {
-        if(!cloudFileService.isCacheFilled) return emptyList()
+        if (!cloudFileService.isCacheFilled) return emptyList()
         val start = Instant.now()
         val strings = searchName.split(Regex("\\s")).dropLastWhile { it.isEmpty() }
         return getAllFiles().filter { fileString: String ->
@@ -99,11 +101,11 @@ class CloudService internal constructor(private val cloudFileService: CloudFileS
                 fileString.lowercase().contains(it.lowercase())
             }
         }.also {
-            logger.info("Find files took: ${Duration.between(start,Instant.now())}")
+            logger.info("Find files took: ${Duration.between(start, Instant.now())}")
         }
     }
 
-    fun getAllFiles():List<String> {
+    fun getAllFiles(): List<String> {
         return "abcdefghijklmnopqrstuvwxyz+0".split(Regex("")).filter { it.isNotEmpty() }.map { searchName: String ->
             TorrentType.values().map {
                 val destinationPath = buildDestinationPathWithTypeOfMediaWithoutSubFolders(searchName, it)
@@ -117,12 +119,11 @@ class CloudService internal constructor(private val cloudFileService: CloudFileS
         val spacedName = name?.replace(".", " ") ?: ""
         val normalizedName = TorrentHelper.getNormalizedTorrentStringWithSpaces(spacedName)
         val typeOfMedia = determineTypeOfMedia(normalizedName)
-        logger.info("Deducted from Name: $typeOfMedia")
         val mediaItems = theFilmDataBaseService.search(normalizedName)
-        logger.info("Deducted from TFDB: $mediaItems")
+        val torrentTypeFromFile: TorrentType = determineTypeOfMedia(filesFromTorrent)
+        logger.info("Deducted from Name: [$typeOfMedia ] from Filename:[$torrentTypeFromFile] from TFDB:[$mediaItems]")
         return if (TorrentType.TRANSFER == typeOfMedia) {
-            val torrentType: TorrentType = determineTypeOfMedia(filesFromTorrent)
-            buildDestinationPathWithTypeOfMedia(name, torrentType)
+            buildDestinationPathWithTypeOfMedia(name, torrentTypeFromFile)
         } else {
             buildDestinationPath(name)
         }
@@ -136,8 +137,10 @@ class CloudService internal constructor(private val cloudFileService: CloudFileS
         if (TorrentType.SERIES_SHOWS == torrentType) {
             optionalSeriesString = deductSeriesNameFrom(preparedTorrentName) + "/"
         }
-        return Pair(torrentNameFirstLetterDeducted, (basePath + "/" + torrentType.type + "/" + torrentNameFirstLetterDeducted + "/"
-                + optionalSeriesString))
+        return Pair(
+            torrentNameFirstLetterDeducted, (basePath + "/" + torrentType.type + "/" + torrentNameFirstLetterDeducted + "/"
+                    + optionalSeriesString)
+        )
     }
 
 }
