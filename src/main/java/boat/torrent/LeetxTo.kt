@@ -65,9 +65,7 @@ class LeetxTo internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper
 
                 // evaluate result
                 TorrentHelper.evaluateRating(tempTorrent, searchName)
-                if (TorrentHelper.isValidTorrent(tempTorrent)) {
-                    torrentList.add(tempTorrent)
-                }
+                torrentList.add(tempTorrent)
             }
         }
         //retrieve magneturis for torrents
