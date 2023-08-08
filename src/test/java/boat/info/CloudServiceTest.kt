@@ -42,7 +42,7 @@ internal class CloudServiceTest {
         // Given
         val torrentToBeDownloaded = Torrent("test")
         // When
-        val destinationPath = cloudService!!.buildDestinationPath("Movie").second
+        val destinationPath = cloudService!!.buildDestinationPath("Movie", listOf(TorrentFile(name = "movie.pdf"))).second
         // Then
         Assertions.assertEquals(PropertiesHelper.getProperty("RCLONEDIR") + "/transfer/M/", destinationPath)
     }
@@ -52,7 +52,7 @@ internal class CloudServiceTest {
         // Given
         val torrentToBeDownloaded = Torrent("test")
         // When
-        val destinationPath = cloudService!!.buildDestinationPath("Movie Title Xvid").second
+        val destinationPath = cloudService!!.buildDestinationPath("Movie Title Xvid", listOf(TorrentFile(name = "xvid.xvid"))).second
         // Then
         Assertions.assertEquals(PropertiesHelper.getProperty("RCLONEDIR") + "/Movies/M/", destinationPath)
     }
@@ -62,7 +62,7 @@ internal class CloudServiceTest {
         // Given
         val torrentToBeDownloaded = Torrent("test")
         // When
-        val destinationPath = cloudService!!.buildDestinationPath("A 12 Number Title Xvid").second
+        val destinationPath = cloudService!!.buildDestinationPath("A 12 Number Title Xvid", listOf(TorrentFile(name = "xvid.xvid"))).second
         // Then
         Assertions.assertEquals(PropertiesHelper.getProperty("RCLONEDIR") + "/Movies/0-9/", destinationPath)
     }
@@ -72,7 +72,7 @@ internal class CloudServiceTest {
         // Given
         val torrentToBeDownloaded = Torrent("test")
         // When
-        val destinationPath = cloudService!!.buildDestinationPath("Movie Title 2008 2160p US BluRay REMUX HEVC DTS HD MA TrueHD 7 1 Atmos FGT").second
+        val destinationPath = cloudService!!.buildDestinationPath("Movie Title 2008 2160p US BluRay REMUX HEVC DTS HD MA TrueHD 7 1 Atmos FGT", listOf(TorrentFile(name = "xvid.xvid"))).second
         // Then
         Assertions.assertEquals(PropertiesHelper.getProperty("RCLONEDIR") + "/Movies/M/", destinationPath)
     }
@@ -81,7 +81,7 @@ internal class CloudServiceTest {
     fun buildDestinationPathForSingleFileTorrentWithArticles() {
         // Given
         // When
-        val destinationPath = cloudService!!.buildDestinationPath("A Movie Title 2008 2160p US BluRay REMUX HEVC DTS HD MA TrueHD 7 1 Atmos FGT").second
+        val destinationPath = cloudService!!.buildDestinationPath("A Movie Title 2008 2160p US BluRay REMUX HEVC DTS HD MA TrueHD 7 1 Atmos FGT", listOf(TorrentFile(name = "xvid.xvid"))).second
         // Then
         Assertions.assertEquals(PropertiesHelper.getProperty("RCLONEDIR") + "/Movies/M/", destinationPath)
     }
@@ -90,7 +90,7 @@ internal class CloudServiceTest {
     fun buildDestinationPathForMultiFileTorrentTest() {
         // Given
         // When
-        val destinationPath = cloudService!!.buildDestinationPath("Test and Test [UNCENSORED] Season 1-3 [1080p] [5.1 MP3] [x265][FINAL]").second
+        val destinationPath = cloudService!!.buildDestinationPath("Test and Test [UNCENSORED] Season 1-3 [1080p] [5.1 MP3] [x265][FINAL]", listOf(TorrentFile(name = "Season 1-3 xvid.xvid"))).second
         // Then
         Assertions.assertEquals(PropertiesHelper.getProperty("RCLONEDIR") + "/Series-Shows/T/Test.And.Test/", destinationPath)
     }
@@ -99,7 +99,7 @@ internal class CloudServiceTest {
     fun buildDestinationPathForSeriesTorrentTest() {
         // Given
         // When
-        val destinationPath = cloudService!!.buildDestinationPath("Series.S01E02.480p.x264-mSD[tag].mkv").second
+        val destinationPath = cloudService!!.buildDestinationPath("Series.S01E02.480p.x264-mSD[tag].mkv", listOf(TorrentFile(name = "S01E02xvid.xvid"))).second
         // Then
         Assertions.assertEquals(PropertiesHelper.getProperty("RCLONEDIR") + "/Series-Shows/S/Series/", destinationPath)
     }
@@ -108,7 +108,7 @@ internal class CloudServiceTest {
     fun buildDestinationPathForSeriesLowerCaseTorrentTest() {
         // Given
         // When
-        val destinationPath = cloudService!!.buildDestinationPath("series.S01E02.480p.x264-mSD[tag].mkv").second
+        val destinationPath = cloudService!!.buildDestinationPath("series.S01E02.480p.x264-mSD[tag].mkv", listOf(TorrentFile(name = "S01E02xvid.xvid"))).second
         // Then
         Assertions.assertEquals(PropertiesHelper.getProperty("RCLONEDIR") + "/Series-Shows/S/Series/", destinationPath)
     }
@@ -117,7 +117,7 @@ internal class CloudServiceTest {
     fun buildDestinationPathWithQuoteTest() {
         // Given
         // When
-        val destinationPath = cloudService!!.buildDestinationPath("\"series.S01E02.480p.x264-mSD[tag].mkv").second
+        val destinationPath = cloudService!!.buildDestinationPath("\"series.S01E02.480p.x264-mSD[tag].mkv", listOf(TorrentFile(name = "S01E02xvid.xvid"))).second
         // Then
         Assertions.assertEquals(PropertiesHelper.getProperty("RCLONEDIR") + "/Series-Shows/S/Series/", destinationPath)
     }
@@ -126,7 +126,7 @@ internal class CloudServiceTest {
     fun buildDestinationPathForSeriesTorrentTestSubFolders() {
         // Given
         // When
-        val destinationPath = cloudService!!.buildDestinationPath("Series.Name.S01E02.480p.x264-mSD[tag].mkv").second
+        val destinationPath = cloudService!!.buildDestinationPath("Series.Name.S01E02.480p.x264-mSD[tag].mkv", listOf(TorrentFile(name = "S01E02xvid.xvid"))).second
         // Then
         Assertions.assertEquals(PropertiesHelper.getProperty("RCLONEDIR") + "/Series-Shows/S/Series.Name/", destinationPath)
     }
@@ -135,7 +135,7 @@ internal class CloudServiceTest {
     fun buildDestinationPathWithPDFTest() {
         // Given
         // When
-        val destinationPath = cloudService!!.buildDestinationPath("series.S01E02.480p.x264-mSD[tag].pdf").second
+        val destinationPath = cloudService!!.buildDestinationPath("series.S01E02.480p.x264-mSD[tag].pdf", listOf(TorrentFile(name = "S01E02xvid.pdf"))).second
         // Then
         Assertions.assertEquals(PropertiesHelper.getProperty("RCLONEDIR") + "/transfer/S/", destinationPath)
     }
@@ -144,9 +144,9 @@ internal class CloudServiceTest {
     fun buildDestinationPathSeriesWithFileListAndNonSeriesTorrentName() {
         // Given
         val tf1 = TorrentFile()
-        tf1.name = "Series Name S01E01"
+        tf1.name = "Series Name S01E01.mkv"
         val tf2 = TorrentFile()
-        tf2.name = "Series Name S01E02"
+        tf2.name = "Series Name S01E02.mkv"
         val torrent = Torrent("Test")
         torrent.name = "Could be a movie but is a series"
         // When
@@ -162,7 +162,7 @@ internal class CloudServiceTest {
     fun buildDestinationPathWithSeriesAndExtraTextAfterSeriesName() {
         // Given
         // When
-        val destinationPath = cloudService!!.buildDestinationPath("series.S01E02.480p.x264-mSD[tag]").second
+        val destinationPath = cloudService!!.buildDestinationPath("series.S01E02.480p.x264-mSD[tag]", listOf(TorrentFile(name = "S01E02xvid.xvid"))).second
         // Then
         Assertions.assertEquals(PropertiesHelper.getProperty("RCLONEDIR") + "/Series-Shows/S/Series/", destinationPath)
     }
@@ -171,7 +171,7 @@ internal class CloudServiceTest {
     fun buildDestinationPathWithSeriesAndExtraTextAfterSeriesNameExtended() {
         // Given
         // When
-        val destinationPath = cloudService!!.buildDestinationPath("series.S01E02.Test.480p.x264-mSD[tag]").second
+        val destinationPath = cloudService!!.buildDestinationPath("series.S01E02.Test.480p.x264-mSD[tag]", listOf(TorrentFile(name = "S01E02xvid.xvid"))).second
         // Then
         Assertions.assertEquals(PropertiesHelper.getProperty("RCLONEDIR") + "/Series-Shows/S/Series/", destinationPath)
     }

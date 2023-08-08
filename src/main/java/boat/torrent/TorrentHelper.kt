@@ -245,8 +245,8 @@ object TorrentHelper {
     fun determineTypeOfMedia(string: String?): TorrentType {
         val cleanedString = string!!.lowercase(Locale.getDefault())
 
-        if(cleanedString.matches(mediaFileRegex)) {
-            if (cleanedString.matches(seriesRegex)) {
+        if(cleanedString.contains(mediaFileRegex)) {
+            if (cleanedString.contains(seriesRegex)) {
                 return TorrentType.SERIES_SHOWS
             } else if (isMovieString(cleanedString)) {
                 return TorrentType.MOVIES

@@ -26,21 +26,6 @@ class CloudService internal constructor(private val cloudFileService: CloudFileS
     val isCloudTokenValid: Boolean
         get() = cloudFileService.getFilesInPath(buildDestinationPathWithTypeOfMediaWithoutSubFolders("A", TorrentType.MOVIES)).isNotEmpty()
 
-    fun buildDestinationPath(torrentName: String?): Pair<String, String> {
-        val basePath = PropertiesHelper.getProperty(RCLONE_DIR)
-        val typeOfMedia = determineTypeOfMedia(torrentName)
-        val preparedTorrentName = prepareTorrentName(torrentName)
-        val torrentNameFirstLetterDeducted = deductFirstTorrentLetter(preparedTorrentName)
-        var optionalSeriesString = ""
-        if (TorrentType.SERIES_SHOWS == typeOfMedia) {
-            optionalSeriesString = deductSeriesNameFrom(preparedTorrentName) + "/"
-        }
-        return Pair(
-            torrentNameFirstLetterDeducted, (basePath + "/" + typeOfMedia.type + "/" + torrentNameFirstLetterDeducted + "/"
-                    + optionalSeriesString)
-        )
-    }
-
     private fun deductSeriesNameFrom(preparedTorrentName: String): String {
         return Arrays.stream(preparedTorrentName
             .lowercase(Locale.getDefault())
