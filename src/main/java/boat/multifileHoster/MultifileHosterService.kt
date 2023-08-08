@@ -535,7 +535,7 @@ class MultifileHosterService(
 
     private fun extractFileNameFromUrl(fileURLFromTorrent: String): String {
         val fileString = URLDecoder.decode(fileURLFromTorrent, StandardCharsets.UTF_8)
-        val pattern = Pattern.compile("([\\w.%\\-]+)$")
+        val pattern = Pattern.compile("[^\\/]+\$")
         var foundMatch: String? = null
         val matcher = pattern.matcher(fileString)
         while (matcher.find()) {
