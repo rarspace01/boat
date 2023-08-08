@@ -22,6 +22,9 @@ object TorrentHelper {
     const val SIZE_UPPER_LIMIT = 15000.0
     const val SEED_RATIO_UPPER_LIMIT = 5.0
 
+    val mediaFileRegex = Regex("[.]?(mp4|mkv|avi|divx|ts|mpeg|divx|xvid|mov|webm|wmv|avchd|flv)\$")
+    val seriesRegex = "(s[0-9]{1,2}[a-z]+)|(season)".toRegex()
+
     val TAG_REGEX = "(" + listOfReleaseTagsPiped() + ")"
     private fun listOfReleaseTagsPiped(): String {
         return torrentService.getReleaseTags().joinToString("($|[ .-]+)|[ .]")
@@ -241,12 +244,13 @@ object TorrentHelper {
 
     fun determineTypeOfMedia(string: String?): TorrentType {
         val cleanedString = string!!.lowercase(Locale.getDefault())
-        if (cleanedString.matches(".*[ ._-]+[re]*dump[ ._-]+.*".toRegex()) || cleanedString.matches(".*\\.[pP][dD][fF].*".toRegex()) || cleanedString.matches(".*\\.[eE][pP][uU][bB].*".toRegex())) {
-            return TorrentType.TRANSFER
-        } else if (cleanedString.matches("(.+[ .]+s[0-9]+.+)|(.+season.+)".toRegex())) {
-            return TorrentType.SERIES_SHOWS
-        } else if (isMovieString(cleanedString)) {
-            return TorrentType.MOVIES
+
+        if(cleanedString.matches(mediaFileRegex)) {
+            if (cleanedString.matches(seriesRegex)) {
+                return TorrentType.SERIES_SHOWS
+            } else if (isMovieString(cleanedString)) {
+                return TorrentType.MOVIES
+            }
         }
         return TorrentType.TRANSFER
     }
