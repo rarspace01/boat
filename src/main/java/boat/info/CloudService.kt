@@ -121,12 +121,12 @@ class CloudService internal constructor(private val cloudFileService: CloudFileS
         val typeOfMedia = determineTypeOfMedia(normalizedName)
         val mediaItems = theFilmDataBaseService.search(normalizedName)
         val torrentTypeFromFile: TorrentType = determineTypeOfMedia(filesFromTorrent)
-        logger.info("Deducted from Name: [$typeOfMedia ] from Filename:[$torrentTypeFromFile] from TFDB:[$mediaItems]")
-        return if (TorrentType.TRANSFER == typeOfMedia) {
-            buildDestinationPathWithTypeOfMedia(name, torrentTypeFromFile)
-        } else {
-            buildDestinationPath(name)
-        }
+        logger.info("Deducted from Name: [$typeOfMedia] from Filename:[$torrentTypeFromFile] from TFDB:[$mediaItems]")
+//        return if (TorrentType.TRANSFER == typeOfMedia) {
+        return buildDestinationPathWithTypeOfMedia(name, torrentTypeFromFile)
+//        } else {
+//            buildDestinationPath(name)
+//        }
     }
 
     private fun buildDestinationPathWithTypeOfMedia(name: String?, torrentType: TorrentType): Pair<String, String> {
