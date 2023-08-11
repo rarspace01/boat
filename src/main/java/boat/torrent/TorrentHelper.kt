@@ -17,6 +17,7 @@ import java.util.function.Consumer
 import java.util.stream.Collectors
 
 object TorrentHelper {
+    private val badQualityRegex: Regex = Regex("(telesync|telecine|hdcam|tscam|\\.cam\\.| cam |cam-rip|camrip|tsrip|hqcam|hdts|hd-ts|\\.hdtc\\.|\\.ts\\.|[ts]|pdvd|predvdrip|workprint)")
     const val REGEX_RELEASE_GROUP = "(-[A-Za-z\\s]+)"
     private val torrentService = TorrentService()
     const val SIZE_UPPER_LIMIT = 15000.0
@@ -204,15 +205,7 @@ object TorrentHelper {
     }
 
     private fun isBadQualityName(torrentNameLowerCased: String) =
-        torrentNameLowerCased.contains("telesync") || torrentNameLowerCased.contains("telecine") || torrentNameLowerCased.contains("hdcam") || torrentNameLowerCased.contains(
-            "tscam"
-        ) || torrentNameLowerCased.contains(".cam.") || torrentNameLowerCased.contains(" cam ") || torrentNameLowerCased.contains("cam-rip") || torrentNameLowerCased.contains(
-            "camrip"
-        ) || torrentNameLowerCased.contains("tsrip") || torrentNameLowerCased.contains(".hdcam.") || torrentNameLowerCased.contains("hqcam") || torrentNameLowerCased.contains("hdts") || torrentNameLowerCased.contains(
-            " hd-ts"
-        ) || torrentNameLowerCased.contains(".hd-ts") || torrentNameLowerCased.contains(".hdtc.") || torrentNameLowerCased.contains(".ts.") || torrentNameLowerCased.contains(
-            "[ts]"
-        ) || torrentNameLowerCased.contains("pdvd") || torrentNameLowerCased.contains("predvdrip") || torrentNameLowerCased.contains("workprint") || torrentNameLowerCased.contains(".hdts.")
+        torrentNameLowerCased.contains(badQualityRegex)
 
     fun isValidTorrent(torrent: Torrent): Boolean {
         return !isBlocklisted(torrent) && torrent.sizeInMB > 0 && torrent.magnetUri.isNotBlank()
