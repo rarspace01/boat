@@ -17,7 +17,7 @@ import java.util.function.Consumer
 import java.util.stream.Collectors
 
 object TorrentHelper {
-    private val badQualityRegex: Regex = Regex("(telesync|telecine|hdcam|tscam|\\.cam\\.| cam |cam-rip|camrip|tsrip|hqcam|hdts|hd-ts|\\.hdtc\\.|\\.ts\\.|[ts]|pdvd|predvdrip|workprint|hd ts)")
+    private val badQualityRegex: Regex = Regex("(telesync|telecine|hdcam|tscam|\\.cam\\.| cam |cam-rip|camrip|tsrip|hqcam|hdts|hd-ts|\\.hdtc\\.|\\.ts\\.|\\[ts\\]|pdvd|predvdrip|workprint|hd ts)")
     const val REGEX_RELEASE_GROUP = "(-[A-Za-z\\s]+)"
     private val torrentService = TorrentService()
     const val SIZE_UPPER_LIMIT = 15000.0
