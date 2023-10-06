@@ -547,7 +547,7 @@ class MultifileHosterService(
     private fun rcloneDownloadFileToGdrive(fileURLFromTorrent: String?, destinationPath: String): Boolean {
         log.info("D>[{}]", destinationPath)
         val builder = ProcessBuilder()
-        val commandToRun = String.format("rclone copyurl '%s' '%s'", fileURLFromTorrent, destinationPath.replace("'".toRegex(), ""))
+        val commandToRun = String.format("rclone --no-check-certificate copyurl '%s' '%s'", fileURLFromTorrent, destinationPath.replace("'".toRegex(), ""))
         builder.command("bash", "-c", commandToRun)
         builder.directory(File(System.getProperty("user.home")))
         var process: Process? = null
