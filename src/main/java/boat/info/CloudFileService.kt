@@ -28,11 +28,11 @@ class CloudFileService {
     fun getFilesInPathWithRetries(destinationPath: String, retriesLeft: Int): List<String> {
         val fileList: MutableList<String> = ArrayList()
         val startCounter = System.currentTimeMillis()
-        logger.debug("Search in [$destinationPath]")
+        logger.info("Search in [$destinationPath]")
         val builder = ProcessBuilder()
         val optionalIfNonTransfer = if(destinationPath.contains("/transfer/")) "" else "--recursive "
         val commandToRun = "rclone --no-check-certificate lsjson $optionalIfNonTransfer'$destinationPath'"
-        logger.debug(commandToRun)
+        logger.info(commandToRun)
         builder.command("bash", "-c", commandToRun)
         builder.directory(File(System.getProperty("user.home")))
         var output = ""
