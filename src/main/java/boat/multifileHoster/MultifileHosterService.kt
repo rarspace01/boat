@@ -548,6 +548,7 @@ class MultifileHosterService(
         log.info("D>[{}]", destinationPath)
         val builder = ProcessBuilder()
         val commandToRun = String.format("rclone --no-check-certificate copyurl '%s' '%s'", fileURLFromTorrent, destinationPath.replace("'".toRegex(), ""))
+        log.info("$commandToRun")
         builder.command("bash", "-c", commandToRun)
         builder.directory(File(System.getProperty("user.home")))
         var process: Process? = null
