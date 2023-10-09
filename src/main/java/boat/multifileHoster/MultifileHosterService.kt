@@ -556,7 +556,9 @@ class MultifileHosterService(
         try {
             process = builder.start()
             val streamGobbler = StreamGobbler(process.inputStream) { x: String? -> println(x) }
+            val streamGobblerError = StreamGobbler(process.errorStream) { x: String? -> log.error("E: $x") }
             Executors.newSingleThreadExecutor().submit(streamGobbler)
+            Executors.newSingleThreadExecutor().submit(streamGobblerError)
             exitCode = process.waitFor()
         } catch (e: IOException) {
             log.error("upload failed: {}", destinationPath)
