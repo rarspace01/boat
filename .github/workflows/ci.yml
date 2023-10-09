@@ -56,34 +56,34 @@ jobs:
           path: |
             ./build/libs/boat.jar
           retention-days: 1
-  buildFatJarForGraalVM:
-    name: Build GraalVM jar application
-    runs-on: ubuntu-latest
-    continue-on-error: true
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - uses: ayltai/setup-graalvm@v1
-        with:
-          java-version: 17
-          graalvm-version: 22.0.0.2
-          native-image: true
-      - run: java -version
-      - name: Build with Gradle (GraalVM)
-        env:
-           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-           TFDB_APIKEY: ${{ secrets.TFDB_APIKEY }}
-           PREMIUMIZE_APIKEY: ${{ secrets.PREMIUMIZE_APIKEY }}
-           ALLDEBRID_APIKEY: ${{ secrets.ALLDEBRID_APIKEY }}
-        run: ./gradlew assemble
-      - run: native-image --no-fallback --allow-incomplete-classpath -jar "./build/libs/boat.jar" boatImage
-      - uses: actions/upload-artifact@v3
-        if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
-        with:
-          name: graalVmArtifacts-${{ github.sha }}
-          path: |
-            ./boatImage
-          retention-days: 1
+  # buildFatJarForGraalVM:
+  #   name: Build GraalVM jar application
+  #   runs-on: ubuntu-latest
+  #   continue-on-error: true
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v4
+  #     - uses: ayltai/setup-graalvm@v1
+  #       with:
+  #         java-version: 17
+  #         graalvm-version: 22.0.0.2
+  #         native-image: true
+  #     - run: java -version
+  #     - name: Build with Gradle (GraalVM)
+  #       env:
+  #          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #          TFDB_APIKEY: ${{ secrets.TFDB_APIKEY }}
+  #          PREMIUMIZE_APIKEY: ${{ secrets.PREMIUMIZE_APIKEY }}
+  #          ALLDEBRID_APIKEY: ${{ secrets.ALLDEBRID_APIKEY }}
+  #       run: ./gradlew assemble
+  #     - run: native-image --no-fallback --allow-incomplete-classpath -jar "./build/libs/boat.jar" boatImage
+  #     - uses: actions/upload-artifact@v3
+  #       if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
+  #       with:
+  #         name: graalVmArtifacts-${{ github.sha }}
+  #         path: |
+  #           ./boatImage
+  #         retention-days: 1
   releaseJob:
     name: Create Github Release
     runs-on: ubuntu-latest
