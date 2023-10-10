@@ -105,16 +105,17 @@ def getCheckedOutGitCommitHash() {
     refHead.text.trim().take takeFromHash
 }
 
-def getTagVersion() {
+static def getTagVersion() {
     ["sh", "-c", "git fetch --all --tags>/dev/null&& git describe --tags --always --first-parent|tail -1"].execute().text.trim()
 }
 
-task createProperties(dependsOn: processResources) {
+tasks.register('createProperties') {
+    dependsOn processResources
     doLast {
         new File("$buildDir/resources/main/version.properties").withWriter { w ->
             Properties p = new Properties()
             p["version"] = jar.archiveVersion.get() + "-" + getCheckedOutGitCommitHash() + "-" + new Date().format("yyyy-MM-dd HH:mm:ss Z")
-            println("Version:"+p["version"])
+            println("Version:" + p["version"])
             p.store w, null
         }
     }

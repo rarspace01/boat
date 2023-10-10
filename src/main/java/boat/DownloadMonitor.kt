@@ -7,6 +7,7 @@ import boat.info.QueueService
 import boat.model.Transfer
 import boat.model.TransferStatus
 import boat.multifileHoster.MultifileHosterService
+import boat.services.ConfigurationService
 import boat.services.TransferService
 import boat.torrent.Torrent
 import boat.torrent.TorrentHelper.getSearchNameFrom
@@ -36,13 +37,16 @@ class DownloadMonitor(
     private val cacheManager: CacheManager,
     private val queueService: QueueService,
     private val transferService: TransferService,
+    private val configurationService: ConfigurationService,
     private val httpHelper: HttpHelper
 ) {
     @Async
     @Scheduled(fixedRate = (SECONDS_BETWEEN_SEARCH_ENGINE_POLLING * 1000).toLong())
     fun refreshTorrentSearchEngines() {
-        logger.debug("refreshTorrentSearchEngines()")
-        torrentSearchEngineService.refreshTorrentSearchEngines()
+        if (configurationService.isSearchMode()) {
+            logger.debug("refreshTorrentSearchEngines()")
+            torrentSearchEngineService.refreshTorrentSearchEngines()
+        }
     }
 
     //    @Scheduled(fixedRate = SECONDS_BETWEEN_FILE_CACHE_REFRESH * 1000)
@@ -65,38 +69,44 @@ class DownloadMonitor(
     @Async
     @Scheduled(fixedRate = (SECONDS_BETWEEN_FILE_CACHE_REFRESH * 1000).toLong())
     fun refreshCloudFileServiceCache() {
-        logger.info("refreshCloudFileServiceCache()")
-        val startOfCache = System.currentTimeMillis()
-        if (multifileHosterService.isRcloneInstalled()) {
-            val filesCache = cacheManager.getCache("filesCache")
-            "abcdefghijklmnopqrstuvwxyz+0".split(Regex("")).filter { it.isNotBlank() }.map { searchName: String ->
-                TorrentType.values()
-                    .forEach { torrentType: TorrentType ->
-                        val destinationPath = cloudService
-                            .buildDestinationPathWithTypeOfMediaWithoutSubFolders(searchName, torrentType)
-                        filesCache?.evictIfPresent(destinationPath)
-                        cloudFileService.getFilesInPath(destinationPath)
-                    }
-                logger.info("Cache refresh done for: {}", searchName)
+        if (configurationService.isSearchMode()) {
+            logger.info("refreshCloudFileServiceCache()")
+            val startOfCache = System.currentTimeMillis()
+            if (multifileHosterService.isRcloneInstalled()) {
+                val filesCache = cacheManager.getCache("filesCache")
+                "abcdefghijklmnopqrstuvwxyz+0".split(Regex("")).filter { it.isNotBlank() }.map { searchName: String ->
+                    TorrentType.values()
+                        .forEach { torrentType: TorrentType ->
+                            val destinationPath = cloudService
+                                .buildDestinationPathWithTypeOfMediaWithoutSubFolders(searchName, torrentType)
+                            filesCache?.evictIfPresent(destinationPath)
+                            cloudFileService.getFilesInPath(destinationPath)
+                        }
+                    logger.info("Cache refresh done for: {}", searchName)
+                }
+                logger.info("Cache refresh done in: {}ms", System.currentTimeMillis() - startOfCache)
+                cloudFileService.isCacheFilled = true
+            } else {
+                logger.warn("rclone not installed")
             }
-            logger.info("Cache refresh done in: {}ms", System.currentTimeMillis() - startOfCache)
-            cloudFileService.isCacheFilled = true
-        } else {
-            logger.warn("rclone not installed")
         }
     }
 
     @Async
     @Scheduled(fixedRate = (SECONDS_BETWEEN_TRANSFER_POLLING * 1000).toLong())
     fun addTransfersToDownloadQueueAndUpdateTransferStatus() {
-        multifileHosterService.addTransfersToDownloadQueue()
-        multifileHosterService.updateTransferStatus()
+        if (configurationService.isDownloadMode()) {
+            multifileHosterService.addTransfersToDownloadQueue()
+            multifileHosterService.updateTransferStatus()
+        }
     }
 
     @Async
     @Scheduled(fixedRate = (SECONDS_BETWEEN_DOWNLOAD_POLLING * 1000).toLong())
     fun checkForDownloadableTorrents() {
-        multifileHosterService.checkForDownloadableTorrents()
+        if (configurationService.isDownloadMode()) {
+            multifileHosterService.checkForDownloadableTorrents()
+        }
     }
 
     @Async
@@ -118,7 +128,8 @@ class DownloadMonitor(
     @Async
     @Scheduled(fixedRate = (SECONDS_BETWEEN_QUEUE_POLLING * 1000).toLong())
     fun checkForQueueEntries() {
-        if (cloudService.isCloudTokenValid) {
+        if (cloudService.isCloudTokenValid && configurationService.isSearchMode()) {
+            logger.info("checkForQueueEntryAndAddToTransfers")
             checkForQueueEntryAndAddToTransfers()
         }
     }
@@ -151,17 +162,19 @@ class DownloadMonitor(
 
     @Scheduled(fixedRate = (SECONDS_BETWEEN_CLEAR_TRANSFER_POLLING * 1000).toLong())
     fun clearTransferAndTorrentsWithErrors() {
-        logger.info("clearTransferTorrents()")
-        multifileHosterService.remoteTorrents.stream()
-            .filter { torrent: Torrent -> isTorrentStuckOnError(torrent) }
-            .forEach { torrent: Torrent? -> multifileHosterService.delete(torrent!!) }
-        transferService.getAll().stream()
-            .filter { transfer: Transfer ->
-                TransferStatus.ERROR == transfer.transferStatus || TransferStatus.DUPLICATE_ERROR == transfer.transferStatus || transfer.updated.isBefore(
-                    Instant.now().minus(1, ChronoUnit.DAYS)
-                )
-            }
-            .forEach { transfer: Transfer? -> transferService.delete(transfer!!) }
+        if (configurationService.isDownloadMode()) {
+            logger.info("clearTransferTorrents()")
+            multifileHosterService.remoteTorrents.stream()
+                .filter { torrent: Torrent -> isTorrentStuckOnError(torrent) }
+                .forEach { torrent: Torrent? -> multifileHosterService.delete(torrent!!) }
+            transferService.getAll().stream()
+                .filter { transfer: Transfer ->
+                    TransferStatus.ERROR == transfer.transferStatus || TransferStatus.DUPLICATE_ERROR == transfer.transferStatus || transfer.updated.isBefore(
+                        Instant.now().minus(1, ChronoUnit.DAYS)
+                    )
+                }
+                .forEach { transfer: Transfer? -> transferService.delete(transfer!!) }
+        }
     }
 
     private fun isTorrentStuckOnError(torrent: Torrent): Boolean {
