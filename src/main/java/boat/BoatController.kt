@@ -7,6 +7,7 @@ import boat.info.QueueService
 import boat.info.TheFilmDataBaseService
 import boat.info.TorrentMetaService
 import boat.multifileHoster.MultifileHosterService
+import boat.services.ConfigurationService
 import boat.services.TransferService
 import boat.torrent.Torrent
 import boat.torrent.TorrentHelper.getSearchNameFrom
@@ -45,7 +46,8 @@ class BoatController @Autowired constructor(
     private val multifileHosterService: MultifileHosterService,
     private val queueService: QueueService,
     private val cloudFileService: CloudFileService,
-    private val transferService: TransferService
+    private val transferService: TransferService,
+    private val configurationService: ConfigurationService,
 ) {
 
     companion object {
@@ -230,6 +232,7 @@ $switchToSearch${switchToProgress}")}</body>
             val startTime = runtimeBean.startTime
             val startDate = Date(startTime)
             return ("v:" + PropertiesHelper.getVersion() + " started: " + startDate
+                    + "<br/>MODE: " + configurationService.getServiceMode()
                     + "<br/>remote host: " + httpHelper.externalHostname()
                     + "<br/>cloud token: " + (if (cloudService.isCloudTokenValid) "✅" else "❌")
                     + "<br/>search Cache: " + (if (cloudFileService.isCacheFilled) "✅" else "❌")

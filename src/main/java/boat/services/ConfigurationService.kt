@@ -26,4 +26,8 @@ class ConfigurationService {
         return listOf(Mode.BOTH, Mode.DOWNLOAD).contains(serviceMode)
     }
 
+    fun getServiceMode():Mode {
+        return serviceMode
+    }
+
 }
