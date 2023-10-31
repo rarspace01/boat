@@ -1,7 +1,7 @@
 name: delete-old-releases
 
 on:
-  workflow-dispatch:
+  workflow_run:
 
 jobs:
   delete-old-releases:
