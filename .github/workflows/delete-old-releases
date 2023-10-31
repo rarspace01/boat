@@ -9,4 +9,5 @@ jobs:
     steps:
       - name: Delete Older Releases
         uses: dev-drprasad/delete-older-releases@v0.3.2
-        github-token: ${{ secrets.AUTOPR }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.AUTOPR }}
