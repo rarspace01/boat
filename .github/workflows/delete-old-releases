@@ -1,0 +1,12 @@
+name: delete-old-releases
+
+on:
+  workflow-dispatch:
+
+jobs:
+  delete-old-releases:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete Older Releases
+        uses: dev-drprasad/delete-older-releases@v0.3.2
+        github-token: ${{ secrets.AUTOPR }}
