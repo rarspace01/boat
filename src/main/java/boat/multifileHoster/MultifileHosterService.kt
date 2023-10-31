@@ -51,11 +51,8 @@ class MultifileHosterService(
 
     private fun getEligibleMultifileHoster(httpHelper: HttpHelper): MutableList<MultifileHoster> {
         val eligibleList = mutableListOf<MultifileHoster>()
-        if (PREMIUMIZE_WHITELIST.any { httpHelper.externalHostname().contains(it) }) {
-            eligibleList.add(Premiumize(httpHelper))
-        } else {
-            eligibleList.add(Alldebrid(httpHelper))
-        }
+        eligibleList.add(Premiumize(httpHelper))
+        eligibleList.add(Alldebrid(httpHelper))
         return eligibleList
     }
 

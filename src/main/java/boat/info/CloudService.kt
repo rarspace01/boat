@@ -23,8 +23,7 @@ class CloudService internal constructor(private val cloudFileService: CloudFileS
         const val RCLONE_DIR = "RCLONEDIR"
     }
 
-    val isCloudTokenValid: Boolean
-        get() = cloudFileService.getFilesInPath(buildDestinationPathWithTypeOfMediaWithoutSubFolders("A", TorrentType.MOVIES)).isNotEmpty()
+    val isCloudTokenValid: Boolean = cloudFileService.getFilesInPath(buildDestinationPathWithTypeOfMediaWithoutSubFolders("A", TorrentType.MOVIES)).isNotEmpty()
 
     private fun deductSeriesNameFrom(preparedTorrentName: String): String {
         return Arrays.stream(preparedTorrentName
