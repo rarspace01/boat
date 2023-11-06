@@ -17,7 +17,8 @@ import java.util.function.Consumer
 import java.util.stream.Collectors
 
 object TorrentHelper {
-    private val badQualityRegex: Regex = Regex("(telesync|telecine|hdcam|tscam|\\.cam\\.| cam |cam-rip|camrip|tsrip|hqcam|hdts|hd-ts|\\.hdtc\\.|\\.ts\\.|\\[ts\\]|pdvd|predvdrip|workprint|hd ts)")
+    private val badQualityRegex: Regex =
+        Regex("(telesync|telecine|hdcam|tscam|\\.cam\\.| cam |cam-rip|camrip|tsrip|hqcam|hdts|hd-ts|\\.hdtc\\.|\\.ts\\.|\\[ts\\]|pdvd|predvdrip|workprint|hd ts)")
     const val REGEX_RELEASE_GROUP = "(-[A-Za-z\\s]+)"
     private val torrentService = TorrentService()
     const val SIZE_UPPER_LIMIT = 15000.0
@@ -179,8 +180,10 @@ object TorrentHelper {
 
     fun getNormalizedTorrentStringWithSpaces(name: String): String {
         val lowerCase = name.replace(REGEX_RELEASE_GROUP.toRegex(), "").lowercase(Locale.getDefault()).replace("\"".toRegex(), "")
-        return getRegexCleaned(lowerCase.trim { it <= ' ' }.replace("['`´!]".toRegex(), "").replace("\\[[a-z0-9. -]*\\]".toRegex(), "")
-            .replace(",".toRegex(), ".")).replace("[()]+".toRegex(), "").replace("\\.".toRegex(), " ").trim { it <= ' ' }
+        return getRegexCleaned(
+            lowerCase.trim { it <= ' ' }.replace("['`´!]".toRegex(), "").replace("\\[[a-z0-9. -]*\\]".toRegex(), "")
+                .replace(",".toRegex(), ".")
+        ).replace("[()]+".toRegex(), "").replace("\\.".toRegex(), " ").trim { it <= ' ' }
     }
 
     fun getNormalizedTorrentStringWithSpacesKeepCase(name: String?): String? {
@@ -238,11 +241,12 @@ object TorrentHelper {
     fun determineTypeOfMedia(string: String?): TorrentType {
         val cleanedString = string!!.lowercase(Locale.getDefault())
 
-        if(cleanedString.contains(mediaFileRegex)) {
-            if (cleanedString.contains(seriesRegex)) {
-                return TorrentType.SERIES_SHOWS
-            } else if (isMovieString(cleanedString)) {
-                return TorrentType.MOVIES
+        if (cleanedString.contains(mediaFileRegex)) {
+            return if (cleanedString.contains(seriesRegex)) {
+                TorrentType.SERIES_SHOWS
+            } else //if (isMovieString(cleanedString)){
+            {
+                TorrentType.MOVIES
             }
         }
         return TorrentType.TRANSFER

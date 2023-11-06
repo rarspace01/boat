@@ -1,8 +1,10 @@
 package boat.torrent
 
+import boat.info.MediaType
 import boat.torrent.TorrentHelper.evaluateRating
 import boat.torrent.TorrentHelper.getNormalizedTorrentString
 import boat.torrent.TorrentHelper.getNormalizedTorrentStringWithSpaces
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
@@ -227,5 +229,15 @@ internal class TorrentHelperTest {
     fun shouldCleanTorrentNameAnimeSeries() {
         val resultString = getNormalizedTorrentStringWithSpaces("Bla Blub (2004) (1080p FUNI Dual Audio WEB-DL KaiDubs)")
         Assertions.assertEquals("Paranoia Agent 2004", resultString)
+    }
+
+    @Test
+    fun determineMovieFileType() {
+        // Given
+        val filesFromTorrent = listOf(TorrentFile(name = "Test.Movie.mkv"))
+        // When
+        val typeOfMedia = TorrentHelper.determineTypeOfMedia(filesFromTorrent)
+        // THen
+        assertThat(typeOfMedia).isEqualTo(TorrentType.MOVIES)
     }
 }
