@@ -21,6 +21,8 @@ import javax.net.ssl.SSLContext
 import javax.net.ssl.TrustManager
 import javax.net.ssl.X509TrustManager
 
+private const val USER_AGENT_BROWSER = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0"
+
 @Service
 class HttpHelper {
     fun getPage(url: String, params: List<String>?, cookies: String?): String {
@@ -42,7 +44,7 @@ class HttpHelper {
             if (connection is HttpsURLConnection) {
                 connection.sslSocketFactory = sc.socketFactory
             }
-            connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:68.0) Gecko/20100101 Firefox/68.0")
+            connection.setRequestProperty("User-Agent", USER_AGENT_BROWSER)
             connection.setRequestProperty("Accept-Charset", charset)
             connection.setRequestProperty(
                 "Accept",
@@ -96,7 +98,7 @@ class HttpHelper {
             }
             connection.setRequestProperty(
                 "User-Agent",
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:68.0) Gecko/20100101 Firefox/68.0"
+                USER_AGENT_BROWSER
             )
             connection.setRequestProperty("Accept-Charset", charset)
             connection.setRequestProperty(
@@ -155,23 +157,22 @@ class HttpHelper {
     }
 
     @Cacheable("externalHostname")
-    fun externalHostname(): String
-        {
-            val builder = ProcessBuilder()
-            builder.command("bash", "-c", "dig -x $(curl -s checkip.amazonaws.com) +short")
-            builder.directory(File(System.getProperty("user.home")))
-            var output = ""
-            val error = ""
-            try {
-                val process = builder.start()
-                process.waitFor(5, TimeUnit.SECONDS)
-                output = String(process.inputStream.readAllBytes())
-            } catch (e: Exception) {
-                log.error("{}\nOutput from process:\n{}\nError from Process:\n{}", e.message, output, error)
-                e.printStackTrace()
-            }
-            return output
+    fun externalHostname(): String {
+        val builder = ProcessBuilder()
+        builder.command("bash", "-c", "dig -x $(curl -s checkip.amazonaws.com) +short")
+        builder.directory(File(System.getProperty("user.home")))
+        var output = ""
+        val error = ""
+        try {
+            val process = builder.start()
+            process.waitFor(5, TimeUnit.SECONDS)
+            output = String(process.inputStream.readAllBytes())
+        } catch (e: Exception) {
+            log.error("{}\nOutput from process:\n{}\nError from Process:\n{}", e.message, output, error)
+            e.printStackTrace()
         }
+        return output
+    }
 
     companion object {
         private const val charset = "UTF-8" // Or in Java 7 and later, use the constant: java.nio.charset.StandardCharsets.UTF_8.name()
