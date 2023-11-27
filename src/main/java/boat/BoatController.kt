@@ -41,7 +41,7 @@ class BoatController @Autowired constructor(
     private val httpHelper: HttpHelper,
     private val torrentSearchEngineService: TorrentSearchEngineService,
     private val cloudService: CloudService,
-    torrentMetaService: TorrentMetaService?,
+    private val torrentMetaService: TorrentMetaService?,
     private val theFilmDataBaseService: TheFilmDataBaseService,
     private val multifileHosterService: MultifileHosterService,
     private val queueService: QueueService,
@@ -241,7 +241,6 @@ $switchToSearch${switchToProgress}")}</body>
                     + "<br/>Active MultifileHoster: " + multifileHosterService.getActiveMultifileHosters()
                     + "<br/>Active DL MultifileHoster: " + multifileHosterService.getActiveMultifileHosterForDownloads()
                     + "<br/>TrafficLeft: " + humanReadableByteCountBinary(multifileHosterService.getRemainingTrafficInMB().toLong() * 1024 * 1024)
-                    + "<br/>SpaceLeft: " + humanReadableByteCountBinary(cloudFileService.getFreeSpaceInMegaBytes().toLong() * 1024 * 1024)
                     + String.format(
                 "<br/>Transfers [%d]: %s",
                 transferService.getAll().size,
