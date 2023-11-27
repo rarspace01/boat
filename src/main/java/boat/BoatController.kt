@@ -223,34 +223,34 @@ $switchToSearch${switchToProgress}")}</body>
         return theFilmDataBaseService.search(query).toString()
     }
 
-    @get:GetMapping("/boat/debug")
-    val debugInfo: String
-        get() {
-            multifileHosterService.refreshTorrents()
-            val remoteTorrents: List<Torrent> = multifileHosterService.activeTorrents
-            val runtimeBean = ManagementFactory.getRuntimeMXBean()
-            val startTime = runtimeBean.startTime
-            val startDate = Date(startTime)
-            return ("v:" + PropertiesHelper.getVersion() + " started: " + startDate
-                    + "<br/>MODE: " + configurationService.getServiceMode()
-                    + "<br/>remote host: " + httpHelper.externalHostname()
-                    + "<br/>cloud token: " + (if (cloudService.isCloudTokenValid) "✅" else "❌")
-                    + "<br/>search Cache: " + (if (cloudFileService.isCacheFilled) "✅" else "❌")
-                    + "<br/>ActiveSearchEngines: " + torrentSearchEngineService.getActiveSearchEngines()
-                    + "<br/>InActiveSearchEngines: " + torrentSearchEngineService.inActiveSearchEngines
-                    + "<br/>Active MultifileHoster: " + multifileHosterService.getActiveMultifileHosters()
-                    + "<br/>Active DL MultifileHoster: " + multifileHosterService.getActiveMultifileHosterForDownloads()
-                    + "<br/>TrafficLeft: " + humanReadableByteCountBinary(multifileHosterService.getRemainingTrafficInMB().toLong() * 1024 * 1024)
-                    + String.format(
-                "<br/>Transfers [%d]: %s",
-                transferService.getAll().size,
-                transferService.getAll()
-            ) + String.format("<br/><!-- D [%d]: %s -->", remoteTorrents.size, remoteTorrents) + String.format(
-                "<br/>Queue [%d]: %s",
-                queueService.getQueue().size,
-                queueService.getQueue()
-            ))
-        }
+    @GetMapping("/boat/debug")
+    fun debugInfo(): String {
+        multifileHosterService.refreshTorrents()
+        val remoteTorrents: List<Torrent> = multifileHosterService.activeTorrents
+        val runtimeBean = ManagementFactory.getRuntimeMXBean()
+        val startTime = runtimeBean.startTime
+        val startDate = Date(startTime)
+        return ("v:" + PropertiesHelper.getVersion() + " started: " + startDate
+                + "<br/>MODE: " + configurationService.getServiceMode()
+                + "<br/>remote host: " + httpHelper.externalHostname()
+                + "<br/>cloud token: " + (if (cloudService.isCloudTokenValid) "✅" else "❌")
+                + "<br/>search Cache: " + (if (cloudFileService.isCacheFilled) "✅" else "❌")
+                + "<br/>ActiveSearchEngines: " + torrentSearchEngineService.getActiveSearchEngines()
+                + "<br/>InActiveSearchEngines: " + torrentSearchEngineService.inActiveSearchEngines
+                + "<br/>Active MultifileHoster: " + multifileHosterService.getActiveMultifileHosters()
+                + "<br/>Active DL MultifileHoster: " + multifileHosterService.getActiveMultifileHosterForDownloads()
+                + "<br/>TrafficLeft: " + humanReadableByteCountBinary(multifileHosterService.getRemainingTrafficInMB().toLong() * 1024 * 1024)
+                + "<br/>SpaceLeft: " + humanReadableByteCountBinary(cloudFileService.getFreeSpaceInMegaBytes().toLong() * 1024 * 1024)
+                + String.format(
+            "<br/>Transfers [%d]: %s",
+            transferService.getAll().size,
+            transferService.getAll()
+        ) + String.format("<br/><!-- D [%d]: %s -->", remoteTorrents.size, remoteTorrents) + String.format(
+            "<br/>Queue [%d]: %s",
+            queueService.getQueue().size,
+            queueService.getQueue()
+        ))
+    }
 
     @GetMapping("/boat/shutdown")
     fun shutdownServer(): String {
