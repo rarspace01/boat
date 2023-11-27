@@ -18,7 +18,7 @@ class CloudFileService {
         private val logger by LoggerDelegate()
     }
 
-    @Cacheable
+    //@Cacheable("getFreeSpaceInMegaBytes")
     fun getFreeSpaceInMegaBytes():Double {
         val basePath = PropertiesHelper.getProperty(CloudService.RCLONE_DIR)
         val commandToRun = "rclone --no-check-certificate about '$basePath' --json"
