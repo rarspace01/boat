@@ -1,11 +1,9 @@
 package boat.info
 
 import boat.utilities.LoggerDelegate
+import boat.utilities.PropertiesHelper
 import com.google.gson.JsonElement
 import com.google.gson.JsonParser
-import lombok.Getter
-import lombok.Setter
-import lombok.extern.slf4j.Slf4j
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.stereotype.Service
 import java.io.File
@@ -18,6 +16,39 @@ class CloudFileService {
 
     companion object {
         private val logger by LoggerDelegate()
+    }
+
+    @Cacheable
+    fun getFreeSpaceInMegaBytes():Double {
+        val basePath = PropertiesHelper.getProperty(CloudService.RCLONE_DIR)
+        val commandToRun = "rclone --no-check-certificate about '$basePath' --json"
+        logger.info(commandToRun)
+        val builder = ProcessBuilder()
+        builder.command("bash", "-c", commandToRun)
+        builder.directory(File(System.getProperty("user.home")))
+        var output = ""
+        var error = ""
+        try {
+            val process = builder.start()
+            process.waitFor(5, TimeUnit.SECONDS)
+            output = String(process.inputStream.readAllBytes())
+            error = String(process.errorStream.readAllBytes())
+            if (error.contains("limit") && output.isEmpty()) {
+                Thread.sleep(2000)
+                return -1.0
+            }
+            if (error.contains("directory not found")) {
+                return -1.0
+            }
+            val jsonElement = JsonParser.parseString(output)
+            return if (jsonElement.isJsonObject) {
+                return jsonElement.asJsonObject["free"].asLong.toDouble()/1024/1024
+            } else -1.0
+        } catch (e: Exception) {
+            logger.error("{}\nPath: [$basePath]\nOutput from process:\n{}\nError from Process:\n{}", e.message, output, error)
+            e.printStackTrace()
+            return -1.0
+        }
     }
 
     @Cacheable("filesCache")

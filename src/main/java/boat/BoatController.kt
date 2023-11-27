@@ -241,6 +241,7 @@ $switchToSearch${switchToProgress}")}</body>
                     + "<br/>Active MultifileHoster: " + multifileHosterService.getActiveMultifileHosters()
                     + "<br/>Active DL MultifileHoster: " + multifileHosterService.getActiveMultifileHosterForDownloads()
                     + "<br/>TrafficLeft: " + humanReadableByteCountBinary(multifileHosterService.getRemainingTrafficInMB().toLong() * 1024 * 1024)
+                    + "<br/>SpaceLeft: " + humanReadableByteCountBinary(cloudFileService.getFreeSpaceInMegaBytes().toLong() * 1024 * 1024)
                     + String.format(
                 "<br/>Transfers [%d]: %s",
                 transferService.getAll().size,
