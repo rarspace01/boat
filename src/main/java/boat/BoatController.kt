@@ -124,7 +124,7 @@ $BREAK_LINK_HTML  <input type="reset" value="Reset" style="font-size: 2em; ">
   <input type="submit" value="Download" style="font-size: 2em; ">
 </form>
 <br/>
-$switchToSearch${switchToProgress}")}</body>
+$switchToSearch${switchToProgress.replace("..", "../boat")}</body>
 </html>
 """
     }
