@@ -1,15 +1,21 @@
-package boat.torrent
+package boat.torrent.searchEngines
 
+import boat.torrent.HttpUser
+import boat.torrent.Torrent
+import boat.torrent.TorrentComparator
+import boat.torrent.TorrentHelper
+import boat.torrent.TorrentSearchEngine
 import boat.utilities.HttpHelper
 import boat.utilities.LoggerDelegate
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
+import java.util.Locale
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.function.Consumer
 
-class Zooqle internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper), TorrentSearchEngine {
+class MagnetDL internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper), TorrentSearchEngine {
 
     companion object {
         private val logger by LoggerDelegate()
@@ -24,29 +30,28 @@ class Zooqle internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper)
     }
 
     private fun buildSearchUrl(searchName: String): String {
-        return String.format("%s/search?q=%s&fmt=rss", baseUrl, URLEncoder.encode(searchName, StandardCharsets.UTF_8))
+        val encodedSearch = URLEncoder.encode(searchName, StandardCharsets.UTF_8)
+        return String.format("%s/%s/%s/se/desc/", baseUrl, encodedSearch.lowercase(Locale.getDefault())[0], encodedSearch)
     }
 
     override fun getBaseUrl(): String {
-        return "https://zooqle.com"
+        return "https://www.magnetdl.com"
     }
 
     private fun parseTorrentsOnResultPage(pageContent: String, searchName: String): List<Torrent> {
         val torrentList = ArrayList<Torrent>()
         val doc = Jsoup.parse(pageContent)
-        val torrentListOnPage = doc.select("item") ?: return torrentList
+        val torrentListOnPage = doc.select("tr:has(.m)") ?: return torrentList
         torrentListOnPage.forEach(Consumer { torrentElement: Element ->
             val tempTorrent = Torrent(toString())
-            tempTorrent.name = torrentElement.getElementsByTag("title").text()
-            tempTorrent.magnetUri = TorrentHelper.buildMagnetUriFromHash(
-                torrentElement.getElementsByTag("torrent").first()!!.getElementsByTag("infohash").text(),
-                tempTorrent.name
-            )
-            tempTorrent.seeder = torrentElement.getElementsByTag("torrent:seeds").text().toInt()
-            tempTorrent.leecher = torrentElement.getElementsByTag("torrent:peers").text().toInt()
-            tempTorrent.sizeInMB = (torrentElement.getElementsByTag("torrent:contentlength").text().toLong() / 1024.0f / 1024.0f).toDouble()
+            tempTorrent.name = torrentElement.getElementsByClass("n").first()!!.getElementsByAttribute("title")
+                .attr("title")
+            tempTorrent.magnetUri = torrentElement.getElementsByClass("m").first()!!.getElementsByAttribute("href")
+                .first()!!.attr("href")
+            tempTorrent.seeder = torrentElement.getElementsByClass("s").first()!!.text().toInt()
+            tempTorrent.leecher = torrentElement.getElementsByClass("l").first()!!.text().toInt()
+            tempTorrent.sizeInMB = TorrentHelper.extractTorrentSizeFromString(torrentElement.child(5).text())
             tempTorrent.size = TorrentHelper.humanReadableByteCountBinary((tempTorrent.sizeInMB * 1024.0 * 1024.0).toLong())
-            tempTorrent.isVerified = "1" == torrentElement.getElementsByTag("torrent:verified").text()
             TorrentHelper.evaluateRating(tempTorrent, searchName)
             if (TorrentHelper.isValidTorrent(tempTorrent)) {
                 torrentList.add(tempTorrent)

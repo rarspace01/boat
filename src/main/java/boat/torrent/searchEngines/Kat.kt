@@ -1,5 +1,10 @@
-package boat.torrent
+package boat.torrent.searchEngines
 
+import boat.torrent.HttpUser
+import boat.torrent.Torrent
+import boat.torrent.TorrentComparator
+import boat.torrent.TorrentHelper
+import boat.torrent.TorrentSearchEngine
 import boat.utilities.HttpHelper
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
@@ -48,16 +53,16 @@ class Kat internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper), T
                     }
                     if (element.getElementsByAttributeValueMatching("data-title", "Size").size > 0) {
                         tempTorrent.size = TorrentHelper.cleanNumberString(
-                            element.getElementsByAttributeValueMatching("data-title", "Size").text().trim { it <= ' ' })
+                                element.getElementsByAttributeValueMatching("data-title", "Size").text().trim { it <= ' ' })
                         tempTorrent.sizeInMB = TorrentHelper.extractTorrentSizeFromString(tempTorrent)
                     }
                     if (element.getElementsByAttributeValueMatching("data-title", "Seed").size > 0) {
                         tempTorrent.seeder = TorrentHelper.cleanNumberString(
-                            element.getElementsByAttributeValueMatching("data-title", "Seed").text().trim { it <= ' ' }).toInt()
+                                element.getElementsByAttributeValueMatching("data-title", "Seed").text().trim { it <= ' ' }).toInt()
                     }
                     if (element.getElementsByAttributeValueMatching("data-title", "Leech").size > 0) {
                         tempTorrent.leecher = TorrentHelper.cleanNumberString(
-                            element.getElementsByAttributeValueMatching("data-title", "Leech").text().trim { it <= ' ' }).toInt()
+                                element.getElementsByAttributeValueMatching("data-title", "Leech").text().trim { it <= ' ' }).toInt()
                     }
                     if (element.getElementsByClass("ka ka16 ka-verify ka-green").size > 0) {
                         tempTorrent.isVerified = true

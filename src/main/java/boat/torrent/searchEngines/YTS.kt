@@ -1,5 +1,10 @@
-package boat.torrent
+package boat.torrent.searchEngines
 
+import boat.torrent.HttpUser
+import boat.torrent.Torrent
+import boat.torrent.TorrentComparator
+import boat.torrent.TorrentHelper
+import boat.torrent.TorrentSearchEngine
 import boat.utilities.HttpHelper
 import boat.utilities.LoggerDelegate
 import com.google.gson.JsonArray
@@ -8,8 +13,7 @@ import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
-import java.util.Date
-import java.util.Locale
+import java.util.*
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicReference
 import java.util.function.Consumer
@@ -30,9 +34,9 @@ class YTS internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper), T
 
     private fun buildSearchUrl(searchName: String): String {
         return String.format(
-            "%s/api/v2/list_movies.json?limit=50&query_term=%s&sort_by=seeds",
-            baseUrl,
-            URLEncoder.encode(searchName, StandardCharsets.UTF_8)
+                "%s/api/v2/list_movies.json?limit=50&query_term=%s&sort_by=seeds",
+                baseUrl,
+                URLEncoder.encode(searchName, StandardCharsets.UTF_8)
         )
     }
 
@@ -56,8 +60,7 @@ class YTS internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper), T
                 tempTorrent.name = jsonTorrent["title"].asString + " " + jsonTorrent["year"].asInt
                 val bestTorrentSource = retrieveBestTorrent(jsonTorrent["torrents"].asJsonArray)
                 tempTorrent.isVerified = true
-                tempTorrent.magnetUri = TorrentHelper
-                    .buildMagnetUriFromHash(bestTorrentSource!!["hash"].asString.lowercase(Locale.getDefault()), tempTorrent.name)
+                tempTorrent.magnetUri = TorrentHelper.buildMagnetUriFromHash(bestTorrentSource!!["hash"].asString.lowercase(Locale.getDefault()), tempTorrent.name)
                 tempTorrent.seeder = bestTorrentSource["seeds"].asInt
                 tempTorrent.leecher = bestTorrentSource["peers"].asInt
                 tempTorrent.size = bestTorrentSource["size"].asString
@@ -69,7 +72,7 @@ class YTS internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper), T
                 }
             })
         } catch (exception: Exception) {
-            logger.error("failed to parse string:\n{}\nException:\n{}", pageContent, exception)
+            logger.error("failed to parse string:\n${pageContent}", exception)
         }
         return torrentList
     }
@@ -78,7 +81,7 @@ class YTS internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper), T
         val bestTorrent = AtomicReference<JsonObject?>()
         torrentElements.forEach(Consumer { torrentElement: JsonElement ->
             if (bestTorrent.get() == null || bestTorrent.get()!!["size_bytes"].asLong < torrentElement
-                    .asJsonObject["size_bytes"].asLong
+                            .asJsonObject["size_bytes"].asLong
             ) {
                 bestTorrent.set(torrentElement.asJsonObject)
             }

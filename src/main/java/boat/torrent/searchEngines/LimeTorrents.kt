@@ -1,5 +1,10 @@
-package boat.torrent
+package boat.torrent.searchEngines
 
+import boat.torrent.HttpUser
+import boat.torrent.Torrent
+import boat.torrent.TorrentComparator
+import boat.torrent.TorrentHelper
+import boat.torrent.TorrentSearchEngine
 import boat.utilities.HttpHelper
 import boat.utilities.LoggerDelegate
 import org.jsoup.Jsoup
@@ -49,10 +54,8 @@ class LimeTorrents internal constructor(httpHelper: HttpHelper) : HttpUser(httpH
             try {
                 tempTorrent.seeder = torrentElement.getElementsByClass("tdseed").first()!!.text().replace("[,.]".toRegex(), "").toInt()
                 tempTorrent.leecher = torrentElement.getElementsByClass("tdleech").first()!!.text().replace("[,.]".toRegex(), "").toInt()
-                tempTorrent.sizeInMB = TorrentHelper
-                    .extractTorrentSizeFromString(torrentElement.getElementsByClass("tdnormal")[1].text())
-                tempTorrent.size = TorrentHelper
-                    .humanReadableByteCountBinary((tempTorrent.sizeInMB * 1024.0 * 1024.0).toLong())
+                tempTorrent.sizeInMB = TorrentHelper.extractTorrentSizeFromString(torrentElement.getElementsByClass("tdnormal")[1].text())
+                tempTorrent.size = TorrentHelper.humanReadableByteCountBinary((tempTorrent.sizeInMB * 1024.0 * 1024.0).toLong())
             } catch (exception: Exception) {
                 logger.error("parsing exception", exception)
             }

@@ -1,9 +1,15 @@
 package boat.torrent
 
 import boat.multifileHoster.MultifileHosterService
+import boat.torrent.searchEngines.LeetxTo
+import boat.torrent.searchEngines.LimeTorrents
+import boat.torrent.searchEngines.MagnetDL
+import boat.torrent.searchEngines.NyaaSi
+import boat.torrent.searchEngines.PirateBay
+import boat.torrent.searchEngines.SolidTorrents
+import boat.torrent.searchEngines.YTS
 import boat.utilities.HttpHelper
 import boat.utilities.LoggerDelegate
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import java.time.Instant
 import java.util.concurrent.ExecutionException
@@ -13,20 +19,28 @@ import java.util.function.Consumer
 import java.util.stream.Collectors
 
 @Service
-class TorrentSearchEngineService @Autowired constructor(
-    httpHelper: HttpHelper,
-    multifileHosterService: MultifileHosterService,
-    torrentInfoService: TorrentInfoService
+class TorrentSearchEngineService(
+        final val httpHelper: HttpHelper,
+        val multifileHosterService: MultifileHosterService,
+        val torrentInfoService: TorrentInfoService
 ) {
 
     companion object {
         private val logger by LoggerDelegate()
     }
 
-    private val activeSearchEngines: MutableList<TorrentSearchEngine> = ArrayList()
-    private val allSearchEngines: List<TorrentSearchEngine>
-    private val multifileHosterService: MultifileHosterService
-    private val torrentInfoService: TorrentInfoService
+    private val allSearchEngines: List<TorrentSearchEngine> = listOf<TorrentSearchEngine>(
+            PirateBay(httpHelper),
+            NyaaSi(httpHelper),
+            SolidTorrents(httpHelper),
+            LeetxTo(httpHelper),
+            YTS(httpHelper), // new Torrentz(httpHelper),
+            MagnetDL(httpHelper),
+            LimeTorrents(httpHelper),
+            // Zooqle(httpHelper),
+    )
+    private val activeSearchEngines: MutableList<TorrentSearchEngine> = allSearchEngines.toMutableList()
+
     fun refreshTorrentSearchEngines() {
         val tempActiveSearchEngines: MutableList<TorrentSearchEngine> = ArrayList()
         allSearchEngines.parallelStream().forEach { torrentSearchEngine: TorrentSearchEngine ->
@@ -121,22 +135,6 @@ class TorrentSearchEngineService @Autowired constructor(
             }
         )
         return cleanedTorrents
-    }
-
-    init {
-        allSearchEngines = listOf<TorrentSearchEngine>(
-            PirateBay(httpHelper),
-            NyaaSi(httpHelper),
-            SolidTorrents(httpHelper),
-            LeetxTo(httpHelper),
-            YTS(httpHelper), // new Torrentz(httpHelper),
-            MagnetDL(httpHelper),
-            LimeTorrents(httpHelper),
-            // Zooqle(httpHelper),
-        )
-        this.multifileHosterService = multifileHosterService
-        this.torrentInfoService = torrentInfoService
-        activeSearchEngines.addAll(allSearchEngines)
     }
 
 }

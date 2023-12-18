@@ -1,4 +1,4 @@
-package boat.torrent;
+package boat.torrent.searchEngines;
 
 import boat.utilities.HttpHelper;
 import org.junit.jupiter.api.Test;

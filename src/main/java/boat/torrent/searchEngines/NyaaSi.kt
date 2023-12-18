@@ -1,5 +1,10 @@
-package boat.torrent
+package boat.torrent.searchEngines
 
+import boat.torrent.HttpUser
+import boat.torrent.Torrent
+import boat.torrent.TorrentComparator
+import boat.torrent.TorrentHelper
+import boat.torrent.TorrentSearchEngine
 import boat.utilities.HttpHelper
 import boat.utilities.LoggerDelegate
 import org.jsoup.Jsoup

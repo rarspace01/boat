@@ -1,5 +1,10 @@
-package boat.torrent
+package boat.torrent.searchEngines
 
+import boat.torrent.HttpUser
+import boat.torrent.Torrent
+import boat.torrent.TorrentComparator
+import boat.torrent.TorrentHelper
+import boat.torrent.TorrentSearchEngine
 import boat.utilities.HttpHelper
 import boat.utilities.LoggerDelegate
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -34,9 +39,6 @@ class SolidTorrents internal constructor(httpHelper: HttpHelper) : HttpUser(http
 
     private fun parseTorrentsOnResultPage(pageContent: String, searchName: String): List<Torrent> {
         val torrentList = ArrayList<Torrent>()
-
-        // create ObjectMapper instance
-        val objectMapper = ObjectMapper()
 
         // read JSON like DOM Parser
         try {

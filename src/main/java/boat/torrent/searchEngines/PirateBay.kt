@@ -1,5 +1,10 @@
-package boat.torrent
+package boat.torrent.searchEngines
 
+import boat.torrent.HttpUser
+import boat.torrent.Torrent
+import boat.torrent.TorrentComparator
+import boat.torrent.TorrentHelper
+import boat.torrent.TorrentSearchEngine
 import boat.utilities.HttpHelper
 import boat.utilities.LoggerDelegate
 import com.google.gson.JsonElement
@@ -45,8 +50,7 @@ class PirateBay internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelp
                     val tempTorrent = Torrent(toString())
                     val jsonObject = jsonElement.asJsonObject
                     tempTorrent.name = jsonObject["name"].asString
-                    tempTorrent.magnetUri = TorrentHelper
-                        .buildMagnetUriFromHash(jsonObject["info_hash"].asString, tempTorrent.name)
+                    tempTorrent.magnetUri = TorrentHelper.buildMagnetUriFromHash(jsonObject["info_hash"].asString, tempTorrent.name)
                     tempTorrent.seeder = jsonObject["seeders"].asInt
                     tempTorrent.leecher = jsonObject["leechers"].asInt
                     tempTorrent.isVerified = "vip" == jsonObject["status"].asString

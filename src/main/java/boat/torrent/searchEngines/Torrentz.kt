@@ -1,5 +1,10 @@
-package boat.torrent
+package boat.torrent.searchEngines
 
+import boat.torrent.HttpUser
+import boat.torrent.Torrent
+import boat.torrent.TorrentComparator
+import boat.torrent.TorrentHelper
+import boat.torrent.TorrentSearchEngine
 import boat.utilities.HttpHelper
 import boat.utilities.LoggerDelegate
 import org.jsoup.Jsoup
@@ -45,11 +50,10 @@ class Torrentz internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelpe
                     .filter { element: Element -> !element.hasAttr("class") }.findFirst().get().text().toInt()
                 tempTorrent.leecher = torrentElement.getElementsByAttributeValue("data-title", "Leeches").first()!!.text().toInt()
                 tempTorrent.sizeInMB = TorrentHelper.extractTorrentSizeFromString(
-                    torrentElement.getElementsByAttributeValue("data-title", "Size").first()!!.text()
-                        .replace(".*Size\\s|,.*".toRegex(), "")
+                        torrentElement.getElementsByAttributeValue("data-title", "Size").first()!!.text()
+                                .replace(".*Size\\s|,.*".toRegex(), "")
                 )
-                tempTorrent.size = TorrentHelper
-                    .humanReadableByteCountBinary((tempTorrent.sizeInMB * 1024.0 * 1024.0).toLong())
+                tempTorrent.size = TorrentHelper.humanReadableByteCountBinary((tempTorrent.sizeInMB * 1024.0 * 1024.0).toLong())
             } catch (exception: Exception) {
                 logger.error("parsing exception", exception)
             }

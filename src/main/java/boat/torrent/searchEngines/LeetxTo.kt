@@ -1,5 +1,10 @@
-package boat.torrent
+package boat.torrent.searchEngines
 
+import boat.torrent.HttpUser
+import boat.torrent.Torrent
+import boat.torrent.TorrentComparator
+import boat.torrent.TorrentHelper
+import boat.torrent.TorrentSearchEngine
 import boat.utilities.HttpHelper
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
@@ -49,16 +54,16 @@ class LeetxTo internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper
                         }
                         if (element.attr("class").contains("size")) {
                             tempTorrent.size = TorrentHelper.cleanNumberString(
-                                element.getElementsByAttributeValueContaining("class", "size")[0].textNodes()[0].text().trim { it <= ' ' })
+                                    element.getElementsByAttributeValueContaining("class", "size")[0].textNodes()[0].text().trim { it <= ' ' })
                             tempTorrent.sizeInMB = TorrentHelper.extractTorrentSizeFromString(tempTorrent)
                         }
                         if (element.attr("class").contains("seeds")) {
                             tempTorrent.seeder = TorrentHelper.cleanNumberString(
-                                element.getElementsByAttributeValueContaining("class", "seeds")[0].textNodes()[0].text().trim { it <= ' ' }).toInt()
+                                    element.getElementsByAttributeValueContaining("class", "seeds")[0].textNodes()[0].text().trim { it <= ' ' }).toInt()
                         }
                         if (element.attr("class").contains("leeches")) {
                             tempTorrent.leecher = TorrentHelper.cleanNumberString(
-                                element.getElementsByAttributeValueContaining("class", "leeches")[0].textNodes()[0].text().trim { it <= ' ' }).toInt()
+                                    element.getElementsByAttributeValueContaining("class", "leeches")[0].textNodes()[0].text().trim { it <= ' ' }).toInt()
                         }
                     })
                 }

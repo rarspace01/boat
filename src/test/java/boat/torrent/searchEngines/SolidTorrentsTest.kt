@@ -1,5 +1,6 @@
-package boat.torrent
+package boat.torrent.searchEngines
 
+import boat.torrent.Torrent
 import boat.utilities.HttpHelper
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
