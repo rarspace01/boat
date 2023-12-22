@@ -9,6 +9,7 @@ import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
 import java.io.InputStreamReader
+import java.io.OutputStreamWriter
 import java.net.URL
 import java.net.URLConnection
 import java.nio.channels.Channels
@@ -26,14 +27,14 @@ private const val USER_AGENT_BROWSER = "Mozilla/5.0 (Windows NT 10.0; Win64; x64
 @Service
 class HttpHelper {
     fun getPage(url: String, params: List<String>?, cookies: String?): String {
-        return getPage(url, params, cookies, 30 * 1000)
+        return getPage(url, params, cookies, null, 30 * 1000)
     }
 
     fun getPageWithShortTimeout(url: String, params: List<String>?, cookies: String?): String {
-        return getPage(url, params, cookies, 10 * 1000)
+        return getPage(url, params, cookies, null, 10 * 1000)
     }
 
-    fun getPage(url: String, params: List<String>?, cookies: String?, timeout: Int): String {
+    fun getPage(url: String, params: List<String>?, cookies: String?, body:String? = null, timeout: Int): String {
         val returnString: String
         val buildString = StringBuilder()
         val connection: URLConnection
@@ -41,6 +42,10 @@ class HttpHelper {
             val sc = SSLContext.getInstance("SSL")
             sc.init(null, trustAllCerts, null)
             connection = URL(url).openConnection()
+            body?.let {
+                connection.doOutput = true
+                connection.doInput = true
+            }
             if (connection is HttpsURLConnection) {
                 connection.sslSocketFactory = sc.socketFactory
             }
@@ -55,6 +60,15 @@ class HttpHelper {
             if (cookies != null) {
                 connection.setRequestProperty("Cookie", cookies)
             }
+            body?.let {
+                val outputStream = connection.getOutputStream()
+                val outputStreamWriter = OutputStreamWriter(outputStream, "UTF-8")
+                outputStreamWriter.write(body)
+                outputStreamWriter.flush()
+                outputStreamWriter.close()
+                outputStream.close()
+            }
+
             val response = connection.getInputStream()
 
 //            for (Map.Entry<String, List<String>> header : connection.getHeaderFields().entrySet()) {
@@ -79,9 +93,8 @@ class HttpHelper {
                     buildString.append(line).append(System.getProperty("line.separator"))
                 }
             }
-        } catch (ignored: IOException) {
-        } catch (ignored: NoSuchAlgorithmException) {
-        } catch (ignored: KeyManagementException) {
+        } catch (exception: Exception) {
+            log.error("HttpHelper", exception)
         }
         returnString = buildString.toString()
         return returnString
@@ -140,12 +153,16 @@ class HttpHelper {
         return getPage(url, null, null)
     }
 
+    fun getPage(url: String, body:String?): String {
+        return getPage(url, null, null, body,10*1000)
+    }
+
     fun getPageWithShortTimeout(url: String): String {
-        return getPage(url, null, null, 10 * 1000)
+        return getPage(url, null, null, null, 10 * 1000)
     }
 
     fun getPage(url: String, timeout: Int): String {
-        return getPage(url, null, null, timeout)
+        return getPage(url, null, null, null, timeout)
     }
 
     fun getPage(url: String, params: List<String>?): String {

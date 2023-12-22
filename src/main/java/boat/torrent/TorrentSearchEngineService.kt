@@ -1,6 +1,7 @@
 package boat.torrent
 
 import boat.multifileHoster.MultifileHosterService
+import boat.torrent.searchEngines.AnyBT
 import boat.torrent.searchEngines.LeetxTo
 import boat.torrent.searchEngines.LimeTorrents
 import boat.torrent.searchEngines.MagnetDL
@@ -34,10 +35,10 @@ class TorrentSearchEngineService(
             NyaaSi(httpHelper),
             SolidTorrents(httpHelper),
             LeetxTo(httpHelper),
-            YTS(httpHelper), // new Torrentz(httpHelper),
+            YTS(httpHelper),
             MagnetDL(httpHelper),
             LimeTorrents(httpHelper),
-            // Zooqle(httpHelper),
+            AnyBT(httpHelper),
     )
     private val activeSearchEngines: MutableList<TorrentSearchEngine> = allSearchEngines.toMutableList()
 
