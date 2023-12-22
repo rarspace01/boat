@@ -7,18 +7,14 @@ import boat.torrent.TorrentHelper
 import boat.torrent.TorrentSearchEngine
 import boat.utilities.HttpHelper
 import boat.utilities.LoggerDelegate
-import com.google.gson.JsonArray
 import com.google.gson.JsonElement
-import com.google.gson.JsonObject
 import com.google.gson.JsonParser
-import org.jsoup.Jsoup
 import java.lang.Double
-import java.net.URLEncoder
-import java.nio.charset.StandardCharsets
 import java.util.*
 import java.util.concurrent.CopyOnWriteArrayList
-import java.util.concurrent.atomic.AtomicReference
 import java.util.function.Consumer
+import kotlin.Exception
+import kotlin.String
 
 class AnyBT internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper), TorrentSearchEngine {
 
@@ -28,13 +24,13 @@ class AnyBT internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper),
 
     override fun searchTorrents(searchName: String): List<Torrent> {
         val torrentList = CopyOnWriteArrayList<Torrent>()
-        val resultString = httpHelper.getPage(buildSearchUrl(searchName), body = "{\"sql\":\"select /*+ SET_VAR(full_text_option='{\\\"highlight\\\":{ \\\"style\\\":\\\"html\\\",\\\"fields\\\":[\\\"file_name\\\"]}}') */ file_name,filesize,total_count,_id,category,firstadd_utc_timestamp,_score from library.dht where query_string('file_name:\\\\\\\"${searchName}\\\\\\\"^1') order by total_count desc limit 0, 200\",\"arguments\":[]}")
+        val resultString = httpHelper.getPage(buildSearchUrl(), body = "{\"sql\":\"select /*+ SET_VAR(full_text_option='{\\\"highlight\\\":{ \\\"style\\\":\\\"html\\\",\\\"fields\\\":[\\\"file_name\\\"]}}') */ file_name,filesize,total_count,_id,category,firstadd_utc_timestamp,_score from library.dht where query_string('file_name:\\\\\\\"${searchName}\\\\\\\"^1') order by total_count desc limit 0, 200\",\"arguments\":[]}")
         torrentList.addAll(parseTorrentsOnResultPage(resultString, searchName))
         torrentList.sortWith(TorrentComparator)
         return torrentList
     }
 
-    private fun buildSearchUrl(searchName: String): String {
+    private fun buildSearchUrl(): String {
         return "$baseUrl/blockved/glitterchain/index/sql/simple_query"
     }
 
@@ -71,18 +67,6 @@ class AnyBT internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper),
             logger.error("failed to parse string:\n${pageContent}", exception)
         }
         return torrentList
-    }
-
-    private fun retrieveBestTorrent(torrentElements: JsonArray): JsonObject? {
-        val bestTorrent = AtomicReference<JsonObject?>()
-        torrentElements.forEach(Consumer { torrentElement: JsonElement ->
-            if (bestTorrent.get() == null || bestTorrent.get()!!["size_bytes"].asLong < torrentElement
-                            .asJsonObject["size_bytes"].asLong
-            ) {
-                bestTorrent.set(torrentElement.asJsonObject)
-            }
-        })
-        return bestTorrent.get()
     }
 
     override fun toString(): String {
