@@ -316,7 +316,7 @@ class MultifileHosterService(
         }
     }
 
-    fun checkForDownloadableTorrents() {
+    fun checkForDownloadableTorrentsAndDownload() {
         if (!isDownloadInProgress && isRcloneInstalled() && cloudService.isCloudTokenValid) {
             checkForDownloadableTorrentsAndDownloadTheFirst()
         }
@@ -431,19 +431,20 @@ class MultifileHosterService(
         currentFileNumber: Int,
         startTime: Instant?
     ) {
-        val transferOptional = transferService.getAll().stream().filter { transfer: Transfer ->
+        val transfer = transferService.getAll().firstOrNull { transfer: Transfer ->
             transfer.uri.isNotEmpty() && transfer.uri.lowercase(Locale.ROOT).contains(
                 torrentToBeDownloaded.torrentId.lowercase(
                     Locale.ROOT
                 )
             )
-        }.findFirst()
-        if (transferOptional.isPresent) {
-            val transfer = transferOptional.get()
+        }
+        if (transfer != null) {
             transfer.transferStatus = TransferStatus.UPLOADING_TO_DRIVE
             transfer.progressInPercentage = currentFileNumber.toDouble() / listOfFiles.size.toDouble()
             transfer.eta = getUploadDuration(listOfFiles, currentFileNumber, startTime)
             transferService.save(transfer)
+        } else {
+            log.warn("couldnt update transfer: $torrentToBeDownloaded")
         }
         torrentToBeDownloaded.remoteStatusText = getUploadStatusString(
             torrentToBeDownloaded, listOfFiles, currentFileNumber,

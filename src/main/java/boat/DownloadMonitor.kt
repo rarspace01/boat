@@ -87,7 +87,7 @@ class DownloadMonitor(
                 logger.info("Cache refresh done in: {}ms", System.currentTimeMillis() - startOfCache)
                 cloudFileService.isCacheFilled = true
             } else {
-                logger.warn("rclone not installed")
+                logger.error("rclone not installed")
             }
         }
     }
@@ -105,7 +105,7 @@ class DownloadMonitor(
     @Scheduled(fixedRate = (SECONDS_BETWEEN_DOWNLOAD_POLLING * 1000).toLong())
     fun checkForDownloadableTorrents() {
         if (configurationService.isDownloadMode()) {
-            multifileHosterService.checkForDownloadableTorrents()
+            multifileHosterService.checkForDownloadableTorrentsAndDownload()
         }
     }
 
