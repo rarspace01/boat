@@ -54,7 +54,7 @@ class AnyBT internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper),
                 tempTorrent.isVerified = false
                 tempTorrent.magnetUri = TorrentHelper.buildMagnetUriFromHash(jsonTorrent["_id"].asJsonObject.get("value").asString.lowercase(Locale.getDefault()), tempTorrent.name)
                 tempTorrent.seeder = Double.parseDouble(jsonTorrent["total_count"].asJsonObject.get("value").asString).toInt()
-                tempTorrent.leecher = 0
+                tempTorrent.leecher = tempTorrent.seeder
                 val sizeInBytes = Double.parseDouble(jsonTorrent["filesize"].asJsonObject.get("value").asString).toLong()
                 tempTorrent.size = TorrentHelper.humanReadableByteCountBinary(sizeInBytes)
                 tempTorrent.sizeInMB = (sizeInBytes/ 1024.0f / 1024.0f).toDouble()
