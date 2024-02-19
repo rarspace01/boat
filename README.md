@@ -23,7 +23,7 @@ sudo chmod 7777 /home/downloads/privkey.pem /home/downloads/fullchain.pem
 tested with:
 
 ```
-openjdk version "17 2021-09-14"
+openjdk version "21.0.1 2023-10-17 LTS"
 ```
 
 Build Status:
