@@ -98,7 +98,7 @@ jobs:
           name: jvmArtifacts-${{ github.sha }}
       - name: Release
         if: ${{ github.actor != 'dependabot[bot]' }}
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.buildFatJarForJVM.outputs.tag-version }}
           files: |
