@@ -67,7 +67,7 @@ dependencies {
     implementation group: "com.github.ben-manes.caffeine", name: "caffeine", version: "3.1.8"
     implementation group: "commons-io", name: "commons-io", version: "2.16.1"
     implementation group: "commons-codec", name: "commons-codec", version: "1.17.0"
-    implementation group: "commons-validator", name: "commons-validator", version: "1.8.0"
+    implementation group: "commons-validator", name: "commons-validator", version: "1.9.0"
 
     implementation "org.projectlombok:lombok:$lombok_version"
     annotationProcessor "org.projectlombok:lombok:$lombok_version"
