@@ -26,6 +26,7 @@ tested with:
 openjdk version "21.0.1 2023-10-17 LTS"
 ```
 
+
 Build Status:
 
 [![Java CI with Gradle](https://github.com/rarspace01/boat/actions/workflows/ci.yml/badge.svg)](https://github.com/rarspace01/boat/actions/workflows/ci.yml)
