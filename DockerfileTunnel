@@ -1,0 +1,13 @@
+FROM debian:stable-slim
+HEALTHCHECK --start-period=30s CMD curl --fail http://localhost:8021 || exit 1
+SHELL ["/bin/bash", "-c"]
+RUN apt-get update && apt-get install -y curl wget unzip zip dnsutils \
+&& curl https://rclone.org/install.sh -o install.sh && chmod +x install.sh && ./install.sh && rm -f ./install.sh
+#&& rm -rf /tmp/*
+#USER nobody
+# copy config for boat & if used rlcone
+RUN mkdir -p /root/.config/rclone/
+COPY rclone.conf /root/.config/rclone/rclone.conf
+COPY htpasswd htpasswd
+EXPOSE 8021
+CMD rclone serve webdav --vfs-fast-fingerprint --no-modtime --read-only --htpasswd htpasswd --fast-list PFDB: --addr 0.0.0.0:8021
