@@ -10,4 +10,4 @@ RUN mkdir -p /root/.config/rclone/
 COPY rclone.conf /root/.config/rclone/rclone.conf
 COPY htpasswd htpasswd
 EXPOSE 8021
-CMD rclone serve webdav --vfs-fast-fingerprint --no-modtime --read-only --htpasswd htpasswd --fast-list PFDB: --addr 0.0.0.0:8021
+CMD rclone serve webdav --vfs-fast-fingerprint --no-modtime --htpasswd htpasswd --fast-list PFDB: --addr 0.0.0.0:8021
