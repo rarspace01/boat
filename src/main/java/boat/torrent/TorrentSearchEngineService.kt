@@ -4,10 +4,8 @@ import boat.multifileHoster.MultifileHosterService
 import boat.torrent.searchEngines.AnyBT
 import boat.torrent.searchEngines.LeetxTo
 import boat.torrent.searchEngines.LimeTorrents
-import boat.torrent.searchEngines.MagnetDL
 import boat.torrent.searchEngines.NyaaSi
 import boat.torrent.searchEngines.PirateBay
-import boat.torrent.searchEngines.SolidTorrents
 import boat.torrent.searchEngines.YTS
 import boat.utilities.HttpHelper
 import boat.utilities.LoggerDelegate
@@ -33,10 +31,8 @@ class TorrentSearchEngineService(
     private val allSearchEngines: List<TorrentSearchEngine> = listOf<TorrentSearchEngine>(
             PirateBay(httpHelper),
             NyaaSi(httpHelper),
-            SolidTorrents(httpHelper),
             LeetxTo(httpHelper),
             YTS(httpHelper),
-            MagnetDL(httpHelper),
             LimeTorrents(httpHelper),
             AnyBT(httpHelper),
     )
