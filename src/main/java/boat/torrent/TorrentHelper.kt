@@ -100,7 +100,12 @@ object TorrentHelper {
         }
 
         // calc first range
-        val sizeRating = Math.min(tempTorrent.sizeInMB, SIZE_UPPER_LIMIT) / SIZE_UPPER_LIMIT
+        val mathSize = Math.min(tempTorrent.sizeInMB, SIZE_UPPER_LIMIT) / SIZE_UPPER_LIMIT
+        val isRemux = torrentName.lowercase().contains("remux")
+        if(isRemux) {
+            debugAdditional += "♻"
+        }
+        val sizeRating = mathSize * (if (isRemux) 0.5 else 1.0)
         // calculate seeder ratio
         val seedRatio: Double
         seedRatio = if (tempTorrent.leecher > 0) {
