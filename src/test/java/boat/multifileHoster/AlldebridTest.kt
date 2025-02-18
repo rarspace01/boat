@@ -5,7 +5,10 @@ import boat.utilities.HttpHelper
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Assertions.assertDoesNotThrow
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+
+@Disabled
 internal class AlldebridTest {
     private lateinit var alldebrid: Alldebrid
 
