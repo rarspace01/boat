@@ -12,7 +12,7 @@ import java.util.regex.Pattern
 class TorrentInfoService(httpHelper: HttpHelper) :
     HttpUser(httpHelper) {
 
-    private val trackerUrl = "http://tracker.opentrackr.org:1337/announce"
+    private val trackerUrl = TorrentService().trackerUrls.first()
 
     companion object {
         private val log = LoggerFactory.getLogger(this::class.java)
@@ -51,7 +51,7 @@ class TorrentInfoService(httpHelper: HttpHelper) :
         val queryUrl =
             "${trackerUrl.replace("announce", "scrape")}?info_hash=$joinedHashes"
         // log.info("$queryUrl")
-        val page = httpHelper.getPage(queryUrl)
+        val page = httpHelper.getPage(queryUrl, 10*1000)
 //        val splittedHashs = page
 //                .replace("d5:files","")
 //        .replace("d20:","")
