@@ -11,7 +11,7 @@ internal class TorrentInfoServiceTest {
         // Given
         val torrentInfoService = TorrentInfoService(HttpHelper())
         val torrent = Torrent("test")
-        torrent.magnetUri = "btih:D540FC48EB12F2833163EED6421D449DD8F1CE1F&"
+        torrent.magnetUri = "btih:4a3f5e08bcef825718eda30637230585e3330599&"
         val torrentList = mutableListOf(
             torrent
         )
@@ -31,8 +31,8 @@ internal class TorrentInfoServiceTest {
         val torrentInfoService = TorrentInfoService(HttpHelper())
         val torrent = Torrent("test")
         val torrent2 = Torrent("test2")
-        torrent.magnetUri = "btih:D540FC48EB12F2833163EED6421D449DD8F1CE1F&"
-        torrent2.magnetUri = "btih:e20efbee11972b4585387ed513de8fd29aeed0b3&"
+        torrent.magnetUri = "btih:4a3f5e08bcef825718eda30637230585e3330599&"
+        torrent2.magnetUri = "btih:41e6cd50ccec55cd5704c5e3d176e7b59317a3fb&"
         val torrentList = mutableListOf(
             torrent, torrent2
         )
@@ -51,8 +51,8 @@ internal class TorrentInfoServiceTest {
         val torrentInfoService = TorrentInfoService(HttpHelper())
         val torrent = Torrent("test")
         val torrent2 = Torrent("test2")
-        torrent.magnetUri = "btih:4344503B7E797EBF31582327A5BAAE35B11BDA01&"
-        torrent2.magnetUri = "btih:e20efbee11972b4585387ed513de8fd29aeed0b3&"
+        torrent.magnetUri = "btih:4a3f5e08bcef825718eda30637230585e3330599&"
+        torrent2.magnetUri = "btih:41e6cd50ccec55cd5704c5e3d176e7b59317a3fb&"
         val torrentList = mutableListOf(
             torrent, torrent2
         )
@@ -70,9 +70,9 @@ internal class TorrentInfoServiceTest {
         val torrent = Torrent("test")
         val torrent2 = Torrent("test2")
         val torrent3 = Torrent("test3")
-        torrent.magnetUri = "btih:4344503B7E797EBF31582327A5BAAE35B11BDA01&"
-        torrent2.magnetUri = "btih:e20efbee11972b4585387ed513de8fd29aeed0b3&"
-        torrent3.magnetUri = "btih:12345bee11972b4585387ed513de8fd29aeed0b3&"
+        torrent.magnetUri = "btih:4a3f5e08bcef825718eda30637230585e3330599&"
+        torrent2.magnetUri = "btih:41e6cd50ccec55cd5704c5e3d176e7b59317a3fb&"
+        torrent3.magnetUri = "btih:2e8e44068b254814ea1a7d4969a9af1d78e0f51f&"
         val torrentList = mutableListOf(
             torrent, torrent2
         )

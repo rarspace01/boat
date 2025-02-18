@@ -1,6 +1,6 @@
 buildscript {
     ext.kotlin_version = "2.1.10"
-    ext.spring_boot_version = "3.3.5"
+    ext.spring_boot_version = "3.4.2"
     ext.jackson_version = "2.18.2"
     ext.lombok_version = "1.18.34"
     ext.mockito_version = "3.10.0"
@@ -54,17 +54,17 @@ dependencies {
     // tag::actuator[]
     implementation("org.springframework.boot:spring-boot-starter-actuator:$spring_boot_version")
     // end::actuator[]
-    implementation("org.jsoup:jsoup:1.18.1")
+    implementation("org.jsoup:jsoup:1.18.3")
     //implementation "org.springframework.experimental.aot:org.springframework.experimental.aot.gradle.plugin:0.10.6"
 
-    implementation group: "com.google.code.gson", name: "gson", version: "2.12.0"
+    implementation group: "com.google.code.gson", name: "gson", version: "2.12.1"
 
     implementation group: "com.fasterxml.jackson.core", name: "jackson-core", version: "$jackson_version"
     implementation group: "com.fasterxml.jackson.core", name: "jackson-databind", version: "$jackson_version"
     implementation group: "org.springframework.boot", name: "spring-boot-properties-migrator", version: "$spring_boot_version"
     implementation group: "org.springframework.boot", name: "spring-boot-starter-cache", version: "$spring_boot_version"
     implementation group: "org.springframework.boot", name: "spring-boot-starter-data-mongodb", version: "$spring_boot_version"
-    implementation group: "com.github.ben-manes.caffeine", name: "caffeine", version: "3.1.8"
+    implementation group: "com.github.ben-manes.caffeine", name: "caffeine", version: "3.2.0"
     implementation group: "commons-io", name: "commons-io", version: "2.18.0"
     implementation group: "commons-codec", name: "commons-codec", version: "1.17.1"
     implementation group: "commons-validator", name: "commons-validator", version: "1.9.0"
@@ -79,7 +79,7 @@ dependencies {
 
     testImplementation group: "org.mockito", name: "mockito-core", version: mockito_version
     testImplementation group: "org.mockito", name: "mockito-junit-jupiter", version: mockito_version
-    testImplementation "io.mockk:mockk:1.13.13"
+    testImplementation "io.mockk:mockk:1.13.16"
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
     testImplementation("org.springframework.boot:spring-boot-starter-test:$spring_boot_version")
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
