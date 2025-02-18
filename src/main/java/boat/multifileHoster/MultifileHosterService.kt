@@ -42,7 +42,7 @@ class MultifileHosterService(
 ) : HttpUser(httpHelper) {
     private var isDownloadInProgress: Boolean = false
     private var isRcloneInstalled: Boolean? = null
-    private val multifileHosterList: MutableList<MultifileHoster> = mutableListOf(Premiumize(httpHelper), Alldebrid(httpHelper))
+    private val multifileHosterList: MutableList<MultifileHoster> = mutableListOf(Premiumize(httpHelper))//, Alldebrid(httpHelper))
     private val multifileHosterListForDownloads: MutableList<MultifileHoster> = getEligibleMultifileHoster(httpHelper)
 
     private val localStatusStorage = HashMap<String, String>()
@@ -52,7 +52,7 @@ class MultifileHosterService(
     private fun getEligibleMultifileHoster(httpHelper: HttpHelper): MutableList<MultifileHoster> {
         val eligibleList = mutableListOf<MultifileHoster>()
         eligibleList.add(Premiumize(httpHelper))
-        eligibleList.add(Alldebrid(httpHelper))
+        //eligibleList.add(Alldebrid(httpHelper))
         return eligibleList
     }
 
