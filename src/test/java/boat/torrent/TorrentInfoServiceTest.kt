@@ -17,7 +17,7 @@ internal class TorrentInfoServiceTest {
         )
         // When
         torrentInfoService.refreshSeedAndLeecherFromTracker(
-            "http://tracker.opentrackr.org:1337/announce", torrentList
+            TorrentService().trackerUrls.first(), torrentList
         )
         // Then
         assertThat(torrentList[0].leecher).isGreaterThan(-1)
@@ -38,7 +38,7 @@ internal class TorrentInfoServiceTest {
         )
         // When
         torrentInfoService.refreshSeedAndLeecherFromTracker(
-            "http://tracker.opentrackr.org:1337/announce", torrentList
+            TorrentService().trackerUrls.first(), torrentList
         )
         // Then
         assertThat(torrentList[1].leecher).isGreaterThan(-1)
