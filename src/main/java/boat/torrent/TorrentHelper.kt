@@ -20,7 +20,7 @@ object TorrentHelper {
     private val badQualityRegex: Regex =
         Regex("(telesync|telecine|hdcam|tscam|\\.cam\\.| cam |cam-rip|camrip|tsrip|hqcam|hdts|hd-ts|\\.hdtc\\.|\\.ts\\.|\\[ts\\]|pdvd|predvdrip|workprint|hd ts)")
     const val REGEX_RELEASE_GROUP = "(-[A-Za-z\\s]+)"
-    private val torrentService = TorrentService()
+    private val torrentService = TorrentService(null)
     const val SIZE_UPPER_LIMIT = 15000.0
     const val SEED_RATIO_UPPER_LIMIT = 5.0
 

@@ -1,13 +1,13 @@
 package boat.torrent
 
+import boat.utilities.HttpHelper
 import java.io.BufferedReader
 import java.io.IOException
 import java.io.InputStreamReader
 import java.nio.charset.Charset
-import java.util.Locale
 import java.util.concurrent.atomic.AtomicInteger
 
-class TorrentService {
+class TorrentService(val httpHelper: HttpHelper?) {
     private val trackerList: List<String> = ArrayList()
     private val releaseTags: List<String> = ArrayList()
     val trackerUrls: List<String>
@@ -16,29 +16,8 @@ class TorrentService {
                 return trackerList
             }
             return try {
-                val inputStream = TorrentService::class.java.getResourceAsStream("/trackers.txt")
-                val inputStreamReader = InputStreamReader(inputStream, Charset.defaultCharset())
-                inputStreamReader.readText().split("\n")
-            } catch (e: IOException) {
-                emptyList()
-            }
-        }
-    val allTrackerUrls: List<String>
-        get() {
-            if (trackerList.isNotEmpty()) {
-                return trackerList
-            }
-            val currentChars = AtomicInteger(0)
-            val trackerList: MutableList<String> = ArrayList()
-            return try {
-                val inputStream = TorrentService::class.java.getResourceAsStream("/trackers.txt")
-                val inputStreamReader = InputStreamReader(inputStream, Charset.defaultCharset())
-                val bufferedReader = BufferedReader(inputStreamReader)
-                var line: String
-                while (bufferedReader.readLine().also { line = it } != null) {
-                    trackerList.add(line)
-                }
-                trackerList
+                val trackers = httpHelper?.getPage("https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_all_http.txt")
+                trackers?.split("\n")?.filter(String::isNotEmpty) ?: emptyList()
             } catch (e: IOException) {
                 emptyList()
             }
