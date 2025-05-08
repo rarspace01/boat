@@ -1,12 +1,7 @@
 package boat.torrent
 
 import boat.multifileHoster.MultifileHosterService
-import boat.torrent.searchEngines.AnyBT
-import boat.torrent.searchEngines.LeetxTo
-import boat.torrent.searchEngines.LimeTorrents
-import boat.torrent.searchEngines.NyaaSi
-import boat.torrent.searchEngines.PirateBay
-import boat.torrent.searchEngines.YTS
+import boat.torrent.searchEngines.*
 import boat.utilities.HttpHelper
 import boat.utilities.LoggerDelegate
 import org.springframework.stereotype.Service
@@ -19,9 +14,9 @@ import java.util.stream.Collectors
 
 @Service
 class TorrentSearchEngineService(
-        final val httpHelper: HttpHelper,
-        val multifileHosterService: MultifileHosterService,
-        val torrentInfoService: TorrentInfoService
+    final val httpHelper: HttpHelper,
+    val multifileHosterService: MultifileHosterService,
+    val torrentInfoService: TorrentInfoService
 ) {
 
     companion object {
@@ -29,12 +24,15 @@ class TorrentSearchEngineService(
     }
 
     private val allSearchEngines: List<TorrentSearchEngine> = listOf<TorrentSearchEngine>(
-            PirateBay(httpHelper),
-            NyaaSi(httpHelper),
-            LeetxTo(httpHelper),
-            YTS(httpHelper),
-            LimeTorrents(httpHelper),
-            AnyBT(httpHelper),
+        AnyBT(httpHelper),
+        Kat(httpHelper),
+        LeetxTo(httpHelper),
+        LimeTorrents(httpHelper),
+        NyaaSi(httpHelper),
+        PirateBay(httpHelper),
+        Torrentz(httpHelper),
+        YTS(httpHelper),
+        LimeTorrents(httpHelper),
     )
     private val activeSearchEngines: MutableList<TorrentSearchEngine> = allSearchEngines.toMutableList()
 

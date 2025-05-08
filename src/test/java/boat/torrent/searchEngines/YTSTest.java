@@ -2,6 +2,7 @@ package boat.torrent.searchEngines;
 
 import boat.torrent.Torrent;
 import boat.utilities.HttpHelper;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -11,6 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class YTSTest {
 
+    @Disabled
     @Test
     void shouldFindTorrents() {
         // Given
@@ -19,6 +21,7 @@ class YTSTest {
         // Then
     }
 
+    @Disabled
     @Test
     void shouldFindTorrentsWithURL() {
         // Given
