@@ -12,7 +12,7 @@ import java.util.regex.Pattern
 class TorrentInfoService(httpHelper: HttpHelper) :
     HttpUser(httpHelper) {
 
-    private val trackerUrl = TorrentService().trackerUrls.first()
+    private val trackerUrl = TorrentService(httpHelper).trackerUrls.first()
 
     companion object {
         private val log = LoggerFactory.getLogger(this::class.java)
