@@ -32,7 +32,6 @@ class TorrentSearchEngineService(
         PirateBay(httpHelper),
         Torrentz(httpHelper),
         YTS(httpHelper),
-        LimeTorrents(httpHelper),
     )
     private val activeSearchEngines: MutableList<TorrentSearchEngine> = allSearchEngines.toMutableList()
 
