@@ -2,6 +2,7 @@ name: delete-old-releases
 
 on:
   release:
+  workflow_dispatch:
 
 jobs:
   delete-old-releases:
