@@ -24,48 +24,47 @@ class Kat internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper), T
 
     private fun buildSearchUrl(searchName: String): String {
         return String.format(
-            "%s/usearch/%s/1/?field=seeders&sorder=desc", baseUrl,
+            "%s/search?query=%s&sort_by=seeders&sort_direction=desc", baseUrl,
             URLEncoder.encode(searchName, StandardCharsets.UTF_8)
         )
     }
 
     override fun getBaseUrl(): String {
-        return "https://kat.rip"
+        return "https://kickasstorrents.cc"
     }
 
     private fun parseTorrentsOnResultPage(pageContent: String, searchName: String): List<Torrent> {
         val torrentList = ArrayList<Torrent>()
         val doc = Jsoup.parse(pageContent)
-        val torrentListOnPage = doc.select(".table > tbody > tr")
+        val torrentListOnPage = doc.select("table > tbody > tr .even")
         for (torrent in torrentListOnPage) {
             val tempTorrent = Torrent(toString())
             if (torrent.childNodeSize() > 0) {
                 torrent.children().forEach(Consumer { element: Element ->
-                    if (element.getElementsByClass("torrents_table__torrent_title").size > 0) {
+                    if (element.getElementsByClass("filmType").size > 0) {
                         //extract name
-                        tempTorrent.name = element.getElementsByClass("torrents_table__torrent_title")[0]
+                        tempTorrent.name = element.getElementsByClass("filmType")[0]
                             .text()
                     }
-                    if (element.getElementsByAttributeValueMatching("href", "magnet:").size > 0) {
+                    if (element.getElementsByClass("cellMainLink").size > 0) {
                         //extract magneturi
-                        tempTorrent.magnetUri = element.getElementsByAttributeValueMatching("href", "magnet:")
+                        val urlForMagnet = element.getElementsByClass("cellMainLink")
                             .attr("href").trim { it <= ' ' }
+
+                        tempTorrent.magnetUri = parseMagnetFromUrl(urlForMagnet)
                     }
-                    if (element.getElementsByAttributeValueMatching("data-title", "Size").size > 0) {
+                    if (element.getElementsByClass("nobr").size > 0) {
                         tempTorrent.size = TorrentHelper.cleanNumberString(
-                                element.getElementsByAttributeValueMatching("data-title", "Size").text().trim { it <= ' ' })
+                                element.getElementsByClass("nobr").text().trim { it <= ' ' })
                         tempTorrent.sizeInMB = TorrentHelper.extractTorrentSizeFromString(tempTorrent)
                     }
-                    if (element.getElementsByAttributeValueMatching("data-title", "Seed").size > 0) {
+                    if (element.getElementsByClass("green").size > 0) {
                         tempTorrent.seeder = TorrentHelper.cleanNumberString(
-                                element.getElementsByAttributeValueMatching("data-title", "Seed").text().trim { it <= ' ' }).toInt()
+                            element.getElementsByClass("green").text().trim { it <= ' ' }).toInt()
                     }
-                    if (element.getElementsByAttributeValueMatching("data-title", "Leech").size > 0) {
-                        tempTorrent.leecher = TorrentHelper.cleanNumberString(
-                                element.getElementsByAttributeValueMatching("data-title", "Leech").text().trim { it <= ' ' }).toInt()
-                    }
-                    if (element.getElementsByClass("ka ka16 ka-verify ka-green").size > 0) {
-                        tempTorrent.isVerified = true
+                    if (element.getElementsByClass("red").size > 0) {
+                        tempTorrent.seeder = TorrentHelper.cleanNumberString(
+                            element.getElementsByClass("red").text().trim { it <= ' ' }).toInt()
                     }
                 })
             }
@@ -77,6 +76,12 @@ class Kat internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper), T
             }
         }
         return torrentList
+    }
+
+    private fun parseMagnetFromUrl(urlForMagnet: String): String {
+        httpHelper.getPage(urlForMagnet).let {
+            return Jsoup.parse(it).getElementsByAttributeValueMatching("href", "magnet:").attr("href")
+        }
     }
 
     override fun toString(): String {
