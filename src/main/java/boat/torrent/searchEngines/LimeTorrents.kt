@@ -34,7 +34,7 @@ class LimeTorrents internal constructor(httpHelper: HttpHelper) : HttpUser(httpH
     }
 
     override fun getBaseUrl(): String {
-        return "https://www.limetorrents.pro/"
+        return "https://limetorrents.fun"
     }
 
     private fun parseTorrentsOnResultPage(pageContent: String, searchName: String): List<Torrent> {
