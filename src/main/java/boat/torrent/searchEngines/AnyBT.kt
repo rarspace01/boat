@@ -24,18 +24,18 @@ class AnyBT internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper),
 
     override fun searchTorrents(searchName: String): List<Torrent> {
         val torrentList = CopyOnWriteArrayList<Torrent>()
-        val resultString = httpHelper.getPage(buildSearchUrl(), body = "{\"sql\":\"select /*+ SET_VAR(full_text_option='{\\\"highlight\\\":{ \\\"style\\\":\\\"html\\\",\\\"fields\\\":[\\\"file_name\\\"]}}') */ file_name,filesize,total_count,_id,category,firstadd_utc_timestamp,_score from library.dht where query_string('file_name:\\\\\\\"${searchName}\\\\\\\"^1') order by total_count desc limit 0, 200\",\"arguments\":[]}")
+        val resultString = httpHelper.getPage(buildSearchUrl(), body = "{\"sql\":\"select /*+ SET_VAR(full_text_option='{\\\"highlight\\\":{ \\\"style\\\":\\\"html\\\",\\\"fields\\\":[\\\"file_name\\\"]}}') */ file_name,filesize,total_count,_id,category,firstadd_utc_timestamp,_score from library.dht where query_string('file_name:\\\\\\\""+searchName+"\\\\\\\"^1') order by total_count desc limit 0, 200\",\"dataset_name\":\"anybt\",\"arguments\":[]}\n")
         torrentList.addAll(parseTorrentsOnResultPage(resultString, searchName))
         torrentList.sortWith(TorrentComparator)
         return torrentList
     }
 
     private fun buildSearchUrl(): String {
-        return "$baseUrl/blockved/glitterchain/index/sql/simple_query"
+        return "$baseUrl/v1/sql/query"
     }
 
     override fun getBaseUrl(): String {
-        return "https://gateway.magnode.ru"
+        return "https://gw.magnode.ru"
     }
 
     private fun parseTorrentsOnResultPage(pageContent: String, searchName: String): List<Torrent> {
