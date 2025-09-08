@@ -46,6 +46,7 @@ class TorrentInfoService(httpHelper: HttpHelper) :
     fun refreshSeedAndLeecherFromTracker(trackerUrl: String, torrentList: List<Torrent>) {
         val joinedHashes = torrentList
             .map { torrent -> torrent.torrentId }
+            .filter { torrentHash -> torrentHash.isNotEmpty() && torrentHash.matches(Regex("^[a-fA-F0-9]{40}$")) }
             .map { torrentHash: String? -> TorrentHelper.urlEncode(Hex.decodeHex(torrentHash)) }
             .joinToString("&info_hash=")
         val queryUrl =
