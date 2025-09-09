@@ -37,10 +37,10 @@ class Kat internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper), T
         val torrentList = ArrayList<Torrent>()
         val doc = Jsoup.parse(pageContent)
         val torrentListOnPage = doc.select("table > tbody > tr .even")
-        for (torrent in torrentListOnPage) {
+        torrentListOnPage.parallelStream().forEach { torrentElement: Element ->
             val tempTorrent = Torrent(toString())
-            if (torrent.childNodeSize() > 0) {
-                torrent.children().forEach(Consumer { element: Element ->
+            if (torrentElement.childNodeSize() > 0) {
+                torrentElement.children().forEach(Consumer { element: Element ->
                     if (element.getElementsByClass("filmType").size > 0) {
                         //extract name
                         tempTorrent.name = element.getElementsByClass("filmType")[0]
@@ -55,7 +55,7 @@ class Kat internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper), T
                     }
                     if (element.getElementsByClass("nobr").size > 0) {
                         tempTorrent.size = TorrentHelper.cleanNumberString(
-                                element.getElementsByClass("nobr").text().trim { it <= ' ' })
+                            element.getElementsByClass("nobr").text().trim { it <= ' ' })
                         tempTorrent.sizeInMB = TorrentHelper.extractTorrentSizeFromString(tempTorrent)
                     }
                     if (element.getElementsByClass("green").size > 0) {

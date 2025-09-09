@@ -26,11 +26,10 @@ class TorrentSearchEngineService(
     private val allSearchEngines: List<TorrentSearchEngine> = listOf<TorrentSearchEngine>(
         AnyBT(httpHelper),
         Kat(httpHelper),
-        LeetxTo(httpHelper),
+        //LeetxTo(httpHelper),
         LimeTorrents(httpHelper),
         NyaaSi(httpHelper),
         PirateBay(httpHelper),
-        Torrentz(httpHelper),
         YTS(httpHelper),
     )
     private val activeSearchEngines: MutableList<TorrentSearchEngine> = allSearchEngines.toMutableList()
