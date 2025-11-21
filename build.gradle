@@ -33,7 +33,7 @@ apply plugin: "com.palantir.git-version"
 
 //runtime("org.springframework.boot:spring-boot-properties-migrator")
 jar {
-    archivesBaseName = "boat"
+    archiveBaseName = "boat"
     archiveVersion = getTagVersion()
 }
 
@@ -41,8 +41,11 @@ repositories {
     mavenCentral()
 }
 
-sourceCompatibility = 21
-targetCompatibility = 21
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+}
 
 dependencies {
     // tag::jetty[]
@@ -123,15 +126,8 @@ test {
 wrapper {
     distributionType = Wrapper.DistributionType.ALL
 }
-compileKotlin {
-    kotlinOptions {
-        jvmTarget = "21"
-    }
-}
-compileTestKotlin {
-    kotlinOptions {
-        jvmTarget = "21"
-    }
+kotlin {
+    jvmToolchain(24)
 }
 
 subprojects {

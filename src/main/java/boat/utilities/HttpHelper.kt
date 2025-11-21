@@ -10,7 +10,7 @@ import java.io.FileOutputStream
 import java.io.IOException
 import java.io.InputStreamReader
 import java.io.OutputStreamWriter
-import java.net.URL
+import java.net.URI
 import java.net.URLConnection
 import java.nio.channels.Channels
 import java.security.KeyManagementException
@@ -41,7 +41,7 @@ class HttpHelper {
         try {
             val sc = SSLContext.getInstance("SSL")
             sc.init(null, trustAllCerts, null)
-            connection = URL(url).openConnection()
+            connection = URI.create(url).toURL().openConnection()
             body?.let {
                 connection.doOutput = true
                 connection.doInput = true
@@ -100,12 +100,12 @@ class HttpHelper {
         return returnString
     }
 
-    fun getRawPage(url: String?, params: List<String?>?, cookies: String?, timeout: Int): ByteArray? {
+    fun getRawPage(url: String, params: List<String?>?, cookies: String?, timeout: Int): ByteArray? {
         val connection: URLConnection
         try {
             val sc = SSLContext.getInstance("SSL")
             sc.init(null, trustAllCerts, null)
-            connection = URL(url).openConnection()
+            connection = URI.create(url).toURL().openConnection()
             if (connection is HttpsURLConnection) {
                 connection.sslSocketFactory = sc.socketFactory
             }
@@ -142,9 +142,9 @@ class HttpHelper {
                 charset = "UTF-8"
             }
             return IOUtils.toByteArray(response)
-        } catch (ignored: IOException) {
-        } catch (ignored: NoSuchAlgorithmException) {
-        } catch (ignored: KeyManagementException) {
+        } catch (_: IOException) {
+        } catch (_: NoSuchAlgorithmException) {
+        } catch (_: KeyManagementException) {
         }
         return null
     }
@@ -216,7 +216,7 @@ class HttpHelper {
 
         @Throws(IOException::class)
         fun downloadFileToPath(fileURLFromTorrent: String, localPath: String) {
-            val remoteUrl = URL(fileURLFromTorrent)
+            val remoteUrl = URI.create(fileURLFromTorrent).toURL()
             val rbc = Channels.newChannel(remoteUrl.openStream())
             val fos = FileOutputStream(localPath)
             fos.channel.transferFrom(rbc, 0, Long.MAX_VALUE)

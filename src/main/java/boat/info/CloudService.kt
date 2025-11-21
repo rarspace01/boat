@@ -11,31 +11,38 @@ import org.springframework.stereotype.Service
 import org.springframework.util.StringUtils
 import java.time.Duration
 import java.time.Instant
-import java.util.Arrays
-import java.util.Locale
+import java.util.*
 import java.util.stream.Collectors
 
 @Service
-class CloudService internal constructor(private val cloudFileService: CloudFileService, val theFilmDataBaseService: TheFilmDataBaseService) {
+class CloudService internal constructor(
+    private val cloudFileService: CloudFileService,
+    val theFilmDataBaseService: TheFilmDataBaseService
+) {
 
     companion object {
         private val logger by LoggerDelegate()
         const val RCLONE_DIR = "RCLONEDIR"
     }
 
-    val isCloudTokenValid: Boolean = cloudFileService.getFilesInPath(buildDestinationPathWithTypeOfMediaWithoutSubFolders("A", TorrentType.MOVIES)).isNotEmpty()
+    val isCloudTokenValid: Boolean =
+        cloudFileService.getFilesInPath(buildDestinationPathWithTypeOfMediaWithoutSubFolders("A", TorrentType.MOVIES))
+            .isNotEmpty()
 
     private fun deductSeriesNameFrom(preparedTorrentName: String): String {
-        return Arrays.stream(preparedTorrentName
+        return Arrays.stream(
+            preparedTorrentName
             .lowercase(Locale.getDefault())
             .trim { it <= ' ' }
             .replace("s[0-9]+e[0-9]+.*".toRegex(), "")
             .replace("season[.\\s]?[0-9-]+.*".toRegex(), "")
             .trim { it <= ' ' }
             .replace("\\s+".toRegex(), ".")
-            .split("\\.".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
+            .split("\\.".toRegex())
+            .dropLastWhile { it.isEmpty() }
+            .toTypedArray()
         )
-            .map { str: String? -> StringUtils.capitalize(str) }
+            .map { str: String -> StringUtils.capitalize(str) }
             .collect(Collectors.joining("."))
     }
 
@@ -66,7 +73,7 @@ class CloudService internal constructor(private val cloudFileService: CloudFileS
         //
         preparedTorrentName = preparedTorrentName.trim { it <= ' ' }
         preparedTorrentName = preparedTorrentName.replace("[\".]".toRegex(), "")
-        if (preparedTorrentName.length > 0) {
+        if (preparedTorrentName.isNotEmpty()) {
             preparedTorrentName = preparedTorrentName.substring(0, 1)
         }
         preparedTorrentName = preparedTorrentName.replace("[\\W]".toRegex(), "?")
@@ -122,7 +129,8 @@ class CloudService internal constructor(private val cloudFileService: CloudFileS
             optionalSeriesString = deductSeriesNameFrom(preparedTorrentName) + "/"
         }
         return Pair(
-            torrentNameFirstLetterDeducted, (basePath + "/" + torrentType.type + "/" + torrentNameFirstLetterDeducted + "/"
+            torrentNameFirstLetterDeducted,
+            (basePath + "/" + torrentType.type + "/" + torrentNameFirstLetterDeducted + "/"
                     + optionalSeriesString)
         )
     }

@@ -4,11 +4,12 @@ import boat.torrent.TorrentHelper.formatDuration
 import org.springframework.data.annotation.Id
 import java.time.Duration
 import java.time.Instant
+import java.util.UUID
 
 
 data class Transfer(
     @Id
-    var id: String? = null,
+    var id: String = UUID.randomUUID().toString(),
     var name: String = "",
     var remoteId: String? = null,
     var source: String = "☕",

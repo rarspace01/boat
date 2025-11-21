@@ -44,14 +44,14 @@ class NyaaSi internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper)
         val torrentList = ArrayList<Torrent>()
         val doc = Jsoup.parse(pageContent)
         val torrentListOnPage = doc.select(".torrent-list > tbody > tr")
-        if (torrentListOnPage != null) {
+        if (torrentListOnPage.isNotEmpty()) {
             for (torrent in torrentListOnPage) {
                 val tempTorrent = Torrent(toString())
                 val attributesOnTableRecord = torrent.attributes()
                 if (torrent.childNodeSize() > 0) {
                     torrent.children().forEach(Consumer { element: Element ->
-                        if (element.getElementsByTag("a").size > 0
-                            && getTorrentTitle(element).length > 0
+                        if (element.getElementsByTag("a").isNotEmpty()
+                            && getTorrentTitle(element).isNotEmpty()
                         ) {
                             //extract name
                             tempTorrent.name = getTorrentTitle(element)
@@ -101,7 +101,7 @@ class NyaaSi internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper)
             .filter { element: Element -> !element.attributes()["href"].contains("magnet") }
             .filter { element: Element -> !element.attributes()["href"].contains("comment") }
             .filter { element: Element -> element.attributes()["href"].contains("/view/") }
-            .filter { element: Element -> element.text().trim { it <= ' ' }.length > 0 }
+            .filter { element: Element -> element.text().trim { it <= ' ' }.isNotEmpty() }
             .map { element: Element -> element.text().trim { it <= ' ' } }.collect(Collectors.joining())
     }
 
