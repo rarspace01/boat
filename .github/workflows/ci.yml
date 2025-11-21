@@ -25,6 +25,12 @@ jobs:
           java-version: '25'
           distribution: 'temurin'
           cache: 'gradle'
+      - name: Set up JDK 24 - workaround for Kotlin
+        uses: actions/setup-java@v5
+        with:
+          java-version: '24'
+          distribution: 'temurin'
+          cache: 'gradle'
       # - name: Use Gradle packages cache
       #   uses: actions/cache@v3
       #   with:
