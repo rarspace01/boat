@@ -6,6 +6,7 @@ import boat.torrent.TorrentComparator
 import boat.torrent.TorrentHelper
 import boat.torrent.TorrentSearchEngine
 import boat.utilities.HttpHelper
+import boat.utilities.LoggerDelegate
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 import java.net.URLEncoder
@@ -14,12 +15,21 @@ import java.util.concurrent.CopyOnWriteArrayList
 import java.util.function.Consumer
 
 class Kat internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper), TorrentSearchEngine {
+    companion object {
+        private val logger by LoggerDelegate()
+    }
+
     override fun searchTorrents(searchName: String): List<Torrent> {
-        val torrentList = CopyOnWriteArrayList<Torrent>()
-        val resultString = httpHelper.getPage(buildSearchUrl(searchName))
-        torrentList.addAll(parseTorrentsOnResultPage(resultString, searchName))
-        torrentList.sortWith(TorrentComparator)
-        return torrentList
+        try {
+            val torrentList = CopyOnWriteArrayList<Torrent>()
+            val resultString = httpHelper.getPage(buildSearchUrl(searchName))
+            torrentList.addAll(parseTorrentsOnResultPage(resultString, searchName))
+            torrentList.sortWith(TorrentComparator)
+            return torrentList
+        } catch (e: Exception) {
+        logger.error("Error during torrent search", e)
+        return emptyList()
+        }
     }
 
     private fun buildSearchUrl(searchName: String): String {
