@@ -99,7 +99,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
-      - uses: actions/download-artifact@v6
+      - uses: actions/download-artifact@v7
         with:
           name: jvmArtifacts-${{ github.sha }}
       - name: Release
