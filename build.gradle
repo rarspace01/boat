@@ -82,7 +82,7 @@ dependencies {
 
     testImplementation group: "org.mockito", name: "mockito-core", version: mockito_version
     testImplementation group: "org.mockito", name: "mockito-junit-jupiter", version: mockito_version
-    testImplementation "io.mockk:mockk:1.14.7"
+    testImplementation "io.mockk:mockk:1.14.9"
     testImplementation("org.junit.jupiter:junit-jupiter:6.0.2")
     testImplementation("org.springframework.boot:spring-boot-starter-test:$spring_boot_version")
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
