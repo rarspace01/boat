@@ -9,9 +9,6 @@ import java.util.function.Consumer
 
 @Service
 class TorrentMetaService(private val multifileHosterService: MultifileHosterService) {
-    companion object {
-        private val logger by LoggerDelegate()
-    }
 
     val localStatusStorage = HashMap<String, String>()
 
@@ -57,7 +54,7 @@ class TorrentMetaService(private val multifileHosterService: MultifileHosterServ
 
     fun updateTorrent(torrentUpdate: Torrent) {
         localStatusStorage[torrentUpdate.torrentId] = torrentUpdate.remoteStatusText
-        torrentUpdate.remoteId?.let {
+        torrentUpdate.remoteId.let {
             localStatusStorage[torrentUpdate.remoteId] = torrentUpdate.remoteStatusText
         }
     }

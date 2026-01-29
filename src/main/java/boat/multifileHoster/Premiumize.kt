@@ -7,14 +7,14 @@ import boat.torrent.TorrentFile
 import boat.torrent.TorrentHelper
 import boat.utilities.HttpHelper
 import boat.utilities.PropertiesHelper
-import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.ObjectMapper
 import com.google.gson.JsonElement
 import com.google.gson.JsonParser
 import org.apache.logging.log4j.util.Strings
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 import org.slf4j.LoggerFactory
+import tools.jackson.databind.JsonNode
+import tools.jackson.databind.json.JsonMapper
 import java.io.IOException
 import java.time.Duration
 import java.util.concurrent.atomic.AtomicInteger
@@ -23,6 +23,8 @@ import java.util.regex.Pattern
 import java.util.stream.Collectors
 
 class Premiumize(httpHelper: HttpHelper) : HttpUser(httpHelper), MultifileHoster {
+    private val jsonMapper = JsonMapper.builder().build()
+
     override fun addTorrentToDownloadQueue(toBeAddedTorrent: Torrent): String {
         val response: String
         val addTorrenntUrl =
@@ -77,11 +79,10 @@ class Premiumize(httpHelper: HttpHelper) : HttpUser(httpHelper), MultifileHoster
     }
 
     private fun parseRemainingTrafficInMB(responseAccount: String): Double {
-        val mapper = ObjectMapper()
         return try {
-            val jsonNode = mapper.readTree(responseAccount)
+            val jsonNode = jsonMapper.readTree(responseAccount)
             (1.0 - jsonNode.get("limit_used").asDouble()) * 1024.0 * 1024.0
-        } catch (ignored: Exception) {
+        } catch (_: Exception) {
             0.0
         }
     }
@@ -108,15 +109,14 @@ class Premiumize(httpHelper: HttpHelper) : HttpUser(httpHelper), MultifileHoster
             )
         }
 
-        val m = ObjectMapper()
         try {
-            val rootNode = m.readTree(responseFilesPage)
+            val rootNode = jsonMapper.readTree(responseFilesPage)
             val localNodes = rootNode.path("content")
             val fileList = localNodes.findParents("type")
             for (jsonFile in fileList) {
-                if (jsonFile["type"].asText() == "file") {
+                if (jsonFile["type"].asString() == "file") {
                     extractTorrentFileFromJSON(returnList, jsonFile, "")
-                } else if (jsonFile["type"].asText() == "folder") {
+                } else if (jsonFile["type"].asString() == "folder") {
                     extractTorrentFilesFromJSONFolder(returnList, jsonFile, "")
                 }
             }
@@ -131,7 +131,8 @@ class Premiumize(httpHelper: HttpHelper) : HttpUser(httpHelper), MultifileHoster
         return filteredList
     }
 
-    private fun isSingleFileTorrent(torrent: Torrent) = torrent.file_id.isNotEmpty() && !torrent.file_id.contains("null")
+    private fun isSingleFileTorrent(torrent: Torrent) =
+        torrent.file_id.isNotEmpty() && !torrent.file_id.contains("null")
 
     private fun extractTorrentFilesFromJSONFolder(
         returnList: MutableList<TorrentFile>,
@@ -139,23 +140,22 @@ class Premiumize(httpHelper: HttpHelper) : HttpUser(httpHelper), MultifileHoster
         prefix: String
     ) {
         val responseFiles = httpHelper.getPage(
-            "https://www.premiumize.me/api/folder/list?id=" + jsonFolder["id"].asText() +
+            "https://www.premiumize.me/api/folder/list?id=" + jsonFolder["id"].asString() +
                     "&apikey=" + PropertiesHelper.getProperty("PREMIUMIZE_APIKEY")
         )
-        val folderName = prefix + jsonFolder["name"].asText() + "/"
-        val m = ObjectMapper()
+        val folderName = prefix + jsonFolder["name"].asString() + "/"
         val rootNode: JsonNode
         try {
-            rootNode = m.readTree(responseFiles)
+            rootNode = jsonMapper.readTree(responseFiles)
             val localNodes = rootNode.path("content")
             val fileList = localNodes.findParents("type")
             for (jsonFile in fileList) {
-                if (jsonFile["type"].asText() == "file") {
+                if (jsonFile["type"].asString() == "file") {
                     extractTorrentFileFromJSON(returnList, jsonFile, folderName)
-                } else if (jsonFile["type"].asText() == "folder") {
+                } else if (jsonFile["type"].asString() == "folder") {
                     extractTorrentFilesFromJSONFolder(returnList, jsonFile, folderName)
                 } else {
-                    log.error("file extraction error, type: {} - file: {}", jsonFile["type"].asText(), jsonFile)
+                    log.error("file extraction error, type: {} - file: {}", jsonFile["type"].asString(), jsonFile)
                 }
             }
         } catch (e: IOException) {
@@ -169,33 +169,32 @@ class Premiumize(httpHelper: HttpHelper) : HttpUser(httpHelper), MultifileHoster
         prefix: String
     ) {
         val tf = TorrentFile(
-            name = prefix + jsonFile["name"].asText(),
-            id = jsonFile["id"].asText(),
+            name = prefix + jsonFile["name"].asString(),
+            id = jsonFile["id"].asString(),
             filesize = jsonFile["size"].asLong(),
-            url = jsonFile["link"].asText(),
+            url = jsonFile["link"].asString(),
         )
         returnList.add(tf)
     }
 
     private fun parseRemoteTorrents(pageContent: String): ArrayList<Torrent> {
         val remoteTorrentList = ArrayList<Torrent>()
-        val m = ObjectMapper()
         try {
-            val rootNode = m.readTree(pageContent)
+            val rootNode = jsonMapper.readTree(pageContent)
             val localNodes = rootNode.path("transfers")
             for (localNode in localNodes) {
                 val tempTorrent = Torrent(getName())
-                tempTorrent.name = localNode["name"].asText()
-                tempTorrent.folder_id = localNode["folder_id"].asText()
-                tempTorrent.file_id = localNode["file_id"].asText()
-                tempTorrent.remoteId = localNode["id"].asText()
-                tempTorrent.remoteStatusText = localNode["status"].asText()
+                tempTorrent.name = localNode["name"].asString()
+                tempTorrent.folder_id = localNode["folder_id"].asString()
+                tempTorrent.file_id = localNode["file_id"].asString()
+                tempTorrent.remoteId = localNode["id"].asString()
+                tempTorrent.remoteStatusText = localNode["status"].asString()
                 tempTorrent.remoteTransferStatus = TorrentMapper.mapRemoteStatus(tempTorrent.remoteStatusText)
-                val src = localNode["src"].asText()
+                val src = localNode["src"].asString()
                 if (src.contains("btih")) {
                     tempTorrent.magnetUri = src
                 }
-                val messages = localNode["message"].asText().split(",").toTypedArray()
+                val messages = localNode["message"].asString().split(",").toTypedArray()
                 if (messages.size == 3) {
                     val extractDurationFromString = extractDurationFromString(messages[2])
                     tempTorrent.eta = extractDurationFromString

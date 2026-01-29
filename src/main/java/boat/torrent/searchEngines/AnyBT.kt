@@ -1,20 +1,13 @@
 package boat.torrent.searchEngines
 
-import boat.torrent.HttpUser
-import boat.torrent.Torrent
-import boat.torrent.TorrentComparator
-import boat.torrent.TorrentHelper
-import boat.torrent.TorrentSearchEngine
+import boat.torrent.*
 import boat.utilities.HttpHelper
 import boat.utilities.LoggerDelegate
 import com.google.gson.JsonElement
 import com.google.gson.JsonParser
-import java.lang.Double
 import java.util.*
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.function.Consumer
-import kotlin.Exception
-import kotlin.String
 
 class AnyBT internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper), TorrentSearchEngine {
 
@@ -24,7 +17,10 @@ class AnyBT internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper),
 
     override fun searchTorrents(searchName: String): List<Torrent> {
         val torrentList = CopyOnWriteArrayList<Torrent>()
-        val resultString = httpHelper.getPage(buildSearchUrl(), body = "{\"sql\":\"select /*+ SET_VAR(full_text_option='{\\\"highlight\\\":{ \\\"style\\\":\\\"html\\\",\\\"fields\\\":[\\\"file_name\\\"]}}') */ file_name,filesize,total_count,_id,category,firstadd_utc_timestamp,_score from library.dht where query_string('file_name:\\\\\\\""+searchName+"\\\\\\\"^1') order by total_count desc limit 0, 200\",\"dataset_name\":\"anybt\",\"arguments\":[]}\n")
+        val resultString = httpHelper.getPage(
+            buildSearchUrl(),
+            body = "{\"sql\":\"select /*+ SET_VAR(full_text_option='{\\\"highlight\\\":{ \\\"style\\\":\\\"html\\\",\\\"fields\\\":[\\\"file_name\\\"]}}') */ file_name,filesize,total_count,_id,category,firstadd_utc_timestamp,_score from library.dht where query_string('file_name:\\\\\\\"" + searchName + "\\\\\\\"^1') order by total_count desc limit 0, 200\",\"dataset_name\":\"anybt\",\"arguments\":[]}\n"
+        )
         torrentList.addAll(parseTorrentsOnResultPage(resultString, searchName))
         torrentList.sortWith(TorrentComparator)
         return torrentList
@@ -52,13 +48,21 @@ class AnyBT internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper),
                 val jsonTorrent = jsonTorrentElement.asJsonObject.getAsJsonObject("row")
                 tempTorrent.name = jsonTorrent["file_name"].asJsonObject.get("value").asString
                 tempTorrent.isVerified = false
-                tempTorrent.magnetUri = TorrentHelper.buildMagnetUriFromHash(jsonTorrent["_id"].asJsonObject.get("value").asString.lowercase(Locale.getDefault()), tempTorrent.name)
-                tempTorrent.seeder = Double.parseDouble(jsonTorrent["total_count"].asJsonObject.get("value").asString).toInt()
+                tempTorrent.magnetUri = TorrentHelper.buildMagnetUriFromHash(
+                    jsonTorrent["_id"].asJsonObject.get("value").asString.lowercase(Locale.getDefault()),
+                    tempTorrent.name
+                )
+                tempTorrent.seeder =
+                    java.lang.Double.parseDouble(jsonTorrent["total_count"].asJsonObject.get("value").asString).toInt()
                 tempTorrent.leecher = tempTorrent.seeder
-                val sizeInBytes = Double.parseDouble(jsonTorrent["filesize"].asJsonObject.get("value").asString).toLong()
+                val sizeInBytes =
+                    java.lang.Double.parseDouble(jsonTorrent["filesize"].asJsonObject.get("value").asString).toLong()
                 tempTorrent.size = TorrentHelper.humanReadableByteCountBinary(sizeInBytes)
-                tempTorrent.sizeInMB = (sizeInBytes/ 1024.0f / 1024.0f).toDouble()
-                tempTorrent.date = Date(Double.parseDouble(jsonTorrent["firstadd_utc_timestamp"].asJsonObject.get("value").asString).toLong() * 1000)
+                tempTorrent.sizeInMB = (sizeInBytes / 1024.0f / 1024.0f).toDouble()
+                tempTorrent.date = Date(
+                    java.lang.Double.parseDouble(jsonTorrent["firstadd_utc_timestamp"].asJsonObject.get("value").asString)
+                        .toLong() * 1000
+                )
                 TorrentHelper.evaluateRating(tempTorrent, searchName)
                 if (TorrentHelper.isValidTorrent(tempTorrent)) {
                     torrentList.add(tempTorrent)
