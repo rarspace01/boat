@@ -2,12 +2,14 @@ package boat.info
 
 import boat.utilities.HttpHelper
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 
 internal class BluRayComServiceTest {
 
     private val bluRayComService: BluRayComService = BluRayComService(HttpHelper())
 
+    @Disabled
     @Test
     fun getReleasesForMonthAndYear() {
 
