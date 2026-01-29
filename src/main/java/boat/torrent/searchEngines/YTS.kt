@@ -41,7 +41,7 @@ class YTS internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper), T
     }
 
     override fun getBaseUrl(): String {
-        return "https://yts.mx"
+        return "https://yts.bz"
     }
 
     private fun parseTorrentsOnResultPage(pageContent: String, searchName: String): List<Torrent> {
