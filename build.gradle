@@ -127,7 +127,7 @@ wrapper {
     distributionType = Wrapper.DistributionType.ALL
 }
 kotlin {
-    jvmToolchain(24)
+    jvmToolchain(25)
 }
 
 subprojects {
