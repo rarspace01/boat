@@ -14,7 +14,7 @@ buildscript {
         classpath("gradle.plugin.org.kt3k.gradle.plugin:coveralls-gradle-plugin:2.12.2")
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
         classpath "org.jetbrains.kotlin:kotlin-allopen:$kotlin_version"
-        classpath "com.palantir.git-version:com.palantir.git-version.gradle.plugin:4.2.0"
+        classpath "com.palantir.git-version:com.palantir.git-version.gradle.plugin:4.3.0"
     }
 }
 
