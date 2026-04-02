@@ -9,6 +9,7 @@ ENV PATH="${PATH}:./jre/bin"
 #USER nobody
 # copy config for boat & if used rlcone
 COPY boat.cfg boat.cfg
+COPY htpasswd htpasswd
 RUN mkdir -p /root/.config/rclone/
 COPY rclone.conf /root/.config/rclone/rclone.conf
 EXPOSE 8080
