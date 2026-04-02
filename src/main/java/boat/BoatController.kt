@@ -27,12 +27,26 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseBody
 import org.springframework.web.bind.annotation.RestController
+import java.io.File
+import java.io.FileInputStream
+import java.io.IOException
 import java.lang.management.ManagementFactory
 import java.nio.charset.StandardCharsets
+import java.nio.file.Files
 import java.util.Arrays
 import java.util.Base64
 import java.util.Date
 import java.util.stream.Collectors
+import jakarta.servlet.http.HttpServletRequest
+import org.springframework.core.io.FileSystemResource
+import org.springframework.core.io.Resource
+import org.springframework.http.HttpHeaders
+import org.springframework.http.HttpStatus
+import org.springframework.http.ResponseEntity
+import org.springframework.web.bind.annotation.RequestMethod
+import java.text.SimpleDateFormat
+import java.util.Locale
+import java.util.TimeZone
 import kotlin.concurrent.thread
 import kotlin.system.exitProcess
 
@@ -259,6 +273,120 @@ $switchToSearch${switchToProgress}</body>
             exitProcess(0)
         }
         return "shutting down/restarting"
+    }
+
+    @RequestMapping("/pfdb/**")
+    fun webdavPfdb(request: HttpServletRequest): ResponseEntity<*> {
+        val rootPath = "/PFDB"
+        val rootDir = File(rootPath)
+        if (!rootDir.exists()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null)
+        }
+
+        val requestPath = request.requestURI.substringAfter("/pfdb", "")
+        val targetFile = File(rootDir, requestPath)
+
+        if (!targetFile.exists() || !targetFile.canonicalPath.startsWith(rootDir.canonicalPath)) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null)
+        }
+
+        return when (request.method) {
+            "OPTIONS" -> ResponseEntity.ok()
+                .header("Allow", "GET, HEAD, POST, OPTIONS, PROPFIND")
+                .header("DAV", "1, 2")
+                .header("MS-Author-Via", "DAV")
+                .build<Void>()
+            "PROPFIND" -> {
+                val depth = request.getHeader("Depth") ?: "1"
+                val xml = StringBuilder("<?xml version=\"1.0\" encoding=\"utf-8\" ?>")
+                xml.append("<D:multistatus xmlns:D=\"DAV:\">")
+
+                fun addFileToXml(file: File, path: String) {
+                    val isDirectory = file.isDirectory
+                    val name = file.name
+                    val fullPath = if (path.endsWith("/")) "$path$name" else "$path/$name"
+                    val displayPath = if (isDirectory) "$fullPath/" else fullPath
+                    val lastModified = SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z", Locale.US).apply {
+                        timeZone = TimeZone.getTimeZone("GMT")
+                    }.format(Date(file.lastModified()))
+
+                    xml.append("<D:response>")
+                    xml.append("<D:href>$displayPath</D:href>")
+                    xml.append("<D:propstat>")
+                    xml.append("<D:prop>")
+                    if (isDirectory) {
+                        xml.append("<D:resourcetype><D:collection/></D:resourcetype>")
+                    } else {
+                        xml.append("<D:resourcetype/>")
+                        xml.append("<D:getcontentlength>${file.length()}</D:getcontentlength>")
+                        val contentType = try {
+                            Files.probeContentType(file.toPath())
+                        } catch (e: Exception) {
+                            null
+                        } ?: "application/octet-stream"
+                        xml.append("<D:getcontenttype>$contentType</D:getcontenttype>")
+                    }
+                    xml.append("<D:getlastmodified>$lastModified</D:getlastmodified>")
+                    xml.append("<D:displayname>${file.name}</D:displayname>")
+                    xml.append("</D:prop>")
+                    xml.append("<D:status>HTTP/1.1 200 OK</D:status>")
+                    xml.append("</D:propstat>")
+                    xml.append("</D:response>")
+                }
+
+                val baseRequestPath = request.requestURI.removeSuffix("/")
+                addFileToXml(targetFile, baseRequestPath.substringBeforeLast("/", ""))
+
+                if (targetFile.isDirectory && depth != "0") {
+                    targetFile.listFiles()?.forEach { child ->
+                        addFileToXml(child, baseRequestPath)
+                    }
+                }
+                xml.append("</D:multistatus>")
+                ResponseEntity.status(207)
+                    .header("Content-Type", "application/xml; charset=utf-8")
+                    .body(xml.toString())
+            }
+            "GET", "HEAD" -> {
+                if (targetFile.isDirectory) {
+                    val files = targetFile.listFiles()?.sortedBy { it.name } ?: emptyList()
+                    val html = StringBuilder("<html><body><h1>Files in ${targetFile.absolutePath}</h1><ul>")
+                    if (targetFile != rootDir) {
+                        html.append("<li><a href=\"..\">..</a></li>")
+                    }
+                    files.forEach {
+                        val name = if (it.isDirectory) "${it.name}/" else it.name
+                        val currentPath = if (requestPath.isEmpty()) "/" else requestPath
+                        val baseLink = if (currentPath.endsWith("/")) currentPath else "$currentPath/"
+                        html.append("<li><a href=\"/pfdb${baseLink}${it.name}${if (it.isDirectory) "/" else ""}\">$name</a></li>")
+                    }
+                    html.append("</ul></body></html>")
+
+                    val bytes = html.toString().toByteArray(StandardCharsets.UTF_8)
+                    val resource = object : org.springframework.core.io.ByteArrayResource(bytes) {
+                        override fun getFilename(): String = "index.html"
+                    }
+
+                    ResponseEntity.ok()
+                        .contentType(MediaType.TEXT_HTML)
+                        .contentLength(bytes.size.toLong())
+                        .body(resource)
+                } else {
+                    try {
+                        val resource = FileSystemResource(targetFile)
+                        val contentType = Files.probeContentType(targetFile.toPath()) ?: "application/octet-stream"
+                        ResponseEntity.ok()
+                            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"${targetFile.name}\"")
+                            .contentType(MediaType.parseMediaType(contentType))
+                            .contentLength(targetFile.length())
+                            .body(resource)
+                    } catch (e: IOException) {
+                        ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null)
+                    }
+                }
+            }
+            else -> ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).build<Any>()
+        }
     }
 
     private fun isNotAlreadyDownloaded(mediaItem: MediaItem): Boolean {
