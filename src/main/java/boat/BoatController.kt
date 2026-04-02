@@ -91,7 +91,7 @@ class BoatController @Autowired constructor(
 
 <h2>Here to serve you</h2>
 
-<form action="../boat" target="_blank" method="GET">
+<form action="./query" target="_blank" method="GET">
   Title:<br>
   <input type="text" name="qq" value="" style="font-size: 2em; ">
 $BREAK_LINK_HTML  <input type="reset" value="Reset" style="font-size: 2em; ">
@@ -116,7 +116,7 @@ $switchToSearchList${switchToProgress.replace("..", "../boat")}</body>
 <body style="font-size: 2em;">
 
 <h2>Here to serve you</h2>
-<form action="../boat" target="_blank" method="POST">
+<form action="./query" target="_blank" method="POST">
 Download multiple movies (one per line):<br>
 <textarea id="qqq" name="qqq" rows="25" cols="25" style="font-size: 2em; ">
 </textarea>
@@ -124,12 +124,12 @@ $BREAK_LINK_HTML  <input type="reset" value="Reset" style="font-size: 2em; ">
   <input type="submit" value="Download" style="font-size: 2em; ">
 </form>
 <br/>
-$switchToSearch${switchToProgress.replace("..", "../boat")}</body>
+$switchToSearch${switchToProgress}</body>
 </html>
 """
     }
 
-    @RequestMapping("/boat")
+    @RequestMapping("/boat/query")
     fun searchTorrents(
         @RequestParam(value = "q", required = false) searchString: String?,
         @RequestParam(value = "qq", required = false) localSearchString: String?,

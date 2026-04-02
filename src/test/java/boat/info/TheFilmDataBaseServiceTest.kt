@@ -26,7 +26,7 @@ internal class TheFilmDataBaseServiceTest {
     fun searchEmpty() {
         // Given
         // When
-        val mediaItems = tfdbs!!.search("TrestTrest")
+        val mediaItems = tfdbs!!.search("blueasablue")
         // Then
         Assertions.assertEquals(0, mediaItems!!.size)
     }
