@@ -10,8 +10,7 @@ import java.nio.charset.StandardCharsets
 import java.text.CharacterIterator
 import java.text.StringCharacterIterator
 import java.time.Duration
-import java.util.EnumMap
-import java.util.Locale
+import java.util.*
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.function.Consumer
 import java.util.stream.Collectors
@@ -27,7 +26,6 @@ object TorrentHelper {
     val mediaFileRegex = Regex("[.]?(mp4|mkv|avi|divx|ts|mpeg|divx|xvid|mov|webm|wmv|avchd|flv)\$")
     val seriesRegex = "(s[0-9]{1,2}[a-z]+)|(season)".toRegex()
 
-    val TAG_REGEX = "(" + listOfReleaseTagsPiped() + ")"
     private fun listOfReleaseTagsPiped(): String {
         return torrentService.getReleaseTags().joinToString("($|[ .-]+)|[ .]")
     }
@@ -40,7 +38,7 @@ object TorrentHelper {
             } else if (tempTorrent.size.contains("MiB") || tempTorrent.size.contains("MB")) {
                 torrentSize = trimSizeStringToValue(tempTorrent).toDouble().toLong()
             }
-        } catch (ignored: Exception) {
+        } catch (_: Exception) {
         }
         return torrentSize.toDouble()
     }
@@ -53,7 +51,7 @@ object TorrentHelper {
             } else if (sizeString.contains("MiB") || sizeString.contains("MB")) {
                 torrentSize = trimSizeStringToValue(sizeString).toDouble().toLong()
             }
-        } catch (ignored: Exception) {
+        } catch (_: Exception) {
         }
         return torrentSize.toDouble()
     }
@@ -81,8 +79,10 @@ object TorrentHelper {
         val normalizedSearchName = getNormalizedTorrentString(searchName)
 
         //check individual words
-        val searchWords = listOf(*normalizedSearchNameWithSpaces.split(" ".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray())
-        val torrentWords = listOf(*normalizedTorrentNameWithSpaces.split(" ".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray())
+        val searchWords =
+            listOf(*normalizedSearchNameWithSpaces.split(" ".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray())
+        val torrentWords =
+            listOf(*normalizedTorrentNameWithSpaces.split(" ".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray())
         val torrentWordCount = torrentWords.size
         val matches = AtomicInteger()
         searchWords.forEach(Consumer { searchWord: String? ->
@@ -102,7 +102,7 @@ object TorrentHelper {
         // calc first range
         val mathSize = Math.min(tempTorrent.sizeInMB, SIZE_UPPER_LIMIT) / SIZE_UPPER_LIMIT
         val isRemux = torrentName.lowercase().contains("remux")
-        if(isRemux) {
+        if (isRemux) {
             debugAdditional += "♻"
         }
         val sizeRating = mathSize * (if (isRemux) 0.5 else 1.0)
@@ -137,7 +137,10 @@ object TorrentHelper {
             debugAdditional += "☑️"
         }
         if (tempTorrent.cached.isNotEmpty()) {
-            debugAdditional += String.format("⚡(%s)", tempTorrent.cached.stream().map { s: String -> s[0] }.collect(Collectors.toList()))
+            debugAdditional += String.format(
+                "⚡(%s)",
+                tempTorrent.cached.stream().map { s: String -> s[0] }.collect(Collectors.toList())
+            )
             speedRating = 2.0
             speedMultiplier = 1.0
         } else if (seedRatio > 1.0) {
@@ -150,7 +153,8 @@ object TorrentHelper {
         }
 
         // searchRatingNew Calc
-        tempTorrent.searchRating = matchedScoreOfSearch * speedMultiplier * (matchedScoreOfTorrent + sizeRating + speedRating + additionalRating)
+        tempTorrent.searchRating =
+            matchedScoreOfSearch * speedMultiplier * (matchedScoreOfTorrent + sizeRating + speedRating + additionalRating)
         tempTorrent.debugRating = String.format(
             "🔍%.2f * 📶%.2f * (🔦%.2f + 📦%.2f + 🚄%.2f (%.2f) + 🧮%.2f - %s)",
             matchedScoreOfSearch,
@@ -168,7 +172,8 @@ object TorrentHelper {
     fun getNormalizedTorrentString(name: String): String {
         val lowerCase = name.replace(REGEX_RELEASE_GROUP.toRegex(), "").lowercase(Locale.getDefault())
         val trimmedAndCleaned =
-            lowerCase.trim { it <= ' ' }.replace("['`´!]".toRegex(), "").replace(",".toRegex(), ".").replace("\\[[A-Za-z0-9. -]*\\]".toRegex(), "")
+            lowerCase.trim { it <= ' ' }.replace("['`´!]".toRegex(), "").replace(",".toRegex(), ".")
+                .replace("\\[[A-Za-z0-9. -]*\\]".toRegex(), "")
         val regexCleaned = getRegexCleaned(trimmedAndCleaned)
         return regexCleaned.replace("[()]+".toRegex(), "").replace("\\s".toRegex(), "").replace("\\.".toRegex(), "")
     }
@@ -184,7 +189,8 @@ object TorrentHelper {
     }
 
     fun getNormalizedTorrentStringWithSpaces(name: String): String {
-        val lowerCase = name.replace(REGEX_RELEASE_GROUP.toRegex(), "").lowercase(Locale.getDefault()).replace("\"".toRegex(), "")
+        val lowerCase =
+            name.replace(REGEX_RELEASE_GROUP.toRegex(), "").lowercase(Locale.getDefault()).replace("\"".toRegex(), "")
         return getRegexCleaned(
             lowerCase.trim { it <= ' ' }.replace("['`´!]".toRegex(), "").replace("\\[[a-z0-9. -]*\\]".toRegex(), "")
                 .replace(",".toRegex(), ".")
@@ -195,8 +201,10 @@ object TorrentHelper {
         if (name == null) {
             return null
         }
-        val string = name.replace(REGEX_RELEASE_GROUP.toRegex(), "").lowercase(Locale.getDefault()).replace("\"".toRegex(), "")
-        return getRegexCleaned(string.trim { it <= ' ' }.replace("\\[[A-Za-z0-9. -]*\\]".toRegex(), "")).replace("\\.".toRegex(), " ").trim { it <= ' ' }
+        val string =
+            name.replace(REGEX_RELEASE_GROUP.toRegex(), "").lowercase(Locale.getDefault()).replace("\"".toRegex(), "")
+        return getRegexCleaned(string.trim { it <= ' ' }
+            .replace("\\[[A-Za-z0-9. -]*\\]".toRegex(), "")).replace("\\.".toRegex(), " ").trim { it <= ' ' }
     }
 
     fun cleanNumberString(value: String): String {
@@ -209,7 +217,9 @@ object TorrentHelper {
     }
 
     private fun isExplicitContent(torrentNameLowerCased: String): Boolean {
-        return torrentNameLowerCased.contains("xxx") || torrentNameLowerCased.contains("porn") || torrentNameLowerCased.contains("sluts")
+        return torrentNameLowerCased.contains("xxx") || torrentNameLowerCased.contains("porn") || torrentNameLowerCased.contains(
+            "sluts"
+        )
     }
 
     private fun isBadQualityName(torrentNameLowerCased: String) =
@@ -257,10 +267,6 @@ object TorrentHelper {
         return TorrentType.TRANSFER
     }
 
-    fun isMovieString(string: String): Boolean {
-        return string.matches(".*([xXhH]26[4-5]|[xX][vV][iI][dD]|[1-2][0-9]{3}[^0-9p\\/M\\@]*).*".toRegex())
-    }
-
     fun prepareTorrentName(torrentName: String?): String {
         val normalizedTorrentStringWithSpaces = getNormalizedTorrentStringWithSpacesKeepCase(torrentName)
         return removeReleaseTags(normalizedTorrentStringWithSpaces)
@@ -294,9 +300,9 @@ object TorrentHelper {
     }
 
     fun determineTypeOfMedia(filesFromTorrent: List<TorrentFile>): TorrentType {
-        val countMap: MutableMap<TorrentType, Int> = EnumMap(boat.torrent.TorrentType::class.java)
+        val countMap: MutableMap<TorrentType, Int> = EnumMap(TorrentType::class.java)
         filesFromTorrent.forEach(Consumer { (_, name): TorrentFile -> countMap.compute(determineTypeOfMedia(name)) { _: TorrentType?, integer: Int? -> if (integer == null) 1 else integer + 1 } })
-        if (countMap.entries.size == 0) return TorrentType.TRANSFER
+        if (countMap.entries.isEmpty()) return TorrentType.TRANSFER
         val maxEntry: Map.Entry<TorrentType, Int> = countMap.entries.maxBy { it.value }
         return maxEntry.key
     }
@@ -311,10 +317,19 @@ object TorrentHelper {
     fun formatDuration(duration: Duration): String {
         return if (duration.toDays() > 0) {
             String.format(
-                "D: %sdays %shrs %smin %ssec", duration.toDays(), duration.toHours() % 24, duration.toMinutes() % 60, duration.seconds % 60
+                "D: %sdays %shrs %smin %ssec",
+                duration.toDays(),
+                duration.toHours() % 24,
+                duration.toMinutes() % 60,
+                duration.seconds % 60
             )
         } else {
-            String.format("D: %shrs %smin %ssec", duration.toHours() % 24, duration.toMinutes() % 60, duration.seconds % 60)
+            String.format(
+                "D: %shrs %smin %ssec",
+                duration.toHours() % 24,
+                duration.toMinutes() % 60,
+                duration.seconds % 60
+            )
         }
     }
 
