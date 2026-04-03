@@ -73,6 +73,25 @@ class BoatController @Autowired constructor(
     private val switchToSearchList = "<a href=\"./searchList\">Search a List</a> "
     private val switchToSearch = "<a href=\"./search\">Search a single Title</a> "
 
+    private val htmlHeader = """<!DOCTYPE html>
+<html>
+<head>
+<style>
+    body { font-size: 2em; }
+    input { font-size: 1em; }
+    textarea { font-size: 1em; }
+    @media (min-width: 800px) {
+        body { font-size: 1em; }
+    }
+</style>
+</head>
+<body>
+"""
+
+    private val htmlFooter = """</body>
+</html>
+"""
+
     @GetMapping("/")
     fun index(): String {
         return "Greetings from Spring Boot!"
@@ -99,48 +118,38 @@ class BoatController @Autowired constructor(
 
     @GetMapping("/boat/search")
     fun search(): String {
-        return """<!DOCTYPE html>
-<html>
-<body style="font-size: 2em;">
-
+        return htmlHeader + """
 <h2>Here to serve you</h2>
 
 <form action="./query" target="_blank" method="GET">
   Title:<br>
-  <input type="text" name="qq" value="" style="font-size: 2em; ">
-$BREAK_LINK_HTML  <input type="reset" value="Reset" style="font-size: 2em; ">
-  <input type="submit" value="Search" style="font-size: 2em; ">
+  <input type="text" name="qq" value="">
+$BREAK_LINK_HTML  <input type="reset" value="Reset">
+  <input type="submit" value="Search">
 </form>
 $BREAK_LINK_HTML$BREAK_LINK_HTML<form action="./download" target="_blank" method="POST">
   Direct download URL (multiple seperate by comma):<br>
-  <input type="text" name="dd" value="" style="font-size: 2em; ">
-$BREAK_LINK_HTML  <input type="reset" value="Reset" style="font-size: 2em; ">
-  <input type="submit" value="Download" style="font-size: 2em; ">
+  <input type="text" name="dd" value="">
+$BREAK_LINK_HTML  <input type="reset" value="Reset">
+  <input type="submit" value="Download">
 </form>
 <br/>
-$switchToSearchList${switchToProgress.replace("..", "../boat")}</body>
-</html>
-"""
+$switchToSearchList${switchToProgress.replace("..", "../boat")}""" + htmlFooter
     }
 
     @GetMapping("/boat/searchList")
     fun searchList(): String {
-        return """<!DOCTYPE html>
-<html>
-<body style="font-size: 2em;">
-
+        return htmlHeader + """
 <h2>Here to serve you</h2>
 <form action="./query" target="_blank" method="POST">
 Download multiple movies (one per line):<br>
-<textarea id="qqq" name="qqq" rows="25" cols="25" style="font-size: 2em; ">
+<textarea id="qqq" name="qqq" rows="25" cols="25">
 </textarea>
-$BREAK_LINK_HTML  <input type="reset" value="Reset" style="font-size: 2em; ">
-  <input type="submit" value="Download" style="font-size: 2em; ">
+$BREAK_LINK_HTML  <input type="reset" value="Reset">
+  <input type="submit" value="Download">
 </form>
 <br/>
-$switchToSearch${switchToProgress}</body>
-</html>
-"""
+$switchToSearch${switchToProgress}""" + htmlFooter
     }
 
     @RequestMapping("/boat/query")
@@ -154,8 +163,8 @@ $switchToSearch${switchToProgress}</body>
         if (localSearchString != null && Strings.isNotEmpty(localSearchString)) {
             val existingFiles = cloudService.findExistingFiles(localSearchString)
             searchString = if (existingFiles.isNotEmpty()) {
-                return ("We already found some files:<br/>" + java.lang.String.join("<br/>", existingFiles)
-                        + "<br/>Still want to search? <a href=\"?q=" + localSearchString + "\">Yes</a>")
+                return htmlHeader + ("We already found some files:<br/>" + java.lang.String.join("<br/>", existingFiles)
+                        + "<br/>Still want to search? <a href=\"?q=" + localSearchString + "\">Yes</a>") + htmlFooter
             } else {
                 localSearchString
             }
@@ -166,7 +175,8 @@ $switchToSearch${switchToProgress}</body>
                 "Took: [{}]ms for [{}] found [{}]", System.currentTimeMillis() - startTime, searchString,
                 torrentList.size
             )
-            "G: " + torrentList.stream().limit(50).collect(Collectors.toList())
+            htmlHeader + "G: " + torrentList.stream().limit(50).collect(Collectors.toList())
+                .joinToString(separator = "") + htmlFooter
         } else if (luckySearchList != null && Strings.isNotEmpty(luckySearchList)) {
             val schemes = arrayOf("http", "https")
             val urlValidator = UrlValidator(schemes)
@@ -182,12 +192,12 @@ $switchToSearch${switchToProgress}</body>
                     .collect(Collectors.toList())
                 queueService.addAll(listOfMediaItems)
                 queueService.saveQueue()
-                switchToProgress.replace("..", "../boat") + listOfMediaItems
+                htmlHeader + (switchToProgress.replace("..", "../boat") + listOfMediaItems) + htmlFooter
             } else {
-                "Error: nothing in remote url"
+                htmlHeader + "Error: nothing in remote url" + htmlFooter
             }
         } else {
-            "Error: nothing to search"
+            htmlHeader + "Error: nothing to search" + htmlFooter
         }
     }
 
