@@ -78,11 +78,11 @@ class BoatController @Autowired constructor(
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-    body { font-size: 1.5em; }
-    input { font-size: 1em; }
-    textarea { font-size: 1em; }
+    body { font-size: 1.5em; overflow-wrap: break-word; word-wrap: break-word; }
+    input[type="text"], textarea { font-size: 1em; width: 95%; box-sizing: border-box; }
     @media (min-width: 800px) {
         body { font-size: 1em; }
+        input[type="text"], textarea { width: auto; }
     }
 </style>
 </head>
