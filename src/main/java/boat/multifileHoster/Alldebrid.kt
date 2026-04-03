@@ -19,7 +19,7 @@ import java.util.stream.Collectors
 class Alldebrid(httpHelper: HttpHelper) : HttpUser(httpHelper), MultifileHoster {
     override fun addTorrentToDownloadQueue(toBeAddedTorrent: Torrent): String {
         val requestUrl =
-            "https://api.alldebrid.com/v4/magnet/upload?agent=pirateboat&apikey=" + PropertiesHelper.getProperty("ALLDEBRID_APIKEY") + "%s"
+            "https://api.alldebrid.com/v4/magnet/upload?agent=boat&apikey=" + PropertiesHelper.getProperty("ALLDEBRID_APIKEY") + "%s"
         val urlEncodedBrackets = TorrentHelper.urlEncode("[]")
         val collected = "&magnets" + urlEncodedBrackets + "=" + TorrentHelper.urlEncode(toBeAddedTorrent.magnetUri)
         val checkUrl = String.format(requestUrl, collected)
@@ -33,7 +33,7 @@ class Alldebrid(httpHelper: HttpHelper) : HttpUser(httpHelper), MultifileHoster 
     override fun getRemoteTorrents(): List<Torrent> {
         val torrents: MutableList<Torrent> = ArrayList()
         val requestUrl =
-            "https://api.alldebrid.com/v4/magnet/status?agent=pirateboat&apikey=" + PropertiesHelper.getProperty("ALLDEBRID_APIKEY")
+            "https://api.alldebrid.com/v4/magnet/status?agent=boat&apikey=" + PropertiesHelper.getProperty("ALLDEBRID_APIKEY")
         val pageContent = httpHelper.getPage(requestUrl)
         val jsonRoot = JsonParser.parseString(pageContent)
         if (!pageContent.contains("data")) {
@@ -70,7 +70,7 @@ class Alldebrid(httpHelper: HttpHelper) : HttpUser(httpHelper), MultifileHoster 
     private fun getRemoteTorrentById(remoteId: String?): Torrent? {
         val remoteIdString = if (remoteId == null) "" else "&id=$remoteId"
         val requestUrl =
-            "https://api.alldebrid.com/v4/magnet/status?agent=pirateboat&apikey=" + PropertiesHelper.getProperty("ALLDEBRID_APIKEY") + remoteIdString
+            "https://api.alldebrid.com/v4/magnet/status?agent=boat&apikey=" + PropertiesHelper.getProperty("ALLDEBRID_APIKEY") + remoteIdString
         val pageContent = httpHelper.getPage(requestUrl)
         var torrent: Torrent? = null
         val jsonRoot = JsonParser.parseString(pageContent)
@@ -117,7 +117,7 @@ class Alldebrid(httpHelper: HttpHelper) : HttpUser(httpHelper), MultifileHoster 
 
     private fun resolveDirectLink(torrentFilePath: String): String {
         val baseUrl =
-            "https://api.alldebrid.com/v4/link/unlock?agent=pirateboat&apikey=" + PropertiesHelper.getProperty("ALLDEBRID_APIKEY") + "&link=%s"
+            "https://api.alldebrid.com/v4/link/unlock?agent=boat&apikey=" + PropertiesHelper.getProperty("ALLDEBRID_APIKEY") + "&link=%s"
         val requestUrl = String.format(baseUrl, TorrentHelper.urlEncode(torrentFilePath))
         val pageContent = httpHelper.getPage(requestUrl)
         val jsonRoot = JsonParser.parseString(pageContent)
@@ -130,7 +130,7 @@ class Alldebrid(httpHelper: HttpHelper) : HttpUser(httpHelper), MultifileHoster 
     override fun enrichCacheStateOfTorrents(torrents: List<Torrent>) {
         /*
         val requestUrl =
-            "https://api.alldebrid.com/v4/magnet/instant?agent=pirateboat&apikey=" + PropertiesHelper.getProperty("ALLDEBRID_APIKEY") + "%s"
+            "https://api.alldebrid.com/v4/magnet/instant?agent=boat&apikey=" + PropertiesHelper.getProperty("ALLDEBRID_APIKEY") + "%s"
         val urlEncodedBrackets = TorrentHelper.urlEncode("[]")
         val collected = torrents.stream().map { obj: Torrent -> obj.torrentId }
             .collect(Collectors.joining("&magnets$urlEncodedBrackets=", "&magnets$urlEncodedBrackets=", ""))
@@ -163,7 +163,7 @@ class Alldebrid(httpHelper: HttpHelper) : HttpUser(httpHelper), MultifileHoster 
 
     override fun delete(remoteTorrent: Torrent) {
         val requestUrl =
-            "https://api.alldebrid.com/v4/magnet/delete?agent=pirateboat&apikey=" + PropertiesHelper.getProperty("ALLDEBRID_APIKEY") + "&id=" + remoteTorrent.remoteId
+            "https://api.alldebrid.com/v4/magnet/delete?agent=boat&apikey=" + PropertiesHelper.getProperty("ALLDEBRID_APIKEY") + "&id=" + remoteTorrent.remoteId
         httpHelper.getPage(requestUrl)
     }
 
