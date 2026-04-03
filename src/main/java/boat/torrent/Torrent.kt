@@ -52,7 +52,7 @@ data class Torrent(
         if (magnetUri.isNotEmpty()) {
             magnetUriBase64 = Base64.getUrlEncoder().encodeToString(magnetUri.toByteArray(StandardCharsets.UTF_8))
         }
-        stringBuilder.append(String.format("[%s]\uD83C\uDFE0[%s]", name, retrieveSourceName()))
+        stringBuilder.append(String.format("[%s][%s]", name, retrieveSourceName()))
         if (!isRemoteTorrent) {
             stringBuilder.append(String.format("[%s@<!-- ][%s/%s][ -->%.2f]", size, leecher, seeder, seedRatio))
             stringBuilder.append(String.format("<!-- R: %.2f -->", searchRating))
