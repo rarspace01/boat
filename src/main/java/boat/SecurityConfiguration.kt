@@ -48,8 +48,7 @@ class SecurityConfiguration {
 
         if (htpasswdExists) {
             http
-                .httpBasic(Customizer.withDefaults<HttpBasicConfigurer<HttpSecurity>>())
-                .formLogin(Customizer.withDefaults<FormLoginConfigurer<HttpSecurity>>())
+                .httpBasic(Customizer.withDefaults())
         }
 
         return http.build()

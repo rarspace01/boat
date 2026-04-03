@@ -257,7 +257,6 @@ $switchToSearch${switchToProgress}""" + htmlFooter
         val startDate = Date(startTime)
         return htmlHeader + ("v:" + PropertiesHelper.getVersion() + " started: " + startDate
                 + "<br/>MODE: " + configurationService.getServiceMode()
-                + "<br/>remote host: " + httpHelper.externalHostname()
                 + "<br/>cloud token: " + (if (cloudService.isCloudTokenValid) "✅" else "❌")
                 + "<br/>search Cache: " + (if (cloudFileService.isCacheFilled) "✅" else "❌")
                 + "<br/>ActiveSearchEngines: " + torrentSearchEngineService.getActiveSearchEngines()
