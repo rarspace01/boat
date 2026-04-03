@@ -32,15 +32,15 @@ class CloudService internal constructor(
     private fun deductSeriesNameFrom(preparedTorrentName: String): String {
         return Arrays.stream(
             preparedTorrentName
-            .lowercase(Locale.getDefault())
-            .trim { it <= ' ' }
-            .replace("s[0-9]+e[0-9]+.*".toRegex(), "")
-            .replace("season[.\\s]?[0-9-]+.*".toRegex(), "")
-            .trim { it <= ' ' }
-            .replace("\\s+".toRegex(), ".")
-            .split("\\.".toRegex())
-            .dropLastWhile { it.isEmpty() }
-            .toTypedArray()
+                .lowercase(Locale.getDefault())
+                .trim { it <= ' ' }
+                .replace("s[0-9]+e[0-9]+.*".toRegex(), "")
+                .replace("season[.\\s]?[0-9-]+.*".toRegex(), "")
+                .trim { it <= ' ' }
+                .replace("\\s+".toRegex(), ".")
+                .split("\\.".toRegex())
+                .dropLastWhile { it.isEmpty() }
+                .toTypedArray()
         )
             .map { str: String -> StringUtils.capitalize(str) }
             .collect(Collectors.joining("."))
@@ -93,7 +93,7 @@ class CloudService internal constructor(
             }
         }.also {
             logger.info("Find files took: ${Duration.between(start, Instant.now())}")
-        }
+        }.map { fileString: String -> fileString.replace(PropertiesHelper.getProperty(RCLONE_DIR), "") }
     }
 
     fun getAllFiles(): List<String> {
