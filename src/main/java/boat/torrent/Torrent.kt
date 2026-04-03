@@ -4,10 +4,7 @@ import boat.model.TransferStatus
 import org.apache.logging.log4j.util.Strings
 import java.nio.charset.StandardCharsets
 import java.time.Duration
-import java.util.Base64
-import java.util.Date
-import java.util.Locale
-import java.util.Objects
+import java.util.*
 import java.util.regex.Pattern
 
 data class Torrent(
@@ -57,8 +54,14 @@ data class Torrent(
         }
         stringBuilder.append(String.format("[%s]\uD83C\uDFE0[%s]", name, retrieveSourceName()))
         if (!isRemoteTorrent) {
-            stringBuilder.append(String.format("[%s]<!-- [%s/%s-->%.2f]", size, leecher, seeder, seedRatio))
+            stringBuilder.append(String.format("[%s@<!-- ][%s/%s][ -->%.2f]", size, leecher, seeder, seedRatio))
             stringBuilder.append(String.format("<!-- R: %.2f -->", searchRating))
+        }
+        if (cached.isNotEmpty()) {
+            stringBuilder.append("⚡")
+        }
+        if (isVerified) {
+            stringBuilder.append("✅")
         }
         if (isNotARemoteTorrent(magnetUriBase64)) {
             stringBuilder.append("<a href=\"./boat/download?d=").append(magnetUriBase64).append("\">Download</a>")
@@ -66,17 +69,9 @@ data class Torrent(
         if (Strings.isNotEmpty(debugRating)) {
             stringBuilder.append(debugRating)
         }
-        if(cached.isNotEmpty()){
-            stringBuilder.append("⚡")
-        }
-        if(isVerified){
-            stringBuilder.append("✅")
-        }
 
 
-        /*        if (getTorrentId() != null) {
-            stringBuilder.append(" TID:" + getTorrentId());
-        }*/if (remoteStatusText.isNotEmpty() && remoteProgress != null) {
+        if (remoteStatusText.isNotEmpty() && remoteProgress != null) {
             var progress = "/" + remoteProgress
             if (remoteStatusText.contains("Uploading")) {
                 progress = ""
@@ -88,7 +83,15 @@ data class Torrent(
             stringBuilder.append(" ETA:").append(eta)
         }
         if (!isNotARemoteTorrent(magnetUriBase64)) {
-            stringBuilder.append(String.format("%s - %s - folder_id: %s file_id: %s", torrentId, remoteId, folder_id, file_id))
+            stringBuilder.append(
+                String.format(
+                    "%s - %s - folder_id: %s file_id: %s",
+                    torrentId,
+                    remoteId,
+                    folder_id,
+                    file_id
+                )
+            )
         }
         stringBuilder.append("</br>")
         return stringBuilder.toString()
@@ -106,7 +109,7 @@ data class Torrent(
         get() = remoteId.isNotEmpty()
 
     override fun equals(other: Any?): Boolean {
-        return torrentId == if (other != null) (other as Torrent).torrentId else null
+        return other is Torrent && torrentId == other.torrentId
     }
 
     val torrentId: String
