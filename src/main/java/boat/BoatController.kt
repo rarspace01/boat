@@ -76,6 +76,7 @@ class BoatController @Autowired constructor(
     private val htmlHeader = """<!DOCTYPE html>
 <html>
 <head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
     body { font-size: 2em; }
     input { font-size: 1em; }
@@ -254,7 +255,7 @@ $switchToSearch${switchToProgress}""" + htmlFooter
         val runtimeBean = ManagementFactory.getRuntimeMXBean()
         val startTime = runtimeBean.startTime
         val startDate = Date(startTime)
-        return ("v:" + PropertiesHelper.getVersion() + " started: " + startDate
+        return htmlHeader + ("v:" + PropertiesHelper.getVersion() + " started: " + startDate
                 + "<br/>MODE: " + configurationService.getServiceMode()
                 + "<br/>remote host: " + httpHelper.externalHostname()
                 + "<br/>cloud token: " + (if (cloudService.isCloudTokenValid) "✅" else "❌")
@@ -272,7 +273,7 @@ $switchToSearch${switchToProgress}""" + htmlFooter
             "<br/>Queue [%d]: %s",
             queueService.getQueue().size,
             queueService.getQueue()
-        ))
+        )) + htmlFooter
     }
 
     @GetMapping("/boat/shutdown")
