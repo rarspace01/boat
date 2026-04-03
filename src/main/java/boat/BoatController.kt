@@ -176,7 +176,7 @@ $switchToSearch${switchToProgress}""" + htmlFooter
                 "Took: [{}]ms for [{}] found [{}]", System.currentTimeMillis() - startTime, searchString,
                 torrentList.size
             )
-            htmlHeader + "G: " + torrentList.stream().limit(50).collect(Collectors.toList())
+            htmlHeader + torrentList.stream().limit(50).collect(Collectors.toList())
                 .joinToString(separator = "") + htmlFooter
         } else if (luckySearchList != null && Strings.isNotEmpty(luckySearchList)) {
             val schemes = arrayOf("http", "https")

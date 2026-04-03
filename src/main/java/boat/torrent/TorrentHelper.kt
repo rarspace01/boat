@@ -68,6 +68,8 @@ object TorrentHelper {
         tempTorrent.debugRating = ""
         tempTorrent.searchRating = 0.0
         var debugAdditional = ""
+        var isInstantDownload = false
+        var isVerified = false
         var torrentName = tempTorrent.name
         var additionalRating = 0.0
         if (torrentName.isBlank()) {
@@ -156,7 +158,7 @@ object TorrentHelper {
         tempTorrent.searchRating =
             matchedScoreOfSearch * speedMultiplier * (matchedScoreOfTorrent + sizeRating + speedRating + additionalRating)
         tempTorrent.debugRating = String.format(
-            "🔍%.2f * 📶%.2f * (🔦%.2f + 📦%.2f + 🚄%.2f (%.2f) + 🧮%.2f - %s)",
+            "<!-- 🔍%.2f * 📶%.2f * (🔦%.2f + 📦%.2f + 🚄%.2f (%.2f) + 🧮%.2f - %s) -->",
             matchedScoreOfSearch,
             speedMultiplier,
             matchedScoreOfTorrent,

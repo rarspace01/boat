@@ -57,14 +57,20 @@ data class Torrent(
         }
         stringBuilder.append(String.format("[%s]\uD83C\uDFE0[%s]", name, retrieveSourceName()))
         if (!isRemoteTorrent) {
-            stringBuilder.append(String.format("[%s][%s/%s@%.2f]", size, leecher, seeder, seedRatio))
-            stringBuilder.append(String.format("R: %.2f ", searchRating))
+            stringBuilder.append(String.format("[%s]<!-- [%s/%s-->%.2f]", size, leecher, seeder, seedRatio))
+            stringBuilder.append(String.format("<!-- R: %.2f -->", searchRating))
         }
         if (isNotARemoteTorrent(magnetUriBase64)) {
             stringBuilder.append("<a href=\"./boat/download?d=").append(magnetUriBase64).append("\">Download</a>")
         }
         if (Strings.isNotEmpty(debugRating)) {
-            stringBuilder.append(" 🏭").append(debugRating)
+            stringBuilder.append(debugRating)
+        }
+        if(cached.isNotEmpty()){
+            stringBuilder.append("⚡")
+        }
+        if(isVerified){
+            stringBuilder.append("✅")
         }
 
 
