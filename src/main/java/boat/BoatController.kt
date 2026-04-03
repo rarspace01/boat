@@ -78,7 +78,7 @@ class BoatController @Autowired constructor(
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-    body { font-size: 2em; }
+    body { font-size: 1.5em; }
     input { font-size: 1em; }
     textarea { font-size: 1em; }
     @media (min-width: 800px) {
