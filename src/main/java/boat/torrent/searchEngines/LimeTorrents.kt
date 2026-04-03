@@ -68,6 +68,6 @@ class LimeTorrents internal constructor(httpHelper: HttpHelper) : HttpUser(httpH
     }
 
     override fun toString(): String {
-        return this.javaClass.simpleName
+        return "LiT"
     }
 }

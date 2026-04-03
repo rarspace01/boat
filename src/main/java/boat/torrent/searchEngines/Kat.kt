@@ -95,6 +95,6 @@ class Kat internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper), T
     }
 
     override fun toString(): String {
-        return this.javaClass.simpleName
+        return "K"
     }
 }

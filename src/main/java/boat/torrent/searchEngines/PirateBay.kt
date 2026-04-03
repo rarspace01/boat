@@ -72,6 +72,6 @@ class PirateBay internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelp
     }
 
     override fun toString(): String {
-        return this.javaClass.simpleName
+        return "P"
     }
 }

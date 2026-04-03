@@ -66,6 +66,6 @@ class Zooqle internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper)
     }
 
     override fun toString(): String {
-        return this.javaClass.simpleName
+        return "Z"
     }
 }
