@@ -64,7 +64,7 @@ data class Torrent(
             stringBuilder.append("✅")
         }
         if (isNotARemoteTorrent(magnetUriBase64)) {
-            stringBuilder.append("<a href=\"./boat/download?d=").append(magnetUriBase64).append("\">Download</a>")
+            stringBuilder.append("<a href=\"./download?d=").append(magnetUriBase64).append("\">Download</a>")
         }
         if (Strings.isNotEmpty(debugRating)) {
             stringBuilder.append(debugRating)
