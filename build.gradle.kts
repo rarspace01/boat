@@ -36,7 +36,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-actuator:$springBootVersion")
     // end::actuator[]
 
-    implementation("org.jsoup:jsoup:1.22.1")
+    implementation("org.jsoup:jsoup:1.22.2")
     implementation("com.google.code.gson:gson:2.13.2")
 
     implementation("org.springframework.boot:spring-boot-properties-migrator:$springBootVersion")
