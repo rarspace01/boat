@@ -19,7 +19,7 @@ repositories {
     mavenCentral()
 }
 
-val springBootVersion = "4.0.5"
+val springBootVersion = "4.0.6"
 val lombokVersion = "1.18.46"
 val mockitoVersion = "5.23.0"
 val kotlinVersion = "2.3.20"
