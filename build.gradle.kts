@@ -9,7 +9,7 @@ plugins {
     kotlin("plugin.spring") version "2.3.20"
     id("eclipse")
     id("idea")
-    id("org.springframework.boot") version "4.0.5"
+    id("org.springframework.boot") version "4.0.6"
     id("io.spring.dependency-management") version "1.1.7"
     id("com.github.kt3k.coveralls") version "2.12.2"
     id("com.palantir.git-version") version "5.0.0"
