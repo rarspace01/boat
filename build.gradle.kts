@@ -43,7 +43,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-cache:$springBootVersion")
     implementation("org.springframework.boot:spring-boot-starter-data-mongodb:$springBootVersion")
     implementation("org.springframework.boot:spring-boot-starter-security:$springBootVersion")
-    implementation("com.github.ben-manes.caffeine:caffeine:3.2.3")
+    implementation("com.github.ben-manes.caffeine:caffeine:3.2.4")
     implementation("commons-io:commons-io:2.22.0")
     implementation("commons-codec:commons-codec:1.22.0")
     implementation("commons-validator:commons-validator:1.10.1")
