@@ -58,7 +58,7 @@ dependencies {
 
     testImplementation("org.mockito:mockito-core:$mockitoVersion")
     testImplementation("org.mockito:mockito-junit-jupiter:$mockitoVersion")
-    testImplementation("io.mockk:mockk:1.14.9")
+    testImplementation("io.mockk:mockk:1.14.11")
     testImplementation("org.junit.jupiter:junit-jupiter:6.1.0")
     testImplementation("org.springframework.boot:spring-boot-starter-test:$springBootVersion")
 
