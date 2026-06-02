@@ -1,6 +1,8 @@
 package boat
 
 import boat.info.*
+import boat.model.ByteRange
+import boat.model.LimitedInputStream
 import boat.multifileHoster.MultifileHosterService
 import boat.services.ConfigurationService
 import boat.services.TransferService
@@ -23,6 +25,7 @@ import org.springframework.http.ResponseEntity
 import org.springframework.web.HttpMediaTypeNotAcceptableException
 import org.springframework.web.bind.annotation.*
 import java.io.File
+import java.io.FileInputStream
 import java.io.IOException
 import java.lang.management.ManagementFactory
 import java.net.URLDecoder
@@ -369,13 +372,44 @@ $switchToSearch${switchToProgress}""" + htmlFooter
                         .body(resource)
                 } else {
                     try {
-                        val resource = FileSystemResource(targetFile)
                         val contentType = Files.probeContentType(targetFile.toPath()) ?: "application/octet-stream"
-                        ResponseEntity.ok()
-                            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"${targetFile.name}\"")
-                            .contentType(MediaType.parseMediaType(contentType))
-                            .contentLength(targetFile.length())
-                            .body(resource)
+                        val encodedFilename = URLEncoder.encode(targetFile.name, StandardCharsets.UTF_8).replace("+", "%20")
+                        val contentDisposition = "attachment; filename=\"${targetFile.name.replace("\"", "\\\"")}\"; filename*=UTF-8''$encodedFilename"
+                        val fileLength = targetFile.length()
+                        val byteRange = parseSingleByteRange(request.getHeader(HttpHeaders.RANGE), fileLength)
+
+                        if (request.getHeader(HttpHeaders.RANGE) != null && byteRange == null) {
+                            return ResponseEntity.status(HttpStatus.REQUESTED_RANGE_NOT_SATISFIABLE)
+                                .header(HttpHeaders.ACCEPT_RANGES, "bytes")
+                                .header(HttpHeaders.CONTENT_RANGE, "bytes */$fileLength")
+                                .build<Any>()
+                        }
+
+                        if (byteRange != null) {
+                            val inputStream = FileInputStream(targetFile)
+                            inputStream.skipNBytes(byteRange.start)
+                            val resource = object : org.springframework.core.io.InputStreamResource(
+                                LimitedInputStream(inputStream, byteRange.length)
+                            ) {
+                                override fun getFilename(): String = targetFile.name
+                            }
+
+                            ResponseEntity.status(HttpStatus.PARTIAL_CONTENT)
+                                .header(HttpHeaders.ACCEPT_RANGES, "bytes")
+                                .header(HttpHeaders.CONTENT_RANGE, "bytes ${byteRange.start}-${byteRange.endInclusive}/$fileLength")
+                                .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition)
+                                .contentType(MediaType.parseMediaType(contentType))
+                                .contentLength(byteRange.length)
+                                .body(resource)
+                        } else {
+                            val resource = FileSystemResource(targetFile)
+                            ResponseEntity.ok()
+                                .header(HttpHeaders.ACCEPT_RANGES, "bytes")
+                                .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition)
+                                .contentType(MediaType.parseMediaType(contentType))
+                                .contentLength(fileLength)
+                                .body(resource)
+                        }
                     } catch (_: IOException) {
                         ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null)
                     }
@@ -405,5 +439,53 @@ $switchToSearch${switchToProgress}""" + htmlFooter
             .replace(">", "&gt;")
             .replace("\"", "&quot;")
             .replace("'", "&apos;")
+    }
+
+    private fun parseSingleByteRange(rangeHeader: String?, fileLength: Long): ByteRange? {
+        if (rangeHeader.isNullOrBlank() || !rangeHeader.startsWith("bytes=")) {
+            return null
+        }
+
+        val rangeSpec = rangeHeader.removePrefix("bytes=").trim()
+        if (rangeSpec.contains(",")) {
+            return null
+        }
+
+        val parts = rangeSpec.split("-", limit = 2)
+        if (parts.size != 2) {
+            return null
+        }
+
+        val startPart = parts[0].trim()
+        val endPart = parts[1].trim()
+
+        val range = when {
+            startPart.isEmpty() -> {
+                val suffixLength = endPart.toLongOrNull() ?: return null
+                if (suffixLength <= 0) {
+                    return null
+                }
+
+                val start = maxOf(fileLength - suffixLength, 0)
+                ByteRange(start, fileLength - 1)
+            }
+
+            else -> {
+                val start = startPart.toLongOrNull() ?: return null
+                val end = if (endPart.isEmpty()) {
+                    fileLength - 1
+                } else {
+                    endPart.toLongOrNull() ?: return null
+                }
+
+                ByteRange(start, minOf(end, fileLength - 1))
+            }
+        }
+
+        if (fileLength <= 0 || range.start < 0 || range.start >= fileLength || range.endInclusive < range.start) {
+            return null
+        }
+
+        return range
     }
 }
