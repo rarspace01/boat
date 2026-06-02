@@ -317,7 +317,8 @@ $switchToSearch${switchToProgress}""" + htmlFooter
             return davNotFound()
         }
 
-        val normalizedRequestUri = normalizeCollectionUri(request.requestURI, targetCanonical.isDirectory)
+        val serverRelativePath = if (requestPath.isEmpty()) "/PFDB" else "/PFDB/${requestPath.trimStart('/')}"
+        val normalizedRequestUri = normalizeCollectionUri(serverRelativePath, targetCanonical.isDirectory)
         val normalizedHref = buildHref(request, normalizedRequestUri, targetCanonical.isDirectory)
 
         return when (request.method.uppercase(Locale.getDefault())) {
@@ -468,15 +469,15 @@ $switchToSearch${switchToProgress}""" + htmlFooter
         targetCanonical: File,
         normalizedRequestUri: String,
     ): ResponseEntity<Any> {
-        if (targetCanonical.isDirectory && !request.requestURI.endsWith("/")) {
-            val normalizedHref = buildHref(request, normalizedRequestUri, true)
-            return ResponseEntity.status(HttpStatus.MOVED_PERMANENTLY)
-                .header(HttpHeaders.LOCATION, normalizedHref)
-                .header(HttpHeaders.CONTENT_LOCATION, normalizedHref)
-                .header(HttpHeaders.ALLOW, DAV_ALLOW_HEADER)
-                .header("DAV", "1, 2")
-                .build()
-        }
+//        if (targetCanonical.isDirectory && !request.requestURI.endsWith("/")) {
+//            val normalizedHref = buildHref(request, normalizedRequestUri, true)
+//            return ResponseEntity.status(HttpStatus.MOVED_PERMANENTLY)
+//                .header(HttpHeaders.LOCATION, normalizedHref)
+//                .header(HttpHeaders.CONTENT_LOCATION, normalizedHref)
+//                .header(HttpHeaders.ALLOW, DAV_ALLOW_HEADER)
+//                .header("DAV", "1, 2")
+//                .build()
+//        }
 
         val depth = (request.getHeader("Depth") ?: "infinity").trim()
         val effectiveDepth = when (depth.lowercase(Locale.getDefault())) {
@@ -513,7 +514,7 @@ $switchToSearch${switchToProgress}""" + htmlFooter
             targetCanonical.listFiles()
                 ?.sortedBy { it.name.lowercase(Locale.getDefault()) }
                 ?.forEach { child ->
-                    val childUri = normalizedRequestUri.trimEnd('/') + "/" + encodePath(child.name) + if (child.isDirectory) "/" else ""
+                    val childUri = normalizedRequestUri.trimEnd('/') + "/" + child.name + if (child.isDirectory) "/" else ""
                     appendPropfindResponse(
                         xml = xml,
                         request = request,
