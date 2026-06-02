@@ -12,8 +12,8 @@ class ConfigurationService {
     init {
 
             try {
-                serviceMode = Mode.valueOf(PropertiesHelper.getProperty("MODE"))
-            } catch (exception:Exception) {
+                serviceMode = Mode.valueOf(PropertiesHelper.getProperty("MODE") ?: "BOTH")
+            } catch (_:Exception) {
                 println("Mode setting not valid, default is BOTH")
             }
     }

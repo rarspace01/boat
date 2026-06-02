@@ -75,7 +75,7 @@ class DownloadMonitor(
             if (multifileHosterService.isRcloneInstalled()) {
                 val filesCache = cacheManager.getCache("filesCache")
                 "abcdefghijklmnopqrstuvwxyz+0".split(Regex("")).filter { it.isNotBlank() }.map { searchName: String ->
-                    TorrentType.values()
+                    TorrentType.entries
                         .forEach { torrentType: TorrentType ->
                             val destinationPath = cloudService
                                 .buildDestinationPathWithTypeOfMediaWithoutSubFolders(searchName, torrentType)
@@ -117,8 +117,8 @@ class DownloadMonitor(
         if (!Strings.isEmpty(pageContent)) {
             val jsonRoot = JsonParser.parseString(pageContent)
             val githubVersion = jsonRoot.asJsonObject["name"].asString
-            if (!PropertiesHelper.getVersion().contains(githubVersion)) {
-                logger.info("Local [{}] != Github [{}]", PropertiesHelper.getVersion(), githubVersion)
+            if (!PropertiesHelper.version!!.contains(githubVersion)) {
+                logger.info("Local [{}] != Github [{}]", PropertiesHelper.version, githubVersion)
                 logger.warn("version out of date, shutting down")
                 exitProcess(0)
             }

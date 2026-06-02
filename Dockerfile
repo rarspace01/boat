@@ -5,7 +5,7 @@ SHELL ["/bin/bash", "-c"]
 RUN apt-get update && apt-get install -y curl unzip dnsutils && apt-get clean \
 && curl https://rclone.org/install.sh -o install.sh && chmod +x install.sh && ./install.sh && rm -f ./install.sh
 #&& rm -rf /tmp/*
-ENV PATH="${PATH}:./jre/bin"
+#ENV PATH="${PATH}:./jre/bin"
 #USER nobody
 # copy config for boat & if used rlcone
 COPY boat.cfg boat.cfg

@@ -40,7 +40,7 @@ class Zooqle internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper)
         val torrentList = ArrayList<Torrent>()
         try {
             val doc = Jsoup.parse(pageContent)
-            val torrentListOnPage = doc.select("item") ?: return torrentList
+            val torrentListOnPage = doc.select("item")
             torrentListOnPage.forEach(Consumer { torrentElement: Element ->
                 val tempTorrent = Torrent(toString())
                 tempTorrent.name = torrentElement.getElementsByTag("title").text()

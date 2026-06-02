@@ -41,7 +41,9 @@ class TheFilmDataBaseService @Autowired constructor(private val httpHelper: Http
         }
         val mediaItems: MutableList<MediaItem> = ArrayList()
         val jsonRoot = JsonParser.parseString(pageContent)
+        if (!jsonRoot.isJsonObject) return emptyList()
         val results = jsonRoot.asJsonObject["results"]
+        if (results == null || !results.isJsonArray) return emptyList()
         val jsonArray = results.asJsonArray
         jsonArray.forEach(Consumer { jsonMedia: JsonElement ->
             val jsonMediaObject = jsonMedia.asJsonObject
@@ -72,7 +74,7 @@ class TheFilmDataBaseService @Autowired constructor(private val httpHelper: Http
                     calendar.time = SimpleDateFormat("yyyy-MM-dd").parse(releaseDateString)
                     year = calendar[Calendar.YEAR]
                 }
-            } catch (ignored: ParseException) {
+            } catch (_: ParseException) {
             }
             if (title != null || originalTitle != null) {
                 mediaItems.add(MediaItem(title!!, originalTitle, year, mediaType))
