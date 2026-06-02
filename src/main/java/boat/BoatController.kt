@@ -56,7 +56,8 @@ class BoatController @Autowired constructor(
     companion object {
         private val logger by LoggerDelegate()
         const val BREAK_LINK_HTML = "  <br>\n"
-        private const val DAV_ALLOW_HEADER = "OPTIONS, GET, HEAD, PROPFIND"
+        private const val DAV_ALLOW_HEADER =
+            "OPTIONS, GET, HEAD, PROPFIND, PROPPATCH, MKCOL, COPY, MOVE, LOCK, UNLOCK"
     }
 
     private val switchToProgress = "<a href=\"./debug\">Show Progress</a> "
@@ -276,7 +277,7 @@ $switchToSearch${switchToProgress}""" + htmlFooter
         return "shutting down/restarting"
     }
 
-    @RequestMapping("/PFDB/**")
+    @RequestMapping("/PFDB", "/PFDB/", "/PFDB/**")
     fun webdavPfdb(request: HttpServletRequest): ResponseEntity<Any> {
         val rootDir = File("/PFDB")
         if (!rootDir.exists()) {
