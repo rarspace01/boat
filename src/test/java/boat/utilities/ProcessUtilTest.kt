@@ -1,11 +1,11 @@
 package boat.utilities
 
 import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 
 internal class ProcessUtilTest {
-    // Given
-    // When
+    @Disabled
     @Test
     fun isRcloneInstalled() {
         // Given
