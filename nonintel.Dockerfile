@@ -11,8 +11,8 @@ RUN apt-get update && apt-get install -y curl wget unzip zip dnsutils \
 ENV PATH="${PATH}:./jre/bin"
 #USER nobody
 # copy config for boat & if used rlcone
-COPY boat.cfg boat.cfg
+COPY boat.cfg* ./
 RUN mkdir -p /root/.config/rclone/
-COPY rclone.conf /root/.config/rclone/rclone.conf
+COPY rclone.conf* /root/.config/rclone/
 EXPOSE 8080
 CMD wget https://github.com/rarspace01/boat/releases/latest/download/boat.jar -O boat.jar && chmod +x boat.jar && ./jre/bin/java -XX:+HeapDumpOnOutOfMemoryError -jar boat.jar
