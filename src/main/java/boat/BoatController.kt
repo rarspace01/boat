@@ -350,7 +350,7 @@ $switchToSearch${switchToProgress}""" + htmlFooter
                         val name = if (it.isDirectory) "${it.name}/" else it.name
                         val currentPath = if (requestPath.isEmpty()) "/" else requestPath
                         val baseLink = if (currentPath.endsWith("/")) currentPath else "$currentPath/"
-                        html.append("<li><a href=\"/pfdb${baseLink}${it.name}${if (it.isDirectory) "/" else ""}\">$name</a></li>")
+                        html.append("<li><a href=\"/PFDB${baseLink}${it.name}${if (it.isDirectory) "/" else ""}\">$name</a></li>")
                     }
                     html.append("</ul></body></html>")
 
