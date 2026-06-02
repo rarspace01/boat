@@ -17,7 +17,9 @@ import jakarta.servlet.http.HttpServletRequest
 import org.apache.commons.validator.routines.UrlValidator
 import org.apache.logging.log4j.util.Strings
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.core.io.ByteArrayResource
 import org.springframework.core.io.FileSystemResource
+import org.springframework.core.io.InputStreamResource
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -54,6 +56,7 @@ class BoatController @Autowired constructor(
     companion object {
         private val logger by LoggerDelegate()
         const val BREAK_LINK_HTML = "  <br>\n"
+        private const val DAV_ALLOW_HEADER = "OPTIONS, GET, HEAD, PROPFIND"
     }
 
     private val switchToProgress = "<a href=\"./debug\">Show Progress</a> "
@@ -196,6 +199,7 @@ $switchToSearch${switchToProgress}""" + htmlFooter
     ): String {
         val torrentsToBeDownloaded: MutableList<Torrent> = ArrayList()
         val decodedUri: String
+
         if (Strings.isNotEmpty(downloadUri)) {
             val magnetUri = Base64.getUrlDecoder().decode(downloadUri)
             decodedUri = String(magnetUri, StandardCharsets.UTF_8)
@@ -283,101 +287,55 @@ $switchToSearch${switchToProgress}""" + htmlFooter
         val requestPath = URLDecoder.decode(encodedRequestPath, StandardCharsets.UTF_8)
         val targetFile = File(rootDir, requestPath)
 
-        if (!targetFile.exists() || !targetFile.canonicalPath.startsWith(rootDir.canonicalPath)) {
+        if (!targetFile.exists()) {
+            return davNotFound()
+        }
+
+        val rootCanonical = try {
+            rootDir.canonicalFile
+        } catch (_: IOException) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build()
+        }
+
+        val targetCanonical = try {
+            targetFile.canonicalFile
+        } catch (_: IOException) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build()
         }
 
-        val isCollection = targetFile.isDirectory
-        val normalizedRequestUri = when {
-            isCollection && !request.requestURI.endsWith("/") -> request.requestURI + "/"
-            else -> request.requestURI
+        if (!targetCanonical.path.startsWith(rootCanonical.path)) {
+            return davNotFound()
         }
 
-        return when (request.method) {
+        val normalizedRequestUri = normalizeCollectionUri(request.requestURI, targetCanonical.isDirectory)
+        val normalizedHref = buildHref(request, normalizedRequestUri, targetCanonical.isDirectory)
+
+        return when (request.method.uppercase(Locale.getDefault())) {
             "OPTIONS" -> ResponseEntity.ok()
-                .header(HttpHeaders.ALLOW, "OPTIONS, GET, HEAD, PROPFIND")
+                .header(HttpHeaders.ALLOW, DAV_ALLOW_HEADER)
                 .header("DAV", "1")
                 .header("MS-Author-Via", "DAV")
                 .build()
 
-            "PROPFIND" -> {
-                val depth = request.getHeader("Depth") ?: "infinity"
-                val xml = StringBuilder()
-                xml.append("""<?xml version="1.0" encoding="utf-8"?>""")
-                xml.append("""<D:multistatus xmlns:D="DAV:">""")
-
-                fun appendPropResponse(file: File, href: String) {
-                    val lastModified = SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z", Locale.US).apply {
-                        timeZone = TimeZone.getTimeZone("GMT")
-                    }.format(Date(file.lastModified()))
-
-                    val etag = "\"${file.name}-${file.lastModified()}-${file.length()}\""
-
-                    xml.append("<D:response>")
-                    xml.append("<D:href>${escapeXml(href)}</D:href>")
-                    xml.append("<D:propstat>")
-                    xml.append("<D:prop>")
-
-                    xml.append("<D:displayname>${escapeXml(file.name.ifEmpty { "PFDB" })}</D:displayname>")
-                    xml.append("<D:getlastmodified>$lastModified</D:getlastmodified>")
-
-                    if (file.isDirectory) {
-                        xml.append("<D:resourcetype><D:collection/></D:resourcetype>")
-                    } else {
-                        xml.append("<D:resourcetype/>")
-                        xml.append("<D:getcontentlength>${file.length()}</D:getcontentlength>")
-                        val contentType = try {
-                            Files.probeContentType(file.toPath())
-                        } catch (_: Exception) {
-                            null
-                        } ?: "application/octet-stream"
-                        xml.append("<D:getcontenttype>${escapeXml(contentType)}</D:getcontenttype>")
-                        xml.append("<D:getetag>${escapeXml(etag)}</D:getetag>")
-                    }
-
-                    xml.append("<D:supportedlock/>")
-                    xml.append("</D:prop>")
-                    xml.append("<D:status>HTTP/1.1 200 OK</D:status>")
-                    xml.append("</D:propstat>")
-                    xml.append("</D:response>")
-                }
-
-                appendPropResponse(targetFile, normalizedRequestUri)
-
-                if (targetFile.isDirectory && depth != "0") {
-                    targetFile.listFiles()
-                        ?.sortedBy { it.name.lowercase(Locale.getDefault()) }
-                        ?.forEach { child ->
-                            val childHref = buildString {
-                                append(normalizedRequestUri)
-                                append(encodePath(child.name))
-                                if (child.isDirectory) append("/")
-                            }
-                            appendPropResponse(child, childHref)
-                        }
-                }
-
-                xml.append("</D:multistatus>")
-
-                ResponseEntity.status(207)
-                    .contentType(MediaType.APPLICATION_XML)
-                    .header(HttpHeaders.CONTENT_LOCATION, normalizedRequestUri)
-                    .body(xml.toString())
-            }
+            "PROPFIND" -> handlePropfind(request, rootCanonical, targetCanonical, normalizedRequestUri)
 
             "GET", "HEAD" -> {
-                if (targetFile.isDirectory) {
+                if (targetCanonical.isDirectory) {
                     if (!request.requestURI.endsWith("/")) {
                         return ResponseEntity.status(HttpStatus.MOVED_PERMANENTLY)
-                            .header(HttpHeaders.LOCATION, normalizedRequestUri)
+                            .header(HttpHeaders.LOCATION, normalizedHref)
+                            .header(HttpHeaders.CONTENT_LOCATION, normalizedHref)
+                            .header(HttpHeaders.ALLOW, DAV_ALLOW_HEADER)
+                            .header("DAV", "1")
                             .build()
                     }
 
-                    val files = targetFile.listFiles()?.sortedBy { it.name } ?: emptyList()
-                    val html = StringBuilder("<html><body><h1>Files in ${escapeXml(targetFile.absolutePath)}</h1><ul>")
-                    if (targetFile != rootDir) {
+                    val files = targetCanonical.listFiles()?.sortedBy { it.name.lowercase(Locale.getDefault()) } ?: emptyList()
+                    val html = StringBuilder("<html><body><h1>Files in ${escapeXml(targetCanonical.absolutePath)}</h1><ul>")
+                    if (targetCanonical != rootCanonical) {
                         html.append("<li><a href=\"..\">..</a></li>")
                     }
+
                     files.forEach {
                         val name = if (it.isDirectory) "${it.name}/" else it.name
                         val href = encodePath(it.name) + if (it.isDirectory) "/" else ""
@@ -386,54 +344,100 @@ $switchToSearch${switchToProgress}""" + htmlFooter
                     html.append("</ul></body></html>")
 
                     val bytes = html.toString().toByteArray(StandardCharsets.UTF_8)
-                    val resource = object : org.springframework.core.io.ByteArrayResource(bytes) {
+                    val resource = object : ByteArrayResource(bytes) {
                         override fun getFilename(): String = "index.html"
                     }
 
-                    ResponseEntity.ok()
-                        .header(HttpHeaders.CONTENT_LOCATION, normalizedRequestUri)
-                        .contentType(MediaType.TEXT_HTML)
-                        .contentLength(bytes.size.toLong())
-                        .body(resource)
+                    if (request.method.equals("HEAD", ignoreCase = true)) {
+                        ResponseEntity.ok()
+                            .header(HttpHeaders.CONTENT_LOCATION, normalizedHref)
+                            .header(HttpHeaders.ALLOW, DAV_ALLOW_HEADER)
+                            .header("DAV", "1")
+                            .contentType(MediaType.TEXT_HTML)
+                            .contentLength(bytes.size.toLong())
+                            .build()
+                    } else {
+                        ResponseEntity.ok()
+                            .header(HttpHeaders.CONTENT_LOCATION, normalizedHref)
+                            .header(HttpHeaders.ALLOW, DAV_ALLOW_HEADER)
+                            .header("DAV", "1")
+                            .contentType(MediaType.TEXT_HTML)
+                            .contentLength(bytes.size.toLong())
+                            .body(resource)
+                    }
                 } else {
                     try {
-                        val contentType = Files.probeContentType(targetFile.toPath()) ?: "application/octet-stream"
-                        val encodedFilename = URLEncoder.encode(targetFile.name, StandardCharsets.UTF_8).replace("+", "%20")
-                        val contentDisposition = "attachment; filename=\"${targetFile.name.replace("\"", "\\\"")}\"; filename*=UTF-8''$encodedFilename"
-                        val fileLength = targetFile.length()
+                        val contentType = Files.probeContentType(targetCanonical.toPath()) ?: "application/octet-stream"
+                        val encodedFilename = URLEncoder.encode(targetCanonical.name, StandardCharsets.UTF_8).replace("+", "%20")
+                        val contentDisposition =
+                            "attachment; filename=\"${targetCanonical.name.replace("\"", "\\\"")}\"; filename*=UTF-8''$encodedFilename"
+                        val fileLength = targetCanonical.length()
                         val byteRange = parseSingleByteRange(request.getHeader(HttpHeaders.RANGE), fileLength)
 
                         if (request.getHeader(HttpHeaders.RANGE) != null && byteRange == null) {
                             return ResponseEntity.status(HttpStatus.REQUESTED_RANGE_NOT_SATISFIABLE)
                                 .header(HttpHeaders.ACCEPT_RANGES, "bytes")
                                 .header(HttpHeaders.CONTENT_RANGE, "bytes */$fileLength")
+                                .header(HttpHeaders.ALLOW, DAV_ALLOW_HEADER)
+                                .header("DAV", "1")
                                 .build()
                         }
 
                         if (byteRange != null) {
-                            val inputStream = FileInputStream(targetFile)
+                            val inputStream = FileInputStream(targetCanonical)
                             inputStream.skipNBytes(byteRange.start)
-                            val resource = object : org.springframework.core.io.InputStreamResource(
+                            val resource = object : InputStreamResource(
                                 LimitedInputStream(inputStream, byteRange.length)
                             ) {
-                                override fun getFilename(): String = targetFile.name
+                                override fun getFilename(): String = targetCanonical.name
                             }
 
-                            ResponseEntity.status(HttpStatus.PARTIAL_CONTENT)
-                                .header(HttpHeaders.ACCEPT_RANGES, "bytes")
-                                .header(HttpHeaders.CONTENT_RANGE, "bytes ${byteRange.start}-${byteRange.endInclusive}/$fileLength")
-                                .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition)
-                                .contentType(MediaType.parseMediaType(contentType))
-                                .contentLength(byteRange.length)
-                                .body(resource)
+                            if (request.method.equals("HEAD", ignoreCase = true)) {
+                                ResponseEntity.status(HttpStatus.PARTIAL_CONTENT)
+                                    .header(HttpHeaders.ACCEPT_RANGES, "bytes")
+                                    .header(HttpHeaders.CONTENT_RANGE, "bytes ${byteRange.start}-${byteRange.endInclusive}/$fileLength")
+                                    .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition)
+                                    .header(HttpHeaders.CONTENT_LOCATION, normalizedHref)
+                                    .header(HttpHeaders.ALLOW, DAV_ALLOW_HEADER)
+                                    .header("DAV", "1")
+                                    .contentType(MediaType.parseMediaType(contentType))
+                                    .contentLength(byteRange.length)
+                                    .build()
+                            } else {
+                                ResponseEntity.status(HttpStatus.PARTIAL_CONTENT)
+                                    .header(HttpHeaders.ACCEPT_RANGES, "bytes")
+                                    .header(HttpHeaders.CONTENT_RANGE, "bytes ${byteRange.start}-${byteRange.endInclusive}/$fileLength")
+                                    .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition)
+                                    .header(HttpHeaders.CONTENT_LOCATION, normalizedHref)
+                                    .header(HttpHeaders.ALLOW, DAV_ALLOW_HEADER)
+                                    .header("DAV", "1")
+                                    .contentType(MediaType.parseMediaType(contentType))
+                                    .contentLength(byteRange.length)
+                                    .body(resource)
+                            }
                         } else {
-                            val resource = FileSystemResource(targetFile)
-                            ResponseEntity.ok()
-                                .header(HttpHeaders.ACCEPT_RANGES, "bytes")
-                                .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition)
-                                .contentType(MediaType.parseMediaType(contentType))
-                                .contentLength(fileLength)
-                                .body(resource)
+                            val resource = FileSystemResource(targetCanonical)
+                            if (request.method.equals("HEAD", ignoreCase = true)) {
+                                ResponseEntity.ok()
+                                    .header(HttpHeaders.ACCEPT_RANGES, "bytes")
+                                    .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition)
+                                    .header(HttpHeaders.CONTENT_LOCATION, normalizedHref)
+                                    .header(HttpHeaders.ALLOW, DAV_ALLOW_HEADER)
+                                    .header("DAV", "1")
+                                    .contentType(MediaType.parseMediaType(contentType))
+                                    .contentLength(fileLength)
+                                    .build()
+                            } else {
+                                ResponseEntity.ok()
+                                    .header(HttpHeaders.ACCEPT_RANGES, "bytes")
+                                    .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition)
+                                    .header(HttpHeaders.CONTENT_LOCATION, normalizedHref)
+                                    .header(HttpHeaders.ALLOW, DAV_ALLOW_HEADER)
+                                    .header("DAV", "1")
+                                    .contentType(MediaType.parseMediaType(contentType))
+                                    .contentLength(fileLength)
+                                    .body(resource)
+                            }
                         }
                     } catch (_: IOException) {
                         ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build()
@@ -441,13 +445,172 @@ $switchToSearch${switchToProgress}""" + htmlFooter
                 }
             }
 
-            else -> ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).build()
+            else -> ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
+                .header(HttpHeaders.ALLOW, DAV_ALLOW_HEADER)
+                .header("DAV", "1")
+                .build()
         }
     }
 
+    private fun handlePropfind(
+        request: HttpServletRequest,
+        rootCanonical: File,
+        targetCanonical: File,
+        normalizedRequestUri: String,
+    ): ResponseEntity<Any> {
+        if (targetCanonical.isDirectory && !request.requestURI.endsWith("/")) {
+            val normalizedHref = buildHref(request, normalizedRequestUri, true)
+            return ResponseEntity.status(HttpStatus.MOVED_PERMANENTLY)
+                .header(HttpHeaders.LOCATION, normalizedHref)
+                .header(HttpHeaders.CONTENT_LOCATION, normalizedHref)
+                .header(HttpHeaders.ALLOW, DAV_ALLOW_HEADER)
+                .header("DAV", "1")
+                .build()
+        }
+
+        val depth = (request.getHeader("Depth") ?: "infinity").trim()
+        val effectiveDepth = when (depth.lowercase(Locale.getDefault())) {
+            "0", "1" -> depth
+            else -> "1"
+        }
+
+        val body = try {
+            request.inputStream.readAllBytes().toString(StandardCharsets.UTF_8)
+        } catch (_: IOException) {
+            ""
+        }
+
+        val propertyMode = when {
+            body.contains("<D:propname", ignoreCase = true) || body.contains(":propname", ignoreCase = true) -> PropfindMode.PROPNAME
+            body.contains("<D:prop", ignoreCase = true) || body.contains(":prop>", ignoreCase = true) -> PropfindMode.PROP
+            else -> PropfindMode.ALLPROP
+        }
+
+        val xml = StringBuilder()
+        xml.append("""<?xml version="1.0" encoding="utf-8"?>""")
+        xml.append("""<D:multistatus xmlns:D="DAV:">""")
+
+        appendPropfindResponse(
+            xml = xml,
+            request = request,
+            file = targetCanonical,
+            href = buildHref(request, normalizedRequestUri, targetCanonical.isDirectory),
+            propertyMode = propertyMode,
+            rootCanonical = rootCanonical
+        )
+
+        if (targetCanonical.isDirectory && effectiveDepth != "0") {
+            targetCanonical.listFiles()
+                ?.sortedBy { it.name.lowercase(Locale.getDefault()) }
+                ?.forEach { child ->
+                    val childUri = normalizedRequestUri.trimEnd('/') + "/" + encodePath(child.name) + if (child.isDirectory) "/" else ""
+                    appendPropfindResponse(
+                        xml = xml,
+                        request = request,
+                        file = child,
+                        href = buildHref(request, childUri, child.isDirectory),
+                        propertyMode = propertyMode,
+                        rootCanonical = rootCanonical
+                    )
+                }
+        }
+
+        xml.append("</D:multistatus>")
+
+        return ResponseEntity.status(207)
+            .header(HttpHeaders.CONTENT_TYPE, "application/xml; charset=utf-8")
+            .header(HttpHeaders.CONTENT_LOCATION, buildHref(request, normalizedRequestUri, targetCanonical.isDirectory))
+            .header(HttpHeaders.ALLOW, DAV_ALLOW_HEADER)
+            .header("DAV", "1")
+            .body(xml.toString())
+    }
+
+    private fun appendPropfindResponse(
+        xml: StringBuilder,
+        request: HttpServletRequest,
+        file: File,
+        href: String,
+        propertyMode: PropfindMode,
+        rootCanonical: File,
+    ) {
+        val lastModified = SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z", Locale.US).apply {
+            timeZone = TimeZone.getTimeZone("GMT")
+        }.format(Date(file.lastModified()))
+
+        val creationDate = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).apply {
+            timeZone = TimeZone.getTimeZone("GMT")
+        }.format(Date(file.lastModified()))
+
+        val etag = "\"${file.name}-${file.lastModified()}-${file.length()}\""
+        val displayName = if (file == rootCanonical) "PFDB" else file.name
+
+        xml.append("<D:response>")
+        xml.append("<D:href>${escapeXml(href)}</D:href>")
+
+        when (propertyMode) {
+            PropfindMode.PROPNAME -> {
+                xml.append("<D:propstat><D:prop>")
+                xml.append("<D:displayname/>")
+                xml.append("<D:creationdate/>")
+                xml.append("<D:getlastmodified/>")
+                xml.append("<D:resourcetype/>")
+                xml.append("<D:supportedlock/>")
+                if (!file.isDirectory) {
+                    xml.append("<D:getcontentlength/>")
+                    xml.append("<D:getcontenttype/>")
+                    xml.append("<D:getetag/>")
+                }
+                xml.append("</D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat>")
+            }
+
+            PropfindMode.ALLPROP,
+            PropfindMode.PROP -> {
+                xml.append("<D:propstat><D:prop>")
+                xml.append("<D:displayname>${escapeXml(displayName)}</D:displayname>")
+                xml.append("<D:creationdate>$creationDate</D:creationdate>")
+                xml.append("<D:getlastmodified>$lastModified</D:getlastmodified>")
+
+                if (file.isDirectory) {
+                    xml.append("<D:resourcetype><D:collection/></D:resourcetype>")
+                } else {
+                    xml.append("<D:resourcetype/>")
+                    xml.append("<D:getcontentlength>${file.length()}</D:getcontentlength>")
+                    val contentType = try {
+                        Files.probeContentType(file.toPath())
+                    } catch (_: Exception) {
+                        null
+                    } ?: "application/octet-stream"
+                    xml.append("<D:getcontenttype>${escapeXml(contentType)}</D:getcontenttype>")
+                    xml.append("<D:getetag>${escapeXml(etag)}</D:getetag>")
+                }
+
+                xml.append("<D:supportedlock/>")
+                xml.append("</D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat>")
+            }
+        }
+
+        xml.append("</D:response>")
+    }
+
+    private fun davNotFound(): ResponseEntity<Any> {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+            .header(HttpHeaders.ALLOW, DAV_ALLOW_HEADER)
+            .header("DAV", "1")
+            .build()
+    }
+
+    private fun normalizeCollectionUri(requestUri: String, isDirectory: Boolean): String {
+        return if (isDirectory && !requestUri.endsWith("/")) "$requestUri/" else requestUri
+    }
+
+    private enum class PropfindMode {
+        ALLPROP,
+        PROPNAME,
+        PROP,
+    }
+
     private fun isNotAlreadyDownloaded(mediaItem: MediaItem): Boolean {
-        val existingFiles = cloudService
-            .findExistingFiles(getSearchNameFrom(mediaItem))
+        val existingFiles = cloudService.findExistingFiles(getSearchNameFrom(mediaItem))
         return existingFiles.isEmpty()
     }
 
@@ -513,5 +676,31 @@ $switchToSearch${switchToProgress}""" + htmlFooter
         }
 
         return range
+    }
+
+    fun buildHref(request: HttpServletRequest, path: String, isDirectory: Boolean): String {
+        val forwardedProto = request.getHeader("X-Forwarded-Proto")
+        val forwardedHost = request.getHeader("X-Forwarded-Host")
+        val forwardedPort = request.getHeader("X-Forwarded-Port")
+
+        val scheme = forwardedProto ?: request.scheme
+        val hostHeader = forwardedHost ?: request.serverName
+        val port = forwardedPort?.toIntOrNull() ?: request.serverPort
+
+        val base = if (
+            (scheme == "http" && port == 80) ||
+            (scheme == "https" && port == 443)
+        ) {
+            "$scheme://$hostHeader"
+        } else {
+            if (hostHeader.contains(":") && !hostHeader.contains("]") && hostHeader.count { it == ':' } > 1) {
+                "$scheme://[$hostHeader]:$port"
+            } else {
+                "$scheme://$hostHeader:$port"
+            }
+        }
+
+        val normalized = if (isDirectory && !path.endsWith("/")) "$path/" else path
+        return base + encodePath(normalized)
     }
 }
