@@ -273,11 +273,10 @@ $switchToSearch${switchToProgress}""" + htmlFooter
     }
 
     @RequestMapping("/PFDB/**")
-    fun webdavPfdb(request: HttpServletRequest): ResponseEntity<*> {
-        val rootPath = "/PFDB"
-        val rootDir = File(rootPath)
+    fun webdavPfdb(request: HttpServletRequest): ResponseEntity<Any> {
+        val rootDir = File("/PFDB")
         if (!rootDir.exists()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null)
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build()
         }
 
         val encodedRequestPath = request.requestURI.substringAfter("/PFDB", "")
@@ -285,34 +284,44 @@ $switchToSearch${switchToProgress}""" + htmlFooter
         val targetFile = File(rootDir, requestPath)
 
         if (!targetFile.exists() || !targetFile.canonicalPath.startsWith(rootDir.canonicalPath)) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null)
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build()
+        }
+
+        val isCollection = targetFile.isDirectory
+        val normalizedRequestUri = when {
+            isCollection && !request.requestURI.endsWith("/") -> request.requestURI + "/"
+            else -> request.requestURI
         }
 
         return when (request.method) {
             "OPTIONS" -> ResponseEntity.ok()
-                .header("Allow", "GET, HEAD, POST, OPTIONS, PROPFIND")
-                .header("DAV", "1, 2")
+                .header(HttpHeaders.ALLOW, "OPTIONS, GET, HEAD, PROPFIND")
+                .header("DAV", "1")
                 .header("MS-Author-Via", "DAV")
-                .build<Void>()
-            "PROPFIND" -> {
-                val depth = request.getHeader("Depth") ?: "1"
-                val xml = StringBuilder("<?xml version=\"1.0\" encoding=\"utf-8\" ?>")
-                xml.append("<D:multistatus xmlns:D=\"DAV:\">")
+                .build()
 
-                fun addFileToXml(file: File, path: String) {
-                    val isDirectory = file.isDirectory
-                    val name = file.name
-                    val fullPath = if (path.endsWith("/")) "$path$name" else "$path/$name"
-                    val displayPath = encodePath(if (isDirectory) "$fullPath/" else fullPath)
+            "PROPFIND" -> {
+                val depth = request.getHeader("Depth") ?: "infinity"
+                val xml = StringBuilder()
+                xml.append("""<?xml version="1.0" encoding="utf-8"?>""")
+                xml.append("""<D:multistatus xmlns:D="DAV:">""")
+
+                fun appendPropResponse(file: File, href: String) {
                     val lastModified = SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z", Locale.US).apply {
                         timeZone = TimeZone.getTimeZone("GMT")
                     }.format(Date(file.lastModified()))
 
+                    val etag = "\"${file.name}-${file.lastModified()}-${file.length()}\""
+
                     xml.append("<D:response>")
-                    xml.append("<D:href>$displayPath</D:href>")
+                    xml.append("<D:href>${escapeXml(href)}</D:href>")
                     xml.append("<D:propstat>")
                     xml.append("<D:prop>")
-                    if (isDirectory) {
+
+                    xml.append("<D:displayname>${escapeXml(file.name.ifEmpty { "PFDB" })}</D:displayname>")
+                    xml.append("<D:getlastmodified>$lastModified</D:getlastmodified>")
+
+                    if (file.isDirectory) {
                         xml.append("<D:resourcetype><D:collection/></D:resourcetype>")
                     } else {
                         xml.append("<D:resourcetype/>")
@@ -323,41 +332,56 @@ $switchToSearch${switchToProgress}""" + htmlFooter
                             null
                         } ?: "application/octet-stream"
                         xml.append("<D:getcontenttype>${escapeXml(contentType)}</D:getcontenttype>")
+                        xml.append("<D:getetag>${escapeXml(etag)}</D:getetag>")
                     }
-                    xml.append("<D:getlastmodified>$lastModified</D:getlastmodified>")
-                    xml.append("<D:displayname>${escapeXml(file.name)}</D:displayname>")
+
+                    xml.append("<D:supportedlock/>")
                     xml.append("</D:prop>")
                     xml.append("<D:status>HTTP/1.1 200 OK</D:status>")
                     xml.append("</D:propstat>")
                     xml.append("</D:response>")
                 }
 
-                val baseRequestPath = request.requestURI.removeSuffix("/")
-                addFileToXml(targetFile, baseRequestPath.substringBeforeLast("/", ""))
+                appendPropResponse(targetFile, normalizedRequestUri)
 
                 if (targetFile.isDirectory && depth != "0") {
-                    targetFile.listFiles()?.forEach { child ->
-                        addFileToXml(child, baseRequestPath)
-                    }
+                    targetFile.listFiles()
+                        ?.sortedBy { it.name.lowercase(Locale.getDefault()) }
+                        ?.forEach { child ->
+                            val childHref = buildString {
+                                append(normalizedRequestUri)
+                                append(encodePath(child.name))
+                                if (child.isDirectory) append("/")
+                            }
+                            appendPropResponse(child, childHref)
+                        }
                 }
+
                 xml.append("</D:multistatus>")
+
                 ResponseEntity.status(207)
-                    .header("Content-Type", "application/xml; charset=utf-8")
+                    .contentType(MediaType.APPLICATION_XML)
+                    .header(HttpHeaders.CONTENT_LOCATION, normalizedRequestUri)
                     .body(xml.toString())
             }
+
             "GET", "HEAD" -> {
                 if (targetFile.isDirectory) {
+                    if (!request.requestURI.endsWith("/")) {
+                        return ResponseEntity.status(HttpStatus.MOVED_PERMANENTLY)
+                            .header(HttpHeaders.LOCATION, normalizedRequestUri)
+                            .build()
+                    }
+
                     val files = targetFile.listFiles()?.sortedBy { it.name } ?: emptyList()
-                    val html = StringBuilder("<html><body><h1>Files in ${targetFile.absolutePath}</h1><ul>")
+                    val html = StringBuilder("<html><body><h1>Files in ${escapeXml(targetFile.absolutePath)}</h1><ul>")
                     if (targetFile != rootDir) {
                         html.append("<li><a href=\"..\">..</a></li>")
                     }
                     files.forEach {
                         val name = if (it.isDirectory) "${it.name}/" else it.name
-                        val currentPath = if (requestPath.isEmpty()) "/" else requestPath
-                        val baseLink = if (currentPath.endsWith("/")) currentPath else "$currentPath/"
-                        val encodedLink = encodePath("/PFDB${baseLink}${it.name}${if (it.isDirectory) "/" else ""}")
-                        html.append("<li><a href=\"$encodedLink\">${escapeXml(name)}</a></li>")
+                        val href = encodePath(it.name) + if (it.isDirectory) "/" else ""
+                        html.append("<li><a href=\"$href\">${escapeXml(name)}</a></li>")
                     }
                     html.append("</ul></body></html>")
 
@@ -367,6 +391,7 @@ $switchToSearch${switchToProgress}""" + htmlFooter
                     }
 
                     ResponseEntity.ok()
+                        .header(HttpHeaders.CONTENT_LOCATION, normalizedRequestUri)
                         .contentType(MediaType.TEXT_HTML)
                         .contentLength(bytes.size.toLong())
                         .body(resource)
@@ -382,7 +407,7 @@ $switchToSearch${switchToProgress}""" + htmlFooter
                             return ResponseEntity.status(HttpStatus.REQUESTED_RANGE_NOT_SATISFIABLE)
                                 .header(HttpHeaders.ACCEPT_RANGES, "bytes")
                                 .header(HttpHeaders.CONTENT_RANGE, "bytes */$fileLength")
-                                .build<Any>()
+                                .build()
                         }
 
                         if (byteRange != null) {
@@ -411,11 +436,12 @@ $switchToSearch${switchToProgress}""" + htmlFooter
                                 .body(resource)
                         }
                     } catch (_: IOException) {
-                        ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null)
+                        ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build()
                     }
                 }
             }
-            else -> ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).build<Any>()
+
+            else -> ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).build()
         }
     }
 
