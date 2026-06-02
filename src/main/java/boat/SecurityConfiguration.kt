@@ -3,6 +3,7 @@ package boat
 import boat.repositories.UserRepository
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.http.HttpMethod
 import org.springframework.security.config.Customizer
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
@@ -24,16 +25,19 @@ class SecurityConfiguration(private val userRepository: UserRepository) {
             .sessionManagement { session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             }
+            .csrf { csrf ->
+                csrf.disable()
+            }
             .authorizeHttpRequests { authorize ->
                 if (hasUsers) {
                     authorize
+                        .requestMatchers(HttpMethod.OPTIONS, "/PFDB", "/PFDB/", "/PFDB/**").permitAll()
                         .requestMatchers("/boat/shutdown", "/").permitAll()
                         .anyRequest().authenticated()
                 } else {
                     authorize.anyRequest().permitAll()
                 }
             }
-            .csrf { csrf -> csrf.disable() }
 
         if (hasUsers) {
             http.httpBasic(Customizer.withDefaults())
