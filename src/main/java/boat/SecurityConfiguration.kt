@@ -7,6 +7,8 @@ import org.springframework.security.config.Customizer
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
 import org.springframework.security.web.SecurityFilterChain
+import org.springframework.security.web.firewall.HttpFirewall
+import org.springframework.security.web.firewall.StrictHttpFirewall
 
 @Configuration
 @EnableWebSecurity
@@ -35,5 +37,29 @@ class SecurityConfiguration(private val userRepository: UserRepository) {
         }
 
         return http.build()
+    }
+
+    @Bean
+    fun httpFirewall(): HttpFirewall {
+        val firewall = StrictHttpFirewall()
+        firewall.setAllowedHttpMethods(
+            listOf(
+                "GET",
+                "HEAD",
+                "POST",
+                "PUT",
+                "DELETE",
+                "OPTIONS",
+                "PATCH",
+                "PROPFIND",
+                "MKCOL",
+                "MOVE",
+                "COPY",
+                "LOCK",
+                "UNLOCK",
+                "PROPPATCH"
+            )
+        )
+        return firewall
     }
 }
