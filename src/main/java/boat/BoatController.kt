@@ -25,6 +25,8 @@ import org.springframework.web.bind.annotation.*
 import java.io.File
 import java.io.IOException
 import java.lang.management.ManagementFactory
+import java.net.URLDecoder
+import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.text.SimpleDateFormat
@@ -275,7 +277,8 @@ $switchToSearch${switchToProgress}""" + htmlFooter
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null)
         }
 
-        val requestPath = request.requestURI.substringAfter("/PFDB", "")
+        val encodedRequestPath = request.requestURI.substringAfter("/PFDB", "")
+        val requestPath = URLDecoder.decode(encodedRequestPath, StandardCharsets.UTF_8)
         val targetFile = File(rootDir, requestPath)
 
         if (!targetFile.exists() || !targetFile.canonicalPath.startsWith(rootDir.canonicalPath)) {
@@ -297,7 +300,7 @@ $switchToSearch${switchToProgress}""" + htmlFooter
                     val isDirectory = file.isDirectory
                     val name = file.name
                     val fullPath = if (path.endsWith("/")) "$path$name" else "$path/$name"
-                    val displayPath = if (isDirectory) "$fullPath/" else fullPath
+                    val displayPath = encodePath(if (isDirectory) "$fullPath/" else fullPath)
                     val lastModified = SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z", Locale.US).apply {
                         timeZone = TimeZone.getTimeZone("GMT")
                     }.format(Date(file.lastModified()))
@@ -316,10 +319,10 @@ $switchToSearch${switchToProgress}""" + htmlFooter
                         } catch (_: Exception) {
                             null
                         } ?: "application/octet-stream"
-                        xml.append("<D:getcontenttype>$contentType</D:getcontenttype>")
+                        xml.append("<D:getcontenttype>${escapeXml(contentType)}</D:getcontenttype>")
                     }
                     xml.append("<D:getlastmodified>$lastModified</D:getlastmodified>")
-                    xml.append("<D:displayname>${file.name}</D:displayname>")
+                    xml.append("<D:displayname>${escapeXml(file.name)}</D:displayname>")
                     xml.append("</D:prop>")
                     xml.append("<D:status>HTTP/1.1 200 OK</D:status>")
                     xml.append("</D:propstat>")
@@ -350,7 +353,8 @@ $switchToSearch${switchToProgress}""" + htmlFooter
                         val name = if (it.isDirectory) "${it.name}/" else it.name
                         val currentPath = if (requestPath.isEmpty()) "/" else requestPath
                         val baseLink = if (currentPath.endsWith("/")) currentPath else "$currentPath/"
-                        html.append("<li><a href=\"/PFDB${baseLink}${it.name}${if (it.isDirectory) "/" else ""}\">$name</a></li>")
+                        val encodedLink = encodePath("/PFDB${baseLink}${it.name}${if (it.isDirectory) "/" else ""}")
+                        html.append("<li><a href=\"$encodedLink\">${escapeXml(name)}</a></li>")
                     }
                     html.append("</ul></body></html>")
 
@@ -385,5 +389,21 @@ $switchToSearch${switchToProgress}""" + htmlFooter
         val existingFiles = cloudService
             .findExistingFiles(getSearchNameFrom(mediaItem))
         return existingFiles.isEmpty()
+    }
+
+    internal fun encodePath(path: String): String {
+        return path.split("/")
+            .joinToString("/") { segment ->
+                URLEncoder.encode(segment, StandardCharsets.UTF_8).replace("+", "%20")
+            }
+    }
+
+    internal fun escapeXml(value: String): String {
+        return value
+            .replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+            .replace("\"", "&quot;")
+            .replace("'", "&apos;")
     }
 }
