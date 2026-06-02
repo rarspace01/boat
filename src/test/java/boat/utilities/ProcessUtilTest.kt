@@ -6,15 +6,12 @@ import org.junit.jupiter.api.Test
 internal class ProcessUtilTest {
     // Given
     // When
-    @get:Test
-    val isRcloneInstalled:
-    // Then
-            Unit
-        get() {
-            // Given
-            // When
-            val rcloneInstalled = ProcessUtil.isRcloneInstalled()
-            // Then
-            Assertions.assertNotNull(rcloneInstalled)
-        }
+    @Test
+    fun isRcloneInstalled() {
+        // Given
+        // When
+        val rcloneInstalled = ProcessUtil.isRcloneInstalled
+        // Then
+        Assertions.assertTrue(rcloneInstalled)
+    }
 }

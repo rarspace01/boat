@@ -463,7 +463,7 @@ class MultifileHosterService(
 
     fun isRcloneInstalled(): Boolean {
         if (isRcloneInstalled == null) {
-            isRcloneInstalled = ProcessUtil.isRcloneInstalled()
+            isRcloneInstalled = ProcessUtil.isRcloneInstalled
             if (isRcloneInstalled == false) {
                 log.error("no rclone found. Downloads not possible")
             }

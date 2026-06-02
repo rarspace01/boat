@@ -38,7 +38,6 @@ class BoatController @Autowired constructor(
     private val httpHelper: HttpHelper,
     private val torrentSearchEngineService: TorrentSearchEngineService,
     private val cloudService: CloudService,
-    private val torrentMetaService: TorrentMetaService?,
     private val theFilmDataBaseService: TheFilmDataBaseService,
     private val multifileHosterService: MultifileHosterService,
     private val queueService: QueueService,
@@ -238,7 +237,7 @@ $switchToSearch${switchToProgress}""" + htmlFooter
         val runtimeBean = ManagementFactory.getRuntimeMXBean()
         val startTime = runtimeBean.startTime
         val startDate = Date(startTime)
-        return htmlHeader + ("v:" + PropertiesHelper.getVersion() + " started: " + startDate
+        return htmlHeader + ("v:" + PropertiesHelper.version + " started: " + startDate
                 + "<br/>MODE: " + configurationService.getServiceMode()
                 + "<br/>cloud token: " + (if (cloudService.isCloudTokenValid) "✅" else "❌")
                 + "<br/>search Cache: " + (if (cloudFileService.isCacheFilled) "✅" else "❌")
@@ -314,7 +313,7 @@ $switchToSearch${switchToProgress}""" + htmlFooter
                         xml.append("<D:getcontentlength>${file.length()}</D:getcontentlength>")
                         val contentType = try {
                             Files.probeContentType(file.toPath())
-                        } catch (e: Exception) {
+                        } catch (_: Exception) {
                             null
                         } ?: "application/octet-stream"
                         xml.append("<D:getcontenttype>$contentType</D:getcontenttype>")
@@ -373,7 +372,7 @@ $switchToSearch${switchToProgress}""" + htmlFooter
                             .contentType(MediaType.parseMediaType(contentType))
                             .contentLength(targetFile.length())
                             .body(resource)
-                    } catch (e: IOException) {
+                    } catch (_: IOException) {
                         ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null)
                     }
                 }

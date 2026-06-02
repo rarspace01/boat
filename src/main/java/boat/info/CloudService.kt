@@ -93,12 +93,12 @@ class CloudService internal constructor(
             }
         }.also {
             logger.info("Find files took: ${Duration.between(start, Instant.now())}")
-        }.map { fileString: String -> fileString.replace(PropertiesHelper.getProperty(RCLONE_DIR), "") }
+        }.map { fileString: String -> fileString.replace(PropertiesHelper.getProperty(RCLONE_DIR) ?: "", "") }
     }
 
     fun getAllFiles(): List<String> {
         return "abcdefghijklmnopqrstuvwxyz+0".split(Regex("")).filter { it.isNotEmpty() }.map { searchName: String ->
-            TorrentType.values().map {
+            TorrentType.entries.map {
                 val destinationPath = buildDestinationPathWithTypeOfMediaWithoutSubFolders(searchName, it)
                 logger.info("Searching for: [$searchName] with $it in $destinationPath")
                 cloudFileService.getFilesInPath(destinationPath)
