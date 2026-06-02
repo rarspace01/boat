@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Configuration
 import org.springframework.security.config.Customizer
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
+import org.springframework.security.config.http.SessionCreationPolicy
 import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.firewall.HttpFirewall
 import org.springframework.security.web.firewall.StrictHttpFirewall
@@ -16,10 +17,13 @@ class SecurityConfiguration(private val userRepository: UserRepository) {
 
     @Bean
     @Throws(Exception::class)
-    fun securityFilterChain(http: HttpSecurity): SecurityFilterChain? {
+    fun securityFilterChain(http: HttpSecurity): SecurityFilterChain {
         val hasUsers = userRepository.count() > 0
 
         http
+            .sessionManagement { session ->
+                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            }
             .authorizeHttpRequests { authorize ->
                 if (hasUsers) {
                     authorize
@@ -32,8 +36,7 @@ class SecurityConfiguration(private val userRepository: UserRepository) {
             .csrf { csrf -> csrf.disable() }
 
         if (hasUsers) {
-            http
-                .httpBasic(Customizer.withDefaults())
+            http.httpBasic(Customizer.withDefaults())
         }
 
         return http.build()
