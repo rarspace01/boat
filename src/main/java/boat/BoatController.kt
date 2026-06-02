@@ -267,15 +267,15 @@ $switchToSearch${switchToProgress}""" + htmlFooter
         return "shutting down/restarting"
     }
 
-    @RequestMapping("/pfdb/**")
+    @RequestMapping("/PFDB/**")
     fun webdavPfdb(request: HttpServletRequest): ResponseEntity<*> {
-        val rootPath = "/pfdb"
+        val rootPath = "/PFDB"
         val rootDir = File(rootPath)
         if (!rootDir.exists()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null)
         }
 
-        val requestPath = request.requestURI.substringAfter("/pfdb", "")
+        val requestPath = request.requestURI.substringAfter("/PFDB", "")
         val targetFile = File(rootDir, requestPath)
 
         if (!targetFile.exists() || !targetFile.canonicalPath.startsWith(rootDir.canonicalPath)) {
