@@ -313,7 +313,7 @@ $switchToSearch${switchToProgress}""" + htmlFooter
         return when (request.method.uppercase(Locale.getDefault())) {
             "OPTIONS" -> ResponseEntity.ok()
                 .header(HttpHeaders.ALLOW, DAV_ALLOW_HEADER)
-                .header("DAV", "1")
+                .header("DAV", "1, 2")
                 .header("MS-Author-Via", "DAV")
                 .build()
 
@@ -326,7 +326,7 @@ $switchToSearch${switchToProgress}""" + htmlFooter
                             .header(HttpHeaders.LOCATION, normalizedHref)
                             .header(HttpHeaders.CONTENT_LOCATION, normalizedHref)
                             .header(HttpHeaders.ALLOW, DAV_ALLOW_HEADER)
-                            .header("DAV", "1")
+                            .header("DAV", "1, 2")
                             .build()
                     }
 
@@ -360,7 +360,7 @@ $switchToSearch${switchToProgress}""" + htmlFooter
                         ResponseEntity.ok()
                             .header(HttpHeaders.CONTENT_LOCATION, normalizedHref)
                             .header(HttpHeaders.ALLOW, DAV_ALLOW_HEADER)
-                            .header("DAV", "1")
+                            .header("DAV", "1, 2")
                             .contentType(MediaType.TEXT_HTML)
                             .contentLength(bytes.size.toLong())
                             .body(resource)
@@ -379,7 +379,7 @@ $switchToSearch${switchToProgress}""" + htmlFooter
                                 .header(HttpHeaders.ACCEPT_RANGES, "bytes")
                                 .header(HttpHeaders.CONTENT_RANGE, "bytes */$fileLength")
                                 .header(HttpHeaders.ALLOW, DAV_ALLOW_HEADER)
-                                .header("DAV", "1")
+                                .header("DAV", "1, 2")
                                 .build()
                         }
 
@@ -399,7 +399,7 @@ $switchToSearch${switchToProgress}""" + htmlFooter
                                     .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition)
                                     .header(HttpHeaders.CONTENT_LOCATION, normalizedHref)
                                     .header(HttpHeaders.ALLOW, DAV_ALLOW_HEADER)
-                                    .header("DAV", "1")
+                                    .header("DAV", "1, 2")
                                     .contentType(MediaType.parseMediaType(contentType))
                                     .contentLength(byteRange.length)
                                     .build()
@@ -410,7 +410,7 @@ $switchToSearch${switchToProgress}""" + htmlFooter
                                     .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition)
                                     .header(HttpHeaders.CONTENT_LOCATION, normalizedHref)
                                     .header(HttpHeaders.ALLOW, DAV_ALLOW_HEADER)
-                                    .header("DAV", "1")
+                                    .header("DAV", "1, 2")
                                     .contentType(MediaType.parseMediaType(contentType))
                                     .contentLength(byteRange.length)
                                     .body(resource)
@@ -423,7 +423,7 @@ $switchToSearch${switchToProgress}""" + htmlFooter
                                     .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition)
                                     .header(HttpHeaders.CONTENT_LOCATION, normalizedHref)
                                     .header(HttpHeaders.ALLOW, DAV_ALLOW_HEADER)
-                                    .header("DAV", "1")
+                                    .header("DAV", "1, 2")
                                     .contentType(MediaType.parseMediaType(contentType))
                                     .contentLength(fileLength)
                                     .build()
@@ -433,7 +433,7 @@ $switchToSearch${switchToProgress}""" + htmlFooter
                                     .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition)
                                     .header(HttpHeaders.CONTENT_LOCATION, normalizedHref)
                                     .header(HttpHeaders.ALLOW, DAV_ALLOW_HEADER)
-                                    .header("DAV", "1")
+                                    .header("DAV", "1, 2")
                                     .contentType(MediaType.parseMediaType(contentType))
                                     .contentLength(fileLength)
                                     .body(resource)
@@ -447,7 +447,7 @@ $switchToSearch${switchToProgress}""" + htmlFooter
 
             else -> ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
                 .header(HttpHeaders.ALLOW, DAV_ALLOW_HEADER)
-                .header("DAV", "1")
+                .header("DAV", "1, 2")
                 .build()
         }
     }
@@ -464,7 +464,7 @@ $switchToSearch${switchToProgress}""" + htmlFooter
                 .header(HttpHeaders.LOCATION, normalizedHref)
                 .header(HttpHeaders.CONTENT_LOCATION, normalizedHref)
                 .header(HttpHeaders.ALLOW, DAV_ALLOW_HEADER)
-                .header("DAV", "1")
+                .header("DAV", "1, 2")
                 .build()
         }
 
@@ -521,7 +521,7 @@ $switchToSearch${switchToProgress}""" + htmlFooter
             .header(HttpHeaders.CONTENT_TYPE, "application/xml; charset=utf-8")
             .header(HttpHeaders.CONTENT_LOCATION, buildHref(request, normalizedRequestUri, targetCanonical.isDirectory))
             .header(HttpHeaders.ALLOW, DAV_ALLOW_HEADER)
-            .header("DAV", "1")
+            .header("DAV", "1, 2")
             .body(xml.toString())
     }
 
@@ -595,7 +595,7 @@ $switchToSearch${switchToProgress}""" + htmlFooter
     private fun davNotFound(): ResponseEntity<Any> {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
             .header(HttpHeaders.ALLOW, DAV_ALLOW_HEADER)
-            .header("DAV", "1")
+            .header("DAV", "1, 2")
             .build()
     }
 
