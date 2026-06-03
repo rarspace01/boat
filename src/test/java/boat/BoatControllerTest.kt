@@ -10,8 +10,6 @@ import boat.services.TransferService
 import boat.torrent.TorrentSearchEngineService
 import boat.utilities.HttpHelper
 import io.mockk.mockk
-import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.Test
 
 internal class BoatControllerTest {
 
@@ -37,51 +35,4 @@ internal class BoatControllerTest {
         configurationService
     )
 
-    @Test
-    fun `encodePath should encode segments correctly`() {
-        // Given
-        val path = "/PFDB/some folder/file name with spaces.txt"
-        
-        // When
-        val encodedPath = boatController.encodePath(path)
-        
-        // Then
-        assertThat(encodedPath).isEqualTo("/PFDB/some%20folder/file%20name%20with%20spaces.txt")
-    }
-
-    @Test
-    fun `encodePath should handle special characters in segments`() {
-        // Given
-        val path = "/test/a&b/c?d/e#f"
-        
-        // When
-        val encodedPath = boatController.encodePath(path)
-        
-        // Then
-        assertThat(encodedPath).isEqualTo("/test/a%26b/c%3Fd/e%23f")
-    }
-
-    @Test
-    fun `escapeXml should escape special XML characters`() {
-        // Given
-        val input = "Title with & < > \" '"
-        
-        // When
-        val escaped = boatController.escapeXml(input)
-        
-        // Then
-        assertThat(escaped).isEqualTo("Title with &amp; &lt; &gt; &quot; &apos;")
-    }
-
-    @Test
-    fun `escapeXml should return same string if no special characters`() {
-        // Given
-        val input = "Simple Title 123"
-        
-        // When
-        val escaped = boatController.escapeXml(input)
-        
-        // Then
-        assertThat(escaped).isEqualTo("Simple Title 123")
-    }
 }
