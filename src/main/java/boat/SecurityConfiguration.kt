@@ -22,6 +22,7 @@ class SecurityConfiguration(private val userRepository: UserRepository) {
         val hasUsers = userRepository.count() > 0
 
         http
+            .cors { it.disable() }
             .sessionManagement { session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             }
