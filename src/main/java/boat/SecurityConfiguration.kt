@@ -32,7 +32,7 @@ class SecurityConfiguration(private val userRepository: UserRepository) {
             .authorizeHttpRequests { authorize ->
                 if (hasUsers) {
                     authorize
-                        .requestMatchers(HttpMethod.OPTIONS, "/PFDB", "/PFDB/", "/PFDB/**").permitAll()
+                        .requestMatchers(HttpMethod.OPTIONS).permitAll()
                         .requestMatchers("/boat/shutdown", "/").permitAll()
                         .anyRequest().authenticated()
                 } else {
