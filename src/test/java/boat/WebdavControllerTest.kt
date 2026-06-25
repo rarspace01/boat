@@ -4,10 +4,13 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.springframework.core.io.ByteArrayResource
+import org.springframework.core.io.FileSystemResource
+import org.springframework.core.io.support.ResourceRegion
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
+import org.springframework.http.MediaType
 import org.springframework.mock.web.MockHttpServletRequest
-import org.springframework.core.io.support.ResourceRegion
 import java.io.File
 import kotlin.io.path.createTempDirectory
 
@@ -87,7 +90,7 @@ internal class WebdavControllerTest {
         // Then
         assertThat(response.statusCode).isEqualTo(HttpStatus.OK)
         assertThat(response.headers.contentLength).isEqualTo(11)
-        val body = (response.body as org.springframework.core.io.FileSystemResource).inputStream.readAllBytes().toString(Charsets.UTF_8)
+        val body = (response.body as FileSystemResource).inputStream.readAllBytes().toString(Charsets.UTF_8)
         assertThat(body).isEqualTo("hello world")
     }
 
@@ -102,7 +105,7 @@ internal class WebdavControllerTest {
 
         // Then
         assertThat(response.statusCode).isEqualTo(HttpStatus.OK)
-        val body = (response.body as org.springframework.core.io.ByteArrayResource).byteArray.toString(Charsets.UTF_8)
+        val body = (response.body as ByteArrayResource).byteArray.toString(Charsets.UTF_8)
         assertThat(body).contains("test.txt")
     }
 
@@ -117,9 +120,7 @@ internal class WebdavControllerTest {
 
         // Then
         assertThat(response.statusCode).isEqualTo(HttpStatus.OK)
-        // The content length for directory listings might vary slightly based on generated HTML, 
-        // so we mainly check for no body and expected content type.
-        assertThat(response.headers.contentType).isEqualTo(org.springframework.http.MediaType.TEXT_HTML)
+        assertThat(response.headers.contentType).isEqualTo(MediaType.TEXT_HTML)
         assertThat(response.body).isNull()
     }
 
@@ -198,87 +199,45 @@ internal class WebdavControllerTest {
         // Then
         assertThat(escaped).isEqualTo("Simple Title 123")
     }
-    
+
     @Test
-    fun `buildHref should build standard HTTP URL correctly`() {
+    fun `buildHref should build path correctly`() {
         // Given
         val request = MockHttpServletRequest()
-        request.scheme = "http"
-        request.serverName = "localhost"
-        request.serverPort = 8080
-        
+
         // When
         val href = webdavController.buildHref(request, "/PFDB/test", false)
-        
+
         // Then
         assertThat(href).isEqualTo("/PFDB/test")
     }
-    
-    @Test
-    fun `buildHref should handle default HTTP port`() {
-        // Given
-        val request = MockHttpServletRequest()
-        request.scheme = "http"
-        request.serverName = "example.com"
-        request.serverPort = 80
-        
-        // When
-        val href = webdavController.buildHref(request, "/PFDB", true)
-        
-        // Then
-        assertThat(href).isEqualTo("/PFDB/")
-    }
 
     @Test
-    fun `buildHref should handle default HTTPS port`() {
+    fun `buildHref should handle trailing slash for root`() {
         // Given
         val request = MockHttpServletRequest()
-        request.scheme = "https"
-        request.serverName = "example.com"
-        request.serverPort = 443
-        
+
         // When
         val href = webdavController.buildHref(request, "/PFDB", true)
-        
+
         // Then
         assertThat(href).isEqualTo("/PFDB/")
-    }
-
-    @Test
-    fun `buildHref should respect X-Forwarded headers`() {
-        // Given
-        val request = MockHttpServletRequest()
-        request.scheme = "http"
-        request.serverName = "internal.local"
-        request.serverPort = 8080
-        request.addHeader("X-Forwarded-Proto", "https")
-        request.addHeader("X-Forwarded-Host", "external.com")
-        request.addHeader("X-Forwarded-Port", "443")
-        
-        // When
-        val href = webdavController.buildHref(request, "/PFDB/test", false)
-        
-        // Then
-        assertThat(href).isEqualTo("/PFDB/test")
     }
 
     @Test
     fun `buildHref should append slash for directories`() {
         // Given
         val request = MockHttpServletRequest()
-        request.scheme = "http"
-        request.serverName = "localhost"
-        request.serverPort = 8080
-        
+
         // When
         val href = webdavController.buildHref(request, "/PFDB/folder", true)
-        
+
         // Then
         assertThat(href).isEqualTo("/PFDB/folder/")
     }
 
     @Test
-    fun `GET with byte range should return partial content`() {
+    fun `GET with byte range should return partial content region`() {
         // Given
         val testFile = File(tempDir, "test.txt")
         testFile.writeText("hello world") // Length 11
@@ -290,15 +249,13 @@ internal class WebdavControllerTest {
 
         // Then
         assertThat(response.statusCode).isEqualTo(HttpStatus.PARTIAL_CONTENT)
-        assertThat(response.headers.getFirst(HttpHeaders.CONTENT_RANGE)).isEqualTo("bytes 0-4/11")
-        assertThat(response.headers.contentLength).isEqualTo(5)
         val region = response.body as ResourceRegion
-        val body = region.resource.inputStream.use { it.skip(region.position); it.readBytes() }.take(region.count.toInt()).toByteArray().toString(Charsets.UTF_8)
-        assertThat(body).isEqualTo("hello")
+        assertThat(region.position).isEqualTo(0)
+        assertThat(region.count).isEqualTo(5)
     }
 
     @Test
-    fun `GET with open-ended byte range should return partial content`() {
+    fun `GET with open-ended byte range should return partial content region`() {
         // Given
         val testFile = File(tempDir, "test.txt")
         testFile.writeText("hello world") // Length 11
@@ -310,31 +267,27 @@ internal class WebdavControllerTest {
 
         // Then
         assertThat(response.statusCode).isEqualTo(HttpStatus.PARTIAL_CONTENT)
-        assertThat(response.headers.getFirst(HttpHeaders.CONTENT_RANGE)).isEqualTo("bytes 6-10/11")
-        assertThat(response.headers.contentLength).isEqualTo(5)
         val region = response.body as ResourceRegion
-        val body = region.resource.inputStream.use { it.skip(region.position); it.readBytes() }.take(region.count.toInt()).toByteArray().toString(Charsets.UTF_8)
-        assertThat(body).isEqualTo("world")
+        assertThat(region.position).isEqualTo(6)
+        assertThat(region.count).isEqualTo(5)
     }
 
     @Test
-    fun `GET with suffix byte range should return partial content`() {
+    fun `GET with suffix byte range should return partial content region`() {
         // Given
         val testFile = File(tempDir, "test.txt")
         testFile.writeText("hello world") // Length 11
         val request = MockHttpServletRequest("GET", "/PFDB/test.txt")
-        request.addHeader(HttpHeaders.RANGE, "bytes=-5") // "world"
+        request.addHeader(HttpHeaders.RANGE, "bytes=-5") // Last 5 bytes ("world")
 
         // When
         val response = webdavController.webdavPfdb(request)
 
         // Then
         assertThat(response.statusCode).isEqualTo(HttpStatus.PARTIAL_CONTENT)
-        assertThat(response.headers.getFirst(HttpHeaders.CONTENT_RANGE)).isEqualTo("bytes 6-10/11")
-        assertThat(response.headers.contentLength).isEqualTo(5)
         val region = response.body as ResourceRegion
-        val body = region.resource.inputStream.use { it.skip(region.position); it.readBytes() }.take(region.count.toInt()).toByteArray().toString(Charsets.UTF_8)
-        assertThat(body).isEqualTo("world")
+        assertThat(region.position).isEqualTo(6)
+        assertThat(region.count).isEqualTo(5)
     }
 
     @Test

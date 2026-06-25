@@ -189,9 +189,11 @@ class WebdavController {
                                     val regionLength = minOf(end - start + 1, fileLength - start)
                                     val region = ResourceRegion(resource, start, regionLength)
 
-// Let Spring's ResourceRegionHttpMessageConverter handle the range headers automatically
+                                    // Let Spring's ResourceRegionHttpMessageConverter handle the range headers automatically
                                     return ResponseEntity.status(HttpStatus.PARTIAL_CONTENT)
                                         .headers(headers)
+//                                        .header(HttpHeaders.CONTENT_RANGE, "bytes $start-$end/$fileLength")
+//                                        .contentLength(regionLength)
                                         .body(region)
                                 }
                             } catch (_: IllegalArgumentException) {
