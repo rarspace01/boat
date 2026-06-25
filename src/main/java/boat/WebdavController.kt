@@ -192,6 +192,8 @@ class WebdavController {
                                     // Let Spring's ResourceRegionHttpMessageConverter handle the range headers automatically
                                     return ResponseEntity.status(HttpStatus.PARTIAL_CONTENT)
                                         .headers(headers)
+                                        .header(HttpHeaders.CONTENT_RANGE, "bytes $start-$end/$fileLength")
+                                        .contentLength(regionLength)
                                         .body(region)
                                 }
                             } catch (_: IllegalArgumentException) {
