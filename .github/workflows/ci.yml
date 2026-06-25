@@ -63,7 +63,7 @@ jobs:
         if: github.event_name == 'pull_request'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: ./gradlew build --parallel --build-cache --configuration-cache
+        run: ./gradlew build --parallel --build-cache
 
       - name: Build with Gradle (main)
         if: github.ref == 'refs/heads/main'
@@ -73,7 +73,7 @@ jobs:
           PREMIUMIZE_APIKEY: ${{ secrets.PREMIUMIZE_APIKEY }}
           ALLDEBRID_APIKEY: ${{ secrets.ALLDEBRID_APIKEY }}
           MONGO_URI: ${{ secrets.MONGO_URI }}
-        run: ./gradlew build --parallel --build-cache --configuration-cache
+        run: ./gradlew build --parallel --build-cache
 
       # Upload artifact only for main
       - uses: actions/upload-artifact@v7
