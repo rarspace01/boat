@@ -1,21 +1,22 @@
 package boat.config
 
-import org.springframework.context.annotation.Bean
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.annotation.Configuration
-import org.springframework.context.annotation.Primary
 import org.springframework.http.MediaType
 import org.springframework.http.converter.ResourceRegionHttpMessageConverter
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
+import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter
+import jakarta.annotation.PostConstruct
 
 @Configuration
-class WebMvcConfig : WebMvcConfigurer {
+class WebMvcConfig {
 
-    @Bean
-    @Primary
-    fun resourceRegionHttpMessageConverter(): ResourceRegionHttpMessageConverter {
+    @Autowired
+    private lateinit var handlerAdapter: RequestMappingHandlerAdapter
+
+    @PostConstruct
+    fun addRegionConverter() {
         val regionConverter = ResourceRegionHttpMessageConverter()
 
-        // Explicitly set the supported media types
         regionConverter.supportedMediaTypes = listOf(
             MediaType.parseMediaType("video/x-matroska"),
             MediaType.parseMediaType("video/mp4"),
@@ -25,6 +26,9 @@ class WebMvcConfig : WebMvcConfigurer {
             MediaType.ALL
         )
 
-        return regionConverter
+        // Forcefully inject into the front of the adapter's converter list
+        val converters = handlerAdapter.messageConverters.toMutableList()
+        converters.add(0, regionConverter)
+        handlerAdapter.messageConverters = converters
     }
 }
