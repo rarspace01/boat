@@ -63,11 +63,11 @@ class SecurityConfiguration(private val userRepository: UserRepository) {
         return firewall
     }
 
-    @Bean
-    fun passwordEncoder(): PasswordEncoder {
-        // Strength 10 is the industry standard (fast but secure)
-        // This is significantly faster than the default 12+ strength
-        // and will prevent the CPU spike you were seeing.
-        return BCryptPasswordEncoder(10)
-    }
+//    @Bean
+//    fun passwordEncoder(): PasswordEncoder {
+//        // Strength 10 is the industry standard (fast but secure)
+//        // This is significantly faster than the default 12+ strength
+//        // and will prevent the CPU spike you were seeing.
+//        return BCryptPasswordEncoder(10)
+//    }
 }
