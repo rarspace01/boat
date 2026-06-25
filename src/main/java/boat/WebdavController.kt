@@ -194,7 +194,7 @@ class WebdavController {
                                         .headers(headers)
                                         .body(region)
                                 }
-                            } catch (e: IllegalArgumentException) {
+                            } catch (_: IllegalArgumentException) {
                                 return ResponseEntity.status(HttpStatus.REQUESTED_RANGE_NOT_SATISFIABLE)
                                     .headers(headers)
                                     .header(HttpHeaders.CONTENT_RANGE, "bytes */$fileLength")
