@@ -1,18 +1,21 @@
 package boat
 
+import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.context.annotation.Primary
 import org.springframework.http.MediaType
-import org.springframework.http.converter.HttpMessageConverter
 import org.springframework.http.converter.ResourceRegionHttpMessageConverter
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
 
 @Configuration
 class WebMvcConfig : WebMvcConfigurer {
 
-    @Suppress("DEPRECATION")
-    override fun extendMessageConverters(converters: MutableList<HttpMessageConverter<*>>) {
+    @Bean
+    @Primary
+    fun resourceRegionHttpMessageConverter(): ResourceRegionHttpMessageConverter {
         val regionConverter = ResourceRegionHttpMessageConverter()
 
+        // Explicitly set the supported media types
         regionConverter.supportedMediaTypes = listOf(
             MediaType.parseMediaType("video/x-matroska"),
             MediaType.parseMediaType("video/mp4"),
@@ -22,7 +25,6 @@ class WebMvcConfig : WebMvcConfigurer {
             MediaType.ALL
         )
 
-        // This is the clean, non-deprecated way to append to the existing list
-        converters.add(0, regionConverter)
+        return regionConverter
     }
 }
