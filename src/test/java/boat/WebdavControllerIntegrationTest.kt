@@ -15,7 +15,6 @@ import org.springframework.mock.web.MockHttpServletRequest
 import java.io.File
 import kotlin.io.path.createTempDirectory
 
-@Disabled
 @SpringBootTest
 class WebdavControllerIntegrationTest {
 

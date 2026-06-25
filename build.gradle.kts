@@ -76,37 +76,33 @@ kotlin {
     jvmToolchain(25)
 }
 
+val gitVersionProvider = providers.exec {
+    commandLine("sh", "-c", "git fetch --all --tags>/dev/null&& git describe --tags --always --first-parent|tail -1")
+}
+
+val gitHashProvider = providers.exec {
+    commandLine("git", "rev-parse", "--verify", "--short", "HEAD")
+}
+
 tasks.jar {
     archiveBaseName.set("boat")
-    archiveVersion.set(getTagVersion())
-}
-
-fun getCheckedOutGitCommitHash(): String {
-    val takeFromHash = 12
-    return arrayOf("git", "rev-parse", "--verify", "--short", "HEAD")
-            .run {
-                Runtime.getRuntime().exec(this).inputStream.bufferedReader().readText().trim()
-            }
-            .take(takeFromHash)
-}
-
-fun getTagVersion(): String {
-    return arrayOf("sh", "-c", "git fetch --all --tags>/dev/null&& git describe --tags --always --first-parent|tail -1")
-            .run {
-                Runtime.getRuntime().exec(this).inputStream.bufferedReader().readText().trim()
-            }
+    archiveVersion.set(gitVersionProvider.standardOutput.asText.map { it.trim() })
 }
 
 tasks.register("createProperties") {
     dependsOn(tasks.processResources)
+    val versionProvider = gitVersionProvider.standardOutput.asText
+    val hashProvider = gitHashProvider.standardOutput.asText
+    val outputDir = layout.buildDirectory.dir("resources/main")
+
     doLast {
-        val versionFile = layout.buildDirectory.file("resources/main/version.properties").get().asFile
+        val versionFile = outputDir.get().file("version.properties").asFile
         versionFile.parentFile.mkdirs()
         versionFile.bufferedWriter().use { w ->
             val p = Properties()
-            p["version"] = "${tasks.jar.get().archiveVersion.get()}-${getCheckedOutGitCommitHash()}-${
-                Date().toString()
-            }"
+            val version = versionProvider.get().trim()
+            val hash = hashProvider.get().trim().take(12)
+            p["version"] = "$version-$hash-${Date()}"
             println("Version:${p["version"]}")
             p.store(w, null)
         }
