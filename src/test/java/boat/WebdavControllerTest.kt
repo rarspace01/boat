@@ -53,7 +53,7 @@ internal class WebdavControllerTest {
         // Then
         assertThat(response.statusCode).isEqualTo(HttpStatus.valueOf(207))
         val body = response.body.toString()
-        assertThat(body).contains("<D:href>http://localhost/PFDB/</D:href>")
+        assertThat(body).contains("<D:href>/PFDB/</D:href>")
         assertThat(body).doesNotContain("test.txt")
     }
 
@@ -70,8 +70,8 @@ internal class WebdavControllerTest {
         // Then
         assertThat(response.statusCode).isEqualTo(HttpStatus.valueOf(207))
         val body = response.body.toString()
-        assertThat(body).contains("<D:href>http://localhost/PFDB/</D:href>")
-        assertThat(body).contains("<D:href>http://localhost/PFDB/test.txt</D:href>")
+        assertThat(body).contains("<D:href>/PFDB/</D:href>")
+        assertThat(body).contains("<D:href>/PFDB/test.txt</D:href>")
     }
 
     @Test
@@ -211,7 +211,7 @@ internal class WebdavControllerTest {
         val href = webdavController.buildHref(request, "/PFDB/test", false)
         
         // Then
-        assertThat(href).isEqualTo("http://localhost:8080/PFDB/test")
+        assertThat(href).isEqualTo("/PFDB/test")
     }
     
     @Test
@@ -226,7 +226,7 @@ internal class WebdavControllerTest {
         val href = webdavController.buildHref(request, "/PFDB", true)
         
         // Then
-        assertThat(href).isEqualTo("http://example.com/PFDB/")
+        assertThat(href).isEqualTo("/PFDB/")
     }
 
     @Test
@@ -241,7 +241,7 @@ internal class WebdavControllerTest {
         val href = webdavController.buildHref(request, "/PFDB", true)
         
         // Then
-        assertThat(href).isEqualTo("https://example.com/PFDB/")
+        assertThat(href).isEqualTo("/PFDB/")
     }
 
     @Test
@@ -259,7 +259,7 @@ internal class WebdavControllerTest {
         val href = webdavController.buildHref(request, "/PFDB/test", false)
         
         // Then
-        assertThat(href).isEqualTo("https://external.com/PFDB/test")
+        assertThat(href).isEqualTo("/PFDB/test")
     }
 
     @Test
@@ -274,7 +274,7 @@ internal class WebdavControllerTest {
         val href = webdavController.buildHref(request, "/PFDB/folder", true)
         
         // Then
-        assertThat(href).isEqualTo("http://localhost:8080/PFDB/folder/")
+        assertThat(href).isEqualTo("/PFDB/folder/")
     }
 
     @Test
