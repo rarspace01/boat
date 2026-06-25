@@ -63,9 +63,8 @@ class WebdavControllerIntegrationTest {
         assertThat(response.headers.getFirst(HttpHeaders.CONTENT_RANGE)).isEqualTo("bytes 0-4/10")
         assertThat(response.headers.contentLength).isEqualTo(5)
         
-        val region = response.body as ResourceRegion
-        val body = region.resource.inputStream.use { it.skip(region.position); it.readBytes() }.take(region.count.toInt()).toByteArray().toString(Charsets.UTF_8)
-        assertThat(body).isEqualTo("01234")
+        val resource = response.body as FileSystemResource
+        assertThat(resource.inputStream.readBytes().toString(Charsets.UTF_8)).isEqualTo("0123456789")
     }
 
     @Test
@@ -78,9 +77,8 @@ class WebdavControllerIntegrationTest {
         assertThat(response.headers.getFirst(HttpHeaders.CONTENT_RANGE)).isEqualTo("bytes 5-9/10")
         assertThat(response.headers.contentLength).isEqualTo(5)
         
-        val region = response.body as ResourceRegion
-        val body = region.resource.inputStream.use { it.skip(region.position); it.readBytes() }.take(region.count.toInt()).toByteArray().toString(Charsets.UTF_8)
-        assertThat(body).isEqualTo("56789")
+        val resource = response.body as FileSystemResource
+        assertThat(resource.inputStream.readBytes().toString(Charsets.UTF_8)).isEqualTo("0123456789")
     }
 
     @Test
@@ -93,8 +91,7 @@ class WebdavControllerIntegrationTest {
         assertThat(response.headers.getFirst(HttpHeaders.CONTENT_RANGE)).isEqualTo("bytes 5-9/10")
         assertThat(response.headers.contentLength).isEqualTo(5)
         
-        val region = response.body as ResourceRegion
-        val body = region.resource.inputStream.use { it.skip(region.position); it.readBytes() }.take(region.count.toInt()).toByteArray().toString(Charsets.UTF_8)
-        assertThat(body).isEqualTo("56789")
+        val resource = response.body as FileSystemResource
+        assertThat(resource.inputStream.readBytes().toString(Charsets.UTF_8)).isEqualTo("0123456789")
     }
 }

@@ -4,7 +4,6 @@ import boat.utilities.LoggerDelegate
 import jakarta.servlet.http.HttpServletRequest
 import org.springframework.core.io.ByteArrayResource
 import org.springframework.core.io.FileSystemResource
-import org.springframework.core.io.support.ResourceRegion
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpRange
 import org.springframework.http.HttpStatus
@@ -55,17 +54,8 @@ class WebdavController {
             return davNotFound()
         }
 
-        val rootCanonical = try {
-            rootDir.canonicalFile
-        } catch (_: IOException) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build()
-        }
-
-        val targetCanonical = try {
-            targetFile.canonicalFile
-        } catch (_: IOException) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build()
-        }
+        val rootCanonical = try { rootDir.canonicalFile } catch (_: IOException) { return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build() }
+        val targetCanonical = try { targetFile.canonicalFile } catch (_: IOException) { return ResponseEntity.status(HttpStatus.NOT_FOUND).build() }
 
         if (!targetCanonical.path.startsWith(rootCanonical.path)) {
             return davNotFound()
@@ -97,10 +87,7 @@ class WebdavController {
 
                     val files = targetCanonical.listFiles()?.sortedBy { it.name.lowercase(Locale.getDefault()) } ?: emptyList()
                     val html = StringBuilder("<html><body><h1>Files in ${escapeXml(targetCanonical.absolutePath)}</h1><ul>")
-                    if (targetCanonical != rootCanonical) {
-                        html.append("<li><a href=\"..\">..</a></li>")
-                    }
-
+                    if (targetCanonical != rootCanonical) { html.append("<li><a href=\"..\">..</a></li>") }
                     files.forEach {
                         val name = if (it.isDirectory) "${it.name}/" else it.name
                         val href = encodePath(it.name) + if (it.isDirectory) "/" else ""
@@ -109,10 +96,7 @@ class WebdavController {
                     html.append("</ul></body></html>")
 
                     val bytes = html.toString().toByteArray(StandardCharsets.UTF_8)
-                    val resource = object : ByteArrayResource(bytes) {
-                        override fun getFilename(): String = "index.html"
-                    }
-
+                    val resource = object : ByteArrayResource(bytes) { override fun getFilename(): String = "index.html" }
                     val directoryResponseBuilder = ResponseEntity.ok()
                         .header(HttpHeaders.CONTENT_LOCATION, normalizedHref)
                         .header(HttpHeaders.ALLOW, DAV_ALLOW_HEADER)
@@ -120,19 +104,13 @@ class WebdavController {
                         .contentType(MediaType.TEXT_HTML)
                         .contentLength(bytes.size.toLong())
 
-                    if (request.method.equals("HEAD", ignoreCase = true)) {
-                        directoryResponseBuilder.build()
-                    } else {
-                        directoryResponseBuilder.body(resource)
-                    }
+                    if (request.method.equals("HEAD", ignoreCase = true)) directoryResponseBuilder.build() else directoryResponseBuilder.body(resource)
                 } else {
-                    // --- MEDIA STREAMING LOGIC REWRITE ---
+                    // --- NATIVE STREAMING LOGIC ---
                     try {
                         val fileLength = targetCanonical.length()
                         val contentType = getFastContentType(targetCanonical.name)
                         val encodedFilename = URLEncoder.encode(targetCanonical.name, StandardCharsets.UTF_8).replace("+", "%20")
-
-                        // FIX 1: 'inline' tells the player to stream, not download
                         val contentDisposition = "inline; filename=\"${targetCanonical.name.replace("\"", "\\\"")}\"; filename*=UTF-8''$encodedFilename"
 
                         val headers = HttpHeaders().apply {
@@ -144,41 +122,9 @@ class WebdavController {
                             setContentType(MediaType.parseMediaType(contentType))
                         }
 
+                        val resource = FileSystemResource(targetCanonical)
                         val rangeHeader = request.getHeader(HttpHeaders.RANGE)
 
-                        if (request.method.equals("HEAD", ignoreCase = true)) {
-                            if (rangeHeader != null) {
-                                try {
-                                    val ranges = HttpRange.parseRanges(rangeHeader)
-                                    if (ranges.isNotEmpty()) {
-                                        val range = ranges.first()
-                                        val start = range.getRangeStart(fileLength)
-                                        val end = range.getRangeEnd(fileLength)
-                                        val regionLength = minOf(end - start + 1, fileLength - start)
-
-                                        return ResponseEntity.status(HttpStatus.PARTIAL_CONTENT)
-                                            .headers(headers)
-                                            .header(HttpHeaders.CONTENT_RANGE, "bytes $start-$end/$fileLength")
-                                            .contentLength(regionLength)
-                                            .build()
-                                    }
-                                } catch (_: IllegalArgumentException) {
-                                    return ResponseEntity.status(HttpStatus.REQUESTED_RANGE_NOT_SATISFIABLE)
-                                        .headers(headers)
-                                        .header(HttpHeaders.CONTENT_RANGE, "bytes */$fileLength")
-                                        .build()
-                                }
-                            }
-
-                            return ResponseEntity.ok()
-                                .headers(headers)
-                                .contentLength(fileLength)
-                                .build()
-                        }
-
-                        val resource = FileSystemResource(targetCanonical)
-
-                        // FIX 2 & 3: Let Spring handle complex ByteRanges via Zero-Copy NIO
                         if (rangeHeader != null) {
                             try {
                                 val ranges = HttpRange.parseRanges(rangeHeader)
@@ -187,39 +133,33 @@ class WebdavController {
                                     val start = range.getRangeStart(fileLength)
                                     val end = range.getRangeEnd(fileLength)
                                     val regionLength = minOf(end - start + 1, fileLength - start)
-                                    val region = ResourceRegion(resource, start, regionLength)
 
-                                    // Let Spring's ResourceRegionHttpMessageConverter handle the range headers automatically
-                                    return ResponseEntity.status(HttpStatus.PARTIAL_CONTENT)
-                                        .headers(headers)
-//                                        .header(HttpHeaders.CONTENT_RANGE, "bytes $start-$end/$fileLength")
-//                                        .contentLength(regionLength)
-                                        .body(region)
+                    if (request.method.equals("HEAD", ignoreCase = true)) {
+                        return ResponseEntity.status(HttpStatus.PARTIAL_CONTENT)
+                            .headers(headers)
+                            .header(HttpHeaders.CONTENT_RANGE, "bytes $start-$end/$fileLength")
+                            .contentLength(regionLength)
+                            .build()
+                    }
+
+                    return ResponseEntity.status(HttpStatus.PARTIAL_CONTENT)
+                        .headers(headers)
+                        .header(HttpHeaders.CONTENT_RANGE, "bytes $start-$end/$fileLength")
+                        .contentLength(regionLength)
+                        .body(resource)
                                 }
                             } catch (_: IllegalArgumentException) {
-                                return ResponseEntity.status(HttpStatus.REQUESTED_RANGE_NOT_SATISFIABLE)
-                                    .headers(headers)
-                                    .header(HttpHeaders.CONTENT_RANGE, "bytes */$fileLength")
-                                    .build()
+                                return ResponseEntity.status(HttpStatus.REQUESTED_RANGE_NOT_SATISFIABLE).headers(headers).header(HttpHeaders.CONTENT_RANGE, "bytes */$fileLength").build()
                             }
                         }
-
-                        // No range requested, stream entire file
-                        return ResponseEntity.ok()
-                            .headers(headers)
-                            .contentLength(fileLength)
-                            .body(resource)
-
-                    } catch (_: IOException) {
-                        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build()
-                    }
+                        if (request.method.equals("HEAD", ignoreCase = true)) {
+                            return ResponseEntity.ok().headers(headers).contentLength(fileLength).build()
+                        }
+                        ResponseEntity.ok().headers(headers).contentLength(fileLength).body(resource)
+                    } catch (_: IOException) { ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build() }
                 }
             }
-
-            else -> ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
-                .header(HttpHeaders.ALLOW, DAV_ALLOW_HEADER)
-                .header("DAV", "1, 2")
-                .build()
+            else -> ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).header(HttpHeaders.ALLOW, DAV_ALLOW_HEADER).header("DAV", "1, 2").build()
         }
     }
 
