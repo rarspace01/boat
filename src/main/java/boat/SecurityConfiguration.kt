@@ -11,8 +11,6 @@ import org.springframework.security.config.annotation.authentication.builders.Au
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
 import org.springframework.security.config.http.SessionCreationPolicy
-import org.springframework.security.crypto.factory.PasswordEncoderFactories
-import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.firewall.HttpFirewall
 import org.springframework.security.web.firewall.StrictHttpFirewall
@@ -75,12 +73,5 @@ class SecurityConfiguration(private val userRepository: UserRepository, private 
         val builder = http.getSharedObject(AuthenticationManagerBuilder::class.java)
         builder.authenticationProvider(cachedAuthenticationProvider)
         return builder.build()
-    }
-
-    @Bean
-    fun passwordEncoder(): PasswordEncoder {
-        // This factory creates the DelegatingPasswordEncoder which
-        // handles the {bcrypt} prefix automatically.
-        return PasswordEncoderFactories.createDelegatingPasswordEncoder()
     }
 }
