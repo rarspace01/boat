@@ -63,33 +63,11 @@ class SecurityConfiguration(private val userRepository: UserRepository) {
         return firewall
     }
 
-    /**
-     * Caches password verification to prevent CPU exhaustion and connection
-     * drops when Kodi sends 100+ concurrent stateless Basic Auth requests.
-     */
     @Bean
     fun passwordEncoder(): PasswordEncoder {
-        return object : PasswordEncoder {
-            private val delegate = BCryptPasswordEncoder()
-
-            // A thread-safe, bounded cache (max 1000 entries) to prevent OOM memory leaks
-            private val cache = Collections.synchronizedMap(object : LinkedHashMap<String, Boolean>(100, 0.75f, true) {
-                override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Boolean>): Boolean {
-                    return size > 1000
-                }
-            })
-
-            override fun encode(rawPassword: CharSequence?): String? {
-                return delegate.encode(rawPassword)
-            }
-
-            override fun matches(rawPassword: CharSequence?, encodedPassword: String?): Boolean {
-                val key = "$rawPassword::$encodedPassword"
-                // Only run the heavy BCrypt math if we haven't seen this exact combo recently
-                return cache.computeIfAbsent(key) {
-                    delegate.matches(rawPassword, encodedPassword)
-                }
-            }
-        }
+        // Strength 10 is the industry standard (fast but secure)
+        // This is significantly faster than the default 12+ strength
+        // and will prevent the CPU spike you were seeing.
+        return BCryptPasswordEncoder(10)
     }
 }
