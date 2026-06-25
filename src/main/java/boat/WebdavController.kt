@@ -1,20 +1,18 @@
 package boat
 
-import boat.model.ByteRange
-import boat.model.LimitedInputStream
 import boat.utilities.LoggerDelegate
 import jakarta.servlet.http.HttpServletRequest
 import org.springframework.core.io.ByteArrayResource
 import org.springframework.core.io.FileSystemResource
-import org.springframework.core.io.InputStreamResource
+import org.springframework.core.io.support.ResourceRegion
 import org.springframework.http.HttpHeaders
+import org.springframework.http.HttpRange
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import java.io.File
-import java.io.FileInputStream
 import java.io.IOException
 import java.net.URLDecoder
 import java.net.URLEncoder
@@ -32,7 +30,6 @@ class WebdavController {
         private const val DAV_ALLOW_HEADER =
             "OPTIONS, GET, HEAD, PROPFIND, PROPPATCH, MKCOL, COPY, MOVE, LOCK, UNLOCK"
 
-        // Cached, thread-safe date formatters to prevent GC overhead and slowdowns in tight loops
         private val LAST_MODIFIED_FORMATTER = DateTimeFormatter
             .ofPattern("EEE, dd MMM yyyy HH:mm:ss 'GMT'", Locale.US)
             .withZone(ZoneId.of("GMT"))
@@ -116,7 +113,7 @@ class WebdavController {
                         override fun getFilename(): String = "index.html"
                     }
 
-                    val responseBuilder = ResponseEntity.ok()
+                    val directoryResponseBuilder = ResponseEntity.ok()
                         .header(HttpHeaders.CONTENT_LOCATION, normalizedHref)
                         .header(HttpHeaders.ALLOW, DAV_ALLOW_HEADER)
                         .header("DAV", "1, 2")
@@ -124,71 +121,95 @@ class WebdavController {
                         .contentLength(bytes.size.toLong())
 
                     if (request.method.equals("HEAD", ignoreCase = true)) {
-                        responseBuilder.build()
+                        directoryResponseBuilder.build()
                     } else {
-                        responseBuilder.body(resource)
+                        directoryResponseBuilder.body(resource)
                     }
                 } else {
+                    // --- MEDIA STREAMING LOGIC REWRITE ---
                     try {
+                        val fileLength = targetCanonical.length()
                         val contentType = getFastContentType(targetCanonical.name)
                         val encodedFilename = URLEncoder.encode(targetCanonical.name, StandardCharsets.UTF_8).replace("+", "%20")
-                        val contentDisposition =
-                            "attachment; filename=\"${targetCanonical.name.replace("\"", "\\\"")}\"; filename*=UTF-8''$encodedFilename"
-                        val fileLength = targetCanonical.length()
-                        val byteRange = parseSingleByteRange(request.getHeader(HttpHeaders.RANGE), fileLength)
 
-                        if (request.getHeader(HttpHeaders.RANGE) != null && byteRange == null) {
-                            return ResponseEntity.status(HttpStatus.REQUESTED_RANGE_NOT_SATISFIABLE)
-                                .header(HttpHeaders.ACCEPT_RANGES, "bytes")
-                                .header(HttpHeaders.CONTENT_RANGE, "bytes */$fileLength")
-                                .header(HttpHeaders.ALLOW, DAV_ALLOW_HEADER)
-                                .header("DAV", "1, 2")
+                        // FIX 1: 'inline' tells the player to stream, not download
+                        val contentDisposition = "inline; filename=\"${targetCanonical.name.replace("\"", "\\\"")}\"; filename*=UTF-8''$encodedFilename"
+
+                        val headers = HttpHeaders().apply {
+                            add(HttpHeaders.CONTENT_DISPOSITION, contentDisposition)
+                            add(HttpHeaders.CONTENT_LOCATION, normalizedHref)
+                            add(HttpHeaders.ALLOW, DAV_ALLOW_HEADER)
+                            add("DAV", "1, 2")
+                            add(HttpHeaders.ACCEPT_RANGES, "bytes")
+                            setContentType(MediaType.parseMediaType(contentType))
+                        }
+
+                        val rangeHeader = request.getHeader(HttpHeaders.RANGE)
+
+                        if (request.method.equals("HEAD", ignoreCase = true)) {
+                            if (rangeHeader != null) {
+                                try {
+                                    val ranges = HttpRange.parseRanges(rangeHeader)
+                                    if (ranges.isNotEmpty()) {
+                                        val range = ranges.first()
+                                        val start = range.getRangeStart(fileLength)
+                                        val end = range.getRangeEnd(fileLength)
+                                        val regionLength = minOf(end - start + 1, fileLength - start)
+
+                                        return ResponseEntity.status(HttpStatus.PARTIAL_CONTENT)
+                                            .headers(headers)
+                                            .header(HttpHeaders.CONTENT_RANGE, "bytes $start-$end/$fileLength")
+                                            .contentLength(regionLength)
+                                            .build()
+                                    }
+                                } catch (_: IllegalArgumentException) {
+                                    return ResponseEntity.status(HttpStatus.REQUESTED_RANGE_NOT_SATISFIABLE)
+                                        .headers(headers)
+                                        .header(HttpHeaders.CONTENT_RANGE, "bytes */$fileLength")
+                                        .build()
+                                }
+                            }
+
+                            return ResponseEntity.ok()
+                                .headers(headers)
+                                .contentLength(fileLength)
                                 .build()
                         }
 
-                        if (byteRange != null) {
-                            val inputStream = FileInputStream(targetCanonical)
-                            inputStream.skipNBytes(byteRange.start)
-                            val resource = object : InputStreamResource(
-                                LimitedInputStream(inputStream, byteRange.length)
-                            ) {
-                                override fun getFilename(): String = targetCanonical.name
-                            }
+                        val resource = FileSystemResource(targetCanonical)
 
-                            val responseBuilder = ResponseEntity.status(HttpStatus.PARTIAL_CONTENT)
-                                .header(HttpHeaders.ACCEPT_RANGES, "bytes")
-                                .header(HttpHeaders.CONTENT_RANGE, "bytes ${byteRange.start}-${byteRange.endInclusive}/$fileLength")
-                                .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition)
-                                .header(HttpHeaders.CONTENT_LOCATION, normalizedHref)
-                                .header(HttpHeaders.ALLOW, DAV_ALLOW_HEADER)
-                                .header("DAV", "1, 2")
-                                .contentType(MediaType.parseMediaType(contentType))
-                                .contentLength(byteRange.length)
+                        // FIX 2 & 3: Let Spring handle complex ByteRanges via Zero-Copy NIO
+                        if (rangeHeader != null) {
+                            try {
+                                val ranges = HttpRange.parseRanges(rangeHeader)
+                                if (ranges.isNotEmpty()) {
+                                    val range = ranges.first()
+                                    val start = range.getRangeStart(fileLength)
+                                    val end = range.getRangeEnd(fileLength)
+                                    val regionLength = minOf(end - start + 1, fileLength - start)
+                                    val region = ResourceRegion(resource, start, regionLength)
 
-                            if (request.method.equals("HEAD", ignoreCase = true)) {
-                                responseBuilder.build()
-                            } else {
-                                responseBuilder.body(resource)
-                            }
-                        } else {
-                            val resource = FileSystemResource(targetCanonical)
-                            val responseBuilder = ResponseEntity.ok()
-                                .header(HttpHeaders.ACCEPT_RANGES, "bytes")
-                                .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition)
-                                .header(HttpHeaders.CONTENT_LOCATION, normalizedHref)
-                                .header(HttpHeaders.ALLOW, DAV_ALLOW_HEADER)
-                                .header("DAV", "1, 2")
-                                .contentType(MediaType.parseMediaType(contentType))
-                                .contentLength(fileLength)
-
-                            if (request.method.equals("HEAD", ignoreCase = true)) {
-                                responseBuilder.build()
-                            } else {
-                                responseBuilder.body(resource)
+                                    // Let Spring's ResourceRegionHttpMessageConverter handle the range headers automatically
+                                    return ResponseEntity.status(HttpStatus.PARTIAL_CONTENT)
+                                        .headers(headers)
+                                        .body(region)
+                                }
+                            } catch (e: IllegalArgumentException) {
+                                return ResponseEntity.status(HttpStatus.REQUESTED_RANGE_NOT_SATISFIABLE)
+                                    .headers(headers)
+                                    .header(HttpHeaders.CONTENT_RANGE, "bytes */$fileLength")
+                                    .build()
                             }
                         }
+
+                        // No range requested, stream entire file
+                        return ResponseEntity.ok()
+                            .headers(headers)
+                            .contentLength(fileLength)
+                            .body(resource)
+
                     } catch (_: IOException) {
-                        ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build()
+                        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build()
                     }
                 }
             }
@@ -351,7 +372,6 @@ class WebdavController {
     }
 
     internal fun escapeXml(value: String): String {
-        // Drop XML 1.0 forbidden control characters that disrupt parsers like Kodi's TinyXML
         val cleaned = value.replace(Regex("[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F]"), "")
         return cleaned
             .replace("&", "&amp;")
@@ -364,7 +384,6 @@ class WebdavController {
     private fun getFastContentType(filename: String): String {
         val ext = filename.substringAfterLast('.', "").lowercase(Locale.getDefault())
         return when (ext) {
-            // --- Video ---
             "mkv" -> "video/x-matroska"
             "mp4", "m4v" -> "video/mp4"
             "avi" -> "video/x-msvideo"
@@ -380,8 +399,6 @@ class WebdavController {
             "rm", "rmvb" -> "application/vnd.rn-realmedia"
             "asf" -> "video/x-ms-asf"
             "mxf" -> "application/mxf"
-
-            // --- Audio ---
             "mp3" -> "audio/mpeg"
             "flac" -> "audio/flac"
             "wav" -> "audio/x-wav"
@@ -397,15 +414,13 @@ class WebdavController {
             "ac3" -> "audio/ac3"
             "eac3" -> "audio/eac3"
             "dsf", "dff" -> "audio/dsd"
-
-            // --- Subtitles ---
             "srt" -> "application/x-subrip"
             "vtt" -> "text/vtt"
             "ass", "ssa" -> "text/x-ssa"
             "smi", "sami" -> "application/smil+xml"
-            "sub", "txt" -> "text/plain" // Text-based subs or VobSub pairs
-
-            // --- Images (Posters, Fanart, Banners) ---
+            "sub", "txt" -> "text/plain"
+            "idx" -> "application/octet-stream"
+            "sup" -> "application/octet-stream"
             "jpg", "jpeg", "jpe" -> "image/jpeg"
             "png" -> "image/png"
             "gif" -> "image/gif"
@@ -414,63 +429,11 @@ class WebdavController {
             "tiff", "tif" -> "image/tiff"
             "heic" -> "image/heic"
             "heif" -> "image/heif"
-            "tbn" -> "image/jpeg" // Kodi-specific thumbnail extension
-
-            // --- Kodi Metadata ---
-            "nfo" -> "text/plain"
+            "tbn" -> "image/jpeg"
+            "nfo" -> "text/xml"
             "xml" -> "application/xml"
-
-            // --- Default / Fallback ---
             else -> "application/octet-stream"
         }
-    }
-
-    private fun parseSingleByteRange(rangeHeader: String?, fileLength: Long): ByteRange? {
-        if (rangeHeader.isNullOrBlank() || !rangeHeader.startsWith("bytes=")) {
-            return null
-        }
-
-        val rangeSpec = rangeHeader.removePrefix("bytes=").trim()
-        if (rangeSpec.contains(",")) {
-            return null
-        }
-
-        val parts = rangeSpec.split("-", limit = 2)
-        if (parts.size != 2) {
-            return null
-        }
-
-        val startPart = parts[0].trim()
-        val endPart = parts[1].trim()
-
-        val range = when {
-            startPart.isEmpty() -> {
-                val suffixLength = endPart.toLongOrNull() ?: return null
-                if (suffixLength <= 0) {
-                    return null
-                }
-
-                val start = maxOf(fileLength - suffixLength, 0)
-                ByteRange(start, fileLength - 1)
-            }
-
-            else -> {
-                val start = startPart.toLongOrNull() ?: return null
-                val end = if (endPart.isEmpty()) {
-                    fileLength - 1
-                } else {
-                    endPart.toLongOrNull() ?: return null
-                }
-
-                ByteRange(start, minOf(end, fileLength - 1))
-            }
-        }
-
-        if (fileLength <= 0 || range.start < 0 || range.start >= fileLength || range.endInclusive < range.start) {
-            return null
-        }
-
-        return range
     }
 
     fun buildHref(request: HttpServletRequest, path: String, isDirectory: Boolean): String {

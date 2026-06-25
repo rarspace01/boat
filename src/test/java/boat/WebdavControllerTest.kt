@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.mock.web.MockHttpServletRequest
+import org.springframework.core.io.support.ResourceRegion
 import java.io.File
 import kotlin.io.path.createTempDirectory
 
@@ -85,8 +86,9 @@ internal class WebdavControllerTest {
 
         // Then
         assertThat(response.statusCode).isEqualTo(HttpStatus.OK)
-        // Cannot check body directly, but can check headers
         assertThat(response.headers.contentLength).isEqualTo(11)
+        val body = (response.body as org.springframework.core.io.FileSystemResource).inputStream.readAllBytes().toString(Charsets.UTF_8)
+        assertThat(body).isEqualTo("hello world")
     }
 
     @Test
@@ -105,6 +107,23 @@ internal class WebdavControllerTest {
     }
 
     @Test
+    fun `HEAD on a directory should return headers but no body`() {
+        // Given
+        File(tempDir, "test.txt").createNewFile()
+        val request = MockHttpServletRequest("HEAD", "/PFDB/")
+
+        // When
+        val response = webdavController.webdavPfdb(request)
+
+        // Then
+        assertThat(response.statusCode).isEqualTo(HttpStatus.OK)
+        // The content length for directory listings might vary slightly based on generated HTML, 
+        // so we mainly check for no body and expected content type.
+        assertThat(response.headers.contentType).isEqualTo(org.springframework.http.MediaType.TEXT_HTML)
+        assertThat(response.body).isNull()
+    }
+
+    @Test
     fun `GET on a non-existent file should return 404`() {
         // Given
         val request = MockHttpServletRequest("GET", "/PFDB/nonexistent.txt")
@@ -114,6 +133,22 @@ internal class WebdavControllerTest {
 
         // Then
         assertThat(response.statusCode).isEqualTo(HttpStatus.NOT_FOUND)
+    }
+
+    @Test
+    fun `HEAD on a file should return headers but no body`() {
+        // Given
+        val testFile = File(tempDir, "test.txt")
+        testFile.writeText("hello world")
+        val request = MockHttpServletRequest("HEAD", "/PFDB/test.txt")
+
+        // When
+        val response = webdavController.webdavPfdb(request)
+
+        // Then
+        assertThat(response.statusCode).isEqualTo(HttpStatus.OK)
+        assertThat(response.headers.contentLength).isEqualTo(11)
+        assertThat(response.body).isNull()
     }
 
     @Test
@@ -240,5 +275,100 @@ internal class WebdavControllerTest {
         
         // Then
         assertThat(href).isEqualTo("http://localhost:8080/PFDB/folder/")
+    }
+
+    @Test
+    fun `GET with byte range should return partial content`() {
+        // Given
+        val testFile = File(tempDir, "test.txt")
+        testFile.writeText("hello world") // Length 11
+        val request = MockHttpServletRequest("GET", "/PFDB/test.txt")
+        request.addHeader(HttpHeaders.RANGE, "bytes=0-4") // "hello"
+
+        // When
+        val response = webdavController.webdavPfdb(request)
+
+        // Then
+        assertThat(response.statusCode).isEqualTo(HttpStatus.PARTIAL_CONTENT)
+        assertThat(response.headers.getFirst(HttpHeaders.CONTENT_RANGE)).isEqualTo("bytes 0-4/11")
+        assertThat(response.headers.contentLength).isEqualTo(5)
+        val region = response.body as ResourceRegion
+        val body = region.resource.inputStream.use { it.skip(region.position); it.readBytes() }.take(region.count.toInt()).toByteArray().toString(Charsets.UTF_8)
+        assertThat(body).isEqualTo("hello")
+    }
+
+    @Test
+    fun `GET with open-ended byte range should return partial content`() {
+        // Given
+        val testFile = File(tempDir, "test.txt")
+        testFile.writeText("hello world") // Length 11
+        val request = MockHttpServletRequest("GET", "/PFDB/test.txt")
+        request.addHeader(HttpHeaders.RANGE, "bytes=6-") // "world"
+
+        // When
+        val response = webdavController.webdavPfdb(request)
+
+        // Then
+        assertThat(response.statusCode).isEqualTo(HttpStatus.PARTIAL_CONTENT)
+        assertThat(response.headers.getFirst(HttpHeaders.CONTENT_RANGE)).isEqualTo("bytes 6-10/11")
+        assertThat(response.headers.contentLength).isEqualTo(5)
+        val region = response.body as ResourceRegion
+        val body = region.resource.inputStream.use { it.skip(region.position); it.readBytes() }.take(region.count.toInt()).toByteArray().toString(Charsets.UTF_8)
+        assertThat(body).isEqualTo("world")
+    }
+
+    @Test
+    fun `GET with suffix byte range should return partial content`() {
+        // Given
+        val testFile = File(tempDir, "test.txt")
+        testFile.writeText("hello world") // Length 11
+        val request = MockHttpServletRequest("GET", "/PFDB/test.txt")
+        request.addHeader(HttpHeaders.RANGE, "bytes=-5") // "world"
+
+        // When
+        val response = webdavController.webdavPfdb(request)
+
+        // Then
+        assertThat(response.statusCode).isEqualTo(HttpStatus.PARTIAL_CONTENT)
+        assertThat(response.headers.getFirst(HttpHeaders.CONTENT_RANGE)).isEqualTo("bytes 6-10/11")
+        assertThat(response.headers.contentLength).isEqualTo(5)
+        val region = response.body as ResourceRegion
+        val body = region.resource.inputStream.use { it.skip(region.position); it.readBytes() }.take(region.count.toInt()).toByteArray().toString(Charsets.UTF_8)
+        assertThat(body).isEqualTo("world")
+    }
+
+    @Test
+    fun `GET with invalid byte range should return 416`() {
+        // Given
+        val testFile = File(tempDir, "test.txt")
+        testFile.writeText("hello world") // Length 11
+        val request = MockHttpServletRequest("GET", "/PFDB/test.txt")
+        request.addHeader(HttpHeaders.RANGE, "bytes=100-110") // Out of bounds
+
+        // When
+        val response = webdavController.webdavPfdb(request)
+
+        // Then
+        assertThat(response.statusCode).isEqualTo(HttpStatus.REQUESTED_RANGE_NOT_SATISFIABLE)
+        assertThat(response.headers.getFirst(HttpHeaders.CONTENT_RANGE)).isEqualTo("bytes */11")
+        assertThat(response.body).isNull()
+    }
+
+    @Test
+    fun `HEAD with byte range should return partial content headers but no body`() {
+        // Given
+        val testFile = File(tempDir, "test.txt")
+        testFile.writeText("hello world") // Length 11
+        val request = MockHttpServletRequest("HEAD", "/PFDB/test.txt")
+        request.addHeader(HttpHeaders.RANGE, "bytes=0-4") // "hello"
+
+        // When
+        val response = webdavController.webdavPfdb(request)
+
+        // Then
+        assertThat(response.statusCode).isEqualTo(HttpStatus.PARTIAL_CONTENT)
+        assertThat(response.headers.getFirst(HttpHeaders.CONTENT_RANGE)).isEqualTo("bytes 0-4/11")
+        assertThat(response.headers.contentLength).isEqualTo(5)
+        assertThat(response.body).isNull()
     }
 }
