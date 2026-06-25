@@ -1,27 +1,30 @@
 package boat
 
 import boat.repositories.UserRepository
+import boat.security.CachedAuthenticationProvider
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.http.HttpMethod
+import org.springframework.security.authentication.AuthenticationManager
 import org.springframework.security.config.Customizer
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
 import org.springframework.security.config.http.SessionCreationPolicy
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
+import org.springframework.security.crypto.factory.PasswordEncoderFactories
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.firewall.HttpFirewall
 import org.springframework.security.web.firewall.StrictHttpFirewall
-import java.util.Collections
+import java.util.concurrent.ConcurrentHashMap
 
 @Configuration
 @EnableWebSecurity
-class SecurityConfiguration(private val userRepository: UserRepository) {
+class SecurityConfiguration(private val userRepository: UserRepository, private val cachedAuthenticationProvider: CachedAuthenticationProvider) {
 
     @Bean
     @Throws(Exception::class)
-    fun securityFilterChain(http: HttpSecurity): SecurityFilterChain {
+    fun securityFilterChain(http: HttpSecurity, authManager: AuthenticationManager): SecurityFilterChain {
         val hasUsers = userRepository.count() > 0
 
         http
@@ -29,9 +32,8 @@ class SecurityConfiguration(private val userRepository: UserRepository) {
             .sessionManagement { session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             }
-            .csrf { csrf ->
-                csrf.disable()
-            }
+            .csrf { csrf -> csrf.disable() }
+            .authenticationManager(authManager)
             .authorizeHttpRequests { authorize ->
                 if (hasUsers) {
                     authorize
@@ -63,11 +65,22 @@ class SecurityConfiguration(private val userRepository: UserRepository) {
         return firewall
     }
 
-//    @Bean
-//    fun passwordEncoder(): PasswordEncoder {
-//        // Strength 10 is the industry standard (fast but secure)
-//        // This is significantly faster than the default 12+ strength
-//        // and will prevent the CPU spike you were seeing.
-//        return BCryptPasswordEncoder(10)
-//    }
+    @Bean
+    fun authCache(): ConcurrentHashMap<String, Boolean> {
+        return ConcurrentHashMap()
+    }
+
+    @Bean
+    fun authManager(http: HttpSecurity): AuthenticationManager {
+        val builder = http.getSharedObject(AuthenticationManagerBuilder::class.java)
+        builder.authenticationProvider(cachedAuthenticationProvider)
+        return builder.build()
+    }
+
+    @Bean
+    fun passwordEncoder(): PasswordEncoder {
+        // This factory creates the DelegatingPasswordEncoder which
+        // handles the {bcrypt} prefix automatically.
+        return PasswordEncoderFactories.createDelegatingPasswordEncoder()
+    }
 }
