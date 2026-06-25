@@ -11,7 +11,6 @@ import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
-import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import java.io.File
@@ -20,8 +19,9 @@ import java.io.IOException
 import java.net.URLDecoder
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
-import java.nio.file.Files
-import java.text.SimpleDateFormat
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.*
 
 @RestController
@@ -31,8 +31,17 @@ class WebdavController {
         private val logger by LoggerDelegate()
         private const val DAV_ALLOW_HEADER =
             "OPTIONS, GET, HEAD, PROPFIND, PROPPATCH, MKCOL, COPY, MOVE, LOCK, UNLOCK"
+
+        // Cached, thread-safe date formatters to prevent GC overhead and slowdowns in tight loops
+        private val LAST_MODIFIED_FORMATTER = DateTimeFormatter
+            .ofPattern("EEE, dd MMM yyyy HH:mm:ss 'GMT'", Locale.US)
+            .withZone(ZoneId.of("GMT"))
+
+        private val CREATION_DATE_FORMATTER = DateTimeFormatter
+            .ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US)
+            .withZone(ZoneId.of("GMT"))
     }
-    
+
     internal var rootDir = File("/PFDB")
 
     @RequestMapping("/PFDB", "/PFDB/", "/PFDB/**")
@@ -107,26 +116,21 @@ class WebdavController {
                         override fun getFilename(): String = "index.html"
                     }
 
+                    val responseBuilder = ResponseEntity.ok()
+                        .header(HttpHeaders.CONTENT_LOCATION, normalizedHref)
+                        .header(HttpHeaders.ALLOW, DAV_ALLOW_HEADER)
+                        .header("DAV", "1, 2")
+                        .contentType(MediaType.TEXT_HTML)
+                        .contentLength(bytes.size.toLong())
+
                     if (request.method.equals("HEAD", ignoreCase = true)) {
-                        ResponseEntity.ok()
-                            .header(HttpHeaders.CONTENT_LOCATION, normalizedHref)
-                            .header(HttpHeaders.ALLOW, DAV_ALLOW_HEADER)
-                            .header("DAV", "1")
-                            .contentType(MediaType.TEXT_HTML)
-                            .contentLength(bytes.size.toLong())
-                            .build()
+                        responseBuilder.build()
                     } else {
-                        ResponseEntity.ok()
-                            .header(HttpHeaders.CONTENT_LOCATION, normalizedHref)
-                            .header(HttpHeaders.ALLOW, DAV_ALLOW_HEADER)
-                            .header("DAV", "1, 2")
-                            .contentType(MediaType.TEXT_HTML)
-                            .contentLength(bytes.size.toLong())
-                            .body(resource)
+                        responseBuilder.body(resource)
                     }
                 } else {
                     try {
-                        val contentType = Files.probeContentType(targetCanonical.toPath()) ?: "application/octet-stream"
+                        val contentType = getFastContentType(targetCanonical.name)
                         val encodedFilename = URLEncoder.encode(targetCanonical.name, StandardCharsets.UTF_8).replace("+", "%20")
                         val contentDisposition =
                             "attachment; filename=\"${targetCanonical.name.replace("\"", "\\\"")}\"; filename*=UTF-8''$encodedFilename"
@@ -151,51 +155,36 @@ class WebdavController {
                                 override fun getFilename(): String = targetCanonical.name
                             }
 
+                            val responseBuilder = ResponseEntity.status(HttpStatus.PARTIAL_CONTENT)
+                                .header(HttpHeaders.ACCEPT_RANGES, "bytes")
+                                .header(HttpHeaders.CONTENT_RANGE, "bytes ${byteRange.start}-${byteRange.endInclusive}/$fileLength")
+                                .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition)
+                                .header(HttpHeaders.CONTENT_LOCATION, normalizedHref)
+                                .header(HttpHeaders.ALLOW, DAV_ALLOW_HEADER)
+                                .header("DAV", "1, 2")
+                                .contentType(MediaType.parseMediaType(contentType))
+                                .contentLength(byteRange.length)
+
                             if (request.method.equals("HEAD", ignoreCase = true)) {
-                                ResponseEntity.status(HttpStatus.PARTIAL_CONTENT)
-                                    .header(HttpHeaders.ACCEPT_RANGES, "bytes")
-                                    .header(HttpHeaders.CONTENT_RANGE, "bytes ${byteRange.start}-${byteRange.endInclusive}/$fileLength")
-                                    .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition)
-                                    .header(HttpHeaders.CONTENT_LOCATION, normalizedHref)
-                                    .header(HttpHeaders.ALLOW, DAV_ALLOW_HEADER)
-                                    .header("DAV", "1, 2")
-                                    .contentType(MediaType.parseMediaType(contentType))
-                                    .contentLength(byteRange.length)
-                                    .build()
+                                responseBuilder.build()
                             } else {
-                                ResponseEntity.status(HttpStatus.PARTIAL_CONTENT)
-                                    .header(HttpHeaders.ACCEPT_RANGES, "bytes")
-                                    .header(HttpHeaders.CONTENT_RANGE, "bytes ${byteRange.start}-${byteRange.endInclusive}/$fileLength")
-                                    .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition)
-                                    .header(HttpHeaders.CONTENT_LOCATION, normalizedHref)
-                                    .header(HttpHeaders.ALLOW, DAV_ALLOW_HEADER)
-                                    .header("DAV", "1, 2")
-                                    .contentType(MediaType.parseMediaType(contentType))
-                                    .contentLength(byteRange.length)
-                                    .body(resource)
+                                responseBuilder.body(resource)
                             }
                         } else {
                             val resource = FileSystemResource(targetCanonical)
+                            val responseBuilder = ResponseEntity.ok()
+                                .header(HttpHeaders.ACCEPT_RANGES, "bytes")
+                                .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition)
+                                .header(HttpHeaders.CONTENT_LOCATION, normalizedHref)
+                                .header(HttpHeaders.ALLOW, DAV_ALLOW_HEADER)
+                                .header("DAV", "1, 2")
+                                .contentType(MediaType.parseMediaType(contentType))
+                                .contentLength(fileLength)
+
                             if (request.method.equals("HEAD", ignoreCase = true)) {
-                                ResponseEntity.ok()
-                                    .header(HttpHeaders.ACCEPT_RANGES, "bytes")
-                                    .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition)
-                                    .header(HttpHeaders.CONTENT_LOCATION, normalizedHref)
-                                    .header(HttpHeaders.ALLOW, DAV_ALLOW_HEADER)
-                                    .header("DAV", "1, 2")
-                                    .contentType(MediaType.parseMediaType(contentType))
-                                    .contentLength(fileLength)
-                                    .build()
+                                responseBuilder.build()
                             } else {
-                                ResponseEntity.ok()
-                                    .header(HttpHeaders.ACCEPT_RANGES, "bytes")
-                                    .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition)
-                                    .header(HttpHeaders.CONTENT_LOCATION, normalizedHref)
-                                    .header(HttpHeaders.ALLOW, DAV_ALLOW_HEADER)
-                                    .header("DAV", "1, 2")
-                                    .contentType(MediaType.parseMediaType(contentType))
-                                    .contentLength(fileLength)
-                                    .body(resource)
+                                responseBuilder.body(resource)
                             }
                         }
                     } catch (_: IOException) {
@@ -217,6 +206,7 @@ class WebdavController {
         targetCanonical: File,
         normalizedRequestUri: String,
     ): ResponseEntity<Any> {
+        val startTime = System.currentTimeMillis()
         val depth = (request.getHeader("Depth") ?: "infinity").trim()
         val effectiveDepth = when (depth.lowercase(Locale.getDefault())) {
             "0", "1" -> depth
@@ -241,30 +231,34 @@ class WebdavController {
 
         appendPropfindResponse(
             xml = xml,
-            request = request,
             file = targetCanonical,
             href = buildHref(request, normalizedRequestUri, targetCanonical.isDirectory),
             propertyMode = propertyMode,
             rootCanonical = rootCanonical
         )
 
+        var itemsProcessed = 1
         if (targetCanonical.isDirectory && effectiveDepth != "0") {
-            targetCanonical.listFiles()
-                ?.sortedBy { it.name.lowercase(Locale.getDefault()) }
-                ?.forEach { child ->
+            val children = targetCanonical.listFiles()?.sortedBy { it.name.lowercase(Locale.getDefault()) }
+            if (children != null) {
+                itemsProcessed += children.size
+                children.forEach { child ->
                     val childUri = normalizedRequestUri.trimEnd('/') + "/" + child.name + if (child.isDirectory) "/" else ""
                     appendPropfindResponse(
                         xml = xml,
-                        request = request,
                         file = child,
                         href = buildHref(request, childUri, child.isDirectory),
                         propertyMode = propertyMode,
                         rootCanonical = rootCanonical
                     )
                 }
+            }
         }
 
         xml.append("</D:multistatus>")
+        val duration = System.currentTimeMillis() - startTime
+
+        logger.info("PROPFIND path='${targetCanonical.absolutePath}' items=$itemsProcessed timeTaken=${duration}ms")
 
         return ResponseEntity.status(207)
             .header(HttpHeaders.CONTENT_TYPE, "application/xml; charset=utf-8")
@@ -276,19 +270,14 @@ class WebdavController {
 
     private fun appendPropfindResponse(
         xml: StringBuilder,
-        request: HttpServletRequest,
         file: File,
         href: String,
         propertyMode: PropfindMode,
         rootCanonical: File,
     ) {
-        val lastModified = SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z", Locale.US).apply {
-            timeZone = TimeZone.getTimeZone("GMT")
-        }.format(Date(file.lastModified()))
-
-        val creationDate = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).apply {
-            timeZone = TimeZone.getTimeZone("GMT")
-        }.format(Date(file.lastModified()))
+        val instant = Instant.ofEpochMilli(file.lastModified())
+        val lastModified = LAST_MODIFIED_FORMATTER.format(instant)
+        val creationDate = CREATION_DATE_FORMATTER.format(instant)
 
         val etag = "\"${file.name}-${file.lastModified()}-${file.length()}\""
         val displayName = if (file == rootCanonical) "PFDB" else file.name
@@ -324,11 +313,7 @@ class WebdavController {
                 } else {
                     xml.append("<D:resourcetype/>")
                     xml.append("<D:getcontentlength>${file.length()}</D:getcontentlength>")
-                    val contentType = try {
-                        Files.probeContentType(file.toPath())
-                    } catch (_: Exception) {
-                        null
-                    } ?: "application/octet-stream"
+                    val contentType = getFastContentType(file.name)
                     xml.append("<D:getcontenttype>${escapeXml(contentType)}</D:getcontenttype>")
                     xml.append("<D:getetag>${escapeXml(etag)}</D:getetag>")
                 }
@@ -366,12 +351,78 @@ class WebdavController {
     }
 
     internal fun escapeXml(value: String): String {
-        return value
+        // Drop XML 1.0 forbidden control characters that disrupt parsers like Kodi's TinyXML
+        val cleaned = value.replace(Regex("[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F]"), "")
+        return cleaned
             .replace("&", "&amp;")
             .replace("<", "&lt;")
             .replace(">", "&gt;")
             .replace("\"", "&quot;")
             .replace("'", "&apos;")
+    }
+
+    private fun getFastContentType(filename: String): String {
+        val ext = filename.substringAfterLast('.', "").lowercase(Locale.getDefault())
+        return when (ext) {
+            // --- Video ---
+            "mkv" -> "video/x-matroska"
+            "mp4", "m4v" -> "video/mp4"
+            "avi" -> "video/x-msvideo"
+            "mov", "qt" -> "video/quicktime"
+            "wmv" -> "video/x-ms-wmv"
+            "flv" -> "video/x-flv"
+            "webm" -> "video/webm"
+            "mpg", "mpeg", "m2v", "mp2" -> "video/mpeg"
+            "3gp", "3g2" -> "video/3gpp"
+            "ts", "m2ts", "mts" -> "video/mp2t"
+            "vob" -> "video/dvd"
+            "ogv" -> "video/ogg"
+            "rm", "rmvb" -> "application/vnd.rn-realmedia"
+            "asf" -> "video/x-ms-asf"
+            "mxf" -> "application/mxf"
+
+            // --- Audio ---
+            "mp3" -> "audio/mpeg"
+            "flac" -> "audio/flac"
+            "wav" -> "audio/x-wav"
+            "aac" -> "audio/aac"
+            "ogg", "oga" -> "audio/ogg"
+            "m4a", "m4b" -> "audio/mp4"
+            "wma" -> "audio/x-ms-wma"
+            "alac" -> "audio/alac"
+            "ape" -> "audio/x-monkeys-audio"
+            "opus" -> "audio/opus"
+            "dts" -> "audio/vnd.dts"
+            "dts-hd" -> "audio/vnd.dts.hd"
+            "ac3" -> "audio/ac3"
+            "eac3" -> "audio/eac3"
+            "dsf", "dff" -> "audio/dsd"
+
+            // --- Subtitles ---
+            "srt" -> "application/x-subrip"
+            "vtt" -> "text/vtt"
+            "ass", "ssa" -> "text/x-ssa"
+            "smi", "sami" -> "application/smil+xml"
+            "sub", "txt" -> "text/plain" // Text-based subs or VobSub pairs
+
+            // --- Images (Posters, Fanart, Banners) ---
+            "jpg", "jpeg", "jpe" -> "image/jpeg"
+            "png" -> "image/png"
+            "gif" -> "image/gif"
+            "webp" -> "image/webp"
+            "bmp" -> "image/bmp"
+            "tiff", "tif" -> "image/tiff"
+            "heic" -> "image/heic"
+            "heif" -> "image/heif"
+            "tbn" -> "image/jpeg" // Kodi-specific thumbnail extension
+
+            // --- Kodi Metadata ---
+            "nfo" -> "text/plain"
+            "xml" -> "application/xml"
+
+            // --- Default / Fallback ---
+            else -> "application/octet-stream"
+        }
     }
 
     private fun parseSingleByteRange(rangeHeader: String?, fileLength: Long): ByteRange? {
