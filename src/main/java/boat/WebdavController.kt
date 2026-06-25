@@ -438,32 +438,6 @@ class WebdavController {
         }
     }
 
-//    fun buildHref(request: HttpServletRequest, path: String, isDirectory: Boolean): String {
-//        val forwardedProto = request.getHeader("X-Forwarded-Proto")
-//        val forwardedHost = request.getHeader("X-Forwarded-Host")
-//        val forwardedPort = request.getHeader("X-Forwarded-Port")
-//
-//        val scheme = forwardedProto ?: request.scheme
-//        val hostHeader = forwardedHost ?: request.serverName
-//        val port = forwardedPort?.toIntOrNull() ?: request.serverPort
-//
-//        val base = if (
-//            (scheme == "http" && port == 80) ||
-//            (scheme == "https" && port == 443)
-//        ) {
-//            "$scheme://$hostHeader"
-//        } else {
-//            if (hostHeader.contains(":") && !hostHeader.contains("]") && hostHeader.count { it == ':' } > 1) {
-//                "$scheme://[$hostHeader]:$port"
-//            } else {
-//                "$scheme://$hostHeader:$port"
-//            }
-//        }
-//
-//        val normalized = if (isDirectory && !path.endsWith("/")) "$path/" else path
-//        return base + encodePath(normalized)
-//    }
-
     fun buildHref(request: HttpServletRequest, path: String, isDirectory: Boolean): String {
         // Only return the absolute path. Do NOT attach the https:// or hostname.
         // This forces Kodi to stay inside its authenticated 'davs://' connection pool.
