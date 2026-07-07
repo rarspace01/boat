@@ -249,8 +249,8 @@ internal class WebdavControllerTest {
 
         // Then
         assertThat(response.statusCode).isEqualTo(HttpStatus.PARTIAL_CONTENT)
-        val resource = response.body as FileSystemResource
-        assertThat(resource.file.length()).isEqualTo(11)
+        val region = response.body as ResourceRegion
+        assertThat(region.resource.contentLength()).isEqualTo(11)
         assertThat(response.headers.contentLength).isEqualTo(5)
         assertThat(response.headers.getFirst(HttpHeaders.CONTENT_RANGE)).isEqualTo("bytes 0-4/11")
     }
@@ -268,8 +268,8 @@ internal class WebdavControllerTest {
 
         // Then
         assertThat(response.statusCode).isEqualTo(HttpStatus.PARTIAL_CONTENT)
-        val resource = response.body as FileSystemResource
-        assertThat(resource.file.length()).isEqualTo(11)
+        val region = response.body as ResourceRegion
+        assertThat(region.resource.contentLength()).isEqualTo(11)
         assertThat(response.headers.contentLength).isEqualTo(5)
         assertThat(response.headers.getFirst(HttpHeaders.CONTENT_RANGE)).isEqualTo("bytes 6-10/11")
     }
@@ -287,8 +287,8 @@ internal class WebdavControllerTest {
 
         // Then
         assertThat(response.statusCode).isEqualTo(HttpStatus.PARTIAL_CONTENT)
-        val resource = response.body as FileSystemResource
-        assertThat(resource.file.length()).isEqualTo(11)
+        val region = response.body as ResourceRegion
+        assertThat(region.resource.contentLength()).isEqualTo(11)
         assertThat(response.headers.contentLength).isEqualTo(5)
         assertThat(response.headers.getFirst(HttpHeaders.CONTENT_RANGE)).isEqualTo("bytes 6-10/11")
     }
