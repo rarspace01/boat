@@ -61,11 +61,9 @@ class WebdavControllerIntegrationTest {
         assertThat(response.statusCode).isEqualTo(HttpStatus.PARTIAL_CONTENT)
         assertThat(response.headers.getFirst(HttpHeaders.CONTENT_RANGE)).isEqualTo("bytes 0-4/10")
         assertThat(response.headers.contentLength).isEqualTo(5)
-
-        val region = response.body as ResourceRegion
-        assertThat(region.resource.contentLength()).isEqualTo(10)
-        assertThat(region.position).isEqualTo(0)
-        assertThat(region.count).isEqualTo(5)
+        
+        val resource = response.body as FileSystemResource
+        assertThat(resource.inputStream.readBytes().toString(Charsets.UTF_8)).isEqualTo("0123456789")
     }
 
     @Test
@@ -77,11 +75,9 @@ class WebdavControllerIntegrationTest {
         assertThat(response.statusCode).isEqualTo(HttpStatus.PARTIAL_CONTENT)
         assertThat(response.headers.getFirst(HttpHeaders.CONTENT_RANGE)).isEqualTo("bytes 5-9/10")
         assertThat(response.headers.contentLength).isEqualTo(5)
-
-        val region = response.body as ResourceRegion
-        assertThat(region.resource.contentLength()).isEqualTo(10)
-        assertThat(region.position).isEqualTo(5)
-        assertThat(region.count).isEqualTo(5)
+        
+        val resource = response.body as FileSystemResource
+        assertThat(resource.inputStream.readBytes().toString(Charsets.UTF_8)).isEqualTo("0123456789")
     }
 
     @Test
@@ -93,10 +89,8 @@ class WebdavControllerIntegrationTest {
         assertThat(response.statusCode).isEqualTo(HttpStatus.PARTIAL_CONTENT)
         assertThat(response.headers.getFirst(HttpHeaders.CONTENT_RANGE)).isEqualTo("bytes 5-9/10")
         assertThat(response.headers.contentLength).isEqualTo(5)
-
-        val region = response.body as ResourceRegion
-        assertThat(region.resource.contentLength()).isEqualTo(10)
-        assertThat(region.position).isEqualTo(5)
-        assertThat(region.count).isEqualTo(5)
+        
+        val resource = response.body as FileSystemResource
+        assertThat(resource.inputStream.readBytes().toString(Charsets.UTF_8)).isEqualTo("0123456789")
     }
 }
