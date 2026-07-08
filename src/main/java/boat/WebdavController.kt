@@ -4,7 +4,6 @@ import boat.utilities.LoggerDelegate
 import jakarta.servlet.http.HttpServletRequest
 import org.springframework.core.io.ByteArrayResource
 import org.springframework.core.io.FileSystemResource
-import org.springframework.core.io.support.ResourceRegion
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpRange
 import org.springframework.http.HttpStatus
@@ -107,7 +106,7 @@ class WebdavController {
 
                     if (request.method.equals("HEAD", ignoreCase = true)) directoryResponseBuilder.build() else directoryResponseBuilder.body(resource)
                 } else {
-                    // --- REFACTORED NATIVE STREAMING LOGIC ---
+                    // --- NATIVE STREAMING LOGIC ---
                     try {
                         val fileLength = targetCanonical.length()
                         val contentType = getFastContentType(targetCanonical.name)
@@ -126,49 +125,38 @@ class WebdavController {
                         val resource = FileSystemResource(targetCanonical)
                         val rangeHeader = request.getHeader(HttpHeaders.RANGE)
 
-                        if (!rangeHeader.isNullOrBlank()) {
+                        if (rangeHeader != null) {
                             try {
                                 val ranges = HttpRange.parseRanges(rangeHeader)
                                 if (ranges.isNotEmpty()) {
-                                    val regions = HttpRange.toResourceRegions(ranges, resource)
-                                    val region = regions.first() // Single range requests are standard
+                                    val range = ranges.first()
+                                    val start = range.getRangeStart(fileLength)
+                                    val end = range.getRangeEnd(fileLength)
+                                    val regionLength = minOf(end - start + 1, fileLength - start)
 
-                                    // Calculate the exact bytes for the header
-                                    val start = region.position
-                                    val end = region.position + region.count - 1
+                    if (request.method.equals("HEAD", ignoreCase = true)) {
+                        return ResponseEntity.status(HttpStatus.PARTIAL_CONTENT)
+                            .headers(headers)
+                            .header(HttpHeaders.CONTENT_RANGE, "bytes $start-$end/$fileLength")
+                            .contentLength(regionLength)
+                            .build()
+                    }
 
-                                    val partialResponseBuilder = ResponseEntity.status(HttpStatus.PARTIAL_CONTENT)
-                                        .headers(headers)
-                                        .header(HttpHeaders.CONTENT_RANGE, "bytes $start-$end/$fileLength")
-
-                                    val regionLength = region.count
-
-                                    if (request.method.equals("HEAD", ignoreCase = true)) {
-                                        return partialResponseBuilder.contentLength(regionLength).build()
-                                    }
-                                    return partialResponseBuilder.contentLength(regionLength).body(region)
+                    return ResponseEntity.status(HttpStatus.PARTIAL_CONTENT)
+                        .headers(headers)
+                        .header(HttpHeaders.CONTENT_RANGE, "bytes $start-$end/$fileLength")
+                        .contentLength(regionLength)
+                        .body(resource)
                                 }
                             } catch (_: IllegalArgumentException) {
-                                return ResponseEntity.status(HttpStatus.REQUESTED_RANGE_NOT_SATISFIABLE)
-                                    .headers(headers)
-                                    .header(HttpHeaders.CONTENT_RANGE, "bytes */$fileLength")
-                                    .build()
+                                return ResponseEntity.status(HttpStatus.REQUESTED_RANGE_NOT_SATISFIABLE).headers(headers).header(HttpHeaders.CONTENT_RANGE, "bytes */$fileLength").build()
                             }
                         }
-
-                        // Fallback response when no Range header is found (Full stream)
-                        val fullResponseBuilder = ResponseEntity.ok()
-                            .headers(headers)
-                            .contentLength(fileLength)
-
                         if (request.method.equals("HEAD", ignoreCase = true)) {
-                            return fullResponseBuilder.build()
+                            return ResponseEntity.ok().headers(headers).contentLength(fileLength).build()
                         }
-                        return fullResponseBuilder.body(resource)
-
-                    } catch (_: IOException) {
-                        ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build()
-                    }
+                        ResponseEntity.ok().headers(headers).contentLength(fileLength).body(resource)
+                    } catch (_: IOException) { ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build() }
                 }
             }
             else -> ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).header(HttpHeaders.ALLOW, DAV_ALLOW_HEADER).header("DAV", "1, 2").build()
@@ -391,6 +379,8 @@ class WebdavController {
     }
 
     fun buildHref(request: HttpServletRequest, path: String, isDirectory: Boolean): String {
+        // Only return the absolute path. Do NOT attach the https:// or hostname.
+        // This forces Kodi to stay inside its authenticated 'davs://' connection pool.
         val normalized = if (isDirectory && !path.endsWith("/")) "$path/" else path
         return encodePath(normalized)
     }
