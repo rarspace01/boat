@@ -6,7 +6,7 @@ import java.util.Properties
 plugins {
     java
     kotlin("jvm") version "2.4.0"
-    kotlin("plugin.spring") version "2.4.0"
+    kotlin("plugin.spring") version "2.4.10"
     id("eclipse")
     id("idea")
     id("org.springframework.boot") version "4.1.0"
