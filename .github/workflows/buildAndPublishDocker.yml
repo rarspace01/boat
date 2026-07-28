@@ -9,7 +9,7 @@ permissions:
   packages: write
 
 jobs:
-  buildFatJarForJVM:
+  buildAndPublishDocker:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
