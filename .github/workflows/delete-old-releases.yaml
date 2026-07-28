@@ -1,6 +1,8 @@
 name: delete-old-releases
 
 on:
+  push:
+    branches: [ main ]
   release:
   workflow_dispatch:
 
