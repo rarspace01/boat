@@ -46,7 +46,7 @@ dependencies {
     implementation("com.github.ben-manes.caffeine:caffeine:3.2.4")
     implementation("commons-io:commons-io:2.22.0")
     implementation("commons-codec:commons-codec:1.22.1")
-    implementation("commons-validator:commons-validator:1.10.1")
+    implementation("commons-validator:commons-validator:1.11.0")
 
     implementation("org.projectlombok:lombok:$lombokVersion")
     annotationProcessor("org.projectlombok:lombok:$lombokVersion")
