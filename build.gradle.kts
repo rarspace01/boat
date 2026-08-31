@@ -12,7 +12,7 @@ plugins {
     id("org.springframework.boot") version "4.1.1"
     id("io.spring.dependency-management") version "1.1.7"
     id("com.github.kt3k.coveralls") version "2.12.2"
-    id("com.palantir.git-version") version "5.0.0"
+    id("com.palantir.git-version") version "5.1.0"
 }
 
 repositories {
