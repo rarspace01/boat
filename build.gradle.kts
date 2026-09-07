@@ -12,7 +12,7 @@ plugins {
     id("org.springframework.boot") version "4.1.1"
     id("io.spring.dependency-management") version "1.1.7"
     id("com.github.kt3k.coveralls") version "2.12.2"
-    id("com.palantir.git-version") version "5.0.0"
+    id("com.palantir.git-version") version "5.1.0"
 }
 
 repositories {
@@ -20,7 +20,7 @@ repositories {
 }
 
 val springBootVersion = "4.1.1"
-val lombokVersion = "1.18.46"
+val lombokVersion = "1.18.48"
 val mockitoVersion = "5.23.0"
 val kotlinVersion = "2.4.10"
 
@@ -36,7 +36,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-actuator:$springBootVersion")
     // end::actuator[]
 
-    implementation("org.jsoup:jsoup:1.23.1")
+    implementation("org.jsoup:jsoup:1.23.2")
     implementation("com.google.code.gson:gson:2.14.0")
 
     implementation("org.springframework.boot:spring-boot-properties-migrator:$springBootVersion")
