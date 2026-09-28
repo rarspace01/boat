@@ -21,7 +21,7 @@ repositories {
 
 val springBootVersion = "4.1.1"
 val lombokVersion = "1.18.48"
-val mockitoVersion = "5.23.0"
+val mockitoVersion = "5.24.0"
 val kotlinVersion = "2.4.20"
 
 dependencies {
