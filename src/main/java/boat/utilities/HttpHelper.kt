@@ -34,7 +34,7 @@ class HttpHelper {
         return getPage(url, params, cookies, null, 10 * 1000)
     }
 
-    fun getPage(url: String, params: List<String>?, cookies: String?, body:String? = null, timeout: Int): String {
+    fun getPage(url: String, params: List<String>?, cookies: String?, body:String? = null, timeout: Int, headers: Map<String, String>? = null): String {
         val returnString: String
         val buildString = StringBuilder()
         val connection: URLConnection
@@ -43,6 +43,9 @@ class HttpHelper {
             sc.init(null, trustAllCerts, null)
             connection = URI.create(url).toURL().openConnection()
             body?.let {
+                if (connection is HttpsURLConnection) {
+                    connection.requestMethod = "POST"
+                }
                 connection.doOutput = true
                 connection.doInput = true
             }
@@ -55,6 +58,12 @@ class HttpHelper {
                 "Accept",
                 "text/html,application/xhtml+xml,application/xml,application/json;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9"
             )
+            headers?.forEach { (key, value) ->
+                connection.setRequestProperty(key, value)
+            }
+            if (body != null && connection.getRequestProperty("Content-Type") == null) {
+                connection.setRequestProperty("Content-Type", "application/json")
+            }
             connection.connectTimeout = timeout
             connection.readTimeout = timeout
             if (cookies != null) {
@@ -150,11 +159,11 @@ class HttpHelper {
     }
 
     fun getPage(url: String): String {
-        return getPage(url, null, null)
+        return getPage(url, null, null, null, 30 * 1000)
     }
 
-    fun getPage(url: String, body:String?): String {
-        return getPage(url, null, null, body,10*1000)
+    fun getPage(url: String, body: String?, headers: Map<String, String>? = null): String {
+        return getPage(url, null, null, body, 10 * 1000, headers)
     }
 
     fun getPageWithShortTimeout(url: String): String {

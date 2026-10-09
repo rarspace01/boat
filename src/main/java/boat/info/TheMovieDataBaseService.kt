@@ -17,7 +17,7 @@ import java.util.function.Consumer
 import java.util.regex.Pattern
 
 @Service
-class TheFilmDataBaseService @Autowired constructor(private val httpHelper: HttpHelper) {
+class TheMovieDataBaseService @Autowired constructor(private val httpHelper: HttpHelper) {
     private val baseUrl = String.format(
         "https://api.themoviedb.org/3/search/multi?api_key=%s",
         PropertiesHelper.getProperty("TFDB_APIKEY")
@@ -65,6 +65,7 @@ class TheFilmDataBaseService @Autowired constructor(private val httpHelper: Http
             }
             val mediaType = determineMediaType(mediaTypeString)
             var year: Int? = null
+            var seasonCount: Int? = null
             try {
                 val calendar = Calendar.getInstance()
                 val releaseDate = jsonMediaObject["release_date"]
@@ -76,8 +77,21 @@ class TheFilmDataBaseService @Autowired constructor(private val httpHelper: Http
                 }
             } catch (_: ParseException) {
             }
+            
+            // TMDB search multi doesn't provide season_count usually, 
+            // but sometimes it's available in other contexts.
+            // If it's a TV show, we might want it.
+            if (jsonMediaObject.has("season_count")) {
+                seasonCount = jsonMediaObject["season_count"].asInt
+            }
+
             if (title != null || originalTitle != null) {
-                mediaItems.add(MediaItem(title!!, originalTitle, year, mediaType))
+                val mediaItem = MediaItem(title!!, originalTitle, year, mediaType)
+                mediaItem.seasonCount = seasonCount
+                if (jsonMediaObject.has("id")) {
+                    mediaItem.id = "{tmdb-${jsonMediaObject["id"].asInt}}"
+                }
+                mediaItems.add(mediaItem)
             }
         })
         return mediaItems

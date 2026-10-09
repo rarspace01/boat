@@ -14,7 +14,11 @@ internal class CloudServiceTest {
 
     @BeforeEach
     fun beforeMethod() {
-        cloudService = CloudService(CloudFileService(), TheFilmDataBaseService(HttpHelper()))
+        val httpHelper = HttpHelper()
+        cloudService = CloudService(
+            CloudFileService(),
+            MediaProxyService(TheMovieDataBaseService(httpHelper), TheTVDBService(httpHelper))
+        )
     }
 
     @EnabledIfEnvironmentVariable(named = "DISABLE_UPDATE_PROMPT", matches = "true")

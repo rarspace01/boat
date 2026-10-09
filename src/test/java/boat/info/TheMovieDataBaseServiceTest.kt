@@ -6,11 +6,11 @@ import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
-internal class TheFilmDataBaseServiceTest {
-    private var tfdbs: TheFilmDataBaseService? = null
+internal class TheMovieDataBaseServiceTest {
+    private var tfdbs: TheMovieDataBaseService? = null
     @BeforeEach
     fun beforeMethod() {
-        tfdbs = TheFilmDataBaseService(HttpHelper())
+        tfdbs = TheMovieDataBaseService(HttpHelper())
     }
 
     @Test

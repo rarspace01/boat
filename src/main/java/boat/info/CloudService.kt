@@ -17,7 +17,7 @@ import java.util.stream.Collectors
 @Service
 class CloudService internal constructor(
     private val cloudFileService: CloudFileService,
-    val theFilmDataBaseService: TheFilmDataBaseService
+    private val mediaProxyService: MediaProxyService
 ) {
 
     companion object {
@@ -110,7 +110,7 @@ class CloudService internal constructor(
         val spacedName = name?.replace(".", " ") ?: ""
         val normalizedName = TorrentHelper.getNormalizedTorrentStringWithSpaces(spacedName)
         val typeOfMedia = determineTypeOfMedia(normalizedName)
-        val mediaItems = theFilmDataBaseService.search(normalizedName)
+        val mediaItems = mediaProxyService.search(normalizedName)
         val torrentTypeFromFile: TorrentType = determineTypeOfMedia(filesFromTorrent)
         logger.info("Deducted from Name: [$typeOfMedia] from Filename:[$torrentTypeFromFile] from TFDB:[$mediaItems]")
 //        return if (TorrentType.TRANSFER == typeOfMedia) {
