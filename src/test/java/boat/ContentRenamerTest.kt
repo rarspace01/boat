@@ -43,7 +43,12 @@ class ContentRenamerTest {
             "~/Series-Shows/#/.Hack Legend Of The Twilight/[Exiled-Destiny]_Hack_Legend_Of_The_Twilight_Ep01_(1E372EE5).mkv",
             "~/Series-Shows/#/.Hack Sign 1-28+Extras/[V-A]_hack_SIGN_-_01_[BB605406].mkv",
             "~/Series-Shows/#/_HACK/ROOTS/hack_roots-24.avi",
-            "~/Series-Shows/#/_HACK/Legend_o_T/hack-Legend of the Twilight 01 - The Legendary Hero.avi"
+            "~/Series-Shows/#/_HACK/Legend_o_T/hack-Legend of the Twilight 01 - The Legendary Hero.avi",
+            "~/Series-Shows/C/Come.Fly.With.Me.S01/teneighty-cfwm.s01e01.mkv",
+            "~/Series-Shows/D/Dragon Ball Super/Dragon Ball Super - Completo [WEB-DL - 1080p]/Dragon%20Ball%20Super%20-%20001%20%5B1080p%5D.mkv",
+            "~/Series-Shows/0-9/071c.Wars.The.Bad.Batch/071c-Star.Wars.The.Bad.Batch.S01E11.1080p.WEB.H264-EXPLOIT[ettv].torrent.mkv",
+            "~/Series-Shows/0-9/90.Day.Fiance.Happily.Ever.After.No.Turning.Back/www.Torrenting.com - 90.Day.Fiance.Happily.Ever.After.S03E08.No.Turning.Back.XviD-AFG.avi",
+            "~/Series-Shows/A/Adventure Time/Season 1/01.01 - Slumber Party Panic.mp4"
         )
 
         println("\n--- Testing Extraction Logic ---")
@@ -54,6 +59,21 @@ class ContentRenamerTest {
             val episode = contentRenamer.extractEpisode(fullName)
             System.out.println("[DEBUG_LOG] F: $fullName")
             System.out.println("[DEBUG_LOG]  -> Name: $name, Year: $year, Season: $season, Episode: $episode")
+            if (fullName.contains("teneighty-cfwm")) {
+                assert(name == "Come Fly With Me") { "Expected 'Come Fly With Me' but got '$name'" }
+            }
+            if (fullName.contains("Dragon%20Ball%20Super")) {
+                assert(name == "Dragon Ball Super") { "Expected 'Dragon Ball Super' but got '$name'" }
+            }
+            if (fullName.contains("071c-Star.Wars.The.Bad.Batch")) {
+                assert(name == "Star Wars The Bad Batch") { "Expected 'Star Wars The Bad Batch' but got '$name'" }
+            }
+            if (fullName.contains("www.Torrenting.com")) {
+                assert(name == "90 Day Fiance Happily Ever After") { "Expected '90 Day Fiance Happily Ever After' but got '$name'" }
+            }
+            if (fullName.contains("Adventure Time")) {
+                assert(name == "Adventure Time") { "Expected 'Adventure Time' but got '$name'" }
+            }
         }
     }
 

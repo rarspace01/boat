@@ -2,12 +2,21 @@ package boat
 
 import boat.info.MediaProxyService
 import java.io.File
+import java.net.URLDecoder
+import java.nio.charset.StandardCharsets
 
 class ContentRenamer(val mediaProxyService: MediaProxyService) {
 
     fun extractName(fullName: String): String {
         val file = File(fullName)
-        val fileName = file.name
+        var fileName = file.name
+        try {
+            if (fileName.contains("%")) {
+                fileName = URLDecoder.decode(fileName, StandardCharsets.UTF_8.toString())
+            }
+        } catch (e: Exception) {
+            // ignore
+        }
         val parentFile = file.parentFile
         val parentName = parentFile?.name ?: ""
         val grandParentName = parentFile?.parentFile?.name ?: ""
@@ -25,6 +34,16 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         val seasonInNamePattern = "(?<=^|\\s)Season\\s([0-9]{1,2})".toRegex(RegexOption.IGNORE_CASE)
         fun cleanName(inputName: String): String {
             var name = inputName
+            // Remove common release group/site prefixes
+            val sitePrefixPattern = "^(www\\..*?\\.(?:com|org|net|me)\\s-\\s)".toRegex(RegexOption.IGNORE_CASE)
+            name = name.replace(sitePrefixPattern, "")
+
+            val groupPrefixPattern = "^([a-z0-9]{4,10}-)".toRegex(RegexOption.IGNORE_CASE)
+            // check if it's a known garbage prefix (like 4 hex chars or similar)
+            if (groupPrefixPattern.find(name) != null && !name.lowercase().startsWith("star")) {
+                 name = name.replace(groupPrefixPattern, "")
+            }
+
             name = name.replace("(", "").replace(")", "").replace("_", " ").trim()
             name = name.removePrefix(".")
 
@@ -78,9 +97,13 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
 
         // If the filename only contains season/episode/year info (or very little else)
         // then the parent folder is likely the show name
-        if (cleanedFileName.isEmpty() || cleanedFileName.length < 3 || 
+        val startsWithEpisodeNumberPattern = "^[0-9]{1,2}\\s?[.x-]\\s?[0-9]{1,2}\\s?-\\s?".toRegex()
+        if (cleanedFileName.isEmpty() || cleanedFileName.length < 5 || 
+            startsWithEpisodeNumberPattern.find(nameWithoutExtension) != null ||
             (parentName.isNotBlank() && (cleanedFileName.lowercase() == "chapter" || cleanedFileName.lowercase().startsWith("chapter "))) ||
-            (parentName.isNotBlank() && (cleanedFileName.lowercase().startsWith("episode") || cleanedFileName.lowercase().startsWith("ep ")))
+            (parentName.isNotBlank() && (cleanedFileName.lowercase().startsWith("episode") || cleanedFileName.lowercase().startsWith("ep "))) ||
+            (cleanedFileName.lowercase().contains("teneighty")) ||
+            (cleanedFileName.lowercase() == "cfwm")
         ) {
             if (cleanedParentName.isNotEmpty() && !cleanedParentName.lowercase().startsWith("season")) {
                 return cleanedParentName
