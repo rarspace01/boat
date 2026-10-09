@@ -48,7 +48,10 @@ class ContentRenamerTest {
             "~/Series-Shows/D/Dragon Ball Super/Dragon Ball Super - Completo [WEB-DL - 1080p]/Dragon%20Ball%20Super%20-%20001%20%5B1080p%5D.mkv",
             "~/Series-Shows/0-9/071c.Wars.The.Bad.Batch/071c-Star.Wars.The.Bad.Batch.S01E11.1080p.WEB.H264-EXPLOIT[ettv].torrent.mkv",
             "~/Series-Shows/0-9/90.Day.Fiance.Happily.Ever.After.No.Turning.Back/www.Torrenting.com - 90.Day.Fiance.Happily.Ever.After.S03E08.No.Turning.Back.XviD-AFG.avi",
-            "~/Series-Shows/A/Adventure Time/Season 1/01.01 - Slumber Party Panic.mp4"
+            "~/Series-Shows/A/Adventure Time/Season 1/01.01 - Slumber Party Panic.mp4",
+            "~/Series-Shows/A/Avatar - The Last Airbender [1080p]/Book 1; Water/101 - The Boy in the Iceberg.mp4",
+            "~/Series-Shows/D/Duckman/Season 1/Duckman 101 - I, Duckman.mkv",
+            "~/Series-Shows/D/Dragon Ball Super/Dragon Ball Super - Completo [WEB-DL - 1080p]/Dragon%20Ball%20Super%20-%20101%20%5B1080p%5D.mkv"
         )
 
         println("\n--- Testing Extraction Logic ---")
@@ -73,6 +76,20 @@ class ContentRenamerTest {
             }
             if (fullName.contains("Adventure Time")) {
                 assert(name == "Adventure Time") { "Expected 'Adventure Time' but got '$name'" }
+            }
+            if (fullName.contains("Avatar - The Last Airbender")) {
+                assert(name == "Avatar - The Last Airbender") { "Expected 'Avatar - The Last Airbender' but got '$name'" }
+            }
+            if (fullName.contains("Duckman")) {
+                assert(name == "Duckman") { "Expected 'Duckman' but got '$name'" }
+            }
+            if (fullName.contains("101 - The Boy in the Iceberg.mp4")) {
+                val episode = contentRenamer.extractEpisode(fullName)
+                assert(episode == 101) { "Expected episode 101 but got $episode" }
+            }
+            if (fullName.contains("Dragon Ball Super - 101 [1080p].mkv")) {
+                val episode = contentRenamer.extractEpisode(fullName)
+                assert(episode == 101) { "Expected episode 101 but got $episode" }
             }
         }
     }
