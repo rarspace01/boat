@@ -1,12 +1,10 @@
 package boat
 
+import boat.info.MediaProxyService
 import boat.info.CloudFileService
 import boat.info.CloudService
 import boat.info.MediaItem
 import boat.info.QueueService
-import boat.info.TheFilmDataBaseService
-import boat.model.ByteRange
-import boat.model.LimitedInputStream
 import boat.multifileHoster.MultifileHosterService
 import boat.services.ConfigurationService
 import boat.services.TransferService
@@ -17,17 +15,10 @@ import boat.torrent.TorrentSearchEngineService
 import boat.utilities.HttpHelper
 import boat.utilities.LoggerDelegate
 import boat.utilities.PropertiesHelper
-import jakarta.servlet.http.HttpServletRequest
 import org.apache.commons.validator.routines.UrlValidator
 import org.apache.logging.log4j.util.Strings
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.core.io.ByteArrayResource
-import org.springframework.core.io.FileSystemResource
-import org.springframework.core.io.InputStreamResource
-import org.springframework.http.HttpHeaders
-import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
-import org.springframework.http.ResponseEntity
 import org.springframework.web.HttpMediaTypeNotAcceptableException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.GetMapping
@@ -35,15 +26,8 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseBody
 import org.springframework.web.bind.annotation.RestController
-import java.io.File
-import java.io.FileInputStream
-import java.io.IOException
 import java.lang.management.ManagementFactory
-import java.net.URLDecoder
-import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
-import java.nio.file.Files
-import java.text.SimpleDateFormat
 import java.util.*
 import java.util.stream.Collectors
 import kotlin.concurrent.thread
@@ -54,7 +38,7 @@ class BoatController @Autowired constructor(
     private val httpHelper: HttpHelper,
     private val torrentSearchEngineService: TorrentSearchEngineService,
     private val cloudService: CloudService,
-    private val theFilmDataBaseService: TheFilmDataBaseService,
+    private val mediaProxyService: MediaProxyService,
     private val multifileHosterService: MultifileHosterService,
     private val queueService: QueueService,
     private val cloudFileService: CloudFileService,
@@ -244,7 +228,7 @@ $switchToSearch${switchToProgress}""" + htmlFooter
 
     @RequestMapping("/boat/tfdb")
     fun searchTfdb(@RequestParam(value = "q") query: String?): String {
-        return theFilmDataBaseService.search(query).toString()
+        return mediaProxyService.search(query).toString()
     }
 
     @GetMapping("/boat/debug")

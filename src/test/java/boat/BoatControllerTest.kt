@@ -1,9 +1,9 @@
 package boat
 
+import boat.info.MediaProxyService
 import boat.info.CloudFileService
 import boat.info.CloudService
 import boat.info.QueueService
-import boat.info.TheFilmDataBaseService
 import boat.multifileHoster.MultifileHosterService
 import boat.services.ConfigurationService
 import boat.services.TransferService
@@ -16,7 +16,7 @@ internal class BoatControllerTest {
     private val httpHelper: HttpHelper = mockk()
     private val torrentSearchEngineService: TorrentSearchEngineService = mockk()
     private val cloudService: CloudService = mockk()
-    private val theFilmDataBaseService: TheFilmDataBaseService = mockk()
+    private val mediaProxyService: MediaProxyService = mockk()
     private val multifileHosterService: MultifileHosterService = mockk()
     private val queueService: QueueService = mockk()
     private val cloudFileService: CloudFileService = mockk()
@@ -27,7 +27,7 @@ internal class BoatControllerTest {
         httpHelper,
         torrentSearchEngineService,
         cloudService,
-        theFilmDataBaseService,
+        mediaProxyService,
         multifileHosterService,
         queueService,
         cloudFileService,
