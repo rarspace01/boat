@@ -106,4 +106,126 @@ class ContentRenamerTest {
         }
     }
 
+    @Test
+    fun testIsJunk() {
+        val httpHelper = HttpHelper()
+        val contentRenamer = ContentRenamer(
+            MediaProxyService(TheMovieDataBaseService(httpHelper), TheTVDBService(httpHelper))
+        )
+
+        // Junk names
+        assert(contentRenamer.isJunk(""))
+        assert(contentRenamer.isJunk("   "))
+        assert(contentRenamer.isJunk("A"))
+        assert(contentRenamer.isJunk("#"))
+        assert(contentRenamer.isJunk("0-9"))
+        assert(contentRenamer.isJunk("TV"))
+        assert(contentRenamer.isJunk("Series-Shows"))
+        assert(contentRenamer.isJunk("Downloads"))
+        assert(contentRenamer.isJunk("Season 1"))
+        assert(contentRenamer.isJunk("Season 02"))
+        assert(contentRenamer.isJunk("Disc 1"))
+        assert(contentRenamer.isJunk("CD 1"))
+        assert(contentRenamer.isJunk("DVD 1"))
+        assert(contentRenamer.isJunk("Vol 1"))
+        assert(contentRenamer.isJunk("Volume 2"))
+        assert(contentRenamer.isJunk("Book 1"))
+        assert(contentRenamer.isJunk("Extras"))
+        assert(contentRenamer.isJunk("Featurettes"))
+        assert(contentRenamer.isJunk("Sample"))
+        assert(contentRenamer.isJunk("Samples"))
+        assert(contentRenamer.isJunk("Trailer"))
+        assert(contentRenamer.isJunk("Trailers"))
+        assert(contentRenamer.isJunk("Subs"))
+        assert(contentRenamer.isJunk("Subtitles"))
+        assert(contentRenamer.isJunk("6 spa"))
+        assert(contentRenamer.isJunk("6_spa"))
+        assert(contentRenamer.isJunk("1080p"))
+        assert(contentRenamer.isJunk("720p"))
+        assert(contentRenamer.isJunk("x264"))
+        assert(contentRenamer.isJunk("x265"))
+        assert(contentRenamer.isJunk("RARBG"))
+        assert(contentRenamer.isJunk("101"))
+        assert(contentRenamer.isJunk("01.01"))
+        assert(contentRenamer.isJunk("1x01"))
+        assert(contentRenamer.isJunk("S01E01"))
+        assert(contentRenamer.isJunk("Deleted Scenes"))
+        assert(contentRenamer.isJunk("Outtakes"))
+        assert(contentRenamer.isJunk("Bloopers"))
+        assert(contentRenamer.isJunk("Gag Reel"))
+        assert(contentRenamer.isJunk("Behind The Scenes"))
+        assert(contentRenamer.isJunk("Making Of"))
+        assert(contentRenamer.isJunk("Screentests"))
+        assert(contentRenamer.isJunk("Covers and Fonts"))
+        assert(contentRenamer.isJunk("Original Scripts"))
+        assert(contentRenamer.isJunk("http://example.com"))
+        assert(contentRenamer.isJunk("magnet:?xt=urn:btih:..."))
+
+        // Legitimate titles (not junk)
+        assert(!contentRenamer.isJunk("Dark"))
+        assert(!contentRenamer.isJunk("Lost"))
+        assert(!contentRenamer.isJunk("The Mandalorian"))
+        assert(!contentRenamer.isJunk("Inception"))
+        assert(!contentRenamer.isJunk("Chernobyl"))
+        assert(!contentRenamer.isJunk("Star Wars The Bad Batch"))
+        assert(!contentRenamer.isJunk("Avatar - The Last Airbender"))
+        assert(!contentRenamer.isJunk("Reservation Dogs"))
+        assert(!contentRenamer.isJunk("24 Complete With Subtitles"))
+    }
+
+    @Test
+    fun testConservativeExtractionAndAuxiliaryFiles() {
+        val httpHelper = HttpHelper()
+        val contentRenamer = ContentRenamer(
+            MediaProxyService(TheMovieDataBaseService(httpHelper), TheTVDBService(httpHelper))
+        )
+
+        // Auxiliary files in show folders resolve to the show name
+        val angelStunts = File("~/Series-Shows/A/Angel Complete Series Season 1,2,3,4,5 + Extras, Subs/Extras/Season 2/Featurettes/Stunts.mkv")
+        assert(contentRenamer.extractName(angelStunts).startsWith("Angel")) {
+            "Expected 'Angel...' but got '${contentRenamer.extractName(angelStunts)}'"
+        }
+
+        val stargateTrailer = File("~/Series-Shows/S/Stargate SG1 Ultimate Fan Collection/Season 1/Extras/Season 2 Trailer.mp4")
+        assert(contentRenamer.extractName(stargateTrailer).startsWith("Stargate SG1")) {
+            "Expected 'Stargate SG1...' but got '${contentRenamer.extractName(stargateTrailer)}'"
+        }
+
+        val stargateFeaturette = File("~/Series-Shows/S/Stargate SG1 Ultimate Fan Collection/Season 1/Extras/CostumeDesignFeaturette.mp4")
+        assert(contentRenamer.extractName(stargateFeaturette).startsWith("Stargate SG1")) {
+            "Expected 'Stargate SG1...' but got '${contentRenamer.extractName(stargateFeaturette)}'"
+        }
+
+        // Standalone junk files or files in generic folders with no show name should NOT extract a wrong name (return empty string)
+        val standaloneSample = File("~/Downloads/Sample.mkv")
+        assert(contentRenamer.extractName(standaloneSample) == "") {
+            "Expected '' but got '${contentRenamer.extractName(standaloneSample)}'"
+        }
+
+        val standaloneFeaturette = File("~/Downloads/Featurettes/Stunts.mkv")
+        assert(contentRenamer.extractName(standaloneFeaturette) == "") {
+            "Expected '' but got '${contentRenamer.extractName(standaloneFeaturette)}'"
+        }
+
+        val standaloneTrailer = File("~/Downloads/Extras/Season 2 Trailer.mp4")
+        assert(contentRenamer.extractName(standaloneTrailer) == "") {
+            "Expected '' but got '${contentRenamer.extractName(standaloneTrailer)}'"
+        }
+
+        val standaloneSubs = File("~/Downloads/Subs/6_spa.srt")
+        assert(contentRenamer.extractName(standaloneSubs) == "") {
+            "Expected '' but got '${contentRenamer.extractName(standaloneSubs)}'"
+        }
+
+        val standaloneCodec = File("~/Downloads/1080p.x264.mkv")
+        assert(contentRenamer.extractName(standaloneCodec) == "") {
+            "Expected '' but got '${contentRenamer.extractName(standaloneCodec)}'"
+        }
+
+        val standaloneRARBG = File("~/Downloads/RARBG.mp4")
+        assert(contentRenamer.extractName(standaloneRARBG) == "") {
+            "Expected '' but got '${contentRenamer.extractName(standaloneRARBG)}'"
+        }
+    }
+
 }
