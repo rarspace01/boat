@@ -18,13 +18,13 @@ class ContentRenamerTest {
         )
 
         val testPaths = listOf(
-            "/data/TV/The.Mandalorian.S01E01.1080p.mkv",
-            "/data/TV/Stranger.Things.S03.2019/Stranger.Things.S03E05.mkv",
-            "/data/Movies/Inception.2010.720p.mkv",
-            "/data/TV/The.Boys.S02E08.mkv",
-            "/data/Movies/Interstellar.2014.1080p.mkv",
-            "/data/TV/Dark.S01.GERMAN.1080p/Dark.S01E01.mkv",
-            "/data/TV/Chernobyl.S01.1080p/Chernobyl.E01.mkv",
+            "~/data/TV/The.Mandalorian.S01E01.1080p.mkv",
+            "~/data/TV/Stranger.Things.S03.2019/Stranger.Things.S03E05.mkv",
+            "~/data/Movies/Inception.2010.720p.mkv",
+            "~/data/TV/The.Boys.S02E08.mkv",
+            "~/data/Movies/Interstellar.2014.1080p.mkv",
+            "~/data/TV/Dark.S01.GERMAN.1080p/Dark.S01E01.mkv",
+            "~/data/TV/Chernobyl.S01.1080p/Chernobyl.E01.mkv",
             "~/Series-Shows/0-9/1000 Ways to Die/Season 1/1000.Ways.to.Die.S01E01.Life Will Kill You.avi",
             "~/Series-Shows/0-9/1000.Lb.Sisters/1000-lb.Sisters S01E01.720p WEBRip x264-KOMPOST.mkv",
             "~/Series-Shows/B/BATMAN The Animated Series (1992-1999) - COMPLETE Season 1-6, TV S01-S06 and 2 Movies - 1080p BluRay x264/Season 1 (1992-93)/Batman T.A.S - S01 E01 - The Cat and The Claw, Part 1 (1080p - BluRay).mp4",
@@ -51,15 +51,19 @@ class ContentRenamerTest {
             "~/Series-Shows/A/Adventure Time/Season 1/01.01 - Slumber Party Panic.mp4",
             "~/Series-Shows/A/Avatar - The Last Airbender [1080p]/Book 1; Water/101 - The Boy in the Iceberg.mp4",
             "~/Series-Shows/D/Duckman/Season 1/Duckman 101 - I, Duckman.mkv",
-            "~/Series-Shows/D/Dragon Ball Super/Dragon Ball Super - Completo [WEB-DL - 1080p]/Dragon%20Ball%20Super%20-%20101%20%5B1080p%5D.mkv"
+            "~/Series-Shows/D/Dragon Ball Super/Dragon Ball Super - Completo [WEB-DL - 1080p]/Dragon%20Ball%20Super%20-%20101%20%5B1080p%5D.mkv",
+            "~/Series-Shows/Z/Zombieland%20Saga%20S02%201080p%20BDRip%2010%20bits%20DD%20x265-EMBER.torrent/S02E12-The Greatest SAGA in History [F9FE3939].mkv",
+            "~/Series-Shows/R/Reservation Dogs/Reservation.Dogs.S01.1080p.WEBRip.x265-KONTRAST/Subs/Reservation.Dogs.S01E07.1080p.WEBRip.x265-KONTRAST/6_spa.srt"
         )
 
         println("\n--- Testing Extraction Logic ---")
         testPaths.forEach { fullName ->
-            val name = contentRenamer.extractName(fullName)
+            //File(fullName).createNewFile()
+            val file = File(fullName)
+            val name = contentRenamer.extractName(file)
             val year = contentRenamer.extractYear(fullName)
-            val season = contentRenamer.extractSeason(fullName)
-            val episode = contentRenamer.extractEpisode(fullName)
+            val season = contentRenamer.extractSeason(file)
+            val episode = contentRenamer.extractEpisode(file)
             System.out.println("[DEBUG_LOG] F: $fullName")
             System.out.println("[DEBUG_LOG]  -> Name: $name, Year: $year, Season: $season, Episode: $episode")
             if (fullName.contains("teneighty-cfwm")) {
@@ -84,12 +88,20 @@ class ContentRenamerTest {
                 assert(name == "Duckman") { "Expected 'Duckman' but got '$name'" }
             }
             if (fullName.contains("101 - The Boy in the Iceberg.mp4")) {
-                val episode = contentRenamer.extractEpisode(fullName)
+                val episode = contentRenamer.extractEpisode(file)
                 assert(episode == 101) { "Expected episode 101 but got $episode" }
             }
             if (fullName.contains("Dragon Ball Super - 101 [1080p].mkv")) {
-                val episode = contentRenamer.extractEpisode(fullName)
+                val episode = contentRenamer.extractEpisode(file)
                 assert(episode == 101) { "Expected episode 101 but got $episode" }
+            }
+            if (fullName.contains("Reservation Dogs")) {
+                assert(name == "Reservation Dogs") { "Expected 'Reservation Dogs' but got '$name'" }
+                assert(season == 1) { "Expected season 1 but got $season" }
+                assert(episode == 7) { "Expected episode 7 but got $episode" }
+            }
+            if (fullName.contains("Zombieland%20Saga")) {
+                assert(name == "Zombieland Saga") { "Expected 'Zombieland Saga' but got '$name'" }
             }
         }
     }
