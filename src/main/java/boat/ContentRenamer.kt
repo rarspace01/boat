@@ -1,6 +1,9 @@
 package boat
 
+import boat.info.MediaItem
 import boat.info.MediaProxyService
+import boat.info.MediaType
+import boat.utilities.StringUtil
 import java.io.File
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
@@ -342,7 +345,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
                     var season = extractSeason(file)
                     val episode = extractEpisode(file)
 
-                    val queriedName = if (name.isNotBlank()) {
+                    val mediaResult = if (name.isNotBlank()) {
                         if (year != null) {
                             mediaProxyService.search(name, year).firstOrNull()
                         } else {
@@ -352,13 +355,16 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
                         null
                     }
 
-                    if (season == null && episode != null && queriedName != null && queriedName.seasonCount == 1) {
+                    if (season == null && episode != null && mediaResult != null && mediaResult.seasonCount == 1) {
                         season = 1
                     }
 
-                    val idString = queriedName?.id ?: ""
-                    val logLine =
-                        "F: $fullName -> Extracted: $name -> $queriedName (Y: $year, S: $season, E: $episode) $idString"
+                    val idString = mediaResult?.id ?: ""
+                    var logLine =
+                        "F: '$fullName'->'$name'|>'$mediaResult' (Y: $year, S: $season, E: $episode) $idString"
+                    mediaResult?.let {
+                        logLine = logLine+"\n"+getTargetFile(file, mediaResult)
+                    }
                     println(logLine)
                     logFile?.appendText(logLine + "\n")
                 } else {
@@ -366,6 +372,30 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
                 }
             }
         }
+    }
+
+    private fun getTargetFile(file: File, mediaResult: MediaItem): String {
+        val firstPart = "~/pfdb/PFDB/" + getMediaTypeFolderString(mediaResult) +
+                "/" + StringUtil.deductFirstTorrentLetter(getSafeTitle(mediaResult)) + "/${getSafeTitle(mediaResult)} ${mediaResult.id}"
+        //get file extension from File
+        val fileExtension = file.name.replace(file.nameWithoutExtension, "")
+        return firstPart + fileExtension
+    }
+
+    fun getSafeTitle(mediaResult: MediaItem): String {
+        return getSafeTitle(mediaResult.title)
+    }
+
+    fun getSafeTitle(title: String): String {
+        return title.replace("//", " ").replace(Regex("[\\\\/:*?\"<>|]"), "")
+    }
+
+    private fun getMediaTypeFolderString(mediaResult: MediaItem): String = when (mediaResult.type) {
+        MediaType.Movie -> "Movies"
+        MediaType.Series -> "Series-Shows"
+        MediaType.TVShow -> "Series-Shows"
+        MediaType.Documentary -> "Documentaries"
+        else -> "transfer"
     }
 
     fun decodeIfEncoded(name: String): String {

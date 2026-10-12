@@ -1,5 +1,6 @@
 package boat
 
+import boat.info.MediaItem
 import boat.info.MediaProxyService
 import boat.info.TheMovieDataBaseService
 import boat.info.TheTVDBService
@@ -226,6 +227,23 @@ class ContentRenamerTest {
         assert(contentRenamer.extractName(standaloneRARBG) == "") {
             "Expected '' but got '${contentRenamer.extractName(standaloneRARBG)}'"
         }
+    }
+
+    @Test
+    fun testGetSafeTitle() {
+        val httpHelper = HttpHelper()
+        val contentRenamer = ContentRenamer(
+            MediaProxyService(TheMovieDataBaseService(httpHelper), TheTVDBService(httpHelper))
+        )
+
+        assert(contentRenamer.getSafeTitle(MediaItem("Star Wars: The Bad Batch")) == "Star Wars The Bad Batch")
+        assert(contentRenamer.getSafeTitle(MediaItem("Face/Off")) == "FaceOff")
+        assert(contentRenamer.getSafeTitle(MediaItem("What If...?")) == "What If...")
+        assert(contentRenamer.getSafeTitle(MediaItem("Back\\Slash")) == "BackSlash")
+        assert(contentRenamer.getSafeTitle(MediaItem("Title*With\"Dangerous<Chars>And|Pipes")) == "TitleWithDangerousCharsAndPipes")
+        assert(contentRenamer.getSafeTitle(MediaItem("1000-lb Sisters (2020)")) == "1000-lb Sisters (2020)")
+        assert(contentRenamer.getSafeTitle("Simple Title") == "Simple Title")
+        assert(contentRenamer.getSafeTitle("This//Hack") == "This Hack")
     }
 
 }

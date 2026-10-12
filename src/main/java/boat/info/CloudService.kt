@@ -7,6 +7,7 @@ import boat.torrent.TorrentHelper.prepareTorrentName
 import boat.torrent.TorrentType
 import boat.utilities.LoggerDelegate
 import boat.utilities.PropertiesHelper
+import boat.utilities.StringUtil
 import org.springframework.stereotype.Service
 import org.springframework.util.StringUtils
 import java.time.Duration
@@ -52,35 +53,8 @@ class CloudService internal constructor(
     ): String {
         val basePath = PropertiesHelper.getProperty(RCLONE_DIR)
         val preparedTorrentName = prepareTorrentName(torrentName)
-        val firstTorrentLetter = deductFirstTorrentLetter(preparedTorrentName)
+        val firstTorrentLetter = StringUtil.deductFirstTorrentLetter(preparedTorrentName)
         return basePath + "/" + typeOfMedia.type + "/" + firstTorrentLetter + "/"
-    }
-
-    private fun deductFirstTorrentLetter(preparedTorrentName: String): String {
-        // replace Umlauts
-        var preparedTorrentName = preparedTorrentName
-        preparedTorrentName = preparedTorrentName.replace("[äÄ]".toRegex(), "A")
-        preparedTorrentName = preparedTorrentName.replace("[öÖ]".toRegex(), "O")
-        preparedTorrentName = preparedTorrentName.replace("[üÜ]".toRegex(), "Ü")
-
-        // take only name infront of year
-        val split = preparedTorrentName.split("[1-2][0-9]{3}".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
-        if (split.size > 0) {
-            preparedTorrentName = split[0]
-        }
-        // remove articles
-        preparedTorrentName = preparedTorrentName.replace("(a[ .]|the[ .]|der[ .])".toRegex(), "")
-        //
-        preparedTorrentName = preparedTorrentName.trim { it <= ' ' }
-        preparedTorrentName = preparedTorrentName.replace("[\".]".toRegex(), "")
-        if (preparedTorrentName.isNotEmpty()) {
-            preparedTorrentName = preparedTorrentName.substring(0, 1)
-        }
-        preparedTorrentName = preparedTorrentName.replace("[\\W]".toRegex(), "?")
-        preparedTorrentName = preparedTorrentName.replace("[0-9]".toRegex(), "0-9")
-        preparedTorrentName = preparedTorrentName.uppercase(Locale.getDefault())
-        //
-        return preparedTorrentName
     }
 
     fun findExistingFiles(searchName: String): List<String> {
@@ -123,7 +97,7 @@ class CloudService internal constructor(
     private fun buildDestinationPathWithTypeOfMedia(name: String?, torrentType: TorrentType): Pair<String, String> {
         val basePath = PropertiesHelper.getProperty(RCLONE_DIR)
         val preparedTorrentName = prepareTorrentName(name)
-        val torrentNameFirstLetterDeducted = deductFirstTorrentLetter(preparedTorrentName)
+        val torrentNameFirstLetterDeducted = StringUtil.deductFirstTorrentLetter(preparedTorrentName)
         var optionalSeriesString = ""
         if (TorrentType.SERIES_SHOWS == torrentType) {
             optionalSeriesString = deductSeriesNameFrom(preparedTorrentName) + "/"
