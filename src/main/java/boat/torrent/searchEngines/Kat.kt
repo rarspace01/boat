@@ -40,7 +40,7 @@ class Kat internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper), T
     }
 
     override fun getBaseUrl(): String {
-        return "https://kickasstorrents.cc"
+        return "https://kickasstorrents.to"
     }
 
     private fun parseTorrentsOnResultPage(pageContent: String, searchName: String): List<Torrent> {
