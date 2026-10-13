@@ -11,7 +11,7 @@ import java.nio.charset.StandardCharsets
 class ContentRenamer(val mediaProxyService: MediaProxyService) {
 
     companion object {
-        val seasonPattern = "S([0-9]{1,2})(E[0-9]{1,2})?".toRegex(RegexOption.IGNORE_CASE)
+        val seasonPattern = "(?<=^|[^a-zA-Z])S([0-9]{1,2})(E[0-9]{1,2})?".toRegex(RegexOption.IGNORE_CASE)
         val seasonPattern2 = "(?:\\[|\\b)([0-9]{1,2})x([0-9]{1,2})(?:\\]|\\b)".toRegex()
         val episodePattern =
             "(?<=^|[^a-zA-Z0-9])(?:E|Ep|\\s-\\s|\\s|-|\\.)([0-9]{1,3})(?=[^a-zA-Z0-9]|$)".toRegex(RegexOption.IGNORE_CASE)
@@ -32,7 +32,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         val groupPrefixPattern = "^([a-z0-9]{4,10}-)".toRegex(RegexOption.IGNORE_CASE)
         // check if it's a known garbage prefix (like 4 hex chars or similar)
         val match = groupPrefixPattern.find(name)
-        if (match != null && !name.lowercase().startsWith("star") &&
+        if (match != null && !name.lowercase().startsWith("star") && !name.lowercase().startsWith("hack") &&
             !name.lowercase().matches("^[0-9]+-(?:lb|lb\\.|pound|foot|inch|mile|meter|gram|ton|year|day|hour|min|sec|part|way|ways).*".toRegex())
         ) {
             name = name.replace(groupPrefixPattern, "")
@@ -59,20 +59,34 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
             name = name.substring(0, dvdMatch.range.first)
             truncated = true
         } else if (!name.matches("^[0-9]+(?:[-.][0-9]+)+$".toRegex())) {
-            val episodeMatch = episodePattern.find(name)
-            if (episodeMatch != null) {
-                name = name.substring(0, episodeMatch.range.first)
+            val episodeWithTitleMatch = "(?:\\s|^)(?:E|Ep|ep)?([0-9]{1,3})\\s+-\\s+[a-zA-Z]".toRegex(RegexOption.IGNORE_CASE).find(name)
+            val dashEpisodeMatch = "(?:\\s-\\s|\\s-_|_-_|\\s-\\s?|_-\\s?)([0-9]{1,3})(?=[^a-zA-Z0-9]|$)".toRegex().find(name)
+            val explicitEpisodeMatch = "(?<=^|[^a-zA-Z0-9])(?:E|Ep)([0-9]{1,3})(?=[^a-zA-Z0-9]|$)".toRegex(RegexOption.IGNORE_CASE).find(name)
+            if (episodeWithTitleMatch != null) {
+                name = name.substring(0, episodeWithTitleMatch.range.first)
+                truncated = true
+            } else if (dashEpisodeMatch != null) {
+                name = name.substring(0, dashEpisodeMatch.range.first)
+                truncated = true
+            } else if (explicitEpisodeMatch != null) {
+                name = name.substring(0, explicitEpisodeMatch.range.first)
                 truncated = true
             } else {
-                val standaloneEpisodeMatch = standaloneEpisodePattern.find(name)
-                if (standaloneEpisodeMatch != null && yearPattern.find(standaloneEpisodeMatch.value) == null) {
-                    name = name.substring(0, standaloneEpisodeMatch.range.first)
+                val episodeMatch = episodePattern.find(name)
+                if (episodeMatch != null) {
+                    name = name.substring(0, episodeMatch.range.first)
                     truncated = true
                 } else {
-                    val yearMatch = yearPattern.find(name)
-                    if (yearMatch != null) {
-                        name = name.substring(0, yearMatch.range.first)
+                    val standaloneEpisodeMatch = standaloneEpisodePattern.find(name)
+                    if (standaloneEpisodeMatch != null && yearPattern.find(standaloneEpisodeMatch.value) == null) {
+                        name = name.substring(0, standaloneEpisodeMatch.range.first)
                         truncated = true
+                    } else {
+                        val yearMatch = yearPattern.find(name)
+                        if (yearMatch != null) {
+                            name = name.substring(0, yearMatch.range.first)
+                            truncated = true
+                        }
                     }
                 }
             }
@@ -80,6 +94,9 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
 
         name = name.replace(bracketPattern, "").trim()
         name = name.replace(".", " ").replace("_", " ").trim()
+        name = name.replace(Regex("\\s*\\+\\s*(?:extras|bonus|specials)\\b", RegexOption.IGNORE_CASE), " ")
+        name = name.replace(Regex("(?<=[a-zA-Z\\s])[0-9]{1,3}-[0-9]{1,3}(?=\\s*(?:\\+|$))"), " ")
+        name = name.replace(Regex("\\s+"), " ").trim()
 
         // Remove trailing dashes or other common separators
         while (name.endsWith("-") || name.endsWith(".")) {
@@ -134,6 +151,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         if (normalized.matches("^s[0-9]{1,2}(?:\\s?e[0-9]{1,2})?$".toRegex())) return true
         if (normalized.matches("^[0-9]{1,2}\\s?x\\s?[0-9]{1,2}$".toRegex())) return true
         if (normalized.matches("^[0-9]{1,3}\\s?[.\\sx-]\\s?[0-9]{1,3}$".toRegex())) return true
+        if (normalized.matches("^[a-z]{1,4}\\s?[0-9]{1,3}$".toRegex())) return true
         if (normalized.matches("^[0-9]+\\s?[a-z]{2,3}$".toRegex())) return true // e.g. "6 spa", "6_spa"
 
         // Auxiliary exact keywords
@@ -215,20 +233,6 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
             "outtakes", "outtake", "bloopers", "blooper", "gag reel", "behind the scenes", "making of"
         )
 
-        var p = file.parentFile
-        var depth = 0
-        while (p != null && depth < 6) {
-            val pName = decodeIfEncoded(p.name).lowercase().trim()
-            val pTokens = pName.split(Regex("[^a-z0-9]+")).filter { it.isNotBlank() }
-            if (auxiliaryFolderKeywords.any { kw ->
-                pName == kw || pName.contains(kw) || pTokens.contains(kw)
-            }) {
-                return true
-            }
-            p = p.parentFile
-            depth++
-        }
-
         val lowerCleaned = cleanedFileName.lowercase()
         val auxiliaryFileKeywords = listOf(
             "alternate ending", "alternate endings", "alternate opening", "alternate openings", "alternate cut",
@@ -244,6 +248,28 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
             if (seasonPattern.find(fileNameWithoutExt) == null && seasonPattern2.find(fileNameWithoutExt) == null) {
                 return true
             }
+        }
+
+        var p = file.parentFile
+        var depth = 0
+        while (p != null && depth < 6) {
+            val pName = decodeIfEncoded(p.name).lowercase().trim()
+            val pNormalized = pName.replace("_", " ").replace(".", " ").replace("-", " ")
+            val pTokens = pNormalized.split(Regex("[^a-z0-9]+")).filter { it.isNotBlank() }
+
+            val isPackFolder = pName.contains("+") || pNormalized.contains("with extras") || pNormalized.contains("and extras") ||
+                    pNormalized.matches(".*\\b(?:season|s[0-9]+|[0-9]+-[0-9]+)\\s*(?:\\+|plus|with|and)\\s*(?:extras|bonus).*".toRegex())
+
+            if (!isPackFolder) {
+                if (auxiliaryFolderKeywords.contains(pName) || auxiliaryFolderKeywords.contains(pNormalized)) {
+                    return true
+                }
+                if (pTokens.size <= 3 && pTokens.any { auxiliaryFolderKeywords.contains(it) }) {
+                    return true
+                }
+            }
+            p = p.parentFile
+            depth++
         }
 
         return false
@@ -306,8 +332,8 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
     }
 
     fun extractSeason(file: File): Int? {
-        val seasonPattern = "S([0-9]{1,2})".toRegex(RegexOption.IGNORE_CASE)
-        val seasonPatternInName = "(?<=Season\\s)([0-9]{1,2})".toRegex(RegexOption.IGNORE_CASE)
+        val seasonPattern = "(?<=^|[^a-zA-Z])S([0-9]{1,2})(?=[^a-zA-Z0-9]|$|E[0-9]{1,2})".toRegex(RegexOption.IGNORE_CASE)
+        val seasonPatternInName = "(?<=Season\\s?)([0-9]{1,2})".toRegex(RegexOption.IGNORE_CASE)
         val seasonPattern2 = "(?:\\[|\\b)([0-9]{1,2})x([0-9]{1,2})(?:\\]|\\b)".toRegex()
         val dvdPattern = "(?<=^|\\s)(?:dvd|disc|cd)\\s?([0-9]{1,2})".toRegex(RegexOption.IGNORE_CASE)
 
@@ -343,17 +369,26 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
     }
 
     fun extractEpisode(file: File): Int? {
-        val fileName = file.name
-        val parentName = file.parentFile?.name ?: ""
-        val grandParentName = file.parentFile?.parentFile?.name ?: ""
-        val greatGrandParentName = file.parentFile?.parentFile?.parentFile?.name ?: ""
+        val fileName = decodeIfEncoded(file.name)
+        val parentName = decodeIfEncoded(file.parentFile?.name ?: "")
+        val grandParentName = decodeIfEncoded(file.parentFile?.parentFile?.name ?: "")
+        val greatGrandParentName = decodeIfEncoded(file.parentFile?.parentFile?.parentFile?.name ?: "")
 
+        val episodeWithTitlePattern = "(?:\\s|^)(?:E|Ep|ep)?([0-9]{1,3})\\s+-\\s+[a-zA-Z]".toRegex(RegexOption.IGNORE_CASE)
+        val dashEpisodePattern = "(?:\\s-\\s|\\s-_|_-_|\\s-\\s?|_-\\s?)([0-9]{1,3})(?=[^a-zA-Z0-9]|$)".toRegex()
+        val explicitEpisodePattern = "(?<=^|[^a-zA-Z0-9])(?:E|Ep|ep)([0-9]{1,3})(?=[^a-zA-Z0-9]|$)".toRegex(RegexOption.IGNORE_CASE)
         val episodePattern =
             "(?<=^|[^a-zA-Z0-9])(?:E|Ep|\\s-\\s|\\s|-|\\.)([0-9]{1,3})(?=[^a-zA-Z0-9]|$)".toRegex(RegexOption.IGNORE_CASE)
         val standaloneEpisodePattern = "(?:\\s|^)([0-9]{3})(?:\\s|$)".toRegex()
         val yearPattern = "\\b([1-2][0-9]{3})\\b".toRegex()
-        val seasonEpisodePattern = "S[0-9]{1,2}E([0-9]{1,2})".toRegex(RegexOption.IGNORE_CASE)
+        val seasonEpisodePattern = "(?<=^|[^a-zA-Z])S[0-9]{1,2}E([0-9]{1,2})".toRegex(RegexOption.IGNORE_CASE)
         val seasonPattern2 = "(?:\\[|\\b)([0-9]{1,2})x([0-9]{1,2})(?:\\]|\\b)".toRegex()
+        val acronymEpisodePattern = "(?<=^|[^a-zA-Z0-9])([a-zA-Z]{1,4})([0-9]{1,3})(?=[^a-zA-Z0-9]|$)".toRegex(RegexOption.IGNORE_CASE)
+        val excludedAcronyms = setOf(
+            "x264", "h264", "x265", "h265", "hevc", "avc", "xvid", "dvd", "disc", "cd", "bd",
+            "part", "pt", "vol", "v", "ch", "aac", "mp3", "mp4", "ac3", "fps", "kbps", "mbps",
+            "s", "se", "season", "dvdrip", "bdrip", "brrip", "webrip", "webdl", "hdtv", "pdtv"
+        )
         val replaced = fileName.replace("_", " ")
 
         val match2 = seasonPattern2.find(fileName)
@@ -365,19 +400,34 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
             return match2.groupValues[2].toInt()
         }
 
+        val rawBaseName = fileName.substringBeforeLast(".").replace(bracketPattern, "").trim()
+        val acronymMatch = acronymEpisodePattern.findAll(rawBaseName).firstOrNull { m ->
+            val prefix = m.groupValues[1].lowercase()
+            val full = m.value.lowercase()
+            !excludedAcronyms.contains(prefix) && !excludedAcronyms.contains(full) && prefix != "s" && prefix != "se"
+        }
+
         val match = seasonEpisodePattern.find(fileName)
             ?: seasonEpisodePattern.find(parentName)
             ?: seasonEpisodePattern.find(grandParentName)
             ?: seasonEpisodePattern.find(greatGrandParentName)
+            ?: explicitEpisodePattern.find(fileName)
+            ?: episodeWithTitlePattern.find(fileName)
+            ?: episodeWithTitlePattern.find(replaced)
+            ?: dashEpisodePattern.find(fileName)
+            ?: dashEpisodePattern.find(replaced)
+            ?: "-([0-9]{1,3})\\.".toRegex().find(fileName)
+            ?: acronymMatch
+            ?: standaloneEpisodePattern.find(fileName)?.let { if (yearPattern.find(it.value) == null) it else null }
             ?: episodePattern.find(replaced)
             ?: episodePattern.find(fileName)
-            ?: standaloneEpisodePattern.find(fileName)?.let { if (yearPattern.find(it.value) == null) it else null }
-            ?: "-([0-9]{1,3})\\.".toRegex().find(fileName)
+            ?: explicitEpisodePattern.find(parentName)
             ?: episodePattern.find(parentName)
             ?: episodePattern.find(grandParentName)
 
         if (match != null) {
-            return match.groupValues[1].toInt()
+            val groupIdx = if (match.groupValues.size > 1) match.groupValues.size - 1 else 0
+            return match.groupValues[groupIdx].toIntOrNull()
         }
 
         return null
@@ -438,6 +488,8 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
             val seasonStr = String.format("%02d", season ?: 1)
             val episodeStr = String.format("%02d", episode)
             "/${extractedName}.S${seasonStr}E${episodeStr}"
+        } else if (season != null) {
+            "/${file.nameWithoutExtension}"
         } else {
             ""
         }

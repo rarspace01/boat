@@ -154,6 +154,9 @@ class ContentRenamerTest {
         assert(contentRenamer.isJunk("Alternate Ending"))
         assert(contentRenamer.isJunk("Alternate Endings"))
         assert(contentRenamer.isJunk("Special Features"))
+        assert(contentRenamer.isJunk("HS22"))
+        assert(contentRenamer.isJunk("E01"))
+        assert(contentRenamer.isJunk("EP01"))
         assert(contentRenamer.isJunk("Outtakes"))
         assert(contentRenamer.isJunk("Bloopers"))
         assert(contentRenamer.isJunk("Gag Reel"))
@@ -231,6 +234,50 @@ class ContentRenamerTest {
         }
         assert(contentRenamer.extractEpisode(nineOneOneFile) == 6) {
             "Expected episode 6 but got '${contentRenamer.extractEpisode(nineOneOneFile)}'"
+        }
+
+        val hackSignFile = File("/home/denis/pfdb/PFDB/Series-Shows/#/_HACK/SIGN/HS22.avi")
+        assert(contentRenamer.extractName(hackSignFile) == "SIGN") {
+            "Expected 'SIGN' but got '${contentRenamer.extractName(hackSignFile)}'"
+        }
+        assert(contentRenamer.extractSeason(hackSignFile) == null) {
+            "Expected null season but got '${contentRenamer.extractSeason(hackSignFile)}'"
+        }
+        assert(contentRenamer.extractEpisode(hackSignFile) == 22) {
+            "Expected episode 22 but got '${contentRenamer.extractEpisode(hackSignFile)}'"
+        }
+
+        val hackSignExtrasFile = File("/home/denis/pfdb/PFDB/Series-Shows/#/.Hack Sign 1-28+Extras/[V-A]_hack_SIGN_-_05_[E3229E6C].mkv")
+        assert(contentRenamer.extractName(hackSignExtrasFile) == "hack SIGN") {
+            "Expected 'hack SIGN' but got '${contentRenamer.extractName(hackSignExtrasFile)}'"
+        }
+        assert(contentRenamer.extractSeason(hackSignExtrasFile) == null) {
+            "Expected null season but got '${contentRenamer.extractSeason(hackSignExtrasFile)}'"
+        }
+        assert(contentRenamer.extractEpisode(hackSignExtrasFile) == 5) {
+            "Expected episode 5 but got '${contentRenamer.extractEpisode(hackSignExtrasFile)}'"
+        }
+
+        val hackLegendTwilightFile = File("/home/denis/pfdb/PFDB/Series-Shows/#/_HACK/Legend_o_T/hack-Legend of the Twilight 08 - The Solitary Knight.avi")
+        assert(contentRenamer.extractName(hackLegendTwilightFile) == "hack-Legend of the Twilight") {
+            "Expected 'hack-Legend of the Twilight' but got '${contentRenamer.extractName(hackLegendTwilightFile)}'"
+        }
+        assert(contentRenamer.extractSeason(hackLegendTwilightFile) == null) {
+            "Expected null season but got '${contentRenamer.extractSeason(hackLegendTwilightFile)}'"
+        }
+        assert(contentRenamer.extractEpisode(hackLegendTwilightFile) == 8) {
+            "Expected episode 8 but got '${contentRenamer.extractEpisode(hackLegendTwilightFile)}'"
+        }
+
+        val hackRootsFile = File("/home/denis/pfdb/PFDB/Series-Shows/#/_HACK/ROOTS/hack_roots-21.avi")
+        assert(contentRenamer.extractName(hackRootsFile) == "hack roots") {
+            "Expected 'hack roots' but got '${contentRenamer.extractName(hackRootsFile)}'"
+        }
+        assert(contentRenamer.extractSeason(hackRootsFile) == null) {
+            "Expected null season but got '${contentRenamer.extractSeason(hackRootsFile)}'"
+        }
+        assert(contentRenamer.extractEpisode(hackRootsFile) == 21) {
+            "Expected episode 21 but got '${contentRenamer.extractEpisode(hackRootsFile)}'"
         }
 
         // Standalone junk files or files in generic folders with no show name should NOT extract a wrong name (return empty string)
@@ -315,6 +362,16 @@ class ContentRenamerTest {
         val nineOneOneItem = MediaItem(title = "9-1-1", type = boat.info.MediaType.Series, id = "{tvdb-334586}")
         val targetNineOneOne = contentRenamer.getTargetFile(File("9-1-1.S05E06.1080p.WEB.H264-CAKES[TGx].mkv"), nineOneOneItem, "9-1-1", 5, 6)
         assert(targetNineOneOne == "~/pfdb/PFDB/Series-Shows/0-9/9-1-1 {tvdb-334586}/Season 5/9-1-1.S05E06.mkv") { "Unexpected 9-1-1 target path: $targetNineOneOne" }
+
+        // .hack//SIGN series
+        val hackSignItem = MediaItem(title = ".hack//SIGN", type = boat.info.MediaType.Series, id = "{tmdb-333800}")
+        val targetHackSign = contentRenamer.getTargetFile(File("HS22.avi"), hackSignItem, "SIGN", 1, 22)
+        assert(targetHackSign == "~/pfdb/PFDB/Series-Shows/H/.hack SIGN {tmdb-333800}/Season 1/SIGN.S01E22.avi") { "Unexpected hack sign target path: $targetHackSign" }
+
+        // Extra with season but no episode
+        val extraItem = MediaItem(title = "24", type = boat.info.MediaType.Series, id = "{tvdb-1234}")
+        val targetExtra = contentRenamer.getTargetFile(File("Alternate Ending.mp4"), extraItem, "24", 1, null)
+        assert(targetExtra == "~/pfdb/PFDB/Series-Shows/0-9/24 {tvdb-1234}/Season 1/Alternate Ending.mp4") { "Unexpected extra target path: $targetExtra" }
     }
 
 }
