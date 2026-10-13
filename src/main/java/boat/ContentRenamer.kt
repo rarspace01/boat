@@ -197,7 +197,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         if (technicalTags.contains(lower) || technicalTags.contains(normalized)) return true
 
         val junkPrefixes = listOf(
-            "season ", "seasons ", "disc ", "disc", "disk ", "disk", "cd ", "cd", "dvd ", "dvd",
+            "season ", "seasons ", "disc ", "disk ", "cd ", "dvd ",
             "volume ", "vol ", "book ", "chapter ", "part ", "ep ", "episode ", "subs ", "subtitles ",
             "extras ", "featurette ", "featurettes ", "trailer ", "trailers ", "sample ", "samples ",
             "screenshot ", "screenshots ", "deleted scene", "deleted scenes", "making of ", "behind the scenes "
@@ -312,6 +312,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         )
 
         // If filename is junk or auxiliary, search upwards in parent directory hierarchy
+        val candidates = mutableListOf<String>()
         var currentFile: File? = file.parentFile
         var depth = 0
         while (currentFile != null && depth < 5) {
@@ -319,17 +320,39 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
             val lowerParent = parentName.lowercase().trim()
             val normalizedParent = lowerParent.replace("_", " ").replace(".", " ").replace("-", " ").trim()
 
-            // Stop traversing upwards if we reached a root category / filesystem folder
-            if (categoryFolderNames.contains(lowerParent) || categoryFolderNames.contains(normalizedParent)) {
+            // Stop traversing upwards if we reached a single letter folder, symbol folder, range folder, or root category / filesystem folder
+            if (parentName.trim().length <= 1 ||
+                parentName.trim().all { !it.isLetterOrDigit() } ||
+                lowerParent.matches("^[0-9]-[0-9]$".toRegex()) ||
+                lowerParent.matches("^[a-z]-[a-z]$".toRegex()) ||
+                categoryFolderNames.contains(lowerParent) ||
+                categoryFolderNames.contains(normalizedParent)
+            ) {
                 break
             }
 
             val cleanedParentName = cleanName(parentName)
             if (cleanedParentName.isNotBlank() && !isJunk(cleanedParentName)) {
-                return cleanedParentName
+                candidates.add(cleanedParentName)
             }
             currentFile = currentFile.parentFile
             depth++
+        }
+
+        if (candidates.isNotEmpty()) {
+            val reversed = candidates.reversed()
+            var combined = reversed.first()
+            for (i in 1 until reversed.size) {
+                val next = reversed[i]
+                val lowerCombined = combined.lowercase()
+                val lowerNext = next.lowercase()
+                if (!lowerCombined.contains(lowerNext) && !lowerNext.contains(lowerCombined)) {
+                    combined = "$combined $next"
+                } else if (lowerNext.contains(lowerCombined)) {
+                    combined = next
+                }
+            }
+            return cleanName(combined)
         }
 
         return ""
@@ -540,7 +563,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
             val extraInfo = listOfNotNull(resolution, codec).joinToString(".")
             val extraSuffix = if (extraInfo.isNotEmpty()) ".$extraInfo" else ""
             "/${extractedName}.S${seasonStr}E${episodeStr}$extraSuffix"
-        } else if (season != null) {
+        } else if (season != null || mediaResult.type == MediaType.Series) {
             "/${file.nameWithoutExtension}"
         } else {
             ""

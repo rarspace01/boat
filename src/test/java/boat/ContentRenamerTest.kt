@@ -54,7 +54,8 @@ class ContentRenamerTest {
             "~/Series-Shows/D/Duckman/Season 1/Duckman 101 - I, Duckman.mkv",
             "~/Series-Shows/D/Dragon Ball Super/Dragon Ball Super - Completo [WEB-DL - 1080p]/Dragon%20Ball%20Super%20-%20101%20%5B1080p%5D.mkv",
             "~/Series-Shows/Z/Zombieland%20Saga%20S02%201080p%20BDRip%2010%20bits%20DD%20x265-EMBER.torrent/S02E12-The Greatest SAGA in History [F9FE3939].mkv",
-            "~/Series-Shows/R/Reservation Dogs/Reservation.Dogs.S01.1080p.WEBRip.x265-KONTRAST/Subs/Reservation.Dogs.S01E07.1080p.WEBRip.x265-KONTRAST/6_spa.srt"
+            "~/Series-Shows/R/Reservation Dogs/Reservation.Dogs.S01.1080p.WEBRip.x265-KONTRAST/Subs/Reservation.Dogs.S01E07.1080p.WEBRip.x265-KONTRAST/6_spa.srt",
+            "/home/denis/pfdb/PFDB/Series-Shows/#/_HACK/SIGN/HS28.avi"
         )
 
         println("\n--- Testing Extraction Logic ---")
@@ -103,6 +104,10 @@ class ContentRenamerTest {
             }
             if (fullName.contains("Zombieland%20Saga")) {
                 assert(name == "Zombieland Saga") { "Expected 'Zombieland Saga' but got '$name'" }
+            }
+            if (fullName.contains("SIGN/HS28.avi")) {
+                assert(name.equals("HACK SIGN", ignoreCase = true)) { "Expected 'HACK SIGN' but got '$name'" }
+                assert(episode == 28) { "Expected episode 28 but got $episode" }
             }
         }
     }
@@ -237,8 +242,8 @@ class ContentRenamerTest {
         }
 
         val hackSignFile = File("/home/denis/pfdb/PFDB/Series-Shows/#/_HACK/SIGN/HS22.avi")
-        assert(contentRenamer.extractName(hackSignFile) == "SIGN") {
-            "Expected 'SIGN' but got '${contentRenamer.extractName(hackSignFile)}'"
+        assert(contentRenamer.extractName(hackSignFile).equals("HACK SIGN", ignoreCase = true)) {
+            "Expected 'HACK SIGN' but got '${contentRenamer.extractName(hackSignFile)}'"
         }
         assert(contentRenamer.extractSeason(hackSignFile) == null) {
             "Expected null season but got '${contentRenamer.extractSeason(hackSignFile)}'"
@@ -388,6 +393,11 @@ class ContentRenamerTest {
         val extraItem = MediaItem(title = "24", type = boat.info.MediaType.Series, id = "{tvdb-1234}")
         val targetExtra = contentRenamer.getTargetFile(File("Alternate Ending.mp4"), extraItem, "24", 1, null)
         assert(targetExtra == "~/pfdb/PFDB/Series-Shows/0-9/24 {tvdb-1234}/Season 1/Alternate Ending.mp4") { "Unexpected extra target path: $targetExtra" }
+
+        // Extra with series media type but no season and no episode (keep original file name in series folder)
+        val hackSignExtra = File("/home/denis/pfdb/PFDB/Series-Shows/#/.Hack Sign 1-28+Extras/[V-A]_hack_SIGN_-_Textless_Ending_[934E6984].mkv")
+        val targetHackSignExtra = contentRenamer.getTargetFile(hackSignExtra, hackSignItem, "Hack Sign", null, null)
+        assert(targetHackSignExtra == "~/pfdb/PFDB/Series-Shows/H/.hack SIGN {tmdb-333800}/[V-A]_hack_SIGN_-_Textless_Ending_[934E6984].mkv") { "Unexpected hack sign extra target path: $targetHackSignExtra" }
     }
 
     @Test
@@ -421,6 +431,32 @@ class ContentRenamerTest {
         assert(blackButlerName == "Black Butler") { "Expected 'Black Butler' but got '$blackButlerName'" }
         assert(blackButlerSeason == 2) { "Expected season 2 but got '$blackButlerSeason'" }
         assert(blackButlerEpisode == 2) { "Expected episode 2 but got '$blackButlerEpisode'" }
+    }
+
+    @Test
+    fun testUmbrellaFranchiseExtraction() {
+        val httpHelper = HttpHelper()
+        val contentRenamer = ContentRenamer(
+            MediaProxyService(TheMovieDataBaseService(httpHelper), TheTVDBService(httpHelper))
+        )
+
+        // /Series-Shows/#/_HACK/SIGN/HS28.avi -> "HACK SIGN"
+        val hackSignFile = File("/home/denis/pfdb/PFDB/Series-Shows/#/_HACK/SIGN/HS28.avi")
+        val hackSignName = contentRenamer.extractName(hackSignFile)
+        val hackSignEpisode = contentRenamer.extractEpisode(hackSignFile)
+        assert(hackSignName.equals("HACK SIGN", ignoreCase = true)) { "Expected 'HACK SIGN' but got '$hackSignName'" }
+        assert(hackSignEpisode == 28) { "Expected episode 28 but got '$hackSignEpisode'" }
+
+        // /Series-Shows/S/Star Trek/Discovery/Season 1/01.mkv -> "Star Trek Discovery"
+        val starTrekFile = File("/home/denis/pfdb/PFDB/Series-Shows/S/Star Trek/Discovery/Season 1/01.mkv")
+        val starTrekName = contentRenamer.extractName(starTrekFile)
+        println("[DEBUG_LOG] starTrekName: '$starTrekName'")
+        assert(starTrekName.equals("Star Trek Discovery", ignoreCase = true)) { "Expected 'Star Trek Discovery' but got '$starTrekName'" }
+
+        // Boundary check: single-letter folder 'S' and category 'Series-Shows' are not included
+        val boundaryFile = File("/home/denis/pfdb/PFDB/Series-Shows/S/Salamander/Season 1/01.mkv")
+        val boundaryName = contentRenamer.extractName(boundaryFile)
+        assert(boundaryName.equals("Salamander", ignoreCase = true)) { "Expected 'Salamander' but got '$boundaryName'" }
     }
 
 }
