@@ -151,6 +151,9 @@ class ContentRenamerTest {
         assert(contentRenamer.isJunk("1x01"))
         assert(contentRenamer.isJunk("S01E01"))
         assert(contentRenamer.isJunk("Deleted Scenes"))
+        assert(contentRenamer.isJunk("Alternate Ending"))
+        assert(contentRenamer.isJunk("Alternate Endings"))
+        assert(contentRenamer.isJunk("Special Features"))
         assert(contentRenamer.isJunk("Outtakes"))
         assert(contentRenamer.isJunk("Bloopers"))
         assert(contentRenamer.isJunk("Gag Reel"))
@@ -195,6 +198,25 @@ class ContentRenamerTest {
         val stargateFeaturette = File("~/Series-Shows/S/Stargate SG1 Ultimate Fan Collection/Season 1/Extras/CostumeDesignFeaturette.mp4")
         assert(contentRenamer.extractName(stargateFeaturette).startsWith("Stargate SG1")) {
             "Expected 'Stargate SG1...' but got '${contentRenamer.extractName(stargateFeaturette)}'"
+        }
+
+        val twentyFourExtra = File("/home/denis/pfdb/PFDB/Series-Shows/0-9/24.Complete.With.Subtitles/24 Season 1/24 EXTRAS/Alternate Ending.mp4")
+        assert(contentRenamer.extractName(twentyFourExtra).startsWith("24")) {
+            "Expected '24...' but got '${contentRenamer.extractName(twentyFourExtra)}'"
+        }
+        assert(contentRenamer.extractSeason(twentyFourExtra) == 1) {
+            "Expected season 1 but got '${contentRenamer.extractSeason(twentyFourExtra)}'"
+        }
+        assert(contentRenamer.extractEpisode(twentyFourExtra) == null) {
+            "Expected null episode but got '${contentRenamer.extractEpisode(twentyFourExtra)}'"
+        }
+
+        val twentyFourInterview = File("/home/denis/pfdb/PFDB/Series-Shows/0-9/24.Complete.With.Subtitles/24 Season 1/24 EXTRAS/Kiefer Sutherland on season 1 of 24.mp4")
+        assert(contentRenamer.extractName(twentyFourInterview).startsWith("24")) {
+            "Expected '24...' but got '${contentRenamer.extractName(twentyFourInterview)}'"
+        }
+        assert(contentRenamer.extractSeason(twentyFourInterview) == 1) {
+            "Expected season 1 but got '${contentRenamer.extractSeason(twentyFourInterview)}'"
         }
 
         // Standalone junk files or files in generic folders with no show name should NOT extract a wrong name (return empty string)

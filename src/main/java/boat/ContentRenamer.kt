@@ -132,9 +132,11 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         val auxiliaryExactKeywords = setOf(
             "subs", "sub", "subtitles", "subtitle", "vobsub", "idx", "srt",
             "extras", "extra", "featurettes", "featurette", "bonus", "bonuses",
-            "sample", "samples", "proof", "proofs", "screenshot", "screenshots",
+            "sample", "samples", "proof", "proofs", "screenshot", "screenshots", "screens cap",
             "trailer", "trailers", "teaser", "teasers", "promo", "promos", "promotional",
             "deleted scenes", "deleted scene", "deleted", "deletedscenes",
+            "alternate ending", "alternate endings", "alternate opening", "alternate openings", "alternate cut",
+            "alternate scene", "alternate scenes", "extended scene", "extended scenes", "extended cut",
             "outtakes", "outtake", "bloopers", "blooper", "gag reel", "gag reels", "gagreel", "gagreels",
             "behind the scenes", "behindthescenes", "making of", "makingof",
             "screentests", "screentest", "interview", "interviews", "cast", "crew",
@@ -143,7 +145,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
             "covers", "cover", "artwork", "artworks", "art", "fonts", "font", "scans", "scan", "covers and fonts",
             "soundtrack", "soundtracks", "ost", "music video", "music videos", "music", "audio",
             "metadata", "nfo", "info", "other", "misc", "miscellaneous",
-            "special", "specials", "sp", "ova", "ona",
+            "special", "specials", "sp", "ova", "ona", "special feature", "special features",
             "textless", "textless opening", "textless ending", "ncop", "nced", "creditless",
             "episode guide", "guide", "cfwm", "teneighty", "greatest saga"
         )
@@ -194,26 +196,39 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         )
         if (nonMediaExtensions.contains(file.extension.lowercase())) return true
 
-        val auxiliaryFolderNames = setOf(
-            "extras", "featurettes", "bonus", "samples", "screenshots", "trailers",
-            "deleted scenes", "screentests", "subs", "subtitles", "original scripts",
-            "soundtracks", "soundtrack", "ost", "artwork", "covers", "fonts", "scans", "proofs", "specials"
+        val auxiliaryFolderKeywords = setOf(
+            "extras", "extra", "featurettes", "featurette", "bonus", "bonuses",
+            "samples", "sample", "screenshots", "screenshot", "screens cap", "screens",
+            "trailers", "trailer", "teasers", "teaser", "promos", "promo",
+            "deleted scenes", "deleted scene", "screentests", "screentest",
+            "subs", "subtitles", "sub", "original scripts", "soundtracks", "soundtrack",
+            "ost", "artwork", "covers", "fonts", "scans", "proofs", "specials", "special",
+            "outtakes", "outtake", "bloopers", "blooper", "gag reel", "behind the scenes", "making of"
         )
 
         var p = file.parentFile
-        while (p != null) {
+        var depth = 0
+        while (p != null && depth < 6) {
             val pName = decodeIfEncoded(p.name).lowercase().trim()
-            if (auxiliaryFolderNames.contains(pName) || pName.startsWith("extras") || pName.startsWith("featurette") || pName.startsWith("trailer")) {
+            val pTokens = pName.split(Regex("[^a-z0-9]+")).filter { it.isNotBlank() }
+            if (auxiliaryFolderKeywords.any { kw ->
+                pName == kw || pName.contains(kw) || pTokens.contains(kw)
+            }) {
                 return true
             }
             p = p.parentFile
+            depth++
         }
 
         val lowerCleaned = cleanedFileName.lowercase()
         val auxiliaryFileKeywords = listOf(
-            "featurette", "trailer", "deleted scene", "screentest", "outtake",
-            "blooper", "gag reel", "screenshot", "sample", "character profile",
-            "behind the scenes", "making of", "interview", "original script", "textless"
+            "alternate ending", "alternate endings", "alternate opening", "alternate openings", "alternate cut",
+            "alternate scene", "alternate scenes", "extended scene", "extended scenes", "extended cut",
+            "featurette", "featurettes", "trailer", "trailers", "teaser", "teasers", "promo", "promos",
+            "deleted scene", "deleted scenes", "screentest", "screentests", "outtake", "outtakes",
+            "blooper", "bloopers", "gag reel", "gag reels", "screenshot", "screenshots", "sample", "samples",
+            "character profile", "character profiles", "behind the scenes", "making of", "interview", "interviews",
+            "original script", "original scripts", "textless", "special feature", "special features", "bonus", "bonuses"
         )
         if (auxiliaryFileKeywords.any { lowerCleaned.contains(it) }) {
             val fileNameWithoutExt = file.nameWithoutExtension
@@ -263,33 +278,40 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
     }
 
     fun extractSeason(file: File): Int? {
-        val fileName = file.name
-        val parentName = file.parentFile?.name ?: ""
-        val grandParentName = file.parentFile?.parentFile?.name ?: ""
-        val greatGrandParentName = file.parentFile?.parentFile?.parentFile?.name ?: ""
-
         val seasonPattern = "S([0-9]{1,2})".toRegex(RegexOption.IGNORE_CASE)
-        val seasonPatternInParent = "(?<=Season\\s)([0-9]{1,2})".toRegex(RegexOption.IGNORE_CASE)
+        val seasonPatternInName = "(?<=Season\\s)([0-9]{1,2})".toRegex(RegexOption.IGNORE_CASE)
         val seasonPattern2 = "(?:\\[|\\b)([0-9]{1,2})x([0-9]{1,2})(?:\\]|\\b)".toRegex()
         val dvdPattern = "(?<=^|\\s)(?:dvd|disc|cd)\\s?([0-9]{1,2})".toRegex(RegexOption.IGNORE_CASE)
 
-        val match = seasonPattern.find(fileName)
-            ?: seasonPattern.find(parentName)
-            ?: seasonPatternInParent.find(parentName)
-            ?: seasonPattern.find(grandParentName)
-            ?: seasonPattern.find(greatGrandParentName)
-            ?: dvdPattern.find(fileName)
-
-        if (match != null) {
-            return match.groupValues[match.groupValues.size - 1].toInt()
+        // Check seasonPattern2 (e.g. [2x01]) first across file and parents
+        var current: File? = file
+        var depth = 0
+        while (current != null && depth < 6) {
+            val name = decodeIfEncoded(current.name)
+            val match2 = seasonPattern2.find(name)
+            if (match2 != null) {
+                return match2.groupValues[1].toInt()
+            }
+            current = current.parentFile
+            depth++
         }
 
-        val match2 = seasonPattern2.find(fileName)
-            ?: seasonPattern2.find(parentName)
-            ?: seasonPattern2.find(grandParentName)
-            ?: seasonPattern2.find(greatGrandParentName)
+        // Check seasonPattern (e.g. S01), seasonPatternInName (e.g. Season 1), dvdPattern
+        current = file
+        depth = 0
+        while (current != null && depth < 6) {
+            val name = decodeIfEncoded(current.name)
+            val match = seasonPattern.find(name)
+                ?: seasonPatternInName.find(name)
+                ?: dvdPattern.find(name)
+            if (match != null) {
+                return match.groupValues[match.groupValues.size - 1].toInt()
+            }
+            current = current.parentFile
+            depth++
+        }
 
-        return match2?.groupValues?.get(1)?.toInt()
+        return null
     }
 
     fun extractEpisode(file: File): Int? {
