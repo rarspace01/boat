@@ -412,6 +412,15 @@ class ContentRenamerTest {
         assert(blacklistName == "The Blacklist") { "Expected 'The Blacklist' but got '$blacklistName'" }
         assert(blacklistSeason == 1) { "Expected season 1 but got '$blacklistSeason'" }
         assert(blacklistEpisode == 14) { "Expected episode 14 but got '$blacklistEpisode'" }
+
+        // Black Butler file
+        val blackButlerFile = File("/home/denis/pfdb/PFDB/Series-Shows/B/Black Butler/Black Butler Season 2 [1080p]/Black Butler 02.mkv")
+        val blackButlerName = contentRenamer.extractName(blackButlerFile)
+        val blackButlerEpisode = contentRenamer.extractEpisode(blackButlerFile)
+        val blackButlerSeason = contentRenamer.extractSeason(blackButlerFile)
+        assert(blackButlerName == "Black Butler") { "Expected 'Black Butler' but got '$blackButlerName'" }
+        assert(blackButlerSeason == 2) { "Expected season 2 but got '$blackButlerSeason'" }
+        assert(blackButlerEpisode == 2) { "Expected episode 2 but got '$blackButlerEpisode'" }
     }
 
 }

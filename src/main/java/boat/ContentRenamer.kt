@@ -14,11 +14,12 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         val seasonPattern = "(?<=^|[^a-zA-Z])S([0-9]{1,2})(E[0-9]{1,2})?".toRegex(RegexOption.IGNORE_CASE)
         val seasonPattern2 = "(?:\\[|\\b)([0-9]{1,2})x([0-9]{1,2})(?:\\]|\\b)".toRegex()
         val episodePattern =
-            "(?<=^|[^a-zA-Z0-9])(?:E|Ep|\\s-\\s|\\s|-|\\.)([0-9]{1,3})(?=[^a-zA-Z0-9]|$)".toRegex(RegexOption.IGNORE_CASE)
+            "(?:(?<=^|[^a-zA-Z0-9])(?:Episode|Ep\\.?|E)|(?:\\s-\\s|\\s|-|\\.))([0-9]{1,3})(?=[^a-zA-Z0-9]|$)".toRegex(RegexOption.IGNORE_CASE)
         val standaloneEpisodePattern = "(?:\\s|^)([0-9]{3})(?:\\s|$)".toRegex()
         val yearPattern = "\\b([1-2][0-9]{3})\\b".toRegex()
         val bracketPattern = "\\[.*?]".toRegex()
         val dvdPattern = "(?<=^|\\s)(?:dvd|disc|cd)\\s?([0-9]{1,2})".toRegex(RegexOption.IGNORE_CASE)
+        val bookPattern = "(?<=^|\\s)(?:book|volume|vol|chapter)\\s?([0-9]{1,2})".toRegex(RegexOption.IGNORE_CASE)
         val seasonInNamePattern = "(?<=^|\\s)Season\\s([0-9]{1,2})".toRegex(RegexOption.IGNORE_CASE)
         val startsWithEpisodeNumberPattern = "^[0-9]{1,3}\\s?[.x-]\\s?[0-9]{1,3}\\s?-\\s?".toRegex()
     }
@@ -46,6 +47,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         val seasonMatch2 = seasonPattern2.find(name)
         val seasonMatch3 = seasonInNamePattern.find(name)
         val dvdMatch = dvdPattern.find(name)
+        val bookMatch = bookPattern.find(name)
         if (seasonMatch != null) {
             name = name.substring(0, seasonMatch.range.first)
             truncated = true
@@ -57,6 +59,9 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
             truncated = true
         } else if (dvdMatch != null) {
             name = name.substring(0, dvdMatch.range.first)
+            truncated = true
+        } else if (bookMatch != null) {
+            name = name.substring(0, bookMatch.range.first)
             truncated = true
         } else if (!name.matches("^[0-9]+(?:[-.][0-9]+)+$".toRegex())) {
             val episodeWithTitleMatch = "(?:\\s-\\s|\\s-_|_-_|\\s-\\s?|_-\\s?|\\s|^)(?:Episode|Ep\\.?|E)?\\s*([0-9]{1,3})\\s+-\\s+[a-zA-Z]".toRegex(RegexOption.IGNORE_CASE).find(name)
@@ -72,7 +77,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
                 name = name.substring(0, dashEpisodeMatch.range.first)
                 truncated = true
             } else {
-                val episodeMatch = "(?<=^|[^a-zA-Z0-9])(?:Episode|Ep\\.?|E|\\s-\\s|\\s|-|\\.)([0-9]{1,3})(?=[^a-zA-Z0-9]|$)".toRegex(RegexOption.IGNORE_CASE).find(name)
+                val episodeMatch = "(?:(?<=^|[^a-zA-Z0-9])(?:Episode|Ep\\.?|E)|(?:\\s-\\s|\\s|-|\\.))([0-9]{1,3})(?=[^a-zA-Z0-9]|$)".toRegex(RegexOption.IGNORE_CASE).find(name)
                 if (episodeMatch != null) {
                     name = name.substring(0, episodeMatch.range.first)
                     truncated = true
@@ -340,7 +345,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         val seasonPattern = "(?<=^|[^a-zA-Z])S([0-9]{1,2})(?=[^a-zA-Z0-9]|$|E[0-9]{1,2})".toRegex(RegexOption.IGNORE_CASE)
         val seasonPatternInName = "(?<=Season\\s?)([0-9]{1,2})".toRegex(RegexOption.IGNORE_CASE)
         val seasonPattern2 = "(?:\\[|\\b)([0-9]{1,2})x([0-9]{1,2})(?:\\]|\\b)".toRegex()
-        val dvdPattern = "(?<=^|\\s)(?:dvd|disc|cd)\\s?([0-9]{1,2})".toRegex(RegexOption.IGNORE_CASE)
+        val dvdPattern = "(?<=^|\\s)(?:dvd|disc|cd|book|volume|vol)\\s?([0-9]{1,2})".toRegex(RegexOption.IGNORE_CASE)
 
         // Check seasonPattern2 (e.g. [2x01]) first across file and parents
         var current: File? = file
@@ -383,7 +388,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         val dashEpisodePattern = "(?:\\s-\\s|\\s-_|_-_|\\s-\\s?|_-\\s?)([0-9]{1,3})(?=[^a-zA-Z0-9]|$)".toRegex()
         val explicitEpisodePattern = "(?<=^|[^a-zA-Z0-9])(?:Episode|Ep\\.?|E)\\s*([0-9]{1,3})(?=[^a-zA-Z0-9]|$)".toRegex(RegexOption.IGNORE_CASE)
         val episodePattern =
-            "(?<=^|[^a-zA-Z0-9])(?:Episode|Ep\\.?|E|\\s-\\s|\\s|-|\\.)([0-9]{1,3})(?=[^a-zA-Z0-9]|$)".toRegex(RegexOption.IGNORE_CASE)
+            "(?:(?<=^|[^a-zA-Z0-9])(?:Episode|Ep\\.?|E)|(?:\\s-\\s|\\s|-|\\.))([0-9]{1,3})(?=[^a-zA-Z0-9]|$)".toRegex(RegexOption.IGNORE_CASE)
         val standaloneEpisodePattern = "(?:\\s|^)([0-9]{3})(?:\\s|$)".toRegex()
         val yearPattern = "\\b([1-2][0-9]{3})\\b".toRegex()
         val seasonEpisodePattern = "(?<=^|[^a-zA-Z])S[0-9]{1,2}E([0-9]{1,2})".toRegex(RegexOption.IGNORE_CASE)
@@ -412,6 +417,14 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
             !excludedAcronyms.contains(prefix) && !excludedAcronyms.contains(full) && prefix != "s" && prefix != "se"
         }
 
+        val nonEpisodePrefix = "(?i)(?:season|series|disc|disk|cd|dvd|bd|volume|vol|book|chapter|part|pt)\\s*$".toRegex()
+        val firstValidEpisodeMatch = episodePattern.findAll(replaced)
+            .plus(episodePattern.findAll(fileName))
+            .firstOrNull { m ->
+                val textBefore = replaced.substring(0, m.range.first).trim()
+                !nonEpisodePrefix.containsMatchIn(textBefore)
+            }
+
         val match = seasonEpisodePattern.find(fileName)
             ?: seasonEpisodePattern.find(parentName)
             ?: seasonEpisodePattern.find(grandParentName)
@@ -424,11 +437,9 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
             ?: "-([0-9]{1,3})\\.".toRegex().find(fileName)
             ?: acronymMatch
             ?: standaloneEpisodePattern.find(fileName)?.let { if (yearPattern.find(it.value) == null) it else null }
-            ?: episodePattern.find(replaced)
-            ?: episodePattern.find(fileName)
+            ?: firstValidEpisodeMatch
             ?: explicitEpisodePattern.find(parentName)
-            ?: episodePattern.find(parentName)
-            ?: episodePattern.find(grandParentName)
+            ?: explicitEpisodePattern.find(grandParentName)
 
         if (match != null) {
             val groupIdx = if (match.groupValues.size > 1) match.groupValues.size - 1 else 0
