@@ -89,14 +89,18 @@ class ContentRenamerTest {
             }
             if (fullName.contains("Duckman")) {
                 assert(name == "Duckman") { "Expected 'Duckman' but got '$name'" }
+                assert(season == 1) { "Expected season 1 but got $season" }
+                assert(episode == 1) { "Expected episode 1 but got $episode" }
             }
             if (fullName.contains("101 - The Boy in the Iceberg.mp4")) {
-                val episode = contentRenamer.extractEpisode(file)
-                assert(episode == 101) { "Expected episode 101 but got $episode" }
+                val ep = contentRenamer.extractEpisode(file)
+                val se = contentRenamer.extractSeason(file)
+                assert(se == 1) { "Expected season 1 but got $se" }
+                assert(ep == 1) { "Expected episode 1 but got $ep" }
             }
             if (fullName.contains("Dragon Ball Super - 101 [1080p].mkv")) {
-                val episode = contentRenamer.extractEpisode(file)
-                assert(episode == 101) { "Expected episode 101 but got $episode" }
+                val ep = contentRenamer.extractEpisode(file)
+                assert(ep == 101) { "Expected episode 101 but got $ep" }
             }
             if (fullName.contains("Reservation Dogs")) {
                 assert(name == "Reservation Dogs") { "Expected 'Reservation Dogs' but got '$name'" }
@@ -472,7 +476,7 @@ class ContentRenamerTest {
             MediaProxyService(TheMovieDataBaseService(httpHelper), TheTVDBService(httpHelper))
         )
 
-        val file1 = File("/home/denis/pfdb/PFDB/Series-Shows/0-9/24.Complete.With.Subtitles/24 Season 1/24 Season 1/24 - S01xE11.mp4")
+        val file1 = File("~/Series-Shows/0-9/24.Complete.With.Subtitles/24 Season 1/24 Season 1/24 - S01xE11.mp4")
         assert(contentRenamer.extractName(file1) == "24") { "Expected '24' but got '${contentRenamer.extractName(file1)}'" }
         assert(contentRenamer.extractSeason(file1) == 1) { "Expected season 1 but got '${contentRenamer.extractSeason(file1)}'" }
         assert(contentRenamer.extractEpisode(file1) == 11) { "Expected episode 11 but got '${contentRenamer.extractEpisode(file1)}'" }
@@ -486,6 +490,42 @@ class ContentRenamerTest {
         assert(contentRenamer.extractName(file3) == "24") { "Expected '24' but got '${contentRenamer.extractName(file3)}'" }
         assert(contentRenamer.extractSeason(file3) == 1) { "Expected season 1 but got '${contentRenamer.extractSeason(file3)}'" }
         assert(contentRenamer.extractEpisode(file3) == null) { "Expected null episode but got '${contentRenamer.extractEpisode(file3)}'" }
+    }
+
+    @Test
+    fun testThreeDigitEpisodeDisambiguation() {
+        val httpHelper = HttpHelper()
+        val contentRenamer = ContentRenamer(
+            MediaProxyService(TheMovieDataBaseService(httpHelper), TheTVDBService(httpHelper))
+        )
+
+        // Tier 1: Inside Season / Book folders, 101/204 resolves to S01E01 / S02E04
+        val avatarFile = File("~/Series-Shows/A/Avatar - The Last Airbender [1080p]/Book 1; Water/101 - The Boy in the Iceberg.mp4")
+        assert(contentRenamer.extractSeason(avatarFile) == 1)
+        assert(contentRenamer.extractEpisode(avatarFile) == 1)
+
+        val duckmanFile = File("~/Series-Shows/D/Duckman/Season 1/Duckman 101 - I, Duckman.mkv")
+        assert(contentRenamer.extractSeason(duckmanFile) == 1)
+        assert(contentRenamer.extractEpisode(duckmanFile) == 1)
+
+        val duckmanS2 = File("~/Series-Shows/D/Duckman/Season 2/Duckman 203 - Cellar Beware.mkv")
+        assert(contentRenamer.extractSeason(duckmanS2) == 2)
+        assert(contentRenamer.extractEpisode(duckmanS2) == 3)
+
+        // Tier 2: Zero-padded absolute episodes (001, 101) in anime / long-running shows
+        val dbSuper001 = File("~/Series-Shows/D/Dragon Ball Super/Dragon Ball Super - Completo [WEB-DL - 1080p]/Dragon Ball Super - 001 [1080p].mkv")
+        assert(contentRenamer.extractEpisode(dbSuper001) == 1)
+
+        val dbSuper101 = File("~/Series-Shows/D/Dragon Ball Super/Dragon Ball Super - Completo [WEB-DL - 1080p]/Dragon Ball Super - 101 [1080p].mkv")
+        assert(contentRenamer.extractEpisode(dbSuper101) == 101)
+
+        // Tier 3: Metadata verification with optional seasonCount
+        val seriesWithSeasonCount = MediaItem(title = "Test Show", type = boat.info.MediaType.Series).apply {
+            seasonCount = 3
+        }
+        val standaloneShowFile = File("~/Series-Shows/T/Test Show/Test Show - 105.mkv")
+        val episodeWithMeta = contentRenamer.extractEpisode(standaloneShowFile, seriesWithSeasonCount)
+        assert(episodeWithMeta == 5) { "Expected episode 5 but got $episodeWithMeta" }
     }
 
 }

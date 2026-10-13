@@ -387,6 +387,23 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
     }
 
     fun extractSeason(file: File): Int? {
+        val directSeason = extractDirectSeason(file)
+        if (directSeason != null) return directSeason
+
+        // If direct season is null, check if we can infer season from 3-digit/4-digit episode numbering (e.g. 101 -> season 1, 201 -> season 2)
+        val rawEpisodeInfo = findRawEpisodeMatch(file)
+        if (rawEpisodeInfo != null) {
+            val (rawStr, num) = rawEpisodeInfo
+            if (num in 101..9999 && !rawStr.startsWith("0")) {
+                if (shouldDisambiguateAsSeasonEpisode(file, null, num, rawStr)) {
+                    return num / 100
+                }
+            }
+        }
+        return null
+    }
+
+    fun extractDirectSeason(file: File): Int? {
         val seasonPattern = "(?<=^|[^a-zA-Z])S([0-9]{1,2})(?=[^a-zA-Z0-9]|$|[x._\\-\\s]?(?:E|EP)[0-9]{1,3})".toRegex(RegexOption.IGNORE_CASE)
         val seasonPatternInName = "(?<=Season\\s?)([0-9]{1,2})".toRegex(RegexOption.IGNORE_CASE)
         val seasonPattern2 = "(?:\\[|\\b)([0-9]{1,2})x([0-9]{1,2})(?:\\]|\\b)".toRegex()
@@ -423,7 +440,36 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         return null
     }
 
-    fun extractEpisode(file: File): Int? {
+    fun extractEpisode(file: File, mediaItem: MediaItem? = null): Int? {
+        val fileName = decodeIfEncoded(file.name)
+        val parentName = decodeIfEncoded(file.parentFile?.name ?: "")
+        val grandParentName = decodeIfEncoded(file.parentFile?.parentFile?.name ?: "")
+        val greatGrandParentName = decodeIfEncoded(file.parentFile?.parentFile?.parentFile?.name ?: "")
+
+        val seasonPattern2 = "(?:\\[|\\b)([0-9]{1,2})x([0-9]{1,2})(?:\\]|\\b)".toRegex()
+        val match2 = seasonPattern2.find(fileName)
+            ?: seasonPattern2.find(parentName)
+            ?: seasonPattern2.find(grandParentName)
+            ?: seasonPattern2.find(greatGrandParentName)
+
+        if (match2 != null) {
+            return match2.groupValues[2].toInt()
+        }
+
+        val rawEpisodeInfo = findRawEpisodeMatch(file) ?: return null
+        val (rawStr, num) = rawEpisodeInfo
+
+        val directSeason = extractDirectSeason(file)
+        if (num in 101..9999 && !rawStr.startsWith("0")) {
+            if (shouldDisambiguateAsSeasonEpisode(file, directSeason, num, rawStr, mediaItem)) {
+                return num % 100
+            }
+        }
+
+        return num
+    }
+
+    private fun findRawEpisodeMatch(file: File): Pair<String, Int>? {
         val fileName = decodeIfEncoded(file.name)
         val parentName = decodeIfEncoded(file.parentFile?.name ?: "")
         val grandParentName = decodeIfEncoded(file.parentFile?.parentFile?.name ?: "")
@@ -437,7 +483,6 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         val standaloneEpisodePattern = "(?:\\s|^)([0-9]{3})(?:\\s|$)".toRegex()
         val yearPattern = "\\b([1-2][0-9]{3})\\b".toRegex()
         val seasonEpisodePattern = "(?<=^|[^a-zA-Z])S[0-9]{1,2}[x._\\-\\s]?(?:E|EP)([0-9]{1,3})".toRegex(RegexOption.IGNORE_CASE)
-        val seasonPattern2 = "(?:\\[|\\b)([0-9]{1,2})x([0-9]{1,2})(?:\\]|\\b)".toRegex()
         val acronymEpisodePattern = "(?<=^|[^a-zA-Z0-9])([a-zA-Z]{1,4})([0-9]{1,3})(?=[^a-zA-Z0-9]|$)".toRegex(RegexOption.IGNORE_CASE)
         val excludedAcronyms = setOf(
             "x264", "h264", "x265", "h265", "hevc", "avc", "xvid", "dvd", "disc", "cd", "bd",
@@ -445,15 +490,6 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
             "s", "se", "season", "dvdrip", "bdrip", "brrip", "webrip", "webdl", "hdtv", "pdtv"
         )
         val replaced = fileName.replace("_", " ")
-
-        val match2 = seasonPattern2.find(fileName)
-            ?: seasonPattern2.find(parentName)
-            ?: seasonPattern2.find(grandParentName)
-            ?: seasonPattern2.find(greatGrandParentName)
-
-        if (match2 != null) {
-            return match2.groupValues[2].toInt()
-        }
 
         val rawBaseName = fileName.substringBeforeLast(".").replace(bracketPattern, "").trim()
         val acronymMatch = acronymEpisodePattern.findAll(rawBaseName).firstOrNull { m ->
@@ -488,10 +524,60 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
 
         if (match != null) {
             val groupIdx = if (match.groupValues.size > 1) match.groupValues.size - 1 else 0
-            return match.groupValues[groupIdx].toIntOrNull()
+            val str = match.groupValues[groupIdx]
+            val num = str.toIntOrNull()
+            if (num != null) {
+                return Pair(str, num)
+            }
+        }
+        return null
+    }
+
+    private fun shouldDisambiguateAsSeasonEpisode(
+        file: File,
+        knownSeason: Int?,
+        num: Int,
+        rawStr: String,
+        mediaItem: MediaItem? = null
+    ): Boolean {
+        if (rawStr.startsWith("0")) return false
+
+        // Tier 1: Known season context matching (Folder or path has Season X, Book X, etc.)
+        if (knownSeason != null && knownSeason > 0) {
+            return (num / 100 == knownSeason) && (num % 100 in 1..99)
         }
 
-        return null
+        // Tier 2: Sibling file inspection if parent directory exists on disk
+        val siblings = file.parentFile?.listFiles()?.filter { it.isFile && it.name != file.name } ?: emptyList()
+        if (siblings.isNotEmpty()) {
+            val hasZeroPadded3Digits = siblings.any { s ->
+                val sName = decodeIfEncoded(s.name)
+                Regex("(?<=^|[^0-9])0[0-9]{2}(?=[^0-9]|$)").containsMatchIn(sName)
+            }
+            if (hasZeroPadded3Digits) return false
+
+            val siblingNumbers = siblings.mapNotNull { s -> findRawEpisodeMatch(s)?.second }
+            val hasUnder100 = siblingNumbers.any { it in 1..99 }
+            val has100Plus = siblingNumbers.any { it >= 100 } || num >= 100
+            if (hasUnder100 && has100Plus) {
+                // Continuous episodes from 1 to 100+ -> absolute episode numbering
+                return false
+            }
+
+            if (siblingNumbers.isNotEmpty() && siblingNumbers.all { it >= 100 } && !hasUnder100) {
+                return (num % 100) in 1..99
+            }
+        }
+
+        // Tier 3 / Tier 4: Metadata verification (TMDB / TVDB) if available (optional)
+        if (mediaItem != null && mediaItem.type == MediaType.Series && mediaItem.seasonCount != null) {
+            val inferredSeason = num / 100
+            if (inferredSeason in 1..(mediaItem.seasonCount ?: 1) && (num % 100) in 1..99) {
+                return true
+            }
+        }
+
+        return false
     }
 
     fun processFilesFromDirectory(path: String, logFile: File? = null) {
@@ -504,7 +590,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
                     val extractedName = extractName(file)
                     val year = extractYear(file.absolutePath)
                     var season = extractSeason(file)
-                    val episode = extractEpisode(file)
+                    var episode = extractEpisode(file)
                     
                     val mediaIndicator = if(episode != null) MediaType.Series else null
 
@@ -518,6 +604,19 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
                         null
                     }
 
+                    if (mediaResult != null) {
+                        val refinedEpisode = extractEpisode(file, mediaResult)
+                        if (refinedEpisode != null) {
+                            episode = refinedEpisode
+                        }
+                        if (season == null && episode != null && episode > 100 && mediaResult.type == MediaType.Series) {
+                            if (mediaResult.seasonCount != null && (episode / 100) <= (mediaResult.seasonCount ?: 1) && (episode % 100) in 1..99) {
+                                season = episode / 100
+                                episode = episode % 100
+                            }
+                        }
+                    }
+
                     if (season == null && episode != null && mediaResult?.type == MediaType.Series) {
                         season = 1
                     }
@@ -526,7 +625,15 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
                     var logLine =
                         "F: '$fullName'->'$extractedName'|>'$mediaResult' (Y: $year, S: $season, E: $episode) $idString"
                     mediaResult?.let {
-                        logLine = logLine+"\n"+getTargetFile(file, mediaResult, extractedName, season, episode)
+                        val targetFile = getTargetFile(file, mediaResult, extractedName, season, episode)
+                        // acutal move
+                        // Create the parent directories if they don't exist
+                        val newFile = File(targetFile)
+                        newFile.parentFile?.mkdirs()
+
+                        // Then move and rename
+                        //file.toPath().moveTo(newFile.toPath(), overwrite = true)
+                        println("T-Moving\n'$file'\n'$newFile'")
                     }
                     println(logLine)
                     logFile?.appendText(logLine + "\n")
@@ -570,7 +677,8 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
     }
 
     fun getTargetFile(file: File, mediaResult: MediaItem, extractedName: String, season: Int?, episode: Int?): String {
-        val firstPart = "~/pfdb/PFDB/" + getMediaTypeFolderString(mediaResult) +
+        val homeDir = System.getProperty("user.home")
+        val firstPart = homeDir+"/pfdb/PFDB/" + getMediaTypeFolderString(mediaResult) +
                 "/" + StringUtil.deductFirstTorrentLetter(getSafeTitle(mediaResult)) + "/${getSafeTitle(mediaResult)} ${mediaResult.id}"
         val optionalSeasonFolder = if(season != null){
              "/Season ${season}"
