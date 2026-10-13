@@ -13,6 +13,7 @@ plugins {
     id("io.spring.dependency-management") version "1.1.7"
     id("com.github.kt3k.coveralls") version "2.12.2"
     id("com.palantir.git-version") version "5.1.0"
+    kotlin("plugin.lombok") version "2.4.21"
 }
 
 repositories {
@@ -64,6 +65,7 @@ dependencies {
 
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion")
     implementation("org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion")
+    testImplementation(kotlin("test"))
 }
 
 java {

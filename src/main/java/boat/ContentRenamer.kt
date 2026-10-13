@@ -340,30 +340,32 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
                 if (file.isFile) {
                     val fullName = file.absolutePath
                     // extract Movie or TV show name from full path
-                    val name = extractName(file)
+                    val extractedName = extractName(file)
                     val year = extractYear(file.absolutePath)
                     var season = extractSeason(file)
                     val episode = extractEpisode(file)
+                    
+                    val mediaIndicator = if(episode != null) MediaType.Series else null
 
-                    val mediaResult = if (name.isNotBlank()) {
+                    val mediaResult = if (extractedName.isNotBlank()) {
                         if (year != null) {
-                            mediaProxyService.search(name, year).firstOrNull()
+                            mediaProxyService.search(extractedName, year, mediaIndicator).firstOrNull()
                         } else {
-                            mediaProxyService.search(name).firstOrNull()
+                            mediaProxyService.search(extractedName, mediaIndicator).firstOrNull()
                         }
                     } else {
                         null
                     }
 
-                    if (season == null && episode != null && mediaResult != null && mediaResult.seasonCount == 1) {
+                    if (season == null && episode != null && mediaResult?.type == MediaType.Series) {
                         season = 1
                     }
 
                     val idString = mediaResult?.id ?: ""
                     var logLine =
-                        "F: '$fullName'->'$name'|>'$mediaResult' (Y: $year, S: $season, E: $episode) $idString"
+                        "F: '$fullName'->'$extractedName'|>'$mediaResult' (Y: $year, S: $season, E: $episode) $idString"
                     mediaResult?.let {
-                        logLine = logLine+"\n"+getTargetFile(file, mediaResult)
+                        logLine = logLine+"\n"+getTargetFile(file, mediaResult, extractedName, season, episode)
                     }
                     println(logLine)
                     logFile?.appendText(logLine + "\n")
@@ -374,12 +376,23 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         }
     }
 
-    private fun getTargetFile(file: File, mediaResult: MediaItem): String {
+    fun getTargetFile(file: File, mediaResult: MediaItem, extractedName: String, season: Int?, episode: Int?): String {
         val firstPart = "~/pfdb/PFDB/" + getMediaTypeFolderString(mediaResult) +
                 "/" + StringUtil.deductFirstTorrentLetter(getSafeTitle(mediaResult)) + "/${getSafeTitle(mediaResult)} ${mediaResult.id}"
-        //get file extension from File
+        val optionalSeasonFolder = if(season != null){
+             "/Season ${season}"
+        } else {
+            ""
+        }
+        val optionalFileNaming = if(episode != null){
+            val seasonStr = String.format("%02d", season ?: 1)
+            val episodeStr = String.format("%02d", episode)
+            "/${extractedName}.S${seasonStr}E${episodeStr}"
+        } else {
+            ""
+        }
         val fileExtension = file.name.replace(file.nameWithoutExtension, "")
-        return firstPart + fileExtension
+        return firstPart + optionalSeasonFolder+optionalFileNaming+fileExtension
     }
 
     fun getSafeTitle(mediaResult: MediaItem): String {
@@ -393,7 +406,6 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
     private fun getMediaTypeFolderString(mediaResult: MediaItem): String = when (mediaResult.type) {
         MediaType.Movie -> "Movies"
         MediaType.Series -> "Series-Shows"
-        MediaType.TVShow -> "Series-Shows"
         MediaType.Documentary -> "Documentaries"
         else -> "transfer"
     }

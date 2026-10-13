@@ -246,4 +246,34 @@ class ContentRenamerTest {
         assert(contentRenamer.getSafeTitle("This//Hack") == "This Hack")
     }
 
+    @Test
+    fun testGetTargetFile() {
+        val httpHelper = HttpHelper()
+        val contentRenamer = ContentRenamer(
+            MediaProxyService(TheMovieDataBaseService(httpHelper), TheTVDBService(httpHelper))
+        )
+        val seriesItem = MediaItem(title = "The Mandalorian", type = boat.info.MediaType.Series, id = "12345")
+
+        // Season 1, Episode 1 -> S01E01
+        val target1 = contentRenamer.getTargetFile(File("mandalorian.mkv"), seriesItem, "The Mandalorian", 1, 1)
+        assert(target1.contains("/Season 1/The Mandalorian.S01E01.mkv")) { "Expected S01E01 but got $target1" }
+
+        // Season 1, Episode 101 -> S01E101
+        val target2 = contentRenamer.getTargetFile(File("mandalorian.mkv"), seriesItem, "The Mandalorian", 1, 101)
+        assert(target2.contains("/Season 1/The Mandalorian.S01E101.mkv")) { "Expected S01E101 but got $target2" }
+
+        // Season null, Episode 5 -> S01E05
+        val target3 = contentRenamer.getTargetFile(File("mandalorian.mkv"), seriesItem, "The Mandalorian", null, 5)
+        assert(target3.contains("/The Mandalorian.S01E05.mkv")) { "Expected S01E05 but got $target3" }
+
+        // Season 10, Episode 24 -> S10E24
+        val target4 = contentRenamer.getTargetFile(File("mandalorian.mkv"), seriesItem, "The Mandalorian", 10, 24)
+        assert(target4.contains("/Season 10/The Mandalorian.S10E24.mkv")) { "Expected S10E24 but got $target4" }
+
+        // Movie (no season, no episode)
+        val movieItem = MediaItem(title = "Inception", type = boat.info.MediaType.Movie, id = "67890")
+        val targetMovie = contentRenamer.getTargetFile(File("inception.mkv"), movieItem, "Inception", null, null)
+        assert(targetMovie == "~/pfdb/PFDB/Movies/I/Inception 67890.mkv") { "Unexpected movie path: $targetMovie" }
+    }
+
 }

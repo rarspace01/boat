@@ -44,7 +44,7 @@ class TheTVDBService @Autowired constructor(private val httpHelper: HttpHelper) 
     fun search(name: String?): List<MediaItem> {
         return name?.let {
             val jwtToken = getToken() ?: return emptyList()
-            val url = "$baseUrl/search?q=${urlEncode(name)}"
+            val url = "$baseUrl/search?q=${urlEncode(name)}&type=series"
             val headers = mapOf("Authorization" to "Bearer $jwtToken")
             parseResponsePage(httpHelper.getPage(url, null, headers))
         } ?: emptyList()
@@ -53,7 +53,7 @@ class TheTVDBService @Autowired constructor(private val httpHelper: HttpHelper) 
     fun search(name: String?, year: Int): List<MediaItem> {
         return name?.let {
             val jwtToken = getToken() ?: return emptyList()
-            val url = "$baseUrl/search?q=${urlEncode(name)}&year=$year"
+            val url = "$baseUrl/search?q=${urlEncode(name)}&year=$year&type=series"
             val headers = mapOf("Authorization" to "Bearer $jwtToken")
             parseResponsePage(httpHelper.getPage(url, null, headers))
         } ?: emptyList()
