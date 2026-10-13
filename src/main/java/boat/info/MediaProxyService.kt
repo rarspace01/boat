@@ -17,7 +17,7 @@ class MediaProxyService @Autowired constructor(
         val cacheKey = "search:$name"
         return cache.getOrPut(cacheKey) {
             val tmdbResults = theMovieDataBaseService.search(name) ?: emptyList()
-            val tvdbResults = theTVDBService.search(name) ?: emptyList()
+            val tvdbResults = theTVDBService.search(name)
             tmdbResults.plus(tvdbResults).distinctBy { it.title + it.year + it.type }
         }
     }
@@ -38,7 +38,7 @@ class MediaProxyService @Autowired constructor(
         return cache.getOrPut(cacheKey) {
             when (type) {
                 MediaType.Movie -> theMovieDataBaseService.search(name) ?: emptyList()
-                MediaType.Series, MediaType.TVShow -> theTVDBService.search(name) ?: emptyList()
+                MediaType.Series -> theTVDBService.search(name)
                 else -> search(name)
             }
         }
@@ -50,7 +50,7 @@ class MediaProxyService @Autowired constructor(
         return cache.getOrPut(cacheKey) {
             when (type) {
                 MediaType.Movie -> theMovieDataBaseService.search(name, year) ?: emptyList()
-                MediaType.Series, MediaType.TVShow -> theTVDBService.search(name, year) ?: emptyList()
+                MediaType.Series -> theTVDBService.search(name, year)
                 else -> search(name, year)
             }
         }

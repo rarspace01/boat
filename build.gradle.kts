@@ -5,14 +5,15 @@ import java.util.Properties
 
 plugins {
     java
-    kotlin("jvm") version "2.4.20"
-    kotlin("plugin.spring") version "2.4.20"
+    kotlin("jvm") version "2.4.21"
+    kotlin("plugin.spring") version "2.4.21"
     id("eclipse")
     id("idea")
     id("org.springframework.boot") version "4.1.1"
     id("io.spring.dependency-management") version "1.1.7"
     id("com.github.kt3k.coveralls") version "2.12.2"
     id("com.palantir.git-version") version "5.1.0"
+    kotlin("plugin.lombok") version "2.4.21"
 }
 
 repositories {
@@ -22,7 +23,7 @@ repositories {
 val springBootVersion = "4.1.1"
 val lombokVersion = "1.18.48"
 val mockitoVersion = "5.24.0"
-val kotlinVersion = "2.4.20"
+val kotlinVersion = "2.4.21"
 
 dependencies {
     // tag::jetty[]
@@ -64,6 +65,7 @@ dependencies {
 
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion")
     implementation("org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion")
+    testImplementation(kotlin("test"))
 }
 
 java {

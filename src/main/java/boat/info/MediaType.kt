@@ -1,5 +1,5 @@
 package boat.info
 
 enum class MediaType {
-    Movie, Series, TVShow, Documentary, Audiobook, Music, Other
+    Movie, Series, Documentary, Audiobook, Music, Other
 }
