@@ -55,7 +55,8 @@ class ContentRenamerTest {
             "~/Series-Shows/D/Dragon Ball Super/Dragon Ball Super - Completo [WEB-DL - 1080p]/Dragon%20Ball%20Super%20-%20101%20%5B1080p%5D.mkv",
             "~/Series-Shows/Z/Zombieland%20Saga%20S02%201080p%20BDRip%2010%20bits%20DD%20x265-EMBER.torrent/S02E12-The Greatest SAGA in History [F9FE3939].mkv",
             "~/Series-Shows/R/Reservation Dogs/Reservation.Dogs.S01.1080p.WEBRip.x265-KONTRAST/Subs/Reservation.Dogs.S01E07.1080p.WEBRip.x265-KONTRAST/6_spa.srt",
-            "~/PFDB/Series-Shows/#/_HACK/SIGN/HS28.avi"
+            "~/Series-Shows/#/_HACK/SIGN/HS28.avi",
+            "~/Series-Shows/0-9/24.Complete.With.Subtitles/24 Season 1/24 Season 1/24 - S01xE11.mp4"
         )
 
         println("\n--- Testing Extraction Logic ---")
@@ -108,6 +109,11 @@ class ContentRenamerTest {
             if (fullName.contains("SIGN/HS28.avi")) {
                 assert(name.equals("HACK SIGN", ignoreCase = true)) { "Expected 'HACK SIGN' but got '$name'" }
                 assert(episode == 28) { "Expected episode 28 but got $episode" }
+            }
+            if (fullName.contains("24 - S01xE11.mp4")) {
+                assert(name == "24") { "Expected '24' but got '$name'" }
+                assert(season == 1) { "Expected season 1 but got $season" }
+                assert(episode == 11) { "Expected episode 11 but got $episode" }
             }
         }
     }
@@ -212,8 +218,8 @@ class ContentRenamerTest {
         }
 
         val twentyFourExtra = File("~/Series-Shows/0-9/24.Complete.With.Subtitles/24 Season 1/24 EXTRAS/Alternate Ending.mp4")
-        assert(contentRenamer.extractName(twentyFourExtra).startsWith("24")) {
-            "Expected '24...' but got '${contentRenamer.extractName(twentyFourExtra)}'"
+        assert(contentRenamer.extractName(twentyFourExtra) == "24") {
+            "Expected '24' but got '${contentRenamer.extractName(twentyFourExtra)}'"
         }
         assert(contentRenamer.extractSeason(twentyFourExtra) == 1) {
             "Expected season 1 but got '${contentRenamer.extractSeason(twentyFourExtra)}'"
@@ -223,8 +229,8 @@ class ContentRenamerTest {
         }
 
         val twentyFourInterview = File("~/Series-Shows/0-9/24.Complete.With.Subtitles/24 Season 1/24 EXTRAS/Kiefer Sutherland on season 1 of 24.mp4")
-        assert(contentRenamer.extractName(twentyFourInterview).startsWith("24")) {
-            "Expected '24...' but got '${contentRenamer.extractName(twentyFourInterview)}'"
+        assert(contentRenamer.extractName(twentyFourInterview) == "24") {
+            "Expected '24' but got '${contentRenamer.extractName(twentyFourInterview)}'"
         }
         assert(contentRenamer.extractSeason(twentyFourInterview) == 1) {
             "Expected season 1 but got '${contentRenamer.extractSeason(twentyFourInterview)}'"
@@ -457,6 +463,29 @@ class ContentRenamerTest {
         val boundaryFile = File("~/PFDB/Series-Shows/S/Salamander/Season 1/01.mkv")
         val boundaryName = contentRenamer.extractName(boundaryFile)
         assert(boundaryName.equals("Salamander", ignoreCase = true)) { "Expected 'Salamander' but got '$boundaryName'" }
+    }
+
+    @Test
+    fun testTwentyFourExtraction() {
+        val httpHelper = HttpHelper()
+        val contentRenamer = ContentRenamer(
+            MediaProxyService(TheMovieDataBaseService(httpHelper), TheTVDBService(httpHelper))
+        )
+
+        val file1 = File("/home/denis/pfdb/PFDB/Series-Shows/0-9/24.Complete.With.Subtitles/24 Season 1/24 Season 1/24 - S01xE11.mp4")
+        assert(contentRenamer.extractName(file1) == "24") { "Expected '24' but got '${contentRenamer.extractName(file1)}'" }
+        assert(contentRenamer.extractSeason(file1) == 1) { "Expected season 1 but got '${contentRenamer.extractSeason(file1)}'" }
+        assert(contentRenamer.extractEpisode(file1) == 11) { "Expected episode 11 but got '${contentRenamer.extractEpisode(file1)}'" }
+
+        val file2 = File("~/Series-Shows/0-9/24.Complete.With.Subtitles/24 Season 2/24 - [2x01] - Day 2  8 00 A.M. - 9 00 A.M.mkv")
+        assert(contentRenamer.extractName(file2) == "24") { "Expected '24' but got '${contentRenamer.extractName(file2)}'" }
+        assert(contentRenamer.extractSeason(file2) == 2) { "Expected season 2 but got '${contentRenamer.extractSeason(file2)}'" }
+        assert(contentRenamer.extractEpisode(file2) == 1) { "Expected episode 1 but got '${contentRenamer.extractEpisode(file2)}'" }
+
+        val file3 = File("~/Series-Shows/0-9/24.Complete.With.Subtitles/24 Season 1/24 EXTRAS/Alternate Ending.mp4")
+        assert(contentRenamer.extractName(file3) == "24") { "Expected '24' but got '${contentRenamer.extractName(file3)}'" }
+        assert(contentRenamer.extractSeason(file3) == 1) { "Expected season 1 but got '${contentRenamer.extractSeason(file3)}'" }
+        assert(contentRenamer.extractEpisode(file3) == null) { "Expected null episode but got '${contentRenamer.extractEpisode(file3)}'" }
     }
 
 }
