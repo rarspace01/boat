@@ -175,6 +175,9 @@ class ContentRenamerTest {
         assert(!contentRenamer.isJunk("Avatar - The Last Airbender"))
         assert(!contentRenamer.isJunk("Reservation Dogs"))
         assert(!contentRenamer.isJunk("24 Complete With Subtitles"))
+        assert(!contentRenamer.isJunk("9-1-1"))
+        assert(!contentRenamer.isJunk("9 1 1"))
+        assert(!contentRenamer.isJunk("9-1-1: Lone Star"))
     }
 
     @Test
@@ -200,7 +203,7 @@ class ContentRenamerTest {
             "Expected 'Stargate SG1...' but got '${contentRenamer.extractName(stargateFeaturette)}'"
         }
 
-        val twentyFourExtra = File("/home/denis/pfdb/PFDB/Series-Shows/0-9/24.Complete.With.Subtitles/24 Season 1/24 EXTRAS/Alternate Ending.mp4")
+        val twentyFourExtra = File("~/Series-Shows/0-9/24.Complete.With.Subtitles/24 Season 1/24 EXTRAS/Alternate Ending.mp4")
         assert(contentRenamer.extractName(twentyFourExtra).startsWith("24")) {
             "Expected '24...' but got '${contentRenamer.extractName(twentyFourExtra)}'"
         }
@@ -211,12 +214,23 @@ class ContentRenamerTest {
             "Expected null episode but got '${contentRenamer.extractEpisode(twentyFourExtra)}'"
         }
 
-        val twentyFourInterview = File("/home/denis/pfdb/PFDB/Series-Shows/0-9/24.Complete.With.Subtitles/24 Season 1/24 EXTRAS/Kiefer Sutherland on season 1 of 24.mp4")
+        val twentyFourInterview = File("~/Series-Shows/0-9/24.Complete.With.Subtitles/24 Season 1/24 EXTRAS/Kiefer Sutherland on season 1 of 24.mp4")
         assert(contentRenamer.extractName(twentyFourInterview).startsWith("24")) {
             "Expected '24...' but got '${contentRenamer.extractName(twentyFourInterview)}'"
         }
         assert(contentRenamer.extractSeason(twentyFourInterview) == 1) {
             "Expected season 1 but got '${contentRenamer.extractSeason(twentyFourInterview)}'"
+        }
+
+        val nineOneOneFile = File("~/Series-Shows/0-9/9-1-1/9-1-1.S05E06.1080p.WEB.H264-CAKES[TGx].mkv")
+        assert(contentRenamer.extractName(nineOneOneFile) == "9-1-1") {
+            "Expected '9-1-1' but got '${contentRenamer.extractName(nineOneOneFile)}'"
+        }
+        assert(contentRenamer.extractSeason(nineOneOneFile) == 5) {
+            "Expected season 5 but got '${contentRenamer.extractSeason(nineOneOneFile)}'"
+        }
+        assert(contentRenamer.extractEpisode(nineOneOneFile) == 6) {
+            "Expected episode 6 but got '${contentRenamer.extractEpisode(nineOneOneFile)}'"
         }
 
         // Standalone junk files or files in generic folders with no show name should NOT extract a wrong name (return empty string)
@@ -296,6 +310,11 @@ class ContentRenamerTest {
         val movieItem = MediaItem(title = "Inception", type = boat.info.MediaType.Movie, id = "67890")
         val targetMovie = contentRenamer.getTargetFile(File("inception.mkv"), movieItem, "Inception", null, null)
         assert(targetMovie == "~/pfdb/PFDB/Movies/I/Inception 67890.mkv") { "Unexpected movie path: $targetMovie" }
+
+        // 9-1-1 Series
+        val nineOneOneItem = MediaItem(title = "9-1-1", type = boat.info.MediaType.Series, id = "{tvdb-334586}")
+        val targetNineOneOne = contentRenamer.getTargetFile(File("9-1-1.S05E06.1080p.WEB.H264-CAKES[TGx].mkv"), nineOneOneItem, "9-1-1", 5, 6)
+        assert(targetNineOneOne == "~/pfdb/PFDB/Series-Shows/0-9/9-1-1 {tvdb-334586}/Season 5/9-1-1.S05E06.mkv") { "Unexpected 9-1-1 target path: $targetNineOneOne" }
     }
 
 }

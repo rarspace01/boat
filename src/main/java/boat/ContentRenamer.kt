@@ -41,32 +41,38 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         name = name.replace("(", "").replace(")", "").replace("_", " ").trim()
         name = name.removePrefix(".")
 
+        var truncated = false
         val seasonMatch = seasonPattern.find(name)
         val seasonMatch2 = seasonPattern2.find(name)
         val seasonMatch3 = seasonInNamePattern.find(name)
         val dvdMatch = dvdPattern.find(name)
         if (seasonMatch != null) {
             name = name.substring(0, seasonMatch.range.first)
+            truncated = true
         } else if (seasonMatch2 != null) {
             name = name.substring(0, seasonMatch2.range.first)
+            truncated = true
         } else if (seasonMatch3 != null) {
             name = name.substring(0, seasonMatch3.range.first)
+            truncated = true
         } else if (dvdMatch != null) {
             name = name.substring(0, dvdMatch.range.first)
-        } else {
-            // Special handling for episode numbers that might be separated by a dash without spaces
-            val nameForEpisodeMatching = name.replace("-", " ")
-            val episodeMatch = episodePattern.find(nameForEpisodeMatching)
+            truncated = true
+        } else if (!name.matches("^[0-9]+(?:[-.][0-9]+)+$".toRegex())) {
+            val episodeMatch = episodePattern.find(name)
             if (episodeMatch != null) {
                 name = name.substring(0, episodeMatch.range.first)
+                truncated = true
             } else {
                 val standaloneEpisodeMatch = standaloneEpisodePattern.find(name)
                 if (standaloneEpisodeMatch != null && yearPattern.find(standaloneEpisodeMatch.value) == null) {
                     name = name.substring(0, standaloneEpisodeMatch.range.first)
+                    truncated = true
                 } else {
                     val yearMatch = yearPattern.find(name)
                     if (yearMatch != null) {
                         name = name.substring(0, yearMatch.range.first)
+                        truncated = true
                     }
                 }
             }
@@ -80,12 +86,14 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
             name = name.substring(0, name.length - 1).trim()
         }
 
-        // If extracted name ends with a number that looks like an episode (e.g., show-24)
-        // and we haven't truncated it yet, do a last resort truncation
-        val trailingEpisodePattern = "-([0-9]{1,3})$".toRegex()
-        val trailingMatch = trailingEpisodePattern.find(name)
-        if (trailingMatch != null) {
-            name = name.substring(0, trailingMatch.range.first).trim()
+        if (!truncated) {
+            // If extracted name ends with a number that looks like an episode (e.g., show-24)
+            // and we haven't truncated it yet, do a last resort truncation
+            val trailingEpisodePattern = "(?<=[a-zA-Z\\s])-(?:ep)?([0-9]{1,3})$".toRegex(RegexOption.IGNORE_CASE)
+            val trailingMatch = trailingEpisodePattern.find(name)
+            if (trailingMatch != null) {
+                name = name.substring(0, trailingMatch.range.first).trim()
+            }
         }
         return name
     }
@@ -180,7 +188,8 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         )
 
         val tokens = normalized.split(" ").filter { it.isNotBlank() }
-        if (tokens.isNotEmpty() && tokens.all { token ->
+        val hasKnownJunkOrTechToken = tokens.any { allTechnicalAndJunkTokens.contains(it) }
+        if (hasKnownJunkOrTechToken && tokens.all { token ->
             token.length <= 1 || token.matches("^[0-9]+$".toRegex()) || allTechnicalAndJunkTokens.contains(token)
         }) {
             return true
@@ -257,15 +266,34 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
             return cleanedFileName
         }
 
+        // Category / root folder names
+        val categoryFolderNames = setOf(
+            "series-shows", "series shows", "series", "shows", "tv", "tv shows", "tv show", "tv-shows",
+            "tv series", "tv-series", "movies", "movie", "films", "film", "anime",
+            "cartoons", "cartoon", "documentaries", "documentary", "downloads", "download",
+            "torrents", "torrent", "complete", "incomplete", "pfdb", "data", "videos",
+            "video", "media", "home", "root", "desktop"
+        )
+
         // If filename is junk or auxiliary, search upwards in parent directory hierarchy
         var currentFile: File? = file.parentFile
-        while (currentFile != null) {
+        var depth = 0
+        while (currentFile != null && depth < 5) {
             val parentName = decodeIfEncoded(currentFile.name)
+            val lowerParent = parentName.lowercase().trim()
+            val normalizedParent = lowerParent.replace("_", " ").replace(".", " ").replace("-", " ").trim()
+
+            // Stop traversing upwards if we reached a root category / filesystem folder
+            if (categoryFolderNames.contains(lowerParent) || categoryFolderNames.contains(normalizedParent)) {
+                break
+            }
+
             val cleanedParentName = cleanName(parentName)
             if (cleanedParentName.isNotBlank() && !isJunk(cleanedParentName)) {
                 return cleanedParentName
             }
             currentFile = currentFile.parentFile
+            depth++
         }
 
         return ""
