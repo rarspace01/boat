@@ -55,7 +55,7 @@ class ContentRenamerTest {
             "~/Series-Shows/D/Dragon Ball Super/Dragon Ball Super - Completo [WEB-DL - 1080p]/Dragon%20Ball%20Super%20-%20101%20%5B1080p%5D.mkv",
             "~/Series-Shows/Z/Zombieland%20Saga%20S02%201080p%20BDRip%2010%20bits%20DD%20x265-EMBER.torrent/S02E12-The Greatest SAGA in History [F9FE3939].mkv",
             "~/Series-Shows/R/Reservation Dogs/Reservation.Dogs.S01.1080p.WEBRip.x265-KONTRAST/Subs/Reservation.Dogs.S01E07.1080p.WEBRip.x265-KONTRAST/6_spa.srt",
-            "/home/denis/pfdb/PFDB/Series-Shows/#/_HACK/SIGN/HS28.avi"
+            "~/PFDB/Series-Shows/#/_HACK/SIGN/HS28.avi"
         )
 
         println("\n--- Testing Extraction Logic ---")
@@ -241,7 +241,7 @@ class ContentRenamerTest {
             "Expected episode 6 but got '${contentRenamer.extractEpisode(nineOneOneFile)}'"
         }
 
-        val hackSignFile = File("/home/denis/pfdb/PFDB/Series-Shows/#/_HACK/SIGN/HS22.avi")
+        val hackSignFile = File("~/PFDB/Series-Shows/#/_HACK/SIGN/HS22.avi")
         assert(contentRenamer.extractName(hackSignFile).equals("HACK SIGN", ignoreCase = true)) {
             "Expected 'HACK SIGN' but got '${contentRenamer.extractName(hackSignFile)}'"
         }
@@ -252,7 +252,7 @@ class ContentRenamerTest {
             "Expected episode 22 but got '${contentRenamer.extractEpisode(hackSignFile)}'"
         }
 
-        val hackSignExtrasFile = File("/home/denis/pfdb/PFDB/Series-Shows/#/.Hack Sign 1-28+Extras/[V-A]_hack_SIGN_-_05_[E3229E6C].mkv")
+        val hackSignExtrasFile = File("~/PFDB/Series-Shows/#/.Hack Sign 1-28+Extras/[V-A]_hack_SIGN_-_05_[E3229E6C].mkv")
         assert(contentRenamer.extractName(hackSignExtrasFile) == "hack SIGN") {
             "Expected 'hack SIGN' but got '${contentRenamer.extractName(hackSignExtrasFile)}'"
         }
@@ -263,7 +263,7 @@ class ContentRenamerTest {
             "Expected episode 5 but got '${contentRenamer.extractEpisode(hackSignExtrasFile)}'"
         }
 
-        val hackLegendTwilightFile = File("/home/denis/pfdb/PFDB/Series-Shows/#/_HACK/Legend_o_T/hack-Legend of the Twilight 08 - The Solitary Knight.avi")
+        val hackLegendTwilightFile = File("~/PFDB/Series-Shows/#/_HACK/Legend_o_T/hack-Legend of the Twilight 08 - The Solitary Knight.avi")
         assert(contentRenamer.extractName(hackLegendTwilightFile) == "hack-Legend of the Twilight") {
             "Expected 'hack-Legend of the Twilight' but got '${contentRenamer.extractName(hackLegendTwilightFile)}'"
         }
@@ -274,7 +274,7 @@ class ContentRenamerTest {
             "Expected episode 8 but got '${contentRenamer.extractEpisode(hackLegendTwilightFile)}'"
         }
 
-        val hackRootsFile = File("/home/denis/pfdb/PFDB/Series-Shows/#/_HACK/ROOTS/hack_roots-21.avi")
+        val hackRootsFile = File("~/PFDB/Series-Shows/#/_HACK/ROOTS/hack_roots-21.avi")
         assert(contentRenamer.extractName(hackRootsFile) == "hack roots") {
             "Expected 'hack roots' but got '${contentRenamer.extractName(hackRootsFile)}'"
         }
@@ -395,7 +395,7 @@ class ContentRenamerTest {
         assert(targetExtra == "~/pfdb/PFDB/Series-Shows/0-9/24 {tvdb-1234}/Season 1/Alternate Ending.mp4") { "Unexpected extra target path: $targetExtra" }
 
         // Extra with series media type but no season and no episode (keep original file name in series folder)
-        val hackSignExtra = File("/home/denis/pfdb/PFDB/Series-Shows/#/.Hack Sign 1-28+Extras/[V-A]_hack_SIGN_-_Textless_Ending_[934E6984].mkv")
+        val hackSignExtra = File("~/PFDB/Series-Shows/#/.Hack Sign 1-28+Extras/[V-A]_hack_SIGN_-_Textless_Ending_[934E6984].mkv")
         val targetHackSignExtra = contentRenamer.getTargetFile(hackSignExtra, hackSignItem, "Hack Sign", null, null)
         assert(targetHackSignExtra == "~/pfdb/PFDB/Series-Shows/H/.hack SIGN {tmdb-333800}/[V-A]_hack_SIGN_-_Textless_Ending_[934E6984].mkv") { "Unexpected hack sign extra target path: $targetHackSignExtra" }
     }
@@ -408,14 +408,14 @@ class ContentRenamerTest {
         )
 
         // Bugs Bunny file
-        val bugsBunnyFile = File("/home/denis/pfdb/PFDB/Series-Shows/B/Bugs Bunny Pack (1938-2004)/Bugs Bunny - (Ep. 23) - Super-Rabbit.avi")
+        val bugsBunnyFile = File("~/PFDB/Series-Shows/B/Bugs Bunny Pack (1938-2004)/Bugs Bunny - (Ep. 23) - Super-Rabbit.avi")
         val bugsName = contentRenamer.extractName(bugsBunnyFile)
         val bugsEpisode = contentRenamer.extractEpisode(bugsBunnyFile)
         assert(bugsName == "Bugs Bunny") { "Expected 'Bugs Bunny' but got '$bugsName'" }
         assert(bugsEpisode == 23) { "Expected episode 23 but got '$bugsEpisode'" }
 
         // The Blacklist file
-        val blacklistFile = File("/home/denis/pfdb/PFDB/Series-Shows/B/The Blacklist/Season 1/The Blacklist Episode 14 - Madeline Pratt.mp4")
+        val blacklistFile = File("~/PFDB/Series-Shows/B/The Blacklist/Season 1/The Blacklist Episode 14 - Madeline Pratt.mp4")
         val blacklistName = contentRenamer.extractName(blacklistFile)
         val blacklistEpisode = contentRenamer.extractEpisode(blacklistFile)
         val blacklistSeason = contentRenamer.extractSeason(blacklistFile)
@@ -424,7 +424,7 @@ class ContentRenamerTest {
         assert(blacklistEpisode == 14) { "Expected episode 14 but got '$blacklistEpisode'" }
 
         // Black Butler file
-        val blackButlerFile = File("/home/denis/pfdb/PFDB/Series-Shows/B/Black Butler/Black Butler Season 2 [1080p]/Black Butler 02.mkv")
+        val blackButlerFile = File("~/PFDB/Series-Shows/B/Black Butler/Black Butler Season 2 [1080p]/Black Butler 02.mkv")
         val blackButlerName = contentRenamer.extractName(blackButlerFile)
         val blackButlerEpisode = contentRenamer.extractEpisode(blackButlerFile)
         val blackButlerSeason = contentRenamer.extractSeason(blackButlerFile)
@@ -441,20 +441,20 @@ class ContentRenamerTest {
         )
 
         // /Series-Shows/#/_HACK/SIGN/HS28.avi -> "HACK SIGN"
-        val hackSignFile = File("/home/denis/pfdb/PFDB/Series-Shows/#/_HACK/SIGN/HS28.avi")
+        val hackSignFile = File("~/PFDB/Series-Shows/#/_HACK/SIGN/HS28.avi")
         val hackSignName = contentRenamer.extractName(hackSignFile)
         val hackSignEpisode = contentRenamer.extractEpisode(hackSignFile)
         assert(hackSignName.equals("HACK SIGN", ignoreCase = true)) { "Expected 'HACK SIGN' but got '$hackSignName'" }
         assert(hackSignEpisode == 28) { "Expected episode 28 but got '$hackSignEpisode'" }
 
         // /Series-Shows/S/Star Trek/Discovery/Season 1/01.mkv -> "Star Trek Discovery"
-        val starTrekFile = File("/home/denis/pfdb/PFDB/Series-Shows/S/Star Trek/Discovery/Season 1/01.mkv")
+        val starTrekFile = File("~/PFDB/Series-Shows/S/Star Trek/Discovery/Season 1/01.mkv")
         val starTrekName = contentRenamer.extractName(starTrekFile)
         println("[DEBUG_LOG] starTrekName: '$starTrekName'")
         assert(starTrekName.equals("Star Trek Discovery", ignoreCase = true)) { "Expected 'Star Trek Discovery' but got '$starTrekName'" }
 
         // Boundary check: single-letter folder 'S' and category 'Series-Shows' are not included
-        val boundaryFile = File("/home/denis/pfdb/PFDB/Series-Shows/S/Salamander/Season 1/01.mkv")
+        val boundaryFile = File("~/PFDB/Series-Shows/S/Salamander/Season 1/01.mkv")
         val boundaryName = contentRenamer.extractName(boundaryFile)
         assert(boundaryName.equals("Salamander", ignoreCase = true)) { "Expected 'Salamander' but got '$boundaryName'" }
     }
