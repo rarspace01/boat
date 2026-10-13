@@ -18,7 +18,7 @@ class StringUtil {
                 preparedTorrentName = split[0]
             }
             // remove articles
-            preparedTorrentName = preparedTorrentName.replace("(a[ .]|the[ .]|der[ .])".toRegex(), "")
+            preparedTorrentName = preparedTorrentName.replace("^(?:a|an|the|der|die|das)[ .]+".toRegex(RegexOption.IGNORE_CASE), "")
             //
             preparedTorrentName = preparedTorrentName.trim { it <= ' ' }
             preparedTorrentName = preparedTorrentName.replace("[\".]".toRegex(), "")

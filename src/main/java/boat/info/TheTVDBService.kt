@@ -4,6 +4,7 @@ import boat.torrent.TorrentHelper.urlEncode
 import boat.utilities.HttpHelper
 import boat.utilities.PropertiesHelper
 import com.google.gson.JsonElement
+import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
@@ -85,7 +86,8 @@ class TheTVDBService @Autowired constructor(private val httpHelper: HttpHelper) 
                 } else null
 
                 if (name != null) {
-                    val mediaItem = MediaItem(name, name, year, determineMediaType(type))
+                    val titleToUse = extractEnglishOrSecondaryName(jsonMediaObject, name)
+                    val mediaItem = MediaItem(titleToUse, name, year, determineMediaType(type))
                     if (seasonCount != null) {
                         mediaItem.seasonCount = seasonCount
                     }
@@ -99,6 +101,59 @@ class TheTVDBService @Autowired constructor(private val httpHelper: HttpHelper) 
             println("Error parsing TVDB response: ${e.message}")
         }
         return mediaItems
+    }
+
+    private fun extractEnglishOrSecondaryName(jsonMediaObject: JsonObject, primaryName: String): String {
+        for (key in listOf("secondary_name", "secondaryName", "secondaryTitle", "name_translated", "english_name")) {
+            if (jsonMediaObject.has(key) && !jsonMediaObject[key].isJsonNull) {
+                val candidate = jsonMediaObject[key].asString
+                if (candidate.isNotBlank()) return candidate
+            }
+        }
+
+        if (jsonMediaObject.has("translations") && !jsonMediaObject["translations"].isJsonNull) {
+            val translations = jsonMediaObject["translations"]
+            if (translations.isJsonObject) {
+                val transObj = translations.asJsonObject
+                for (lang in listOf("eng", "en", "english", "usa", "gbr")) {
+                    if (transObj.has(lang) && !transObj[lang].isJsonNull) {
+                        val candidate = if (transObj[lang].isJsonObject) {
+                            transObj[lang].asJsonObject.get("name")?.asString
+                        } else {
+                            transObj[lang].asString
+                        }
+                        if (!candidate.isNullOrBlank()) return candidate
+                    }
+                }
+            } else if (translations.isJsonArray) {
+                val transArr = translations.asJsonArray
+                for (item in transArr) {
+                    if (item.isJsonObject) {
+                        val itemObj = item.asJsonObject
+                        val lang = itemObj.get("language")?.asString
+                        if (lang in listOf("eng", "en", "english") && itemObj.has("name") && !itemObj["name"].isJsonNull) {
+                            val candidate = itemObj["name"].asString
+                            if (candidate.isNotBlank()) return candidate
+                        }
+                    }
+                }
+            }
+        }
+
+        val isPrimaryAscii = primaryName.all { it.code in 32..126 }
+        if (!isPrimaryAscii && jsonMediaObject.has("aliases") && !jsonMediaObject["aliases"].isJsonNull) {
+            val aliases = jsonMediaObject["aliases"]
+            if (aliases.isJsonArray) {
+                for (alias in aliases.asJsonArray) {
+                    val aliasStr = if (alias.isJsonObject) alias.asJsonObject.get("name")?.asString ?: "" else alias.asString
+                    if (aliasStr.isNotBlank() && aliasStr.all { it.code in 32..126 }) {
+                        return aliasStr
+                    }
+                }
+            }
+        }
+
+        return primaryName
     }
 
     private fun determineMediaType(typeString: String): MediaType {

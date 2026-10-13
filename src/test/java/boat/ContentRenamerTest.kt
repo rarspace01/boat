@@ -358,10 +358,26 @@ class ContentRenamerTest {
         val targetMovie = contentRenamer.getTargetFile(File("inception.mkv"), movieItem, "Inception", null, null)
         assert(targetMovie == "~/pfdb/PFDB/Movies/I/Inception 67890.mkv") { "Unexpected movie path: $targetMovie" }
 
-        // 9-1-1 Series
+        // 9-1-1 Series with resolution and codec
         val nineOneOneItem = MediaItem(title = "9-1-1", type = boat.info.MediaType.Series, id = "{tvdb-334586}")
         val targetNineOneOne = contentRenamer.getTargetFile(File("9-1-1.S05E06.1080p.WEB.H264-CAKES[TGx].mkv"), nineOneOneItem, "9-1-1", 5, 6)
-        assert(targetNineOneOne == "~/pfdb/PFDB/Series-Shows/0-9/9-1-1 {tvdb-334586}/Season 5/9-1-1.S05E06.mkv") { "Unexpected 9-1-1 target path: $targetNineOneOne" }
+        assert(targetNineOneOne == "~/pfdb/PFDB/Series-Shows/0-9/9-1-1 {tvdb-334586}/Season 5/9-1-1.S05E06.1080p.h264.mkv") { "Unexpected 9-1-1 target path: $targetNineOneOne" }
+
+        // Buffy Series with resolution and codec
+        val buffyItem = MediaItem(title = "Buffy the Vampire Slayer", type = boat.info.MediaType.Series, id = "{tvdb-70327}")
+        val targetBuffy = contentRenamer.getTargetFile(
+            File("Buffy.The.Vampire.Slayer.S08E07.No.Future.For.You.(2).MOTION.COMIC.720p.WEB-DL.AC3-5.1.x264-DEMENTA.mkv"),
+            buffyItem,
+            "Buffy The Vampire Slayer",
+            8,
+            7
+        )
+        assert(targetBuffy == "~/pfdb/PFDB/Series-Shows/B/Buffy the Vampire Slayer {tvdb-70327}/Season 8/Buffy The Vampire Slayer.S08E07.720p.x264.mkv") { "Unexpected Buffy target path: $targetBuffy" }
+
+        // The Big Bang Theory Series (Folder should be B not T)
+        val tbbtItem = MediaItem(title = "The Big Bang Theory", type = boat.info.MediaType.Series, id = "{tvdb-80379}")
+        val targetTbbt = contentRenamer.getTargetFile(File("The Big Bang Theory S02E08.mkv"), tbbtItem, "The Big Bang Theory", 2, 8)
+        assert(targetTbbt == "~/pfdb/PFDB/Series-Shows/B/The Big Bang Theory {tvdb-80379}/Season 2/The Big Bang Theory.S02E08.mkv") { "Unexpected TBBT target path: $targetTbbt" }
 
         // .hack//SIGN series
         val hackSignItem = MediaItem(title = ".hack//SIGN", type = boat.info.MediaType.Series, id = "{tmdb-333800}")
@@ -372,6 +388,30 @@ class ContentRenamerTest {
         val extraItem = MediaItem(title = "24", type = boat.info.MediaType.Series, id = "{tvdb-1234}")
         val targetExtra = contentRenamer.getTargetFile(File("Alternate Ending.mp4"), extraItem, "24", 1, null)
         assert(targetExtra == "~/pfdb/PFDB/Series-Shows/0-9/24 {tvdb-1234}/Season 1/Alternate Ending.mp4") { "Unexpected extra target path: $targetExtra" }
+    }
+
+    @Test
+    fun testBugsBunnyAndBlacklistExtraction() {
+        val httpHelper = HttpHelper()
+        val contentRenamer = ContentRenamer(
+            MediaProxyService(TheMovieDataBaseService(httpHelper), TheTVDBService(httpHelper))
+        )
+
+        // Bugs Bunny file
+        val bugsBunnyFile = File("/home/denis/pfdb/PFDB/Series-Shows/B/Bugs Bunny Pack (1938-2004)/Bugs Bunny - (Ep. 23) - Super-Rabbit.avi")
+        val bugsName = contentRenamer.extractName(bugsBunnyFile)
+        val bugsEpisode = contentRenamer.extractEpisode(bugsBunnyFile)
+        assert(bugsName == "Bugs Bunny") { "Expected 'Bugs Bunny' but got '$bugsName'" }
+        assert(bugsEpisode == 23) { "Expected episode 23 but got '$bugsEpisode'" }
+
+        // The Blacklist file
+        val blacklistFile = File("/home/denis/pfdb/PFDB/Series-Shows/B/The Blacklist/Season 1/The Blacklist Episode 14 - Madeline Pratt.mp4")
+        val blacklistName = contentRenamer.extractName(blacklistFile)
+        val blacklistEpisode = contentRenamer.extractEpisode(blacklistFile)
+        val blacklistSeason = contentRenamer.extractSeason(blacklistFile)
+        assert(blacklistName == "The Blacklist") { "Expected 'The Blacklist' but got '$blacklistName'" }
+        assert(blacklistSeason == 1) { "Expected season 1 but got '$blacklistSeason'" }
+        assert(blacklistEpisode == 14) { "Expected episode 14 but got '$blacklistEpisode'" }
     }
 
 }

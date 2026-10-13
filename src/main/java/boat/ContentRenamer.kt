@@ -59,20 +59,20 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
             name = name.substring(0, dvdMatch.range.first)
             truncated = true
         } else if (!name.matches("^[0-9]+(?:[-.][0-9]+)+$".toRegex())) {
-            val episodeWithTitleMatch = "(?:\\s|^)(?:E|Ep|ep)?([0-9]{1,3})\\s+-\\s+[a-zA-Z]".toRegex(RegexOption.IGNORE_CASE).find(name)
+            val episodeWithTitleMatch = "(?:\\s-\\s|\\s-_|_-_|\\s-\\s?|_-\\s?|\\s|^)(?:Episode|Ep\\.?|E)?\\s*([0-9]{1,3})\\s+-\\s+[a-zA-Z]".toRegex(RegexOption.IGNORE_CASE).find(name)
             val dashEpisodeMatch = "(?:\\s-\\s|\\s-_|_-_|\\s-\\s?|_-\\s?)([0-9]{1,3})(?=[^a-zA-Z0-9]|$)".toRegex().find(name)
-            val explicitEpisodeMatch = "(?<=^|[^a-zA-Z0-9])(?:E|Ep)([0-9]{1,3})(?=[^a-zA-Z0-9]|$)".toRegex(RegexOption.IGNORE_CASE).find(name)
+            val explicitEpisodeMatch = "(?:\\s-\\s|\\s-_|_-_|\\s-\\s?|_-\\s?|\\s|^)(?:Episode|Ep\\.?|E)\\s*([0-9]{1,3})(?=[^a-zA-Z0-9]|$)".toRegex(RegexOption.IGNORE_CASE).find(name)
             if (episodeWithTitleMatch != null) {
                 name = name.substring(0, episodeWithTitleMatch.range.first)
-                truncated = true
-            } else if (dashEpisodeMatch != null) {
-                name = name.substring(0, dashEpisodeMatch.range.first)
                 truncated = true
             } else if (explicitEpisodeMatch != null) {
                 name = name.substring(0, explicitEpisodeMatch.range.first)
                 truncated = true
+            } else if (dashEpisodeMatch != null) {
+                name = name.substring(0, dashEpisodeMatch.range.first)
+                truncated = true
             } else {
-                val episodeMatch = episodePattern.find(name)
+                val episodeMatch = "(?<=^|[^a-zA-Z0-9])(?:Episode|Ep\\.?|E|\\s-\\s|\\s|-|\\.)([0-9]{1,3})(?=[^a-zA-Z0-9]|$)".toRegex(RegexOption.IGNORE_CASE).find(name)
                 if (episodeMatch != null) {
                     name = name.substring(0, episodeMatch.range.first)
                     truncated = true
@@ -98,7 +98,12 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         name = name.replace(Regex("(?<=[a-zA-Z\\s])[0-9]{1,3}-[0-9]{1,3}(?=\\s*(?:\\+|$))"), " ")
         name = name.replace(Regex("\\s+"), " ").trim()
 
-        // Remove trailing dashes or other common separators
+        // Remove trailing episode keywords and trailing dashes or separators
+        name = name.replace(Regex("(?i)(?:\\s*-\\s*|\\s+)(?:Episode|Ep|E)\\.?$"), "").trim()
+        while (name.endsWith("-") || name.endsWith(".")) {
+            name = name.substring(0, name.length - 1).trim()
+        }
+        name = name.replace(Regex("(?i)(?:\\s*-\\s*|\\s+)(?:Episode|Ep|E)\\.?$"), "").trim()
         while (name.endsWith("-") || name.endsWith(".")) {
             name = name.substring(0, name.length - 1).trim()
         }
@@ -374,11 +379,11 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         val grandParentName = decodeIfEncoded(file.parentFile?.parentFile?.name ?: "")
         val greatGrandParentName = decodeIfEncoded(file.parentFile?.parentFile?.parentFile?.name ?: "")
 
-        val episodeWithTitlePattern = "(?:\\s|^)(?:E|Ep|ep)?([0-9]{1,3})\\s+-\\s+[a-zA-Z]".toRegex(RegexOption.IGNORE_CASE)
+        val episodeWithTitlePattern = "(?:\\s|^)(?:Episode|Ep\\.?|E)?\\s*([0-9]{1,3})\\s+-\\s+[a-zA-Z]".toRegex(RegexOption.IGNORE_CASE)
         val dashEpisodePattern = "(?:\\s-\\s|\\s-_|_-_|\\s-\\s?|_-\\s?)([0-9]{1,3})(?=[^a-zA-Z0-9]|$)".toRegex()
-        val explicitEpisodePattern = "(?<=^|[^a-zA-Z0-9])(?:E|Ep|ep)([0-9]{1,3})(?=[^a-zA-Z0-9]|$)".toRegex(RegexOption.IGNORE_CASE)
+        val explicitEpisodePattern = "(?<=^|[^a-zA-Z0-9])(?:Episode|Ep\\.?|E)\\s*([0-9]{1,3})(?=[^a-zA-Z0-9]|$)".toRegex(RegexOption.IGNORE_CASE)
         val episodePattern =
-            "(?<=^|[^a-zA-Z0-9])(?:E|Ep|\\s-\\s|\\s|-|\\.)([0-9]{1,3})(?=[^a-zA-Z0-9]|$)".toRegex(RegexOption.IGNORE_CASE)
+            "(?<=^|[^a-zA-Z0-9])(?:Episode|Ep\\.?|E|\\s-\\s|\\s|-|\\.)([0-9]{1,3})(?=[^a-zA-Z0-9]|$)".toRegex(RegexOption.IGNORE_CASE)
         val standaloneEpisodePattern = "(?:\\s|^)([0-9]{3})(?:\\s|$)".toRegex()
         val yearPattern = "\\b([1-2][0-9]{3})\\b".toRegex()
         val seasonEpisodePattern = "(?<=^|[^a-zA-Z])S[0-9]{1,2}E([0-9]{1,2})".toRegex(RegexOption.IGNORE_CASE)
@@ -476,6 +481,38 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         }
     }
 
+    fun extractResolution(file: File): String? {
+        val resolutionPattern = "(?i)(?<=^|[^a-zA-Z0-9])(2160p|1080p|1080i|720p|576p|576i|480p|480i|4k)(?=[^a-zA-Z0-9]|$)".toRegex()
+        var current: File? = file
+        var depth = 0
+        while (current != null && depth < 4) {
+            val name = decodeIfEncoded(current.name)
+            val match = resolutionPattern.find(name)
+            if (match != null) {
+                return match.groupValues[1].lowercase()
+            }
+            current = current.parentFile
+            depth++
+        }
+        return null
+    }
+
+    fun extractCodec(file: File): String? {
+        val codecPattern = "(?i)(?<=^|[^a-zA-Z0-9])(x265|x264|h265|h264|hevc|avc|xvid|divx|av1|vp9|h\\.264|h\\.265|x\\.264|x\\.265)(?=[^a-zA-Z0-9]|$)".toRegex()
+        var current: File? = file
+        var depth = 0
+        while (current != null && depth < 4) {
+            val name = decodeIfEncoded(current.name)
+            val match = codecPattern.find(name)
+            if (match != null) {
+                return match.groupValues[1].lowercase().replace(".", "")
+            }
+            current = current.parentFile
+            depth++
+        }
+        return null
+    }
+
     fun getTargetFile(file: File, mediaResult: MediaItem, extractedName: String, season: Int?, episode: Int?): String {
         val firstPart = "~/pfdb/PFDB/" + getMediaTypeFolderString(mediaResult) +
                 "/" + StringUtil.deductFirstTorrentLetter(getSafeTitle(mediaResult)) + "/${getSafeTitle(mediaResult)} ${mediaResult.id}"
@@ -487,7 +524,11 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         val optionalFileNaming = if(episode != null){
             val seasonStr = String.format("%02d", season ?: 1)
             val episodeStr = String.format("%02d", episode)
-            "/${extractedName}.S${seasonStr}E${episodeStr}"
+            val resolution = extractResolution(file)
+            val codec = extractCodec(file)
+            val extraInfo = listOfNotNull(resolution, codec).joinToString(".")
+            val extraSuffix = if (extraInfo.isNotEmpty()) ".$extraInfo" else ""
+            "/${extractedName}.S${seasonStr}E${episodeStr}$extraSuffix"
         } else if (season != null) {
             "/${file.nameWithoutExtension}"
         } else {
