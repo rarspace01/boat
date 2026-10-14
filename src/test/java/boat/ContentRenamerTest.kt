@@ -154,6 +154,10 @@ class ContentRenamerTest {
         assert(contentRenamer.isJunk("Trailers"))
         assert(contentRenamer.isJunk("Subs"))
         assert(contentRenamer.isJunk("Subtitles"))
+        assert(contentRenamer.isJunk("UK"))
+        assert(contentRenamer.isJunk("US"))
+        assert(contentRenamer.isJunk("UK Season 05"))
+        assert(contentRenamer.isJunk("UK Season 05 [2007]"))
         assert(contentRenamer.isJunk("6 spa"))
         assert(contentRenamer.isJunk("6_spa"))
         assert(contentRenamer.isJunk("1080p"))
@@ -825,6 +829,35 @@ class ContentRenamerTest {
             "Expected 'C.O.P.S.' or 'Cops' but got '${searchResult.first().title}'"
         }
         assert(searchResult.first().title != "Katts and Dog") { "Should not match 'Katts and Dog'" }
+    }
+
+    @Test
+    fun testRamsaysKitchenNightmaresExtraction() {
+        val httpHelper = HttpHelper()
+        val mediaProxyService = MediaProxyService(TheMovieDataBaseService(httpHelper), TheTVDBService(httpHelper))
+        val contentRenamer = ContentRenamer(mediaProxyService)
+
+        val file = File("~/Series-Shows/R/Ramsay\\s.Kitchen.Nightmares.(all.Seasons.+.Extras)/UK Season 05 [2007]/05x07 - Curry Lounge.avi")
+        val name = contentRenamer.extractName(file)
+        val year = contentRenamer.extractYear(file.path)
+        val season = contentRenamer.extractSeason(file)
+        val episode = contentRenamer.extractEpisode(file)
+
+        assert(name == "Ramsays Kitchen Nightmares" || name == "Ramsay's Kitchen Nightmares") {
+            "Expected 'Ramsays Kitchen Nightmares' or 'Ramsay\\'s Kitchen Nightmares' but got '$name'"
+        }
+        assert(!name.contains("\\")) { "Extracted name should not contain escape characters" }
+        assert(!name.lowercase().contains("all seasons")) { "Extracted name should not contain 'all seasons'" }
+        assert(!name.endsWith(" UK")) { "Extracted name should not have 'UK' appended from season folder" }
+        assert(year == 2007) { "Expected year 2007 but got $year" }
+        assert(season == 5) { "Expected season 5 but got $season" }
+        assert(episode == 7) { "Expected episode 7 but got $episode" }
+
+        val searchResult = mediaProxyService.search(name, year ?: 0)
+        assert(searchResult.isNotEmpty()) { "Expected search results for $name ($year)" }
+        assert(searchResult.first().title.contains("Kitchen Nightmares", ignoreCase = true)) {
+            "Expected 'Kitchen Nightmares' in title but got '${searchResult.first().title}'"
+        }
     }
 
 }

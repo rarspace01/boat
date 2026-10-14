@@ -23,15 +23,15 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         val bookPattern = "(?<=^|\\s)(?:book|volume|vol|chapter)\\s?([0-9]{1,2})".toRegex(RegexOption.IGNORE_CASE)
         val seasonInNamePattern = "(?<=^|[\\s_.-])Season[\\s_.-]?([0-9]{1,2})".toRegex(RegexOption.IGNORE_CASE)
         val dayInNamePattern = "(?<=^|[\\s_.-])Day\\s([0-9]{1,2})".toRegex(RegexOption.IGNORE_CASE)
-        val packInNamePattern = "(?<=^|[\\s_.-])(?:Complete(?:\\s+(?:Series|Season|Seasons|Collection|Set|Pack|With\\s+Subtitles))?|Completo|With\\s+(?:Subtitles|Subs)|Dual\\s+Audio|Multi[- ]Audio|Multi[- ]Subs)(?=\\b|[\\s_.-]|$)".toRegex(RegexOption.IGNORE_CASE)
+        val packInNamePattern = "(?<=^|[\\s_.-])(?:Complete(?:[\\s_.-]+(?:Series|Season|Seasons|Collection|Set|Pack|With[\\s_.-]+Subtitles))?|Completo|All[\\s_.-]+(?:Series|Season|Seasons|Episodes|Eps|Collection|Set|Pack)|Entire[\\s_.-]+(?:Series|Season|Seasons)|Full[\\s_.-]+(?:Series|Season|Seasons)|With[\\s_.-]+(?:Subtitles|Subs)|Dual[\\s_.-]+Audio|Multi[- ]Audio|Multi[- ]Subs)(?=\\b|[\\s_.-]|$)".toRegex(RegexOption.IGNORE_CASE)
         val extrasInNamePattern = "(?<=^|[\\s_.-])(?:Extras|Extra|Featurettes|Featurette|Bonus|Subs|Subtitles|Gallery|Galleries)(?=\\b|[\\s_.-]|$)".toRegex(RegexOption.IGNORE_CASE)
         val startsWithEpisodeNumberPattern = "^(?:[0-9]{1,3}\\s?[.x-]\\s?[0-9]{1,3}\\s?-\\s?|(?:19[0-9]{2}|20[0-2][0-9])[eExX][0-9]{1,3}[-._\\s]?|S[0-9]{1,2}[x._\\-\\s]?(?:E|EP)[0-9]{1,3}[-._\\s]?|[0-9]{1,2}x[0-9]{1,2}[-._\\s]?)".toRegex(RegexOption.IGNORE_CASE)
     }
 
     fun cleanName(inputName: String): String {
         var name = inputName
-        // Normalize unicode and foreign characters
-        name = name.replace("：", " ").replace("?", " ")
+        // Normalize unicode and foreign characters, remove backslash escape characters
+        name = name.replace("：", " ").replace("?", " ").replace("\\", "")
 
         // Remove bracketed release info like [UNCENSORED], [1080p], [5.1 MP3], [x265], [FINAL]
         name = name.replace(bracketPattern, " ").trim()
@@ -210,12 +210,17 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         if (lower.matches("^[0-9a-f]{8,}$".toRegex()) && lower.any { it.isDigit() } && lower.any { it.isLetter() }) return true
 
         // Season/Episode/Part/Volume/Disc patterns
-        if (normalized.matches("^(?:season|series|disc|disk|cd|dvd|bd|volume|vol|book|chapter|part|ep|episode|day)\\s*[0-9]+.*$".toRegex())) return true
+        if (normalized.matches("^(?:uk|us|usa|ger|fra|fr|de|es|ita|it|jp|jpn|kr|kor|cn|chi|ru|rus|eng|en)?\\s*(?:season|series|disc|disk|cd|dvd|bd|volume|vol|book|chapter|part|ep|episode|day)\\s*[0-9]+.*$".toRegex())) return true
         if (normalized.matches("^s[0-9]{1,2}(?:\\s?e[0-9]{1,2})?$".toRegex())) return true
         if (normalized.matches("^[0-9]{1,2}\\s?x\\s?[0-9]{1,2}$".toRegex())) return true
         if (normalized.matches("^[0-9]{1,3}\\s?[.\\sx-]\\s?[0-9]{1,3}$".toRegex())) return true
         if (normalized.matches("^[a-z]{1,4}\\s?[0-9]{1,3}$".toRegex()) && !normalized.startsWith("the ") && !normalized.startsWith("a ") && !normalized.startsWith("an ")) return true
         if (normalized.matches("^[0-9]+\\s?[a-z]{2,3}$".toRegex())) return true // e.g. "6 spa", "6_spa"
+
+        val countryAndLanguageTags = setOf(
+            "uk", "us", "usa", "ger", "fra", "fr", "de", "es", "ita", "it", "jp", "jpn", "kr", "kor", "cn", "chi", "ru", "rus", "eng", "en"
+        )
+        if (countryAndLanguageTags.contains(lower) || countryAndLanguageTags.contains(normalized)) return true
 
         // Auxiliary exact keywords
         val auxiliaryExactKeywords = setOf(
@@ -494,7 +499,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
 
         val parent = file.parentFile
         val isSeasonFolder = parent?.name?.let {
-            "(?i)^(?:Season|Series|Specials|Dis[ck]|DVD|CD|Vol(?:ume)?)\\b".toRegex().containsMatchIn(it)
+            "(?i)^(?:uk|us|usa|ger|fra|fr|de|es|ita|it|jp|jpn|kr|kor|cn|chi|ru|rus|eng|en)?[\\s_.-]*(?:Season|Series|Specials|Dis[ck]|DVD|CD|Vol(?:ume)?)\\b".toRegex().containsMatchIn(it)
         } ?: false
 
         if (isSeasonFolder && parent?.parentFile != null) {
