@@ -756,4 +756,33 @@ class ContentRenamerTest {
         assert(contentRenamer.extractName(elephinksFile) == "Popeye The Sailor") { "Expected 'Popeye The Sailor' but got '${contentRenamer.extractName(elephinksFile)}'" }
     }
 
+    @Test
+    fun testOutOfBoundsFilenameEpisodeMatch() {
+        val httpHelper = HttpHelper()
+        val contentRenamer = ContentRenamer(
+            MediaProxyService(TheMovieDataBaseService(httpHelper), TheTVDBService(httpHelper))
+        )
+
+        val file = File("~/Series-Shows/S/SampleShow/[Group_Long_Tag_12345678901234567890] SampleShow - 05.mkv")
+        val episode = contentRenamer.extractEpisode(file)
+        assert(episode == 5) { "Expected episode 5 but got $episode" }
+    }
+
+    @Test
+    fun testMST3KExtraction() {
+        val httpHelper = HttpHelper()
+        val contentRenamer = ContentRenamer(
+            MediaProxyService(TheMovieDataBaseService(httpHelper), TheTVDBService(httpHelper))
+        )
+
+        val file = File("~/Series-Shows/M/MST3K/Season 3/MST3K_0308_Gamera_vs_Gaos_xvid.avi")
+        val name = contentRenamer.extractName(file)
+        val season = contentRenamer.extractSeason(file)
+        val episode = contentRenamer.extractEpisode(file)
+
+        assert(name == "MST3K") { "Expected 'MST3K' but got '$name'" }
+        assert(season == 3) { "Expected season 3 but got $season" }
+        assert(episode == 8) { "Expected episode 8 but got $episode" }
+    }
+
 }

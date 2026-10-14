@@ -113,7 +113,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
                     truncated = true
                 } else {
                     val standaloneEpisodeMatch = standaloneEpisodePattern.find(name)
-                    val zeroPaddedMatch = "(?:\\s|^)0([0-9]{1,2})(?:\\s|$)".toRegex().find(name)
+                    val zeroPaddedMatch = "(?:\\s|^)0([0-9]{1,3})(?:\\s|$)".toRegex().find(name)
                     if (zeroPaddedMatch != null) {
                         name = name.substring(0, zeroPaddedMatch.range.first)
                         truncated = true
@@ -492,10 +492,17 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         val directSeason = extractDirectSeason(file)
         if (directSeason != null) return directSeason
 
-        // If direct season is null, check if we can infer season from 3-digit/4-digit episode numbering (e.g. 101 -> season 1, 201 -> season 2)
+        // If direct season is null, check if we can infer season from 3-digit/4-digit episode numbering (e.g. 101 -> season 1, 201 -> season 2, 0308 -> season 3)
         val rawEpisodeInfo = findRawEpisodeMatch(file)
         if (rawEpisodeInfo != null) {
             val (rawStr, num) = rawEpisodeInfo
+            if (rawStr.length == 4 && rawStr.startsWith("0") && num in 101..9999) {
+                val s = rawStr.substring(0, 2).toInt()
+                val e = rawStr.substring(2, 4).toInt()
+                if (s in 1..99 && e in 1..99) {
+                    return s
+                }
+            }
             if (num in 101..9999 && !rawStr.startsWith("0")) {
                 if (shouldDisambiguateAsSeasonEpisode(file, null, num, rawStr)) {
                     return num / 100
@@ -564,8 +571,15 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         val (rawStr, num) = rawEpisodeInfo
 
         val directSeason = extractDirectSeason(file)
-        if (num in 101..9999 && !rawStr.startsWith("0")) {
-            if (shouldDisambiguateAsSeasonEpisode(file, directSeason, num, rawStr, mediaItem)) {
+        if (num in 101..9999) {
+            if (rawStr.length == 4 && rawStr.startsWith("0")) {
+                val s = rawStr.substring(0, 2).toInt()
+                val e = rawStr.substring(2, 4).toInt()
+                if (directSeason == null || directSeason == s) {
+                    return e
+                }
+            }
+            if (!rawStr.startsWith("0") && shouldDisambiguateAsSeasonEpisode(file, directSeason, num, rawStr, mediaItem)) {
                 return num % 100
             }
         }
@@ -585,6 +599,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         val episodePattern =
             "(?:(?<=^|[^a-zA-Z0-9])(?:Episode|Ep\\.?|E)|(?:\\s-\\s|\\s|-|\\.))([0-9]{1,3})(?=[^a-zA-Z0-9]|$)".toRegex(RegexOption.IGNORE_CASE)
         val standaloneEpisodePattern = "(?:\\s|^)([0-9]{3})(?:\\s|$)".toRegex()
+        val zeroPaddedSeasonEpisodePattern = "(?<=^|[^a-zA-Z0-9])(0[1-9][0-9]{2})(?=[^a-zA-Z0-9]|$)".toRegex()
         val yearPattern = "\\b([1-2][0-9]{3})\\b".toRegex()
         val seasonEpisodePattern = "(?<=^|[^a-zA-Z])S[0-9]{1,2}[x._\\-\\s]?(?:E|EP)([0-9]{1,3})".toRegex(RegexOption.IGNORE_CASE)
         val yearEpisodePattern = "(?<=^|[^a-zA-Z0-9])(?:19[0-9]{2}|20[0-2][0-9])[eExX]([0-9]{1,3})(?=[^a-zA-Z0-9]|$)".toRegex(RegexOption.IGNORE_CASE)
@@ -605,11 +620,12 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
 
         val nonEpisodePrefix = "(?i)(?:season|series|disc|disk|cd|dvd|bd|volume|vol|book|chapter|part|pt|day)\\s*$".toRegex()
         val firstValidEpisodeMatch = episodePattern.findAll(replaced)
-            .plus(episodePattern.findAll(fileName))
-            .firstOrNull { m ->
-                val textBefore = replaced.substring(0, m.range.first).trim()
+            .map { it to replaced }
+            .plus(episodePattern.findAll(fileName).map { it to fileName })
+            .firstOrNull { (m, text) ->
+                val textBefore = text.substring(0, m.range.first).trim()
                 !nonEpisodePrefix.containsMatchIn(textBefore)
-            }
+            }?.first
 
         val match = seasonEpisodePattern.find(fileName)
             ?: yearEpisodePattern.find(fileName)
@@ -624,6 +640,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
             ?: dashEpisodePattern.find(replaced)
             ?: "-([0-9]{1,3})\\.".toRegex().find(fileName)
             ?: acronymMatch
+            ?: zeroPaddedSeasonEpisodePattern.find(fileName)
             ?: standaloneEpisodePattern.find(fileName)?.let { if (yearPattern.find(it.value) == null) it else null }
             ?: firstValidEpisodeMatch
             ?: explicitEpisodePattern.find(parentName)
