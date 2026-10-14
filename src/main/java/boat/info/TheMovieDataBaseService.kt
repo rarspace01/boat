@@ -25,7 +25,6 @@ class TheMovieDataBaseService @Autowired constructor(private val httpHelper: Htt
 
     fun search(name: String?): List<MediaItem>? {
         return name?.let { val url = "$baseUrl&query=${urlEncode(name)}"
-            println("tfdb ($name) url: $url")
             parseResponsePage(httpHelper.getPage(url)) } ?: emptyList()
     }
 

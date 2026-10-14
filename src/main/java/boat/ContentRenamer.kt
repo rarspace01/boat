@@ -23,7 +23,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         val bookPattern = "(?<=^|\\s)(?:book|volume|vol|chapter)\\s?([0-9]{1,2})".toRegex(RegexOption.IGNORE_CASE)
         val seasonInNamePattern = "(?<=^|[\\s_.-])Season[\\s_.-]?([0-9]{1,2})".toRegex(RegexOption.IGNORE_CASE)
         val dayInNamePattern = "(?<=^|[\\s_.-])Day\\s([0-9]{1,2})".toRegex(RegexOption.IGNORE_CASE)
-        val packInNamePattern = "(?<=^|[\\s_.-])(?:Complete(?:[\\s_.-]+(?:Series|Season|Seasons|Collection|Set|Pack|With[\\s_.-]+Subtitles))?|Completo|All[\\s_.-]+(?:Series|Season|Seasons|Episodes|Eps|Collection|Set|Pack)|Entire[\\s_.-]+(?:Series|Season|Seasons)|Full[\\s_.-]+(?:Series|Season|Seasons)|With[\\s_.-]+(?:Subtitles|Subs)|Dual[\\s_.-]+Audio|Multi[- ]Audio|Multi[- ]Subs)(?=\\b|[\\s_.-]|$)".toRegex(RegexOption.IGNORE_CASE)
+        val packInNamePattern = "(?<=^|[\\s_.-])(?:Complete(?:[\\s_.-]+(?:Series|Season|Seasons|Collection|Set|Pack|Boxset|Box[\\s_.-]+Set|With[\\s_.-]+Subtitles))?|Completo|All[\\s_.-]+(?:Series|Season|Seasons|Episodes|Eps|Collection|Set|Pack|Boxset|Box[\\s_.-]+Set)|Entire[\\s_.-]+(?:Series|Season|Seasons|Collection|Set|Pack|Boxset|Box[\\s_.-]+Set)|Full[\\s_.-]+(?:Series|Season|Seasons|Collection|Set|Pack|Boxset|Box[\\s_.-]+Set)|(?:Boxset|Box[\\s_.-]+Set|Collection|Collector(?:'s|s)?[\\s_.-]+Edition)|With[\\s_.-]+(?:Subtitles|Subs)|Dual[\\s_.-]+Audio|Multi[- ]Audio|Multi[- ]Subs)(?=\\b|[\\s_.-]|$)".toRegex(RegexOption.IGNORE_CASE)
         val extrasInNamePattern = "(?<=^|[\\s_.-])(?:Extras|Extra|Featurettes|Featurette|Bonus|Subs|Subtitles|Gallery|Galleries)(?=\\b|[\\s_.-]|$)".toRegex(RegexOption.IGNORE_CASE)
         val startsWithEpisodeNumberPattern = "^(?:[0-9]{1,3}\\s?[.x-]\\s?[0-9]{1,3}\\s?-\\s?|(?:19[0-9]{2}|20[0-2][0-9])[eExX][0-9]{1,3}[-._\\s]?|S[0-9]{1,2}[x._\\-\\s]?(?:E|EP)[0-9]{1,3}[-._\\s]?|[0-9]{1,2}x[0-9]{1,2}[-._\\s]?)".toRegex(RegexOption.IGNORE_CASE)
     }
@@ -191,7 +191,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
             "torrents", "torrent", "complete", "incomplete", "pfdb", "data", "videos",
             "video", "media", "home", "root", "desktop"
         )
-        val articles = setOf("the", "a", "an", "der", "die", "das", "le", "la", "les", "el", "los", "las", "il", "lo", "gli", "un", "une")
+        val articles = setOf("the", "a", "an", "and", "or", "of", "in", "with", "&", "der", "die", "das", "le", "la", "les", "el", "los", "las", "il", "lo", "gli", "un", "une")
         if (articles.contains(lower) || articles.contains(normalized)) return true
 
         if (categoryFolderNames.contains(lower) || categoryFolderNames.contains(normalized)) return true
@@ -239,13 +239,14 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
             "covers", "cover", "artwork", "artworks", "art", "fonts", "font", "scans", "scan", "covers and fonts",
             "soundtrack", "soundtracks", "ost", "music video", "music videos", "music", "audio",
             "metadata", "nfo", "info", "other", "misc", "miscellaneous",
-            "special", "specials", "sp", "ova", "ona", "special feature", "special features",
+            "special", "specials", "sp", "ova", "ovas", "ona", "onas", "special feature", "special features",
             "textless", "textless opening", "textless ending", "ncop", "nced", "creditless",
             "episode guide", "guide", "cfwm", "teneighty", "greatest saga",
             "fake psas", "fake psa", "tv spots", "tv spot", "storyboard comparison", "tv recap specials",
             "new", "lessons", "videolessons", "intermediate", "advanced", "survival phrases", "audio blog",
             "gallery", "galleries", "photo gallery", "image gallery", "still gallery", "stills gallery", "slideshow", "slideshows",
-            "story", "stories", "storyline", "temporada", "temporadas", "season", "seasons", "episode", "episodes"
+            "story", "stories", "storyline", "temporada", "temporadas", "season", "seasons", "episode", "episodes",
+            "collection", "collections", "boxset", "pack", "full collection", "complete collection"
         )
         if (auxiliaryExactKeywords.contains(lower) || auxiliaryExactKeywords.contains(normalized)) return true
 
@@ -275,10 +276,12 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
             "aac", "ac3", "eac3", "dts", "ddp", "ddp5", "ddp51", "ddp5 1", "flac", "mp3", "truehd", "atmos",
             "10bit", "8bit", "hdr", "hdr10", "hdr10plus", "dv", "dovi", "sdr",
             "rarbg", "ettv", "eztv", "rartv", "tgx", "yts", "yify", "megusta", "vxt", "galaxytv",
-            "complete", "season", "seasons", "series", "ep", "episode", "episodes", "disc", "disk", "cd", "vol", "volume"
+            "complete", "season", "seasons", "series", "ep", "episode", "episodes", "disc", "disk", "cd", "vol", "volume",
+            "movie", "movies", "special", "specials", "ova", "ovas", "ona", "onas", "collection", "collections", "boxset", "pack"
         )
 
-        val tokens = normalized.split(" ").filter { it.isNotBlank() }
+        val tokenNormalized = trimmed.lowercase().replace(Regex("[^a-z0-9]+"), " ").trim()
+        val tokens = tokenNormalized.split(" ").filter { it.isNotBlank() }
         val hasKnownJunkOrTechToken = tokens.any { allTechnicalAndJunkTokens.contains(it) }
         if (hasKnownJunkOrTechToken && tokens.all { token ->
             token.length <= 1 || token.matches("^[0-9]+$".toRegex()) || allTechnicalAndJunkTokens.contains(token)
@@ -302,7 +305,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
             "trailers", "trailer", "teasers", "teaser", "promos", "promo",
             "deleted scenes", "deleted scene", "screentests", "screentest",
             "subs", "subtitles", "sub", "original scripts", "soundtracks", "soundtrack",
-            "ost", "artwork", "covers", "fonts", "scans", "proofs", "specials", "special",
+            "ost", "artwork", "covers", "fonts", "scans", "proofs",
             "outtakes", "outtake", "bloopers", "blooper", "gag reel", "behind the scenes", "making of",
             "fake psas", "fake psa", "tv spots", "tv spot", "storyboard comparison", "tv recap specials",
             "lessons", "videolessons", "audio blog", "gallery", "galleries", "photo gallery", "image gallery", "still gallery", "stills gallery", "slideshow", "slideshows"
@@ -427,7 +430,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
                         pName.matches("^[0-9]-[0-9]$".toRegex()) || categoryFolderNames.contains(pName)
                     } == true)
 
-            if (cleanedParentName.isNotBlank() && (!isJunk(cleanedParentName) || isParentNumericShowName)) {
+            if (cleanedParentName.isNotBlank() && (!isJunk(cleanedParentName) && !isJunk(parentName) || isParentNumericShowName)) {
                 candidates.add(cleanedParentName)
             }
             currentFile = currentFile.parentFile
@@ -773,17 +776,17 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
 
                     val idString = mediaResult?.id ?: ""
                     var logLine =
-                        "F: '$fullName'->'$extractedName'|>'$mediaResult' (Y: $year, S: $season, E: $episode) $idString"
+                        "F:'$fullName'->'$extractedName'|>'$mediaResult' (Y: $year, S: $season, E: $episode) $idString"
                     mediaResult?.let {
                         val targetFile = getTargetFile(file, mediaResult, extractedName, season, episode)
-                        // acutal move
+                        // actual move
                         // Create the parent directories if they don't exist
                         val newFile = File(targetFile)
                         newFile.parentFile?.mkdirs()
 
                         // Then move and rename
                         //file.toPath().moveTo(newFile.toPath(), overwrite = true)
-                        println("T-Moving\n'$file'\n'$newFile'")
+                        //println("T-Moving\n'$file'\n'$newFile'")
                         logFile?.appendText("T-Moving\n'$file'\n'$newFile'\n")
                     }
                     println(logLine)

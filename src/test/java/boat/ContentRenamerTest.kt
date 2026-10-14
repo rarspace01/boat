@@ -860,4 +860,31 @@ class ContentRenamerTest {
         }
     }
 
+    @Test
+    fun testLupinIIIExtraction() {
+        val httpHelper = HttpHelper()
+        val mediaProxyService = MediaProxyService(TheMovieDataBaseService(httpHelper), TheTVDBService(httpHelper))
+        val contentRenamer = ContentRenamer(mediaProxyService)
+
+        val file = File("/home/denis/pfdb/PFDB/Series-Shows/L/Lupin III -  Full Collection 2018/Movies, Specials & OVA/(1969) [Movie] Pilot Film/Lupin III Pilot Film 1 - TV [480p][neo1024][03AE79BB].mkv")
+        val name = contentRenamer.extractName(file)
+        val year = contentRenamer.extractYear(file.path)
+        val season = contentRenamer.extractSeason(file)
+        val episode = contentRenamer.extractEpisode(file)
+
+        assert(name == "Lupin III Pilot Film") {
+            "Expected 'Lupin III Pilot Film' but got '$name'"
+        }
+        assert(!name.contains("Full Collection", ignoreCase = true)) { "Extracted name should not contain 'Full Collection'" }
+        assert(!name.contains("Movies, Specials", ignoreCase = true)) { "Extracted name should not contain 'Movies, Specials'" }
+        assert(!name.contains("OVA", ignoreCase = true)) { "Extracted name should not contain 'OVA'" }
+        assert(year == 1969) { "Expected year 1969 but got $year" }
+
+        val searchResult = mediaProxyService.search(name, year ?: 0)
+        assert(searchResult.isNotEmpty()) { "Expected search results for $name ($year)" }
+        assert(searchResult.first().title.contains("Lupin", ignoreCase = true) && searchResult.first().title.contains("Pilot", ignoreCase = true)) {
+            "Expected 'Lupin' and 'Pilot' in title but got '${searchResult.first().title}'"
+        }
+    }
+
 }
