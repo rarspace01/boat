@@ -721,4 +721,39 @@ class ContentRenamerTest {
         assert(contentRenamer.extractEpisode(catfish) == 0)
     }
 
+    @Test
+    fun testPopeyePackExtraction() {
+        val httpHelper = HttpHelper()
+        val contentRenamer = ContentRenamer(
+            MediaProxyService(TheMovieDataBaseService(httpHelper), TheTVDBService(httpHelper))
+        )
+
+        val galleryFile = File("~/Series-Shows/P/Popeye.The.Sailor.1933-1943.COMPLETE.DVDRip.x264-panos[rartv]/Gallery.mkv")
+        assert(contentRenamer.extractName(galleryFile) == "Popeye The Sailor") { "Expected 'Popeye The Sailor' but got '${contentRenamer.extractName(galleryFile)}'" }
+        assert(contentRenamer.extractSeason(galleryFile) == null)
+        assert(contentRenamer.extractEpisode(galleryFile) == null)
+
+        val timelineFile = File("~/Series-Shows/P/Popeye.The.Sailor.1933-1943.COMPLETE.DVDRip.x264-panos[rartv]/1900-1920.mkv")
+        assert(contentRenamer.extractName(timelineFile) == "Popeye The Sailor") { "Expected 'Popeye The Sailor' but got '${contentRenamer.extractName(timelineFile)}'" }
+
+        val hospitalikyFile = File("~/Series-Shows/P/Popeye.The.Sailor.1933-1943.COMPLETE.DVDRip.x264-panos[rartv]/1937e04-Hospitaliky.mkv")
+        assert(contentRenamer.extractName(hospitalikyFile) == "Popeye The Sailor") { "Expected 'Popeye The Sailor' but got '${contentRenamer.extractName(hospitalikyFile)}'" }
+        assert(contentRenamer.extractSeason(hospitalikyFile) == 1937) { "Expected season 1937 but got '${contentRenamer.extractSeason(hospitalikyFile)}'" }
+        assert(contentRenamer.extractEpisode(hospitalikyFile) == 4) { "Expected episode 4 but got '${contentRenamer.extractEpisode(hospitalikyFile)}'" }
+
+        val goonlandFile = File("~/Series-Shows/P/Popeye.The.Sailor.1933-1943.COMPLETE.DVDRip.x264-panos[rartv]/1938e10-Goonland.mkv")
+        assert(contentRenamer.extractName(goonlandFile) == "Popeye The Sailor") { "Expected 'Popeye The Sailor' but got '${contentRenamer.extractName(goonlandFile)}'" }
+        assert(contentRenamer.extractSeason(goonlandFile) == 1938) { "Expected season 1938 but got '${contentRenamer.extractSeason(goonlandFile)}'" }
+        assert(contentRenamer.extractEpisode(goonlandFile) == 10) { "Expected episode 10 but got '${contentRenamer.extractEpisode(goonlandFile)}'" }
+
+        val actFile = File("~/Series-Shows/P/Popeye.The.Sailor.1933-1943.COMPLETE.DVDRip.x264-panos[rartv]/Act.mkv")
+        assert(contentRenamer.extractName(actFile) == "Popeye The Sailor") { "Expected 'Popeye The Sailor' but got '${contentRenamer.extractName(actFile)}'" }
+
+        val finichFile = File("~/Series-Shows/P/Popeye.The.Sailor.1933-1943.COMPLETE.DVDRip.x264-panos[rartv]/Finich.mkv")
+        assert(contentRenamer.extractName(finichFile) == "Popeye The Sailor") { "Expected 'Popeye The Sailor' but got '${contentRenamer.extractName(finichFile)}'" }
+
+        val elephinksFile = File("~/Series-Shows/P/Popeye.The.Sailor.1933-1943.COMPLETE.DVDRip.x264-panos[rartv]/Elephinks.mkv")
+        assert(contentRenamer.extractName(elephinksFile) == "Popeye The Sailor") { "Expected 'Popeye The Sailor' but got '${contentRenamer.extractName(elephinksFile)}'" }
+    }
+
 }
