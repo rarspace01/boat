@@ -140,7 +140,11 @@ class MediaProxyService(
     }
 
     private fun normalizeString(input: String): String {
-        return input.lowercase()
+        val acronymPattern = "(?<=(?:^|[^a-zA-Z0-9]))(?:[a-zA-Z][.*]){1,}[a-zA-Z](?:[.*](?=[^a-zA-Z0-9]|$)|(?=[^a-zA-Z0-9]|$))".toRegex()
+        val withoutAcronymDelimiters = input.replace(acronymPattern) { matchResult ->
+            matchResult.value.replace("*", "").replace(".", "")
+        }
+        return withoutAcronymDelimiters.lowercase()
             .replace(Regex("[^a-z0-9]+"), " ")
             .trim()
     }
@@ -173,37 +177,46 @@ class MediaProxyService(
 
         var score = 0.0
 
+        val matchingWords = queryWords.count { qWord -> titleWords.contains(qWord) }
+        val titleWordCount = titleWords.size
+        val queryWordCount = queryWords.size
+
+        // Found words (b) is the most important factor
+        score += matchingWords * 1000.0
+
+        // Ratio of matched query words
+        val queryMatchRatio = matchingWords.toDouble() / queryWordCount
+        score += queryMatchRatio * 500.0
+
+        if (matchingWords == queryWordCount) {
+            score += 500.0 // All query words matched in title
+        }
+
         // Exact match
         if (normalizedTitle == normalizedQuery) {
             score += 1000.0
         }
 
-        // Substring matches
+        // Word count comparison:
+        // Prefer results that have the same number of words (titleWordCount == matchingWords or titleWordCount == queryWordCount)
+        // If a (titleWordCount) and b (matchingWords) is the same, it's a perfect fit.
+        // Otherwise penalize higher number of extra words in title (a > b)
+        val extraWords = titleWordCount - matchingWords
+        if (extraWords == 0) {
+            score += 200.0 // Perfect fit: every word in the title was matched
+        } else if (extraWords > 0) {
+            score -= extraWords * 50.0
+        }
+
+        // Substring / prefix bonuses for tie breaking
         if (normalizedTitle.contains(normalizedQuery)) {
-            score += 150.0
-        }
-        if (normalizedQuery.contains(normalizedTitle)) {
-            score += 100.0
-        }
-        if (normalizedTitle.startsWith(normalizedQuery)) {
             score += 50.0
         }
-
-        // Word overlap
-        val matchingWords = queryWords.count { qWord -> titleWords.contains(qWord) }
-        score += matchingWords * 100.0
-
-        val queryMatchRatio = matchingWords.toDouble() / queryWords.size
-        score += queryMatchRatio * 200.0
-
-        if (matchingWords == queryWords.size) {
-            score += 300.0 // All query words matched in title
+        if (normalizedQuery.contains(normalizedTitle)) {
+            score += 30.0
         }
-
-        // Penalty for extra words in title that weren't in query
-        val extraWords = titleWords.size - matchingWords
-        if (extraWords > 0) {
-            score -= extraWords * 10.0
+        if (normalizedTitle.startsWith(normalizedQuery)) {
+            score += 20.0
         }
 
         return score

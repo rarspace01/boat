@@ -91,6 +91,30 @@ class MediaProxyServiceCachingTest {
     }
 
     @Test
+    fun `rankResults should prefer exact word count match over extra words in title`() {
+        val query = "MASH"
+        val mashUp = MediaItem("Mash-Up!", "Mash-Up!", null, MediaType.Series)
+        val mashReport = MediaItem("The Mash Report", "The Mash Report", 2017, MediaType.Series)
+        val mash = MediaItem("M*A*S*H", "M*A*S*H", 1972, MediaType.Series)
+        val sportsMash = MediaItem("Sports Mash: Taking the Mic", "Sports Mash: Taking the Mic", 2010, MediaType.Series)
+
+        val ranked = mediaProxyService.rankResults(query, listOf(sportsMash, mashReport, mashUp, mash))
+        assertEquals(listOf(mash, mashUp, mashReport, sportsMash), ranked)
+    }
+
+    @Test
+    fun `rankResults should prioritize found words first then closer word count`() {
+        val query = "Doctor Who"
+        val exact = MediaItem("Doctor Who", "Doctor Who", 2005, MediaType.Series)
+        val extraWord = MediaItem("Doctor Who Classic", "Doctor Who Classic", 1963, MediaType.Series)
+        val moreExtraWords = MediaItem("Doctor Who The Movie", "Doctor Who The Movie", 1996, MediaType.Movie)
+        val partialMatchFewerWords = MediaItem("The Doctor", "The Doctor", 2020, MediaType.Series)
+
+        val ranked = mediaProxyService.rankResults(query, listOf(partialMatchFewerWords, moreExtraWords, extraWord, exact))
+        assertEquals(listOf(exact, extraWord, moreExtraWords, partialMatchFewerWords), ranked)
+    }
+
+    @Test
     fun `search should persist cache to file and reload on new service instance`(@TempDir tempDir: Path) {
         val cacheFile = tempDir.resolve("testMediaProxyCache").toFile()
         val cachePath = cacheFile.absolutePath
