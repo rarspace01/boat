@@ -54,7 +54,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         }
 
         // Remove parenthesized tags like (BBC 1995), (2013 BluRay - 1080p DUAL AUDIO), (ger.sub), (h264), (moviesbyrizzo), (720p - DUAL Audio), (1BB88E0D)
-        val parenthesizedTagsPattern = "(?i)\\((?:[0-9]{3,4}p|bluray|blu-ray|dvd|web-dl|webrip|h264|x264|h265|x265|hevc|dual audio|proper|repack|sub|ger[._ -]?sub|eng[._ -]?sub|moviesbyrizzo|bbc[._ -]?[0-9]{4}|[0-9]{4}\\s*-\\s*[0-9]{2,4}|open matte version|theatrical version|subbed|french|korean|german|japanese|spanish|[0-9a-f]{8}).*?\\)".toRegex()
+        val parenthesizedTagsPattern = "(?i)\\((?:[^)]*\\b(?:[0-9]{3,4}p|bluray|blu-ray|dvd|bdrip|dvdrip|web-dl|webdl|webrip|h264|x264|h265|x265|hevc|xvid|divx|dual audio|multi audio|multi subs|proper|repack|sub|subs|ger[._ -]?sub|eng[._ -]?sub|moviesbyrizzo|bbc[._ -]?[0-9]{4}|[0-9]{4}\\s*-\\s*[0-9]{2,4}|open matte version|theatrical version|subbed|french|korean|german|japanese|spanish|[0-9a-f]{8})\\b[^)]*)\\)".toRegex()
         name = name.replace(parenthesizedTagsPattern, " ")
 
         val parenthesizedYearPattern = "(?<=[\\s_.-]|^)[(\\[][1-2][0-9]{3}(?:-[0-9]{2,4})?[)\\]](?=[\\s_.-]|$)".toRegex()
@@ -107,7 +107,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
                 name = name.substring(0, dashEpisodeMatch.range.first)
                 truncated = true
             } else {
-                val episodeMatch = "(?:(?<=^|[^a-zA-Z0-9])(?:Episode|Ep\\.?|E)|(?:\\s-\\s|\\s-_|_-_|\\s-\\s?|_-\\s?|[-.]))([0-9]{1,3})(?=[^a-zA-Z0-9]|$)".toRegex(RegexOption.IGNORE_CASE).find(name)
+                val episodeMatch = "(?:(?<=^|[^a-zA-Z0-9])(?:Episode|Ep\\.?|E)|(?:\\s-\\s|\\s-_|_-_|\\s-\\s?|_-\\s?|-(?=[0-9])|\\.(?=0[0-9])))([0-9]{1,3})(?=[^a-zA-Z0-9]|$)".toRegex(RegexOption.IGNORE_CASE).find(name)
                 if (episodeMatch != null) {
                     name = name.substring(0, episodeMatch.range.first)
                     truncated = true
@@ -170,6 +170,13 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
             val trailingMatch = trailingEpisodePattern.find(name)
             if (trailingMatch != null) {
                 name = name.substring(0, trailingMatch.range.first).trim()
+            } else {
+                // If name has a number followed by space and another number (e.g. Golgo 13 20), truncate the trailing episode
+                val multiNumberTrailingPattern = "(?<=[0-9])\\s+([0-9]{1,3})$".toRegex()
+                val multiMatch = multiNumberTrailingPattern.find(name)
+                if (multiMatch != null) {
+                    name = name.substring(0, multiMatch.range.first).trim()
+                }
             }
         }
         return name
@@ -473,12 +480,18 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         } else null
 
         if (!isCandidate0Junk && cleanedFileName.isNotBlank() && (!isShortAcronym || file.parentFile == null)) {
-            if (parentShowName != null && parentShowName.isNotBlank() && isInsidePackOrSeriesFolder) {
-                val parentWords = parentShowName.lowercase().split(Regex("[^a-z0-9]+")).filter { it.length > 2 && it !in setOf("the", "and", "for", "with", "from") }
-                val fileWords = cleanedFileName.lowercase().split(Regex("[^a-z0-9]+")).filter { it.length > 2 && it !in setOf("the", "and", "for", "with", "from") }
-                val hasOverlap = fileWords.any { fw -> parentWords.any { pw -> fw == pw || fw.contains(pw) || pw.contains(fw) } }
-                if (!hasOverlap) {
+            if (parentShowName != null && parentShowName.isNotBlank()) {
+                val remainder = cleanedFileName.removePrefix(parentShowName).trim()
+                if (remainder.matches("^(?:[-_\\s]|ep|episode|e)*[0-9]{1,4}$".toRegex(RegexOption.IGNORE_CASE))) {
                     return parentShowName
+                }
+                if (isInsidePackOrSeriesFolder) {
+                    val parentWords = parentShowName.lowercase().split(Regex("[^a-z0-9]+")).filter { it.length > 2 && it !in setOf("the", "and", "for", "with", "from") }
+                    val fileWords = cleanedFileName.lowercase().split(Regex("[^a-z0-9]+")).filter { it.length > 2 && it !in setOf("the", "and", "for", "with", "from") }
+                    val hasOverlap = fileWords.any { fw -> parentWords.any { pw -> fw == pw || fw.contains(pw) || pw.contains(fw) } }
+                    if (!hasOverlap) {
+                        return parentShowName
+                    }
                 }
             }
             val result = cleanedFileName
@@ -647,13 +660,29 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         }
 
         val nonEpisodePrefix = "(?i)(?:season|series|disc|disk|cd|dvd|bd|volume|vol|book|chapter|part|pt|day)\\s*$".toRegex()
-        val firstValidEpisodeMatch = episodePattern.findAll(replaced)
+        val candidatesInOrder = episodePattern.findAll(replaced)
             .map { it to replaced }
             .plus(episodePattern.findAll(fileName).map { it to fileName })
-            .firstOrNull { (m, text) ->
+            .filter { (m, text) ->
                 val textBefore = text.substring(0, m.range.first).trim()
                 !nonEpisodePrefix.containsMatchIn(textBefore)
-            }?.first
+            }.toList()
+
+        val parentTokens = listOf(parentName, grandParentName, greatGrandParentName)
+            .flatMap { it.split(Regex("[^0-9]+")) }
+            .filter { it.isNotBlank() }
+            .toSet()
+
+        val nonParentCandidates = candidatesInOrder.filter { (m, _) ->
+            val numStr = m.groupValues[m.groupValues.size - 1]
+            !parentTokens.contains(numStr)
+        }
+
+        val firstValidEpisodeMatch = if (nonParentCandidates.isNotEmpty()) {
+            nonParentCandidates.first().first
+        } else {
+            candidatesInOrder.firstOrNull()?.first
+        }
 
         val match = seasonEpisodePattern.find(fileName)
             ?: yearEpisodePattern.find(fileName)

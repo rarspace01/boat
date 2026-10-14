@@ -914,4 +914,29 @@ class ContentRenamerTest {
         }
     }
 
+    @Test
+    fun testGolgo13Extraction() {
+        val httpHelper = HttpHelper()
+        val mediaProxyService = MediaProxyService(TheMovieDataBaseService(httpHelper), TheTVDBService(httpHelper))
+        val contentRenamer = ContentRenamer(mediaProxyService)
+
+        val file = File("/home/denis/pfdb/PFDB/Series-Shows/G/Golgo.13/[subs4u]_Golgo_13_20_(Xvid,ger.sub)[9378A5C4].avi")
+        val name = contentRenamer.extractName(file)
+        val year = contentRenamer.extractYear(file.path)
+        val season = contentRenamer.extractSeason(file)
+        val episode = contentRenamer.extractEpisode(file)
+
+        System.out.println("[DEBUG_LOG] Golgo 13 -> Name: '$name', Year: $year, Season: $season, Episode: $episode")
+
+        assert(name == "Golgo 13") { "Expected 'Golgo 13' but got '$name'" }
+        assert(episode == 20) { "Expected episode 20 but got $episode" }
+
+        val searchResult = mediaProxyService.search(name, year ?: 0)
+        System.out.println("[DEBUG_LOG] Golgo 13 searchResult: $searchResult")
+        assert(searchResult.isNotEmpty()) { "Expected search results for $name ($year)" }
+        assert(searchResult.first().title.contains("Golgo 13", ignoreCase = true)) {
+            "Expected 'Golgo 13' in title but got '${searchResult.first().title}'"
+        }
+    }
+
 }
