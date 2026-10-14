@@ -148,15 +148,19 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         val trailingQualityTag = "(?i)\\s+(?:720p|1080p|1080i|2160p|480p|4k|uhd|fhd|hdtv|bluray|blu-ray|bdrip|dvdrip|dvd|web-dl|webdl|webrip|web|remux|proper|repack|rerip|x264|x265|h264|h265|hevc|xvid|dual audio|multi audio|multi subs|subbed|korean|french|german|japanese|spanish|english|director'?s cut|extended cut|uncensored|remastered)$".toRegex()
         val trailingYearPattern = "(?<=[a-zA-Z\\s])\\s+(?:19[0-9]{2}|20[0-2][0-9])$".toRegex()
 
+        val trailingPunctuation = setOf('-', '.', ',', ';', ':', '_', '~', '+', '!', '?', '\'', '"', '`', '/', '\\')
         while (true) {
             val before = name
             name = name.replace(trailingQualityTag, "").trim()
             name = name.replace(trailingYearPattern, "").trim()
             name = name.replace(Regex("(?i)(?:\\s*-\\s*|\\s+)(?:Episode|Ep|E)\\.?$"), "").trim()
-            while (name.endsWith("-") || name.endsWith(".")) {
-                name = name.substring(0, name.length - 1).trim()
+            while (name.isNotEmpty() && name.last() in trailingPunctuation) {
+                name = name.dropLast(1).trim()
             }
             if (name == before) break
+        }
+        while (name.isNotEmpty() && name.first() in trailingPunctuation) {
+            name = name.drop(1).trim()
         }
 
         if (!truncated) {

@@ -804,4 +804,27 @@ class ContentRenamerTest {
         assert(episode == 25) { "Expected episode 25 but got $episode" }
     }
 
+    @Test
+    fun testCOPSExtraction() {
+        val httpHelper = HttpHelper()
+        val mediaProxyService = MediaProxyService(TheMovieDataBaseService(httpHelper), TheTVDBService(httpHelper))
+        val contentRenamer = ContentRenamer(mediaProxyService)
+
+        val file = File("~/Series-Shows/C/C.O.P.S.(1988-1989).,/C.O.P.S. - Ep. 02 - The Case of the Crime Circus (480p - DVDRip).mp4")
+        val name = contentRenamer.extractName(file)
+        val year = contentRenamer.extractYear(file.absolutePath)
+        val episode = contentRenamer.extractEpisode(file)
+
+        assert(name == "COPS") { "Expected 'COPS' but got '$name'" }
+        assert(year == 1988) { "Expected year 1988 but got $year" }
+        assert(episode == 2) { "Expected episode 2 but got $episode" }
+
+        val searchResult = mediaProxyService.search(name, year ?: 0)
+        assert(searchResult.isNotEmpty()) { "Expected search results for COPS (1988)" }
+        assert(searchResult.first().title == "C.O.P.S." || searchResult.first().title == "Cops") {
+            "Expected 'C.O.P.S.' or 'Cops' but got '${searchResult.first().title}'"
+        }
+        assert(searchResult.first().title != "Katts and Dog") { "Should not match 'Katts and Dog'" }
+    }
+
 }
