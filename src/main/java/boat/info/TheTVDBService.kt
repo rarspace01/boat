@@ -86,7 +86,7 @@ class TheTVDBService @Autowired constructor(private val httpHelper: HttpHelper) 
                 } else null
 
                 if (name != null) {
-                    val titleToUse = extractEnglishOrSecondaryName(jsonMediaObject, name)
+                    val titleToUse = extractTitle(jsonMediaObject, name)
                     val mediaItem = MediaItem(titleToUse, name, year, determineMediaType(type))
                     if (seasonCount != null) {
                         mediaItem.seasonCount = seasonCount
@@ -101,6 +101,78 @@ class TheTVDBService @Autowired constructor(private val httpHelper: HttpHelper) 
             println("Error parsing TVDB response: ${e.message}")
         }
         return mediaItems
+    }
+
+    private fun isOriginallyGerman(jsonMediaObject: JsonObject): Boolean {
+        val germanLangCodes = setOf("deu", "ger", "de", "german", "deutsch")
+        val germanCountryCodes = setOf("deu", "de", "ger", "deutschland", "germany", "aut", "at", "austria", "che", "ch", "switzerland")
+
+        for (key in listOf("primary_language", "primaryLanguage", "original_language", "originalLanguage", "language")) {
+            if (jsonMediaObject.has(key) && !jsonMediaObject[key].isJsonNull) {
+                val lang = jsonMediaObject[key].asString.trim().lowercase(Locale.getDefault())
+                if (lang in germanLangCodes) return true
+            }
+        }
+
+        for (key in listOf("primary_country", "primaryCountry", "country", "original_country", "originalCountry")) {
+            if (jsonMediaObject.has(key) && !jsonMediaObject[key].isJsonNull) {
+                val country = jsonMediaObject[key].asString.trim().lowercase(Locale.getDefault())
+                if (country in germanCountryCodes) return true
+            }
+        }
+
+        return false
+    }
+
+    private fun extractTitle(jsonMediaObject: JsonObject, primaryName: String): String {
+        if (isOriginallyGerman(jsonMediaObject)) {
+            val germanName = extractGermanName(jsonMediaObject, primaryName)
+            if (!germanName.isNullOrBlank()) {
+                return germanName
+            }
+        }
+        return extractEnglishOrSecondaryName(jsonMediaObject, primaryName)
+    }
+
+    private fun extractGermanName(jsonMediaObject: JsonObject, primaryName: String): String? {
+        val germanLangKeys = listOf("deu", "de", "ger", "german", "deutsch")
+
+        // If translations contains German
+        if (jsonMediaObject.has("translations") && !jsonMediaObject["translations"].isJsonNull) {
+            val translations = jsonMediaObject["translations"]
+            if (translations.isJsonObject) {
+                val transObj = translations.asJsonObject
+                for (lang in germanLangKeys) {
+                    if (transObj.has(lang) && !transObj[lang].isJsonNull) {
+                        val candidate = if (transObj[lang].isJsonObject) {
+                            transObj[lang].asJsonObject.get("name")?.asString
+                        } else {
+                            transObj[lang].asString
+                        }
+                        if (!candidate.isNullOrBlank()) return candidate
+                    }
+                }
+            } else if (translations.isJsonArray) {
+                val transArr = translations.asJsonArray
+                for (item in transArr) {
+                    if (item.isJsonObject) {
+                        val itemObj = item.asJsonObject
+                        val lang = itemObj.get("language")?.asString?.lowercase(Locale.getDefault())
+                        if (lang in germanLangKeys && itemObj.has("name") && !itemObj["name"].isJsonNull) {
+                            val candidate = itemObj["name"].asString
+                            if (candidate.isNotBlank()) return candidate
+                        }
+                    }
+                }
+            }
+        }
+
+        // If primaryName itself is non-empty, use primaryName
+        if (primaryName.isNotBlank()) {
+            return primaryName
+        }
+
+        return null
     }
 
     private fun extractEnglishOrSecondaryName(jsonMediaObject: JsonObject, primaryName: String): String {

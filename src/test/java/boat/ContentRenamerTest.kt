@@ -887,4 +887,31 @@ class ContentRenamerTest {
         }
     }
 
+    @Test
+    fun testMoeshaExtraction() {
+        val httpHelper = HttpHelper()
+        val mediaProxyService = MediaProxyService(TheMovieDataBaseService(httpHelper), TheTVDBService(httpHelper))
+        val contentRenamer = ContentRenamer(mediaProxyService)
+
+        val file = File("/home/denis/pfdb/PFDB/Series-Shows/M/Moesha.(1996-2001).Tv.Series.Season.S0106:/Season 3 (1997-98)/MOESHA - S03 E06 - The Play Scene (480p - NF Web-DL).mp4")
+        val name = contentRenamer.extractName(file)
+        val year = contentRenamer.extractYear(file.path)
+        val season = contentRenamer.extractSeason(file)
+        val episode = contentRenamer.extractEpisode(file)
+
+        System.out.println("[DEBUG_LOG] Moesha -> Name: '$name', Year: $year, Season: $season, Episode: $episode")
+
+        assert(name == "Moesha" || name == "MOESHA") { "Expected 'Moesha' or 'MOESHA' but got '$name'" }
+        assert(year == 1996) { "Expected year 1996 but got $year" }
+        assert(season == 3) { "Expected season 3 but got $season" }
+        assert(episode == 6) { "Expected episode 6 but got $episode" }
+
+        val searchResult = mediaProxyService.search(name, year ?: 0)
+        System.out.println("[DEBUG_LOG] Moesha searchResult: $searchResult")
+        assert(searchResult.isNotEmpty()) { "Expected search results for $name ($year)" }
+        assert(searchResult.first().title.equals("Moesha", ignoreCase = true)) {
+            "Expected 'Moesha' in title but got '${searchResult.first().title}'"
+        }
+    }
+
 }
