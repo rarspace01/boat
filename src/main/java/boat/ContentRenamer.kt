@@ -484,8 +484,24 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
 
     fun extractYear(fullName: String): Int? {
         val yearRegex = "\\b(19[0-9]{2}|20[0-2][0-9])\\b".toRegex()
-        val match = yearRegex.find(File(fullName).name) ?: yearRegex.find(File(fullName).parentFile?.name ?: "")
-        return match?.groupValues?.get(1)?.toInt()
+        val file = File(fullName)
+        val nameMatch = yearRegex.find(file.name)
+        if (nameMatch != null) return nameMatch.groupValues[1].toInt()
+
+        val parent = file.parentFile
+        val isSeasonFolder = parent?.name?.let {
+            "(?i)^(?:Season|Series|Specials|Dis[ck]|DVD|CD|Vol(?:ume)?)\\b".toRegex().containsMatchIn(it)
+        } ?: false
+
+        if (isSeasonFolder && parent?.parentFile != null) {
+            val grandParentMatch = yearRegex.find(parent.parentFile.name)
+            if (grandParentMatch != null) {
+                return grandParentMatch.groupValues[1].toInt()
+            }
+        }
+
+        val parentMatch = parent?.let { yearRegex.find(it.name) }
+        return parentMatch?.groupValues?.get(1)?.toInt()
     }
 
     fun extractSeason(file: File): Int? {

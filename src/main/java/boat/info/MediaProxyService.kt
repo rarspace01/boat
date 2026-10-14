@@ -133,10 +133,10 @@ class MediaProxyService(
     }
 
     internal fun rankResults(query: String, items: List<MediaItem>, year: Int? = null): List<MediaItem> {
-        if (items.size <= 1) return items
-        return items.sortedByDescending { item ->
-            calculateScore(query, item, year)
-        }
+        val scored = items.map { item ->
+            item to calculateScore(query, item, year)
+        }.filter { it.second > 0.0 }
+        return scored.sortedByDescending { it.second }.map { it.first }
     }
 
     private fun normalizeString(input: String): String {
@@ -157,6 +157,9 @@ class MediaProxyService(
         val titleScore = scoreTitle(queryWords, normalizedQuery, item.title)
         val originalTitleScore = item.originalTitle?.let { scoreTitle(queryWords, normalizedQuery, it) } ?: 0.0
         var totalScore = maxOf(titleScore, originalTitleScore)
+        if (totalScore <= 0.0) {
+            return 0.0
+        }
 
         if (targetYear != null && item.year != null) {
             if (item.year == targetYear) {
@@ -167,7 +170,7 @@ class MediaProxyService(
             }
         }
 
-        return totalScore
+        return maxOf(0.0, totalScore)
     }
 
     private fun scoreTitle(queryWords: List<String>, normalizedQuery: String, rawTitle: String): Double {
@@ -175,9 +178,14 @@ class MediaProxyService(
         val titleWords = normalizedTitle.split(" ").filter { it.isNotBlank() }
         if (titleWords.isEmpty()) return 0.0
 
+        val matchingWords = queryWords.count { qWord -> titleWords.contains(qWord) }
+        val hasSubstringMatch = normalizedTitle.contains(normalizedQuery) || normalizedQuery.contains(normalizedTitle)
+        if (matchingWords == 0 && !hasSubstringMatch) {
+            return 0.0
+        }
+
         var score = 0.0
 
-        val matchingWords = queryWords.count { qWord -> titleWords.contains(qWord) }
         val titleWordCount = titleWords.size
         val queryWordCount = queryWords.size
 
@@ -219,6 +227,6 @@ class MediaProxyService(
             score += 20.0
         }
 
-        return score
+        return maxOf(0.0, score)
     }
 }

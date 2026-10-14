@@ -115,6 +115,19 @@ class MediaProxyServiceCachingTest {
     }
 
     @Test
+    fun `rankResults should filter out completely irrelevant results with no word or substring match`() {
+        val query = "DOUG"
+        val hongGilDong = MediaItem("Hong Gil Dong (1998)", "홍길동", 1998, MediaType.Series)
+        val doug = MediaItem("Doug", "Doug", 1991, MediaType.Series)
+
+        val rankedWithYear = mediaProxyService.rankResults(query, listOf(hongGilDong), 1998)
+        assertTrue(rankedWithYear.isEmpty())
+
+        val rankedCombined = mediaProxyService.rankResults(query, listOf(hongGilDong, doug), 1998)
+        assertEquals(listOf(doug), rankedCombined)
+    }
+
+    @Test
     fun `search should persist cache to file and reload on new service instance`(@TempDir tempDir: Path) {
         val cacheFile = tempDir.resolve("testMediaProxyCache").toFile()
         val cachePath = cacheFile.absolutePath

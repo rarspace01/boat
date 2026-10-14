@@ -785,4 +785,23 @@ class ContentRenamerTest {
         assert(episode == 8) { "Expected episode 8 but got $episode" }
     }
 
+    @Test
+    fun testDougExtractionAndYear() {
+        val httpHelper = HttpHelper()
+        val contentRenamer = ContentRenamer(
+            MediaProxyService(TheMovieDataBaseService(httpHelper), TheTVDBService(httpHelper))
+        )
+
+        val file = File("~/Series-Shows/D/DOUG (1991-1999) - Complete Animated TV Series, S01-S07 and Movie - 480p x264/Season 7 (1998-99)/DOUG - S07 E25 - Quailman vs. the Triad of Terror (480p - DSNP Web-DL).srt")
+        val name = contentRenamer.extractName(file)
+        val year = contentRenamer.extractYear(file.absolutePath)
+        val season = contentRenamer.extractSeason(file)
+        val episode = contentRenamer.extractEpisode(file)
+
+        assert(name == "DOUG") { "Expected 'DOUG' but got '$name'" }
+        assert(year == 1991) { "Expected year 1991 but got $year" }
+        assert(season == 7) { "Expected season 7 but got $season" }
+        assert(episode == 25) { "Expected episode 25 but got $episode" }
+    }
+
 }
