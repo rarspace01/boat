@@ -5,3 +5,4 @@ boat.cfg
 out/
 /bin/
 /.settings/
+mediaProxyCache*

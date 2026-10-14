@@ -1,22 +1,93 @@
 package boat.info
 
+import boat.utilities.LoggerDelegate
+import com.google.gson.GsonBuilder
+import com.google.gson.reflect.TypeToken
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
+import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.abs
 
 @Service
-class MediaProxyService @Autowired constructor(
+class MediaProxyService(
     private val theMovieDataBaseService: TheMovieDataBaseService,
-    private val theTVDBService: TheTVDBService
+    private val theTVDBService: TheTVDBService,
+    var cacheFileName: String = CACHE_FILE_NAME
 ) {
+    @Autowired
+    constructor(
+        theMovieDataBaseService: TheMovieDataBaseService,
+        theTVDBService: TheTVDBService
+    ) : this(theMovieDataBaseService, theTVDBService, CACHE_FILE_NAME)
 
-    private val cache = ConcurrentHashMap<String, List<MediaItem>>()
+    companion object {
+        const val CACHE_FILE_NAME = "mediaProxyCache"
+    }
+
+    private val logger by LoggerDelegate()
+    private val gson = GsonBuilder().setPrettyPrinting().create()
+    private val cacheLock = Any()
+    internal val cache = ConcurrentHashMap<String, List<MediaItem>>()
+
+    init {
+        loadCache()
+    }
+
+    internal fun loadCache() {
+        synchronized(cacheLock) {
+            try {
+                val file = File(cacheFileName)
+                val fileToLoad = if (file.exists() && file.isFile) {
+                    file
+                } else {
+                    val jsonVariant = File("$cacheFileName.json")
+                    if (jsonVariant.exists() && jsonVariant.isFile) jsonVariant else null
+                }
+                if (fileToLoad != null) {
+                    val json = fileToLoad.readText()
+                    if (json.isNotBlank()) {
+                        val type = object : TypeToken<Map<String, List<MediaItem>>>() {}.type
+                        val loaded: Map<String, List<MediaItem>>? = gson.fromJson(json, type)
+                        if (loaded != null) {
+                            cache.putAll(loaded)
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                logger.warn("Failed to load media proxy cache from $cacheFileName", e)
+            }
+        }
+    }
+
+    internal fun saveCache() {
+        synchronized(cacheLock) {
+            try {
+                val file = File(cacheFileName)
+                file.parentFile?.mkdirs()
+                val json = gson.toJson(cache)
+                file.writeText(json)
+            } catch (e: Exception) {
+                logger.warn("Failed to save media proxy cache to $cacheFileName", e)
+            }
+        }
+    }
+
+    private fun getCachedOrPut(cacheKey: String, compute: () -> List<MediaItem>): List<MediaItem> {
+        val cached = cache[cacheKey]
+        if (cached != null) {
+            return cached
+        }
+        val computed = compute()
+        cache[cacheKey] = computed
+        saveCache()
+        return computed
+    }
 
     fun search(name: String?): List<MediaItem> {
         if (name.isNullOrBlank()) return emptyList()
         val cacheKey = "search:$name"
-        return cache.getOrPut(cacheKey) {
+        return getCachedOrPut(cacheKey) {
             val tmdbResults = theMovieDataBaseService.search(name) ?: emptyList()
             val tvdbResults = theTVDBService.search(name)
             val combined = tmdbResults.plus(tvdbResults).distinctBy { it.title + it.year + it.type }
@@ -27,7 +98,7 @@ class MediaProxyService @Autowired constructor(
     fun search(name: String?, year: Int): List<MediaItem> {
         if (name.isNullOrBlank()) return emptyList()
         val cacheKey = "search:$name:$year"
-        return cache.getOrPut(cacheKey) {
+        return getCachedOrPut(cacheKey) {
             val tmdbResults = theMovieDataBaseService.search(name, year) ?: emptyList()
             val tvdbResults = theTVDBService.search(name, year)
             val combined = tmdbResults.plus(tvdbResults).distinctBy { it.title + it.year + it.type }
@@ -38,7 +109,7 @@ class MediaProxyService @Autowired constructor(
     fun search(name: String?, type: MediaType?): List<MediaItem> {
         if (name.isNullOrBlank()) return emptyList()
         val cacheKey = "search:$name:$type"
-        return cache.getOrPut(cacheKey) {
+        return getCachedOrPut(cacheKey) {
             val results = when (type) {
                 MediaType.Movie -> theMovieDataBaseService.search(name) ?: emptyList()
                 MediaType.Series -> theTVDBService.search(name)
@@ -51,7 +122,7 @@ class MediaProxyService @Autowired constructor(
     fun search(name: String?, year: Int, type: MediaType?): List<MediaItem> {
         if (name.isNullOrBlank()) return emptyList()
         val cacheKey = "search:$name:$year:$type"
-        return cache.getOrPut(cacheKey) {
+        return getCachedOrPut(cacheKey) {
             val results = when (type) {
                 MediaType.Movie -> theMovieDataBaseService.search(name, year) ?: emptyList()
                 MediaType.Series -> theTVDBService.search(name, year)

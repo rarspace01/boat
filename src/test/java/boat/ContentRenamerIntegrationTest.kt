@@ -47,8 +47,8 @@ class ContentRenamerIntegrationTest {
                     listFiles.forEach { processFile(it) }
                 }
             } else {
-                val fileExt = file.name.replace(file.nameWithoutExtension, "")
-                if (fileExt == ".rar" || fileExt == ".7z" || fileExt == ".zip" || fileExt == ".mp3") {
+                val fileExt = file.name.lowercase().replace(file.nameWithoutExtension.lowercase(), "")
+                if (fileExt == ".rar" || fileExt == ".7z" || fileExt == ".zip" || fileExt == ".mp3" || fileExt == ".vob" || fileExt == ".iso" || fileExt == ".ifo" || fileExt == ".bup") {
                     println("DEL: ${file.absolutePath}")
                     file.delete()
                 }
