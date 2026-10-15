@@ -148,6 +148,7 @@ class MediaProxyServiceCachingTest {
 
         val result1 = serviceInstance1.search(movieName)
         val result2 = serviceInstance1.search(seriesName, MediaType.Series)
+        serviceInstance1.saveCache()
 
         assertThat(result1).isEqualTo(movieResults)
         assertThat(result2).isEqualTo(seriesResults)

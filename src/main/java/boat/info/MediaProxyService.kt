@@ -29,6 +29,8 @@ class MediaProxyService(
     private val gson = GsonBuilder().setPrettyPrinting().create()
     private val cacheLock = Any()
     internal val cache = ConcurrentHashMap<String, List<MediaItem>>()
+    @Volatile
+    private var dirty = false
 
     init {
         loadCache()
@@ -54,19 +56,22 @@ class MediaProxyService(
                         }
                     }
                 }
+                dirty = false
             } catch (e: Exception) {
                 logger.warn("Failed to load media proxy cache from $cacheFileName", e)
             }
         }
     }
 
-    internal fun saveCache() {
+    fun saveCache(force: Boolean = false) {
         synchronized(cacheLock) {
+            if (!dirty && !force) return
             try {
                 val file = File(cacheFileName)
                 file.parentFile?.mkdirs()
                 val json = gson.toJson(cache)
                 file.writeText(json)
+                dirty = false
             } catch (e: Exception) {
                 logger.warn("Failed to save media proxy cache to $cacheFileName", e)
             }
@@ -80,7 +85,7 @@ class MediaProxyService(
         }
         val computed = compute()
         cache[cacheKey] = computed
-        saveCache()
+        dirty = true
         return computed
     }
 
