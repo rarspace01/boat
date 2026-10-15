@@ -1,6 +1,6 @@
 package boat.utilities
 
-import org.junit.jupiter.api.Assertions
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 
 internal class PropertiesHelperTest {
@@ -11,8 +11,8 @@ internal class PropertiesHelperTest {
         // When
         val version = PropertiesHelper.version
         // Then
-        Assertions.assertNotNull(version)
-        Assertions.assertTrue(!version!!.contains("version-missing"))
+        assertThat(version).isNotNull
+        assertThat(version).doesNotContain("version-missing")
     }
 
     @Test
@@ -21,7 +21,7 @@ internal class PropertiesHelperTest {
         // When
         val property = PropertiesHelper.getProperty("PATH")
         // Then
-        Assertions.assertNotNull(property)
-        Assertions.assertTrue(property!!.isNotEmpty())
+        assertThat(property).isNotNull
+        assertThat(property).isNotEmpty
     }
 }

@@ -1,6 +1,6 @@
 package boat.utilities
 
-import org.junit.jupiter.api.Assertions
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 
@@ -12,6 +12,6 @@ internal class ProcessUtilTest {
         // When
         val rcloneInstalled = ProcessUtil.isRcloneInstalled
         // Then
-        Assertions.assertTrue(rcloneInstalled)
+        assertThat(rcloneInstalled).isTrue()
     }
 }

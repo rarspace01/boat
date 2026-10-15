@@ -4,8 +4,7 @@ import io.mockk.clearMocks
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
@@ -35,11 +34,11 @@ class MediaProxyServiceCachingTest {
 
         // First call
         val result1 = mediaProxyService.search(name)
-        assertEquals(results, result1)
+        assertThat(result1).isEqualTo(results)
 
         // Second call
         val result2 = mediaProxyService.search(name)
-        assertEquals(results, result2)
+        assertThat(result2).isEqualTo(results)
 
         // Verify services were called only once
         verify(exactly = 1) { tmdbService.search(name) }
@@ -57,11 +56,11 @@ class MediaProxyServiceCachingTest {
 
         // First call
         val result1 = mediaProxyService.search(name, year)
-        assertEquals(results, result1)
+        assertThat(result1).isEqualTo(results)
 
         // Second call
         val result2 = mediaProxyService.search(name, year)
-        assertEquals(results, result2)
+        assertThat(result2).isEqualTo(results)
 
         // Verify services were called only once
         verify(exactly = 1) { tmdbService.search(name, year) }
@@ -78,7 +77,7 @@ class MediaProxyServiceCachingTest {
         every { tmdbService.search(query) } returns emptyList()
 
         val results = mediaProxyService.search(query, MediaType.Series)
-        assertEquals(listOf(hackRoots, sommerCamp), results)
+        assertThat(results).isEqualTo(listOf(hackRoots, sommerCamp))
     }
 
     @Test
@@ -88,7 +87,7 @@ class MediaProxyServiceCachingTest {
         val item2020 = MediaItem("Inception", "Inception", 2020, MediaType.Movie)
 
         val ranked = mediaProxyService.rankResults(query, listOf(item2020, item2010), 2010)
-        assertEquals(listOf(item2010, item2020), ranked)
+        assertThat(ranked).isEqualTo(listOf(item2010, item2020))
     }
 
     @Test
@@ -100,7 +99,7 @@ class MediaProxyServiceCachingTest {
         val sportsMash = MediaItem("Sports Mash: Taking the Mic", "Sports Mash: Taking the Mic", 2010, MediaType.Series)
 
         val ranked = mediaProxyService.rankResults(query, listOf(sportsMash, mashReport, mashUp, mash))
-        assertEquals(listOf(mash, mashUp, mashReport, sportsMash), ranked)
+        assertThat(ranked).isEqualTo(listOf(mash, mashUp, mashReport, sportsMash))
     }
 
     @Test
@@ -112,7 +111,7 @@ class MediaProxyServiceCachingTest {
         val partialMatchFewerWords = MediaItem("The Doctor", "The Doctor", 2020, MediaType.Series)
 
         val ranked = mediaProxyService.rankResults(query, listOf(partialMatchFewerWords, moreExtraWords, extraWord, exact))
-        assertEquals(listOf(exact, extraWord, moreExtraWords, partialMatchFewerWords), ranked)
+        assertThat(ranked).isEqualTo(listOf(exact, extraWord, moreExtraWords, partialMatchFewerWords))
     }
 
     @Test
@@ -122,10 +121,10 @@ class MediaProxyServiceCachingTest {
         val doug = MediaItem("Doug", "Doug", 1991, MediaType.Series)
 
         val rankedWithYear = mediaProxyService.rankResults(query, listOf(hongGilDong), 1998)
-        assertTrue(rankedWithYear.isEmpty())
+        assertThat(rankedWithYear).isEmpty()
 
         val rankedCombined = mediaProxyService.rankResults(query, listOf(hongGilDong, doug), 1998)
-        assertEquals(listOf(doug), rankedCombined)
+        assertThat(rankedCombined).isEqualTo(listOf(doug))
     }
 
     @Test
@@ -150,10 +149,10 @@ class MediaProxyServiceCachingTest {
         val result1 = serviceInstance1.search(movieName)
         val result2 = serviceInstance1.search(seriesName, MediaType.Series)
 
-        assertEquals(movieResults, result1)
-        assertEquals(seriesResults, result2)
-        assertTrue(cacheFile.exists())
-        assertTrue(cacheFile.length() > 0)
+        assertThat(result1).isEqualTo(movieResults)
+        assertThat(result2).isEqualTo(seriesResults)
+        assertThat(cacheFile).exists()
+        assertThat(cacheFile.length()).isGreaterThan(0)
 
         verify(exactly = 1) { tmdb1.search(movieName) }
         verify(exactly = 1) { tvdb1.search(seriesName) }
@@ -167,8 +166,8 @@ class MediaProxyServiceCachingTest {
         val loadedResult1 = serviceInstance2.search(movieName)
         val loadedResult2 = serviceInstance2.search(seriesName, MediaType.Series)
 
-        assertEquals(movieResults, loadedResult1)
-        assertEquals(seriesResults, loadedResult2)
+        assertThat(loadedResult1).isEqualTo(movieResults)
+        assertThat(loadedResult2).isEqualTo(seriesResults)
 
         // No external calls on serviceInstance2
         verify(exactly = 0) { tmdb2.search(any()) }

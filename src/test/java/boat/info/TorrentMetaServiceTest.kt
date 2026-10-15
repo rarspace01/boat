@@ -5,7 +5,7 @@ import boat.torrent.Torrent
 import io.mockk.clearAllMocks
 import io.mockk.every
 import io.mockk.mockk
-import org.assertj.core.api.Assertions
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
@@ -36,7 +36,7 @@ internal class TorrentMetaServiceTest {
         torrentMetaService.refreshTorrents()
         // Then
         val activeTorrents = torrentMetaService.activeTorrents
-        Assertions.assertThat(activeTorrents).containsExactlyInAnyOrder(remoteTorrentDownloading, localTorrentUploading)
+        assertThat(activeTorrents).containsExactlyInAnyOrder(remoteTorrentDownloading, localTorrentUploading)
     }
 
     @Test
@@ -58,6 +58,6 @@ internal class TorrentMetaServiceTest {
         torrentMetaService.refreshTorrents()
         // Then
         val activeTorrents = torrentMetaService.activeTorrents
-        Assertions.assertThat(activeTorrents).containsExactlyInAnyOrder(remoteTorrentDownloading, localTorrentUploading)
+        assertThat(activeTorrents).containsExactlyInAnyOrder(remoteTorrentDownloading, localTorrentUploading)
     }
 }

@@ -1,7 +1,7 @@
 package boat.info
 
 import boat.utilities.HttpHelper
-import org.junit.jupiter.api.Assertions
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
@@ -16,8 +16,8 @@ internal class TheTVDBServiceTest {
     @Test
     fun search() {
         val mediaItems = tvdbs!!.search("MASH")
-        Assertions.assertTrue(mediaItems.isNotEmpty())
-        Assertions.assertTrue(mediaItems.any { it.title == "M*A*S*H" && it.year == 1972 })
+        assertThat(mediaItems).isNotEmpty
+        assertThat(mediaItems.any { it.title == "M*A*S*H" && it.year == 1972 }).isTrue()
     }
 
     @Test
@@ -45,11 +45,11 @@ internal class TheTVDBServiceTest {
         val items = tvdbs!!.parseResponsePage(json)
         
         // Then
-        Assertions.assertNotNull(items)
-        Assertions.assertEquals(2, items!!.size)
-        Assertions.assertEquals("Breaking Bad", items[0].title)
-        Assertions.assertEquals(MediaType.Series, items[0].type)
-        Assertions.assertEquals(2008, items[0].year)
+        assertThat(items).isNotNull
+        assertThat(items).hasSize(2)
+        assertThat(items!![0].title).isEqualTo("Breaking Bad")
+        assertThat(items[0].type).isEqualTo(MediaType.Series)
+        assertThat(items[0].year).isEqualTo(2008)
     }
 
     @Test
@@ -93,24 +93,24 @@ internal class TheTVDBServiceTest {
         val items = tvdbs!!.parseResponsePage(json)
 
         // Then
-        Assertions.assertNotNull(items)
-        Assertions.assertEquals(3, items!!.size)
+        assertThat(items).isNotNull
+        assertThat(items).hasSize(3)
 
         // Item 1: from translations
-        Assertions.assertEquals(".hack//Legend of the Twilight", items[0].title)
-        Assertions.assertEquals(".hack//黄昏の腕輪伝説", items[0].originalTitle)
-        Assertions.assertEquals(MediaType.Series, items[0].type)
-        Assertions.assertEquals("{tvdb-457327}", items[0].id)
+        assertThat(items!![0].title).isEqualTo(".hack//Legend of the Twilight")
+        assertThat(items[0].originalTitle).isEqualTo(".hack//黄昏の腕輪伝説")
+        assertThat(items[0].type).isEqualTo(MediaType.Series)
+        assertThat(items[0].id).isEqualTo("{tvdb-457327}")
 
         // Item 2: from secondary_name
-        Assertions.assertEquals("Attack on Titan", items[1].title)
-        Assertions.assertEquals("進撃の巨人", items[1].originalTitle)
-        Assertions.assertEquals(MediaType.Series, items[1].type)
+        assertThat(items[1].title).isEqualTo("Attack on Titan")
+        assertThat(items[1].originalTitle).isEqualTo("進撃の巨人")
+        assertThat(items[1].type).isEqualTo(MediaType.Series)
 
         // Item 3: from aliases (ASCII fallback)
-        Assertions.assertEquals("Demon Slayer: Kimetsu no Yaiba", items[2].title)
-        Assertions.assertEquals("鬼滅の刃", items[2].originalTitle)
-        Assertions.assertEquals(MediaType.Series, items[2].type)
+        assertThat(items[2].title).isEqualTo("Demon Slayer: Kimetsu no Yaiba")
+        assertThat(items[2].originalTitle).isEqualTo("鬼滅の刃")
+        assertThat(items[2].type).isEqualTo(MediaType.Series)
     }
 
     @Test
@@ -183,23 +183,23 @@ internal class TheTVDBServiceTest {
         val items = tvdbs!!.parseResponsePage(json)
 
         // Then
-        Assertions.assertNotNull(items)
-        Assertions.assertEquals(5, items!!.size)
+        assertThat(items).isNotNull
+        assertThat(items).hasSize(5)
 
         // Item 1: German original series
-        Assertions.assertEquals("Dark", items[0].title)
+        assertThat(items!![0].title).isEqualTo("Dark")
 
         // Item 2: German original series with different English translation
-        Assertions.assertEquals("Babylon Berlin", items[1].title)
+        assertThat(items[1].title).isEqualTo("Babylon Berlin")
 
         // Item 3: German original movie with English translation 'The Boat'
-        Assertions.assertEquals("Das Boot", items[2].title)
-        Assertions.assertEquals(MediaType.Movie, items[2].type)
+        assertThat(items[2].title).isEqualTo("Das Boot")
+        assertThat(items[2].type).isEqualTo(MediaType.Movie)
 
         // Item 4: German primary_country
-        Assertions.assertEquals("How to Sell Drugs Online (Fast)", items[3].title)
+        assertThat(items[3].title).isEqualTo("How to Sell Drugs Online (Fast)")
 
         // Item 5: Spanish original series (non-German) -> sticks with English name 'Money Heist'
-        Assertions.assertEquals("Money Heist", items[4].title)
+        assertThat(items[4].title).isEqualTo("Money Heist")
     }
 }

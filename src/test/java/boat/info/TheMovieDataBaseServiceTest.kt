@@ -2,7 +2,7 @@ package boat.info
 
 import boat.torrent.Torrent
 import boat.utilities.HttpHelper
-import org.junit.jupiter.api.Assertions
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
@@ -19,7 +19,8 @@ internal class TheMovieDataBaseServiceTest {
         // When
         val mediaItems = tfdbs!!.search("Planet")
         // Then
-        Assertions.assertTrue(mediaItems!!.size > 0)
+        assertThat(mediaItems).isNotNull
+        assertThat(mediaItems!!.size).isGreaterThan(0)
     }
 
     @Test
@@ -28,7 +29,8 @@ internal class TheMovieDataBaseServiceTest {
         // When
         val mediaItems = tfdbs!!.search("blueasablue")
         // Then
-        Assertions.assertEquals(0, mediaItems!!.size)
+        assertThat(mediaItems).isNotNull
+        assertThat(mediaItems).isEmpty()
     }
 
     @Test
@@ -39,7 +41,7 @@ internal class TheMovieDataBaseServiceTest {
         // When
         val mediaType = tfdbs!!.determineMediaType(mockTorrent)
         // Then
-        Assertions.assertEquals(MediaType.Movie, mediaType)
+        assertThat(mediaType).isEqualTo(MediaType.Movie)
     }
 
     @Test
@@ -50,6 +52,6 @@ internal class TheMovieDataBaseServiceTest {
         // When
         val mediaType = tfdbs!!.determineMediaType(mockTorrent)
         // Then
-        Assertions.assertEquals(MediaType.Movie, mediaType)
+        assertThat(mediaType).isEqualTo(MediaType.Movie)
     }
 }

@@ -988,4 +988,22 @@ class ContentRenamerTest {
         assertThat(searchResult.first().type).isEqualTo(MediaType.Series)
     }
 
+    @Test
+    fun testCowboyExtraction() {
+        val httpHelper = HttpHelper()
+        val mediaProxyService = MediaProxyService(TheMovieDataBaseService(httpHelper), TheTVDBService(httpHelper))
+        val contentRenamer = ContentRenamer(mediaProxyService)
+        val file = File("~/Series-Shows/C/Cowboy Bebop 01-26 (1080p Blu-ray 8bit AC3 MP4)/[NoobSubs] Cowboy Bebop 19 (1080p Blu-ray 8bit AC3).mp4")
+        val name = contentRenamer.extractName(file)
+        val episode = contentRenamer.extractEpisode(file)
+
+        assertThat(name.startsWith("Cowboy Bebop")).isTrue()
+        assertThat(episode).isEqualTo(19)
+
+        val searchResult = mediaProxyService.search("Cowboy Bebop", MediaType.Series)
+        assertThat(searchResult).isNotEmpty()
+        assertThat(searchResult.first().title).isEqualTo("Cowboy Bebop")
+        assertThat(searchResult.first().type).isEqualTo(MediaType.Series)
+    }
+
 }
