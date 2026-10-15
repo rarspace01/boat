@@ -1,4 +1,5 @@
 package boat
+import org.assertj.core.api.Assertions.assertThat
 
 import boat.info.MediaItem
 import boat.info.MediaProxyService
@@ -70,54 +71,54 @@ class ContentRenamerTest {
             System.out.println("[DEBUG_LOG] F: $fullName")
             System.out.println("[DEBUG_LOG]  -> Name: $name, Year: $year, Season: $season, Episode: $episode")
             if (fullName.contains("teneighty-cfwm")) {
-                assert(name == "Come Fly With Me") { "Expected 'Come Fly With Me' but got '$name'" }
+                assertThat(name).isEqualTo("Come Fly With Me")
             }
             if (fullName.contains("Dragon%20Ball%20Super")) {
-                assert(name == "Dragon Ball Super") { "Expected 'Dragon Ball Super' but got '$name'" }
+                assertThat(name).isEqualTo("Dragon Ball Super")
             }
             if (fullName.contains("071c-Star.Wars.The.Bad.Batch")) {
-                assert(name == "Star Wars The Bad Batch") { "Expected 'Star Wars The Bad Batch' but got '$name'" }
+                assertThat(name).isEqualTo("Star Wars The Bad Batch")
             }
             if (fullName.contains("www.Torrenting.com")) {
-                assert(name == "90 Day Fiance Happily Ever After") { "Expected '90 Day Fiance Happily Ever After' but got '$name'" }
+                assertThat(name).isEqualTo("90 Day Fiance Happily Ever After")
             }
             if (fullName.contains("Adventure Time")) {
-                assert(name == "Adventure Time") { "Expected 'Adventure Time' but got '$name'" }
+                assertThat(name).isEqualTo("Adventure Time")
             }
             if (fullName.contains("Avatar - The Last Airbender")) {
-                assert(name == "Avatar - The Last Airbender") { "Expected 'Avatar - The Last Airbender' but got '$name'" }
+                assertThat(name).isEqualTo("Avatar - The Last Airbender")
             }
             if (fullName.contains("Duckman")) {
-                assert(name == "Duckman") { "Expected 'Duckman' but got '$name'" }
-                assert(season == 1) { "Expected season 1 but got $season" }
-                assert(episode == 1) { "Expected episode 1 but got $episode" }
+                assertThat(name).isEqualTo("Duckman")
+                assertThat(season).isEqualTo(1)
+                assertThat(episode).isEqualTo(1)
             }
             if (fullName.contains("101 - The Boy in the Iceberg.mp4")) {
                 val ep = contentRenamer.extractEpisode(file)
                 val se = contentRenamer.extractSeason(file)
-                assert(se == 1) { "Expected season 1 but got $se" }
-                assert(ep == 1) { "Expected episode 1 but got $ep" }
+                assertThat(se).isEqualTo(1)
+                assertThat(ep).isEqualTo(1)
             }
             if (fullName.contains("Dragon Ball Super - 101 [1080p].mkv")) {
                 val ep = contentRenamer.extractEpisode(file)
-                assert(ep == 101) { "Expected episode 101 but got $ep" }
+                assertThat(ep).isEqualTo(101)
             }
             if (fullName.contains("Reservation Dogs")) {
-                assert(name == "Reservation Dogs") { "Expected 'Reservation Dogs' but got '$name'" }
-                assert(season == 1) { "Expected season 1 but got $season" }
-                assert(episode == 7) { "Expected episode 7 but got $episode" }
+                assertThat(name).isEqualTo("Reservation Dogs")
+                assertThat(season).isEqualTo(1)
+                assertThat(episode).isEqualTo(7)
             }
             if (fullName.contains("Zombieland%20Saga")) {
-                assert(name == "Zombieland Saga") { "Expected 'Zombieland Saga' but got '$name'" }
+                assertThat(name).isEqualTo("Zombieland Saga")
             }
             if (fullName.contains("SIGN/HS28.avi")) {
-                assert(name.equals("HACK SIGN", ignoreCase = true)) { "Expected 'HACK SIGN' but got '$name'" }
-                assert(episode == 28) { "Expected episode 28 but got $episode" }
+                assertThat(name).isEqualToIgnoringCase("HACK SIGN")
+                assertThat(episode).isEqualTo(28)
             }
             if (fullName.contains("24 - S01xE11.mp4")) {
-                assert(name == "24") { "Expected '24' but got '$name'" }
-                assert(season == 1) { "Expected season 1 but got $season" }
-                assert(episode == 11) { "Expected episode 11 but got $episode" }
+                assertThat(name).isEqualTo("24")
+                assertThat(season).isEqualTo(1)
+                assertThat(episode).isEqualTo(11)
             }
         }
     }
@@ -130,76 +131,76 @@ class ContentRenamerTest {
         )
 
         // Junk names
-        assert(contentRenamer.isJunk(""))
-        assert(contentRenamer.isJunk("   "))
-        assert(contentRenamer.isJunk("A"))
-        assert(contentRenamer.isJunk("#"))
-        assert(contentRenamer.isJunk("0-9"))
-        assert(contentRenamer.isJunk("TV"))
-        assert(contentRenamer.isJunk("Series-Shows"))
-        assert(contentRenamer.isJunk("Downloads"))
-        assert(contentRenamer.isJunk("Season 1"))
-        assert(contentRenamer.isJunk("Season 02"))
-        assert(contentRenamer.isJunk("Disc 1"))
-        assert(contentRenamer.isJunk("CD 1"))
-        assert(contentRenamer.isJunk("DVD 1"))
-        assert(contentRenamer.isJunk("Vol 1"))
-        assert(contentRenamer.isJunk("Volume 2"))
-        assert(contentRenamer.isJunk("Book 1"))
-        assert(contentRenamer.isJunk("Extras"))
-        assert(contentRenamer.isJunk("Featurettes"))
-        assert(contentRenamer.isJunk("Sample"))
-        assert(contentRenamer.isJunk("Samples"))
-        assert(contentRenamer.isJunk("Trailer"))
-        assert(contentRenamer.isJunk("Trailers"))
-        assert(contentRenamer.isJunk("Subs"))
-        assert(contentRenamer.isJunk("Subtitles"))
-        assert(contentRenamer.isJunk("UK"))
-        assert(contentRenamer.isJunk("US"))
-        assert(contentRenamer.isJunk("UK Season 05"))
-        assert(contentRenamer.isJunk("UK Season 05 [2007]"))
-        assert(contentRenamer.isJunk("6 spa"))
-        assert(contentRenamer.isJunk("6_spa"))
-        assert(contentRenamer.isJunk("1080p"))
-        assert(contentRenamer.isJunk("720p"))
-        assert(contentRenamer.isJunk("x264"))
-        assert(contentRenamer.isJunk("x265"))
-        assert(contentRenamer.isJunk("RARBG"))
-        assert(contentRenamer.isJunk("101"))
-        assert(contentRenamer.isJunk("01.01"))
-        assert(contentRenamer.isJunk("1x01"))
-        assert(contentRenamer.isJunk("S01E01"))
-        assert(contentRenamer.isJunk("Deleted Scenes"))
-        assert(contentRenamer.isJunk("Alternate Ending"))
-        assert(contentRenamer.isJunk("Alternate Endings"))
-        assert(contentRenamer.isJunk("Special Features"))
-        assert(contentRenamer.isJunk("HS22"))
-        assert(contentRenamer.isJunk("E01"))
-        assert(contentRenamer.isJunk("EP01"))
-        assert(contentRenamer.isJunk("Outtakes"))
-        assert(contentRenamer.isJunk("Bloopers"))
-        assert(contentRenamer.isJunk("Gag Reel"))
-        assert(contentRenamer.isJunk("Behind The Scenes"))
-        assert(contentRenamer.isJunk("Making Of"))
-        assert(contentRenamer.isJunk("Screentests"))
-        assert(contentRenamer.isJunk("Covers and Fonts"))
-        assert(contentRenamer.isJunk("Original Scripts"))
-        assert(contentRenamer.isJunk("http://example.com"))
-        assert(contentRenamer.isJunk("magnet:?xt=urn:btih:..."))
+        assertThat(contentRenamer.isJunk("")).isTrue()
+        assertThat(contentRenamer.isJunk("   ")).isTrue()
+        assertThat(contentRenamer.isJunk("A")).isTrue()
+        assertThat(contentRenamer.isJunk("#")).isTrue()
+        assertThat(contentRenamer.isJunk("0-9")).isTrue()
+        assertThat(contentRenamer.isJunk("TV")).isTrue()
+        assertThat(contentRenamer.isJunk("Series-Shows")).isTrue()
+        assertThat(contentRenamer.isJunk("Downloads")).isTrue()
+        assertThat(contentRenamer.isJunk("Season 1")).isTrue()
+        assertThat(contentRenamer.isJunk("Season 02")).isTrue()
+        assertThat(contentRenamer.isJunk("Disc 1")).isTrue()
+        assertThat(contentRenamer.isJunk("CD 1")).isTrue()
+        assertThat(contentRenamer.isJunk("DVD 1")).isTrue()
+        assertThat(contentRenamer.isJunk("Vol 1")).isTrue()
+        assertThat(contentRenamer.isJunk("Volume 2")).isTrue()
+        assertThat(contentRenamer.isJunk("Book 1")).isTrue()
+        assertThat(contentRenamer.isJunk("Extras")).isTrue()
+        assertThat(contentRenamer.isJunk("Featurettes")).isTrue()
+        assertThat(contentRenamer.isJunk("Sample")).isTrue()
+        assertThat(contentRenamer.isJunk("Samples")).isTrue()
+        assertThat(contentRenamer.isJunk("Trailer")).isTrue()
+        assertThat(contentRenamer.isJunk("Trailers")).isTrue()
+        assertThat(contentRenamer.isJunk("Subs")).isTrue()
+        assertThat(contentRenamer.isJunk("Subtitles")).isTrue()
+        assertThat(contentRenamer.isJunk("UK")).isTrue()
+        assertThat(contentRenamer.isJunk("US")).isTrue()
+        assertThat(contentRenamer.isJunk("UK Season 05")).isTrue()
+        assertThat(contentRenamer.isJunk("UK Season 05 [2007]")).isTrue()
+        assertThat(contentRenamer.isJunk("6 spa")).isTrue()
+        assertThat(contentRenamer.isJunk("6_spa")).isTrue()
+        assertThat(contentRenamer.isJunk("1080p")).isTrue()
+        assertThat(contentRenamer.isJunk("720p")).isTrue()
+        assertThat(contentRenamer.isJunk("x264")).isTrue()
+        assertThat(contentRenamer.isJunk("x265")).isTrue()
+        assertThat(contentRenamer.isJunk("RARBG")).isTrue()
+        assertThat(contentRenamer.isJunk("101")).isTrue()
+        assertThat(contentRenamer.isJunk("01.01")).isTrue()
+        assertThat(contentRenamer.isJunk("1x01")).isTrue()
+        assertThat(contentRenamer.isJunk("S01E01")).isTrue()
+        assertThat(contentRenamer.isJunk("Deleted Scenes")).isTrue()
+        assertThat(contentRenamer.isJunk("Alternate Ending")).isTrue()
+        assertThat(contentRenamer.isJunk("Alternate Endings")).isTrue()
+        assertThat(contentRenamer.isJunk("Special Features")).isTrue()
+        assertThat(contentRenamer.isJunk("HS22")).isTrue()
+        assertThat(contentRenamer.isJunk("E01")).isTrue()
+        assertThat(contentRenamer.isJunk("EP01")).isTrue()
+        assertThat(contentRenamer.isJunk("Outtakes")).isTrue()
+        assertThat(contentRenamer.isJunk("Bloopers")).isTrue()
+        assertThat(contentRenamer.isJunk("Gag Reel")).isTrue()
+        assertThat(contentRenamer.isJunk("Behind The Scenes")).isTrue()
+        assertThat(contentRenamer.isJunk("Making Of")).isTrue()
+        assertThat(contentRenamer.isJunk("Screentests")).isTrue()
+        assertThat(contentRenamer.isJunk("Covers and Fonts")).isTrue()
+        assertThat(contentRenamer.isJunk("Original Scripts")).isTrue()
+        assertThat(contentRenamer.isJunk("http://example.com")).isTrue()
+        assertThat(contentRenamer.isJunk("magnet:?xt=urn:btih:...")).isTrue()
 
         // Legitimate titles (not junk)
-        assert(!contentRenamer.isJunk("Dark"))
-        assert(!contentRenamer.isJunk("Lost"))
-        assert(!contentRenamer.isJunk("The Mandalorian"))
-        assert(!contentRenamer.isJunk("Inception"))
-        assert(!contentRenamer.isJunk("Chernobyl"))
-        assert(!contentRenamer.isJunk("Star Wars The Bad Batch"))
-        assert(!contentRenamer.isJunk("Avatar - The Last Airbender"))
-        assert(!contentRenamer.isJunk("Reservation Dogs"))
-        assert(!contentRenamer.isJunk("24 Complete With Subtitles"))
-        assert(!contentRenamer.isJunk("9-1-1"))
-        assert(!contentRenamer.isJunk("9 1 1"))
-        assert(!contentRenamer.isJunk("9-1-1: Lone Star"))
+        assertThat(contentRenamer.isJunk("Dark")).isFalse()
+        assertThat(contentRenamer.isJunk("Lost")).isFalse()
+        assertThat(contentRenamer.isJunk("The Mandalorian")).isFalse()
+        assertThat(contentRenamer.isJunk("Inception")).isFalse()
+        assertThat(contentRenamer.isJunk("Chernobyl")).isFalse()
+        assertThat(contentRenamer.isJunk("Star Wars The Bad Batch")).isFalse()
+        assertThat(contentRenamer.isJunk("Avatar - The Last Airbender")).isFalse()
+        assertThat(contentRenamer.isJunk("Reservation Dogs")).isFalse()
+        assertThat(contentRenamer.isJunk("24 Complete With Subtitles")).isFalse()
+        assertThat(contentRenamer.isJunk("9-1-1")).isFalse()
+        assertThat(contentRenamer.isJunk("9 1 1")).isFalse()
+        assertThat(contentRenamer.isJunk("9-1-1: Lone Star")).isFalse()
     }
 
     @Test
@@ -211,124 +212,66 @@ class ContentRenamerTest {
 
         // Auxiliary files in show folders resolve to the show name
         val angelStunts = File("~/Series-Shows/A/Angel Complete Series Season 1,2,3,4,5 + Extras, Subs/Extras/Season 2/Featurettes/Stunts.mkv")
-        assert(contentRenamer.extractName(angelStunts).startsWith("Angel")) {
-            "Expected 'Angel...' but got '${contentRenamer.extractName(angelStunts)}'"
-        }
+        assertThat(contentRenamer.extractName(angelStunts)).startsWith("Angel")
 
         val stargateTrailer = File("~/Series-Shows/S/Stargate SG1 Ultimate Fan Collection/Season 1/Extras/Season 2 Trailer.mp4")
-        assert(contentRenamer.extractName(stargateTrailer).startsWith("Stargate SG1")) {
-            "Expected 'Stargate SG1...' but got '${contentRenamer.extractName(stargateTrailer)}'"
-        }
+        assertThat(contentRenamer.extractName(stargateTrailer)).startsWith("Stargate SG1")
 
         val stargateFeaturette = File("~/Series-Shows/S/Stargate SG1 Ultimate Fan Collection/Season 1/Extras/CostumeDesignFeaturette.mp4")
-        assert(contentRenamer.extractName(stargateFeaturette).startsWith("Stargate SG1")) {
-            "Expected 'Stargate SG1...' but got '${contentRenamer.extractName(stargateFeaturette)}'"
-        }
+        assertThat(contentRenamer.extractName(stargateFeaturette)).startsWith("Stargate SG1")
 
         val twentyFourExtra = File("~/Series-Shows/0-9/24.Complete.With.Subtitles/24 Season 1/24 EXTRAS/Alternate Ending.mp4")
-        assert(contentRenamer.extractName(twentyFourExtra) == "24") {
-            "Expected '24' but got '${contentRenamer.extractName(twentyFourExtra)}'"
-        }
-        assert(contentRenamer.extractSeason(twentyFourExtra) == 1) {
-            "Expected season 1 but got '${contentRenamer.extractSeason(twentyFourExtra)}'"
-        }
-        assert(contentRenamer.extractEpisode(twentyFourExtra) == null) {
-            "Expected null episode but got '${contentRenamer.extractEpisode(twentyFourExtra)}'"
-        }
+        assertThat(contentRenamer.extractName(twentyFourExtra)).isEqualTo("24")
+        assertThat(contentRenamer.extractSeason(twentyFourExtra)).isEqualTo(1)
+        assertThat(contentRenamer.extractEpisode(twentyFourExtra)).isNull()
 
         val twentyFourInterview = File("~/Series-Shows/0-9/24.Complete.With.Subtitles/24 Season 1/24 EXTRAS/Kiefer Sutherland on season 1 of 24.mp4")
-        assert(contentRenamer.extractName(twentyFourInterview) == "24") {
-            "Expected '24' but got '${contentRenamer.extractName(twentyFourInterview)}'"
-        }
-        assert(contentRenamer.extractSeason(twentyFourInterview) == 1) {
-            "Expected season 1 but got '${contentRenamer.extractSeason(twentyFourInterview)}'"
-        }
+        assertThat(contentRenamer.extractName(twentyFourInterview)).isEqualTo("24")
+        assertThat(contentRenamer.extractSeason(twentyFourInterview)).isEqualTo(1)
 
         val nineOneOneFile = File("~/Series-Shows/0-9/9-1-1/9-1-1.S05E06.1080p.WEB.H264-CAKES[TGx].mkv")
-        assert(contentRenamer.extractName(nineOneOneFile) == "9-1-1") {
-            "Expected '9-1-1' but got '${contentRenamer.extractName(nineOneOneFile)}'"
-        }
-        assert(contentRenamer.extractSeason(nineOneOneFile) == 5) {
-            "Expected season 5 but got '${contentRenamer.extractSeason(nineOneOneFile)}'"
-        }
-        assert(contentRenamer.extractEpisode(nineOneOneFile) == 6) {
-            "Expected episode 6 but got '${contentRenamer.extractEpisode(nineOneOneFile)}'"
-        }
+        assertThat(contentRenamer.extractName(nineOneOneFile)).isEqualTo("9-1-1")
+        assertThat(contentRenamer.extractSeason(nineOneOneFile)).isEqualTo(5)
+        assertThat(contentRenamer.extractEpisode(nineOneOneFile)).isEqualTo(6)
 
         val hackSignFile = File("~/Series-Shows/#/_HACK/SIGN/HS22.avi")
-        assert(contentRenamer.extractName(hackSignFile).equals("HACK SIGN", ignoreCase = true)) {
-            "Expected 'HACK SIGN' but got '${contentRenamer.extractName(hackSignFile)}'"
-        }
-        assert(contentRenamer.extractSeason(hackSignFile) == null) {
-            "Expected null season but got '${contentRenamer.extractSeason(hackSignFile)}'"
-        }
-        assert(contentRenamer.extractEpisode(hackSignFile) == 22) {
-            "Expected episode 22 but got '${contentRenamer.extractEpisode(hackSignFile)}'"
-        }
+        assertThat(contentRenamer.extractName(hackSignFile)).isEqualToIgnoringCase("HACK SIGN")
+        assertThat(contentRenamer.extractSeason(hackSignFile)).isNull()
+        assertThat(contentRenamer.extractEpisode(hackSignFile)).isEqualTo(22)
 
         val hackSignExtrasFile = File("~/Series-Shows/#/.Hack Sign 1-28+Extras/[V-A]_hack_SIGN_-_05_[E3229E6C].mkv")
-        assert(contentRenamer.extractName(hackSignExtrasFile) == "hack SIGN") {
-            "Expected 'hack SIGN' but got '${contentRenamer.extractName(hackSignExtrasFile)}'"
-        }
-        assert(contentRenamer.extractSeason(hackSignExtrasFile) == null) {
-            "Expected null season but got '${contentRenamer.extractSeason(hackSignExtrasFile)}'"
-        }
-        assert(contentRenamer.extractEpisode(hackSignExtrasFile) == 5) {
-            "Expected episode 5 but got '${contentRenamer.extractEpisode(hackSignExtrasFile)}'"
-        }
+        assertThat(contentRenamer.extractName(hackSignExtrasFile)).isEqualTo("hack SIGN")
+        assertThat(contentRenamer.extractSeason(hackSignExtrasFile)).isNull()
+        assertThat(contentRenamer.extractEpisode(hackSignExtrasFile)).isEqualTo(5)
 
         val hackLegendTwilightFile = File("~/Series-Shows/#/_HACK/Legend_o_T/hack-Legend of the Twilight 08 - The Solitary Knight.avi")
-        assert(contentRenamer.extractName(hackLegendTwilightFile) == "hack-Legend of the Twilight") {
-            "Expected 'hack-Legend of the Twilight' but got '${contentRenamer.extractName(hackLegendTwilightFile)}'"
-        }
-        assert(contentRenamer.extractSeason(hackLegendTwilightFile) == null) {
-            "Expected null season but got '${contentRenamer.extractSeason(hackLegendTwilightFile)}'"
-        }
-        assert(contentRenamer.extractEpisode(hackLegendTwilightFile) == 8) {
-            "Expected episode 8 but got '${contentRenamer.extractEpisode(hackLegendTwilightFile)}'"
-        }
+        assertThat(contentRenamer.extractName(hackLegendTwilightFile)).isEqualTo("hack-Legend of the Twilight")
+        assertThat(contentRenamer.extractSeason(hackLegendTwilightFile)).isNull()
+        assertThat(contentRenamer.extractEpisode(hackLegendTwilightFile)).isEqualTo(8)
 
         val hackRootsFile = File("~/Series-Shows/#/_HACK/ROOTS/hack_roots-21.avi")
-        assert(contentRenamer.extractName(hackRootsFile) == "hack roots") {
-            "Expected 'hack roots' but got '${contentRenamer.extractName(hackRootsFile)}'"
-        }
-        assert(contentRenamer.extractSeason(hackRootsFile) == null) {
-            "Expected null season but got '${contentRenamer.extractSeason(hackRootsFile)}'"
-        }
-        assert(contentRenamer.extractEpisode(hackRootsFile) == 21) {
-            "Expected episode 21 but got '${contentRenamer.extractEpisode(hackRootsFile)}'"
-        }
+        assertThat(contentRenamer.extractName(hackRootsFile)).isEqualTo("hack roots")
+        assertThat(contentRenamer.extractSeason(hackRootsFile)).isNull()
+        assertThat(contentRenamer.extractEpisode(hackRootsFile)).isEqualTo(21)
 
         // Standalone junk files or files in generic folders with no show name should NOT extract a wrong name (return empty string)
         val standaloneSample = File("~/Downloads/Sample.mkv")
-        assert(contentRenamer.extractName(standaloneSample) == "") {
-            "Expected '' but got '${contentRenamer.extractName(standaloneSample)}'"
-        }
+        assertThat(contentRenamer.extractName(standaloneSample)).isEqualTo("")
 
         val standaloneFeaturette = File("~/Downloads/Featurettes/Stunts.mkv")
-        assert(contentRenamer.extractName(standaloneFeaturette) == "") {
-            "Expected '' but got '${contentRenamer.extractName(standaloneFeaturette)}'"
-        }
+        assertThat(contentRenamer.extractName(standaloneFeaturette)).isEqualTo("")
 
         val standaloneTrailer = File("~/Downloads/Extras/Season 2 Trailer.mp4")
-        assert(contentRenamer.extractName(standaloneTrailer) == "") {
-            "Expected '' but got '${contentRenamer.extractName(standaloneTrailer)}'"
-        }
+        assertThat(contentRenamer.extractName(standaloneTrailer)).isEqualTo("")
 
         val standaloneSubs = File("~/Downloads/Subs/6_spa.srt")
-        assert(contentRenamer.extractName(standaloneSubs) == "") {
-            "Expected '' but got '${contentRenamer.extractName(standaloneSubs)}'"
-        }
+        assertThat(contentRenamer.extractName(standaloneSubs)).isEqualTo("")
 
         val standaloneCodec = File("~/Downloads/1080p.x264.mkv")
-        assert(contentRenamer.extractName(standaloneCodec) == "") {
-            "Expected '' but got '${contentRenamer.extractName(standaloneCodec)}'"
-        }
+        assertThat(contentRenamer.extractName(standaloneCodec)).isEqualTo("")
 
         val standaloneRARBG = File("~/Downloads/RARBG.mp4")
-        assert(contentRenamer.extractName(standaloneRARBG) == "") {
-            "Expected '' but got '${contentRenamer.extractName(standaloneRARBG)}'"
-        }
+        assertThat(contentRenamer.extractName(standaloneRARBG)).isEqualTo("")
     }
 
     @Test
@@ -338,14 +281,14 @@ class ContentRenamerTest {
             MediaProxyService(TheMovieDataBaseService(httpHelper), TheTVDBService(httpHelper))
         )
 
-        assert(contentRenamer.getSafeTitle(MediaItem("Star Wars: The Bad Batch")) == "Star Wars The Bad Batch")
-        assert(contentRenamer.getSafeTitle(MediaItem("Face/Off")) == "FaceOff")
-        assert(contentRenamer.getSafeTitle(MediaItem("What If...?")) == "What If...")
-        assert(contentRenamer.getSafeTitle(MediaItem("Back\\Slash")) == "BackSlash")
-        assert(contentRenamer.getSafeTitle(MediaItem("Title*With\"Dangerous<Chars>And|Pipes")) == "TitleWithDangerousCharsAndPipes")
-        assert(contentRenamer.getSafeTitle(MediaItem("1000-lb Sisters (2020)")) == "1000-lb Sisters (2020)")
-        assert(contentRenamer.getSafeTitle("Simple Title") == "Simple Title")
-        assert(contentRenamer.getSafeTitle("This//Hack") == "This Hack")
+        assertThat(contentRenamer.getSafeTitle(MediaItem("Star Wars: The Bad Batch"))).isEqualTo("Star Wars The Bad Batch")
+        assertThat(contentRenamer.getSafeTitle(MediaItem("Face/Off"))).isEqualTo("FaceOff")
+        assertThat(contentRenamer.getSafeTitle(MediaItem("What If...?"))).isEqualTo("What If...")
+        assertThat(contentRenamer.getSafeTitle(MediaItem("Back\\Slash"))).isEqualTo("BackSlash")
+        assertThat(contentRenamer.getSafeTitle(MediaItem("Title*With\"Dangerous<Chars>And|Pipes"))).isEqualTo("TitleWithDangerousCharsAndPipes")
+        assertThat(contentRenamer.getSafeTitle(MediaItem("1000-lb Sisters (2020)"))).isEqualTo("1000-lb Sisters (2020)")
+        assertThat(contentRenamer.getSafeTitle("Simple Title")).isEqualTo("Simple Title")
+        assertThat(contentRenamer.getSafeTitle("This//Hack")).isEqualTo("This Hack")
     }
 
     @Test
@@ -358,29 +301,29 @@ class ContentRenamerTest {
 
         // Season 1, Episode 1 -> S01E01
         val target1 = contentRenamer.getTargetFile(File("mandalorian.mkv"), seriesItem, "The Mandalorian", 1, 1)
-        assert(target1.contains("/Season 1/The Mandalorian.S01E01.mkv")) { "Expected S01E01 but got $target1" }
+        assertThat(target1).contains("/Season 1/The Mandalorian.S01E01.mkv")
 
         // Season 1, Episode 101 -> S01E101
         val target2 = contentRenamer.getTargetFile(File("mandalorian.mkv"), seriesItem, "The Mandalorian", 1, 101)
-        assert(target2.contains("/Season 1/The Mandalorian.S01E101.mkv")) { "Expected S01E101 but got $target2" }
+        assertThat(target2).contains("/Season 1/The Mandalorian.S01E101.mkv")
 
         // Season null, Episode 5 -> S01E05
         val target3 = contentRenamer.getTargetFile(File("mandalorian.mkv"), seriesItem, "The Mandalorian", null, 5)
-        assert(target3.contains("/The Mandalorian.S01E05.mkv")) { "Expected S01E05 but got $target3" }
+        assertThat(target3).contains("/The Mandalorian.S01E05.mkv")
 
         // Season 10, Episode 24 -> S10E24
         val target4 = contentRenamer.getTargetFile(File("mandalorian.mkv"), seriesItem, "The Mandalorian", 10, 24)
-        assert(target4.contains("/Season 10/The Mandalorian.S10E24.mkv")) { "Expected S10E24 but got $target4" }
+        assertThat(target4).contains("/Season 10/The Mandalorian.S10E24.mkv")
 
         // Movie (no season, no episode)
         val movieItem = MediaItem(title = "Inception", type = boat.info.MediaType.Movie, id = "67890")
         val targetMovie = contentRenamer.getTargetFile(File("inception.mkv"), movieItem, "Inception", null, null)
-        assert(targetMovie.endsWith("/Movies/I/Inception 67890.mkv")) { "Unexpected movie path: $targetMovie" }
+        assertThat(targetMovie).endsWith("/Movies/I/Inception 67890.mkv")
 
         // 9-1-1 Series with resolution and codec
         val nineOneOneItem = MediaItem(title = "9-1-1", type = boat.info.MediaType.Series, id = "{tvdb-334586}")
         val targetNineOneOne = contentRenamer.getTargetFile(File("9-1-1.S05E06.1080p.WEB.H264-CAKES[TGx].mkv"), nineOneOneItem, "9-1-1", 5, 6)
-        assert(targetNineOneOne.endsWith("/Series-Shows/0-9/9-1-1 {tvdb-334586}/Season 5/9-1-1.S05E06.1080p.h264.mkv")) { "Unexpected 9-1-1 target path: $targetNineOneOne" }
+        assertThat(targetNineOneOne).endsWith("/Series-Shows/0-9/9-1-1 {tvdb-334586}/Season 5/9-1-1.S05E06.1080p.h264.mkv")
 
         // Buffy Series with resolution and codec
         val buffyItem = MediaItem(title = "Buffy the Vampire Slayer", type = boat.info.MediaType.Series, id = "{tvdb-70327}")
@@ -391,27 +334,27 @@ class ContentRenamerTest {
             8,
             7
         )
-        assert(targetBuffy.endsWith("/Series-Shows/B/Buffy the Vampire Slayer {tvdb-70327}/Season 8/Buffy The Vampire Slayer.S08E07.720p.x264.mkv")) { "Unexpected Buffy target path: $targetBuffy" }
+        assertThat(targetBuffy).endsWith("/Series-Shows/B/Buffy the Vampire Slayer {tvdb-70327}/Season 8/Buffy The Vampire Slayer.S08E07.720p.x264.mkv")
 
         // The Big Bang Theory Series (Folder should be B not T)
         val tbbtItem = MediaItem(title = "The Big Bang Theory", type = boat.info.MediaType.Series, id = "{tvdb-80379}")
         val targetTbbt = contentRenamer.getTargetFile(File("The Big Bang Theory S02E08.mkv"), tbbtItem, "The Big Bang Theory", 2, 8)
-        assert(targetTbbt.endsWith("/Series-Shows/B/The Big Bang Theory {tvdb-80379}/Season 2/The Big Bang Theory.S02E08.mkv")) { "Unexpected TBBT target path: $targetTbbt" }
+        assertThat(targetTbbt).endsWith("/Series-Shows/B/The Big Bang Theory {tvdb-80379}/Season 2/The Big Bang Theory.S02E08.mkv")
 
         // .hack//SIGN series
         val hackSignItem = MediaItem(title = ".hack//SIGN", type = boat.info.MediaType.Series, id = "{tmdb-333800}")
         val targetHackSign = contentRenamer.getTargetFile(File("HS22.avi"), hackSignItem, "SIGN", 1, 22)
-        assert(targetHackSign.endsWith("/Series-Shows/H/.hack SIGN {tmdb-333800}/Season 1/SIGN.S01E22.avi")) { "Unexpected hack sign target path: $targetHackSign" }
+        assertThat(targetHackSign).endsWith("/Series-Shows/H/.hack SIGN {tmdb-333800}/Season 1/SIGN.S01E22.avi")
 
         // Extra with season but no episode
         val extraItem = MediaItem(title = "24", type = boat.info.MediaType.Series, id = "{tvdb-1234}")
         val targetExtra = contentRenamer.getTargetFile(File("Alternate Ending.mp4"), extraItem, "24", 1, null)
-        assert(targetExtra.endsWith("/Series-Shows/0-9/24 {tvdb-1234}/Season 1/Alternate Ending.mp4")) { "Unexpected extra target path: $targetExtra" }
+        assertThat(targetExtra).endsWith("/Series-Shows/0-9/24 {tvdb-1234}/Season 1/Alternate Ending.mp4")
 
         // Extra with series media type but no season and no episode (keep original file name in series folder)
         val hackSignExtra = File("~/Series-Shows/#/.Hack Sign 1-28+Extras/[V-A]_hack_SIGN_-_Textless_Ending_[934E6984].mkv")
         val targetHackSignExtra = contentRenamer.getTargetFile(hackSignExtra, hackSignItem, "Hack Sign", null, null)
-        assert(targetHackSignExtra.endsWith("/Series-Shows/H/.hack SIGN {tmdb-333800}/[V-A]_hack_SIGN_-_Textless_Ending_[934E6984].mkv")) { "Unexpected hack sign extra target path: $targetHackSignExtra" }
+        assertThat(targetHackSignExtra).endsWith("/Series-Shows/H/.hack SIGN {tmdb-333800}/[V-A]_hack_SIGN_-_Textless_Ending_[934E6984].mkv")
     }
 
     @Test
@@ -425,26 +368,26 @@ class ContentRenamerTest {
         val bugsBunnyFile = File("~/Series-Shows/B/Bugs Bunny Pack (1938-2004)/Bugs Bunny - (Ep. 23) - Super-Rabbit.avi")
         val bugsName = contentRenamer.extractName(bugsBunnyFile)
         val bugsEpisode = contentRenamer.extractEpisode(bugsBunnyFile)
-        assert(bugsName == "Bugs Bunny") { "Expected 'Bugs Bunny' but got '$bugsName'" }
-        assert(bugsEpisode == 23) { "Expected episode 23 but got '$bugsEpisode'" }
+        assertThat(bugsName).isEqualTo("Bugs Bunny")
+        assertThat(bugsEpisode).isEqualTo(23)
 
         // The Blacklist file
         val blacklistFile = File("~/Series-Shows/B/The Blacklist/Season 1/The Blacklist Episode 14 - Madeline Pratt.mp4")
         val blacklistName = contentRenamer.extractName(blacklistFile)
         val blacklistEpisode = contentRenamer.extractEpisode(blacklistFile)
         val blacklistSeason = contentRenamer.extractSeason(blacklistFile)
-        assert(blacklistName == "The Blacklist") { "Expected 'The Blacklist' but got '$blacklistName'" }
-        assert(blacklistSeason == 1) { "Expected season 1 but got '$blacklistSeason'" }
-        assert(blacklistEpisode == 14) { "Expected episode 14 but got '$blacklistEpisode'" }
+        assertThat(blacklistName).isEqualTo("The Blacklist")
+        assertThat(blacklistSeason).isEqualTo(1)
+        assertThat(blacklistEpisode).isEqualTo(14)
 
         // Black Butler file
         val blackButlerFile = File("~/Series-Shows/B/Black Butler/Black Butler Season 2 [1080p]/Black Butler 02.mkv")
         val blackButlerName = contentRenamer.extractName(blackButlerFile)
         val blackButlerEpisode = contentRenamer.extractEpisode(blackButlerFile)
         val blackButlerSeason = contentRenamer.extractSeason(blackButlerFile)
-        assert(blackButlerName == "Black Butler") { "Expected 'Black Butler' but got '$blackButlerName'" }
-        assert(blackButlerSeason == 2) { "Expected season 2 but got '$blackButlerSeason'" }
-        assert(blackButlerEpisode == 2) { "Expected episode 2 but got '$blackButlerEpisode'" }
+        assertThat(blackButlerName).isEqualTo("Black Butler")
+        assertThat(blackButlerSeason).isEqualTo(2)
+        assertThat(blackButlerEpisode).isEqualTo(2)
     }
 
     @Test
@@ -458,19 +401,19 @@ class ContentRenamerTest {
         val hackSignFile = File("~/Series-Shows/#/_HACK/SIGN/HS28.avi")
         val hackSignName = contentRenamer.extractName(hackSignFile)
         val hackSignEpisode = contentRenamer.extractEpisode(hackSignFile)
-        assert(hackSignName.equals("HACK SIGN", ignoreCase = true)) { "Expected 'HACK SIGN' but got '$hackSignName'" }
-        assert(hackSignEpisode == 28) { "Expected episode 28 but got '$hackSignEpisode'" }
+        assertThat(hackSignName).isEqualToIgnoringCase("HACK SIGN")
+        assertThat(hackSignEpisode).isEqualTo(28)
 
         // /Series-Shows/S/Star Trek/Discovery/Season 1/01.mkv -> "Star Trek Discovery"
         val starTrekFile = File("~/Series-Shows/S/Star Trek/Discovery/Season 1/01.mkv")
         val starTrekName = contentRenamer.extractName(starTrekFile)
         println("[DEBUG_LOG] starTrekName: '$starTrekName'")
-        assert(starTrekName.equals("Star Trek Discovery", ignoreCase = true)) { "Expected 'Star Trek Discovery' but got '$starTrekName'" }
+        assertThat(starTrekName).isEqualToIgnoringCase("Star Trek Discovery")
 
         // Boundary check: single-letter folder 'S' and category 'Series-Shows' are not included
         val boundaryFile = File("~/Series-Shows/S/Salamander/Season 1/01.mkv")
         val boundaryName = contentRenamer.extractName(boundaryFile)
-        assert(boundaryName.equals("Salamander", ignoreCase = true)) { "Expected 'Salamander' but got '$boundaryName'" }
+        assertThat(boundaryName).isEqualToIgnoringCase("Salamander")
     }
 
     @Test
@@ -481,29 +424,29 @@ class ContentRenamerTest {
         )
 
         val file1 = File("~/Series-Shows/0-9/24.Complete.With.Subtitles/24 Season 1/24 Season 1/24 - S01xE11.mp4")
-        assert(contentRenamer.extractName(file1) == "24") { "Expected '24' but got '${contentRenamer.extractName(file1)}'" }
-        assert(contentRenamer.extractSeason(file1) == 1) { "Expected season 1 but got '${contentRenamer.extractSeason(file1)}'" }
-        assert(contentRenamer.extractEpisode(file1) == 11) { "Expected episode 11 but got '${contentRenamer.extractEpisode(file1)}'" }
+        assertThat(contentRenamer.extractName(file1)).isEqualTo("24")
+        assertThat(contentRenamer.extractSeason(file1)).isEqualTo(1)
+        assertThat(contentRenamer.extractEpisode(file1)).isEqualTo(11)
 
         val file2 = File("~/Series-Shows/0-9/24.Complete.With.Subtitles/24 Season 2/24 - [2x01] - Day 2  8 00 A.M. - 9 00 A.M.mkv")
-        assert(contentRenamer.extractName(file2) == "24") { "Expected '24' but got '${contentRenamer.extractName(file2)}'" }
-        assert(contentRenamer.extractSeason(file2) == 2) { "Expected season 2 but got '${contentRenamer.extractSeason(file2)}'" }
-        assert(contentRenamer.extractEpisode(file2) == 1) { "Expected episode 1 but got '${contentRenamer.extractEpisode(file2)}'" }
+        assertThat(contentRenamer.extractName(file2)).isEqualTo("24")
+        assertThat(contentRenamer.extractSeason(file2)).isEqualTo(2)
+        assertThat(contentRenamer.extractEpisode(file2)).isEqualTo(1)
 
         val file3 = File("~/Series-Shows/0-9/24.Complete.With.Subtitles/24 Season 1/24 EXTRAS/Alternate Ending.mp4")
-        assert(contentRenamer.extractName(file3) == "24") { "Expected '24' but got '${contentRenamer.extractName(file3)}'" }
-        assert(contentRenamer.extractSeason(file3) == 1) { "Expected season 1 but got '${contentRenamer.extractSeason(file3)}'" }
-        assert(contentRenamer.extractEpisode(file3) == null) { "Expected null episode but got '${contentRenamer.extractEpisode(file3)}'" }
+        assertThat(contentRenamer.extractName(file3)).isEqualTo("24")
+        assertThat(contentRenamer.extractSeason(file3)).isEqualTo(1)
+        assertThat(contentRenamer.extractEpisode(file3)).isNull()
 
         val file4 = File("~/Series-Shows/0-9/24.Complete.With.Subtitles/24 Season 5/24 - Day 5 - [5x18].mkv")
-        assert(contentRenamer.extractName(file4) == "24") { "Expected '24' but got '${contentRenamer.extractName(file4)}'" }
-        assert(contentRenamer.extractSeason(file4) == 5) { "Expected season 5 but got '${contentRenamer.extractSeason(file4)}'" }
-        assert(contentRenamer.extractEpisode(file4) == 18) { "Expected episode 18 but got '${contentRenamer.extractEpisode(file4)}'" }
+        assertThat(contentRenamer.extractName(file4)).isEqualTo("24")
+        assertThat(contentRenamer.extractSeason(file4)).isEqualTo(5)
+        assertThat(contentRenamer.extractEpisode(file4)).isEqualTo(18)
 
         val file5 = File("~/Series-Shows/0-9/24.Complete.With.Subtitles/24 Season 5/24 - Day 5 - [5x18].srt")
-        assert(contentRenamer.extractName(file5) == "24") { "Expected '24' but got '${contentRenamer.extractName(file5)}'" }
-        assert(contentRenamer.extractSeason(file5) == 5) { "Expected season 5 but got '${contentRenamer.extractSeason(file5)}'" }
-        assert(contentRenamer.extractEpisode(file5) == 18) { "Expected episode 18 but got '${contentRenamer.extractEpisode(file5)}'" }
+        assertThat(contentRenamer.extractName(file5)).isEqualTo("24")
+        assertThat(contentRenamer.extractSeason(file5)).isEqualTo(5)
+        assertThat(contentRenamer.extractEpisode(file5)).isEqualTo(18)
     }
 
     @Test
@@ -515,23 +458,23 @@ class ContentRenamerTest {
 
         // Tier 1: Inside Season / Book folders, 101/204 resolves to S01E01 / S02E04
         val avatarFile = File("~/Series-Shows/A/Avatar - The Last Airbender [1080p]/Book 1; Water/101 - The Boy in the Iceberg.mp4")
-        assert(contentRenamer.extractSeason(avatarFile) == 1)
-        assert(contentRenamer.extractEpisode(avatarFile) == 1)
+        assertThat(contentRenamer.extractSeason(avatarFile)).isEqualTo(1)
+        assertThat(contentRenamer.extractEpisode(avatarFile)).isEqualTo(1)
 
         val duckmanFile = File("~/Series-Shows/D/Duckman/Season 1/Duckman 101 - I, Duckman.mkv")
-        assert(contentRenamer.extractSeason(duckmanFile) == 1)
-        assert(contentRenamer.extractEpisode(duckmanFile) == 1)
+        assertThat(contentRenamer.extractSeason(duckmanFile)).isEqualTo(1)
+        assertThat(contentRenamer.extractEpisode(duckmanFile)).isEqualTo(1)
 
         val duckmanS2 = File("~/Series-Shows/D/Duckman/Season 2/Duckman 203 - Cellar Beware.mkv")
-        assert(contentRenamer.extractSeason(duckmanS2) == 2)
-        assert(contentRenamer.extractEpisode(duckmanS2) == 3)
+        assertThat(contentRenamer.extractSeason(duckmanS2)).isEqualTo(2)
+        assertThat(contentRenamer.extractEpisode(duckmanS2)).isEqualTo(3)
 
         // Tier 2: Zero-padded absolute episodes (001, 101) in anime / long-running shows
         val dbSuper001 = File("~/Series-Shows/D/Dragon Ball Super/Dragon Ball Super - Completo [WEB-DL - 1080p]/Dragon Ball Super - 001 [1080p].mkv")
-        assert(contentRenamer.extractEpisode(dbSuper001) == 1)
+        assertThat(contentRenamer.extractEpisode(dbSuper001)).isEqualTo(1)
 
         val dbSuper101 = File("~/Series-Shows/D/Dragon Ball Super/Dragon Ball Super - Completo [WEB-DL - 1080p]/Dragon Ball Super - 101 [1080p].mkv")
-        assert(contentRenamer.extractEpisode(dbSuper101) == 101)
+        assertThat(contentRenamer.extractEpisode(dbSuper101)).isEqualTo(101)
 
         // Tier 3: Metadata verification with optional seasonCount
         val seriesWithSeasonCount = MediaItem(title = "Test Show", type = boat.info.MediaType.Series).apply {
@@ -539,7 +482,7 @@ class ContentRenamerTest {
         }
         val standaloneShowFile = File("~/Series-Shows/T/Test Show/Test Show - 105.mkv")
         val episodeWithMeta = contentRenamer.extractEpisode(standaloneShowFile, seriesWithSeasonCount)
-        assert(episodeWithMeta == 5) { "Expected episode 5 but got $episodeWithMeta" }
+        assertThat(episodeWithMeta).isEqualTo(5)
     }
 
     @Test
@@ -555,10 +498,10 @@ class ContentRenamerTest {
         val season = contentRenamer.extractSeason(whiteCollarFile)
         val episode = contentRenamer.extractEpisode(whiteCollarFile)
 
-        assert(name == "White Collar") { "Expected 'White Collar' but got '$name'" }
-        assert(year == 2009) { "Expected year 2009 but got $year" }
-        assert(season == 2) { "Expected season 2 but got $season" }
-        assert(episode == 5) { "Expected episode 5 but got $episode" }
+        assertThat(name).isEqualTo("White Collar")
+        assertThat(year).isEqualTo(2009)
+        assertThat(season).isEqualTo(2)
+        assertThat(episode).isEqualTo(5)
     }
 
     @Test
@@ -574,24 +517,24 @@ class ContentRenamerTest {
         val episode1 = contentRenamer.extractEpisode(shieldFile1)
         val year1 = contentRenamer.extractYear(shieldFile1.path)
 
-        assert(name1 == "Agents of SHIELD") { "Expected 'Agents of SHIELD' but got '$name1'" }
-        assert(season1 == 6) { "Expected season 6 but got $season1" }
-        assert(episode1 == 11) { "Expected episode 11 but got $episode1" }
-        assert(year1 == null) { "Expected null year but got $year1" }
+        assertThat(name1).isEqualTo("Agents of SHIELD")
+        assertThat(season1).isEqualTo(6)
+        assertThat(episode1).isEqualTo(11)
+        assertThat(year1).isNull()
 
         val shieldFile2 = File("~/Series-Shows/A/Agents of S.H.I.E.L.D/Marvels.Agents.Of.S.H.I.E.L.D.S06E01.1080p.AMZN.WEB-DL.DDP5.1.H.264-T6D.mkv")
         val name2 = contentRenamer.extractName(shieldFile2)
         val season2 = contentRenamer.extractSeason(shieldFile2)
         val episode2 = contentRenamer.extractEpisode(shieldFile2)
 
-        assert(name2 == "Marvels Agents Of SHIELD") { "Expected 'Marvels Agents Of SHIELD' but got '$name2'" }
-        assert(season2 == 6) { "Expected season 6 but got $season2" }
-        assert(episode2 == 1) { "Expected episode 1 but got $episode2" }
+        assertThat(name2).isEqualTo("Marvels Agents Of SHIELD")
+        assertThat(season2).isEqualTo(6)
+        assertThat(episode2).isEqualTo(1)
 
         // Verify other dot patterns do not fail
         val dotPatternFile = File("~/Series-Shows/A/A.Beautiful.Mind.2001.1080p.mkv")
         val dotName = contentRenamer.extractName(dotPatternFile)
-        assert(dotName == "A Beautiful Mind") { "Expected 'A Beautiful Mind' but got '$dotName'" }
+        assertThat(dotName).isEqualTo("A Beautiful Mind")
     }
 
     @Test
@@ -604,125 +547,125 @@ class ContentRenamerTest {
         // 1. Numeric show titles (The 100)
         val the100File1 = File("~/Series-Shows/0-9/The.100.S07/The.100.S07E01.720p.AMZN.WEBRip.x264-GalaxyTV.mkv")
         val the100Name1 = contentRenamer.extractName(the100File1)
-        assert(the100Name1 == "The 100") { "Expected 'The 100' but got '$the100Name1'" }
-        assert(contentRenamer.extractSeason(the100File1) == 7) { "Expected season 7 but got '${contentRenamer.extractSeason(the100File1)}'" }
-        assert(contentRenamer.extractEpisode(the100File1) == 1) { "Expected episode 1 but got '${contentRenamer.extractEpisode(the100File1)}'" }
+        assertThat(the100Name1).isEqualTo("The 100")
+        assertThat(contentRenamer.extractSeason(the100File1)).isEqualTo(7)
+        assertThat(contentRenamer.extractEpisode(the100File1)).isEqualTo(1)
 
         val the100File2 = File("~/Series-Shows/0-9/The.100/Season 1/The.100.s01e01.LostFilm.avi")
-        assert(contentRenamer.extractName(the100File2) == "The 100") { "Expected 'The 100' but got '${contentRenamer.extractName(the100File2)}'" }
+        assertThat(contentRenamer.extractName(the100File2)).isEqualTo("The 100")
 
         // 2. Year handling (1000 Ways to Die / 1000-lb Sisters)
         val waysToDieFile = File("~/Series-Shows/0-9/1000 Ways to Die/Season 1/1000.Ways.to.Die.S01E01.Life Will Kill You.avi")
-        assert(contentRenamer.extractName(waysToDieFile) == "1000 Ways to Die") { "Expected '1000 Ways to Die' but got '${contentRenamer.extractName(waysToDieFile)}'" }
-        assert(contentRenamer.extractYear(waysToDieFile.path) == null) { "Expected null year but got '${contentRenamer.extractYear(waysToDieFile.path)}'" }
-        assert(contentRenamer.extractSeason(waysToDieFile) == 1)
-        assert(contentRenamer.extractEpisode(waysToDieFile) == 1)
+        assertThat(contentRenamer.extractName(waysToDieFile)).isEqualTo("1000 Ways to Die")
+        assertThat(contentRenamer.extractYear(waysToDieFile.path)).isNull()
+        assertThat(contentRenamer.extractSeason(waysToDieFile)).isEqualTo(1)
+        assertThat(contentRenamer.extractEpisode(waysToDieFile)).isEqualTo(1)
 
         val lbSistersFile = File("~/Series-Shows/0-9/1000.Lb.Sisters/1000-lb.Sisters S01E01.720p WEBRip x264-KOMPOST.mkv")
-        assert(contentRenamer.extractName(lbSistersFile) == "1000-lb Sisters")
-        assert(contentRenamer.extractYear(lbSistersFile.path) == null)
+        assertThat(contentRenamer.extractName(lbSistersFile)).isEqualTo("1000-lb Sisters")
+        assertThat(contentRenamer.extractYear(lbSistersFile.path)).isNull()
 
         // 3. Extras, Specials, Featurettes, and Bonus content
         val xFilesSpots = File("~/Series-Shows/X/The X-Files/Extras/Season 01 Extras/TV Spots/TV Spot (1).mp4")
-        assert(contentRenamer.extractName(xFilesSpots) == "The X-Files")
+        assertThat(contentRenamer.extractName(xFilesSpots)).isEqualTo("The X-Files")
 
         val officePsas = File("~/Series-Shows/O/The Office (US)/The Office (US) Season 1-9/Fake PSAs/The Office - Fake PSA 01.mkv")
-        assert(contentRenamer.extractName(officePsas) == "The Office US")
+        assertThat(contentRenamer.extractName(officePsas)).isEqualTo("The Office US")
 
         val shaunSheep = File("~/Series-Shows/S/Shaun.The.Sheep.(2007).Repack/Featurettes/The Farmers Llamas - Llamas shorts.mkv")
-        assert(contentRenamer.extractName(shaunSheep) == "Shaun The Sheep")
+        assertThat(contentRenamer.extractName(shaunSheep)).isEqualTo("Shaun The Sheep")
 
         val bcsStoryboard = File("~/Series-Shows/B/Better.Call.Saul.(2015)/Featurettes/Season 4/Storyboard Comparison/Piñata.mkv")
-        assert(contentRenamer.extractName(bcsStoryboard) == "Better Call Saul")
+        assertThat(contentRenamer.extractName(bcsStoryboard)).isEqualTo("Better Call Saul")
 
         val bsgRecap = File("~/Series-Shows/B/Battlestar Galactica/Battlestar Galactica 720p Complete 2003-2012 Extras Subs/TV Recap Specials/BSG - Catch The Frak Up.mkv")
-        assert(contentRenamer.extractName(bsgRecap) == "Battlestar Galactica")
+        assertThat(contentRenamer.extractName(bsgRecap)).isEqualTo("Battlestar Galactica")
 
         val rickMortyExtras = File("~/Series-Shows/R/Rick and Morty/Rick and Morty [UNCENSORED] [1080p] [5.1 MP3] [x265][FINAL]/Rick and Morty (Season 01) [UNCENSORED] [1080p] [5.1 MP3] [x265]/Extras/Behind The Scenes/Behind the Scenes [720p] [x265].mp4")
-        assert(contentRenamer.extractName(rickMortyExtras) == "Rick and Morty")
+        assertThat(contentRenamer.extractName(rickMortyExtras)).isEqualTo("Rick and Morty")
 
         // 4. Subfolder / Story / Chapter / Course structure
         val docWho1 = File("~/Series-Shows/D/Doctor.Who.(1963).Classic/Story 001 - An Unearthly Child/S01E01 - An Unearthly Child.mkv")
         val docWho1Name = contentRenamer.extractName(docWho1)
-        assert(docWho1Name == "Doctor Who Classic") { "Expected 'Doctor Who Classic' but got '$docWho1Name'" }
-        assert(contentRenamer.extractSeason(docWho1) == 1)
-        assert(contentRenamer.extractEpisode(docWho1) == 1)
+        assertThat(docWho1Name).isEqualTo("Doctor Who Classic")
+        assertThat(contentRenamer.extractSeason(docWho1)).isEqualTo(1)
+        assertThat(contentRenamer.extractEpisode(docWho1)).isEqualTo(1)
 
         val docWho2 = File("~/Series-Shows/D/Doctor.Who.1963.4/Story 028 - The Smugglers/S04E01 - The Smugglers, Episode One.mp4")
-        assert(contentRenamer.extractName(docWho2) == "Doctor Who")
-        assert(contentRenamer.extractSeason(docWho2) == 4)
-        assert(contentRenamer.extractEpisode(docWho2) == 1)
+        assertThat(contentRenamer.extractName(docWho2)).isEqualTo("Doctor Who")
+        assertThat(contentRenamer.extractSeason(docWho2)).isEqualTo(4)
+        assertThat(contentRenamer.extractEpisode(docWho2)).isEqualTo(1)
 
         val capFuture = File("~/Series-Shows/C/Captain Future.S01.German.1978.ANIME.FS.DVDRiP.XViD/New/E01.avi")
-        assert(contentRenamer.extractName(capFuture) == "Captain Future")
-        assert(contentRenamer.extractSeason(capFuture) == 1)
-        assert(contentRenamer.extractEpisode(capFuture) == 1)
+        assertThat(contentRenamer.extractName(capFuture)).isEqualTo("Captain Future")
+        assertThat(contentRenamer.extractSeason(capFuture)).isEqualTo(1)
+        assertThat(contentRenamer.extractEpisode(capFuture)).isEqualTo(1)
 
         val babylon5 = File("~/Series-Shows/B/Babylon 5/Temporada 1 - Signos y presagios/1x01 - Medianoche en la línea de fuego.avi")
-        assert(contentRenamer.extractName(babylon5) == "Babylon 5")
-        assert(contentRenamer.extractSeason(babylon5) == 1)
-        assert(contentRenamer.extractEpisode(babylon5) == 1)
+        assertThat(contentRenamer.extractName(babylon5)).isEqualTo("Babylon 5")
+        assertThat(contentRenamer.extractSeason(babylon5)).isEqualTo(1)
+        assertThat(contentRenamer.extractEpisode(babylon5)).isEqualTo(1)
 
         val b99 = File("~/Series-Shows/B/Brooklyn Nine Nine/Brooklyn.NIne-Nine.Season.3/Ep-01.New.Captain.mp4")
-        assert(contentRenamer.extractName(b99) == "Brooklyn Nine Nine")
-        assert(contentRenamer.extractSeason(b99) == 3)
-        assert(contentRenamer.extractEpisode(b99) == 1)
+        assertThat(contentRenamer.extractName(b99)).isEqualTo("Brooklyn Nine Nine")
+        assertThat(contentRenamer.extractSeason(b99)).isEqualTo(3)
+        assertThat(contentRenamer.extractEpisode(b99)).isEqualTo(1)
 
         // 5. Codec, Release, Quality, and Language tags
         val appleseed = File("~/Series-Shows/A/Appleseed XIII/Appleseed XIII - Ep. 01 - The Nemean Lion (720p - DUAL Audio).mkv")
-        assert(contentRenamer.extractName(appleseed) == "Appleseed XIII")
-        assert(contentRenamer.extractEpisode(appleseed) == 1)
+        assertThat(contentRenamer.extractName(appleseed)).isEqualTo("Appleseed XIII")
+        assertThat(contentRenamer.extractEpisode(appleseed)).isEqualTo(1)
 
         val chainsaw = File("~/Series-Shows/C/Chainsaw Man (01-12) (1080p)/[SubsPlease] Chainsaw Man - 01v2 (1080p) [8C038972].mkv")
-        assert(contentRenamer.extractName(chainsaw) == "Chainsaw Man")
-        assert(contentRenamer.extractEpisode(chainsaw) == 1)
+        assertThat(contentRenamer.extractName(chainsaw)).isEqualTo("Chainsaw Man")
+        assertThat(contentRenamer.extractEpisode(chainsaw)).isEqualTo(1)
 
         val tbbt = File("~/Series-Shows/B/The Big Bang Theory/The Big Bang Theory (German)/Big Bang Theory S05/S05E01.avi")
-        assert(contentRenamer.extractName(tbbt) == "The Big Bang Theory")
-        assert(contentRenamer.extractSeason(tbbt) == 5)
-        assert(contentRenamer.extractEpisode(tbbt) == 1)
+        assertThat(contentRenamer.extractName(tbbt)).isEqualTo("The Big Bang Theory")
+        assertThat(contentRenamer.extractSeason(tbbt)).isEqualTo(5)
+        assertThat(contentRenamer.extractEpisode(tbbt)).isEqualTo(1)
 
         val pridePrejudice = File("~/Series-Shows/P/Pride and Prejudice (BBC 1995) Jane Austen 1080p H.264 10GB (moviesbyrizzo) subs/Subtitles folder/Danish/Pride and Prejudice (BBC -1995) E1 1080p H.264 (moviesbyrizzo).srt")
-        assert(contentRenamer.extractName(pridePrejudice).startsWith("Pride and Prejudice"))
-        assert(contentRenamer.extractEpisode(pridePrejudice) == 1)
+        assertThat(contentRenamer.extractName(pridePrejudice)).startsWith("Pride and Prejudice")
+        assertThat(contentRenamer.extractEpisode(pridePrejudice)).isEqualTo(1)
 
         val dotHack = File("~/Series-Shows/#/_HACK/004_TRIOLOGY/[GAX]dot_hack-G.U._Trilogy_-_Movie(ger.sub)(h264)[525944DF].mkv")
         val dotHackName = contentRenamer.extractName(dotHack)
-        assert(dotHackName.startsWith("dot hack-GU Trilogy") || dotHackName.startsWith("dot hack GU Trilogy") || dotHackName.contains("Trilogy"))
+        assertThat(dotHackName.startsWith("dot hack-GU Trilogy") || dotHackName.startsWith("dot hack GU Trilogy") || dotHackName.contains("Trilogy")).isTrue()
 
         val hackGift = File("~/Series-Shows/#/.Hack Sign 1-28+Extras/(B-A)hack_GIFT_(1BB88E0D).mkv")
-        assert(contentRenamer.extractName(hackGift) == "hack GIFT")
+        assertThat(contentRenamer.extractName(hackGift)).isEqualTo("hack GIFT")
 
         val shopForKillers = File("~/Series-Shows/S/A.Shop.For.Killers.Korean.S01.2024.Hevc33/A.Shop.for.Killers.KOREAN.S01E01.2024.1080p.WEBRip.x265.HEVC-kkolev33.mkv")
-        assert(contentRenamer.extractName(shopForKillers) == "A Shop for Killers")
-        assert(contentRenamer.extractSeason(shopForKillers) == 1)
-        assert(contentRenamer.extractEpisode(shopForKillers) == 1)
+        assertThat(contentRenamer.extractName(shopForKillers)).isEqualTo("A Shop for Killers")
+        assertThat(contentRenamer.extractSeason(shopForKillers)).isEqualTo(1)
+        assertThat(contentRenamer.extractEpisode(shopForKillers)).isEqualTo(1)
 
         // 6. Acronyms & Shortened Names
         val iasip = File("~/Series-Shows/I/Its.Always.Sunny.In.Philadelphia.S0114.(2005-)/IASIP S01 (360p re-dvdrip)/IASIP S01E01 The Gang Gets Racist.mp4")
-        assert(contentRenamer.extractName(iasip) == "Its Always Sunny In Philadelphia")
-        assert(contentRenamer.extractSeason(iasip) == 1)
-        assert(contentRenamer.extractEpisode(iasip) == 1)
+        assertThat(contentRenamer.extractName(iasip)).isEqualTo("Its Always Sunny In Philadelphia")
+        assertThat(contentRenamer.extractSeason(iasip)).isEqualTo(1)
+        assertThat(contentRenamer.extractEpisode(iasip)).isEqualTo(1)
 
         val batmanTas = File("~/Series-Shows/B/BATMAN The Animated Series (1992-1999) - COMPLETE Season 1-6, TV S01-S06 and 2 Movies - 1080p BluRay x264/Season 2 (1993-94)/Batman T.A.S - S02 E01 - Shadow of The Bat, Part 1 (1080p - BluRay).mp4")
-        assert(contentRenamer.extractName(batmanTas) == "Batman TAS" || contentRenamer.extractName(batmanTas) == "BATMAN The Animated Series")
-        assert(contentRenamer.extractSeason(batmanTas) == 2)
-        assert(contentRenamer.extractEpisode(batmanTas) == 1)
+        assertThat(contentRenamer.extractName(batmanTas) == "Batman TAS" || contentRenamer.extractName(batmanTas) == "BATMAN The Animated Series").isTrue()
+        assertThat(contentRenamer.extractSeason(batmanTas)).isEqualTo(2)
+        assertThat(contentRenamer.extractEpisode(batmanTas)).isEqualTo(1)
 
         val stargate = File("~/Series-Shows/S/Stargate SG1 Ultimate Fan Collection/Season 1/StargateSG1S01E01.mp4")
-        assert(contentRenamer.extractName(stargate) == "Stargate SG-1" || contentRenamer.extractName(stargate) == "Stargate SG1")
-        assert(contentRenamer.extractSeason(stargate) == 1)
-        assert(contentRenamer.extractEpisode(stargate) == 1)
+        assertThat(contentRenamer.extractName(stargate) == "Stargate SG-1" || contentRenamer.extractName(stargate) == "Stargate SG1").isTrue()
+        assertThat(contentRenamer.extractSeason(stargate)).isEqualTo(1)
+        assertThat(contentRenamer.extractEpisode(stargate)).isEqualTo(1)
 
         // 7. Unicode and Hyphenated prefixes
         val timeJam = File("~/Series-Shows/T/Time Jam：Valerian and Laureline/Time Jam：Valerian and Laureline - 01 Time Matters [8bit][480p][5A6E2794].mkv")
-        assert(contentRenamer.extractName(timeJam) == "Time Jam Valerian and Laureline")
-        assert(contentRenamer.extractEpisode(timeJam) == 1)
+        assertThat(contentRenamer.extractName(timeJam)).isEqualTo("Time Jam Valerian and Laureline")
+        assertThat(contentRenamer.extractEpisode(timeJam)).isEqualTo(1)
 
         val catfish = File("~/Series-Shows/C/Catfish Docu and TV Series (2010-2016) [About Social Media Web Liars+Scammers)/Season 4 (2015) (324p)/Catfish-The.TV.Show.S04E00_SP02 Season Special Nev and Max's Craziest Momenrts.mp4")
-        assert(contentRenamer.extractName(catfish) == "Catfish-The TV Show" || contentRenamer.extractName(catfish) == "Catfish The TV Show")
-        assert(contentRenamer.extractSeason(catfish) == 4)
-        assert(contentRenamer.extractEpisode(catfish) == 0)
+        assertThat(contentRenamer.extractName(catfish) == "Catfish-The TV Show" || contentRenamer.extractName(catfish) == "Catfish The TV Show").isTrue()
+        assertThat(contentRenamer.extractSeason(catfish)).isEqualTo(4)
+        assertThat(contentRenamer.extractEpisode(catfish)).isEqualTo(0)
     }
 
     @Test
@@ -733,31 +676,31 @@ class ContentRenamerTest {
         )
 
         val galleryFile = File("~/Series-Shows/P/Popeye.The.Sailor.1933-1943.COMPLETE.DVDRip.x264-panos[rartv]/Gallery.mkv")
-        assert(contentRenamer.extractName(galleryFile) == "Popeye The Sailor") { "Expected 'Popeye The Sailor' but got '${contentRenamer.extractName(galleryFile)}'" }
-        assert(contentRenamer.extractSeason(galleryFile) == null)
-        assert(contentRenamer.extractEpisode(galleryFile) == null)
+        assertThat(contentRenamer.extractName(galleryFile)).isEqualTo("Popeye The Sailor")
+        assertThat(contentRenamer.extractSeason(galleryFile)).isNull()
+        assertThat(contentRenamer.extractEpisode(galleryFile)).isNull()
 
         val timelineFile = File("~/Series-Shows/P/Popeye.The.Sailor.1933-1943.COMPLETE.DVDRip.x264-panos[rartv]/1900-1920.mkv")
-        assert(contentRenamer.extractName(timelineFile) == "Popeye The Sailor") { "Expected 'Popeye The Sailor' but got '${contentRenamer.extractName(timelineFile)}'" }
+        assertThat(contentRenamer.extractName(timelineFile)).isEqualTo("Popeye The Sailor")
 
         val hospitalikyFile = File("~/Series-Shows/P/Popeye.The.Sailor.1933-1943.COMPLETE.DVDRip.x264-panos[rartv]/1937e04-Hospitaliky.mkv")
-        assert(contentRenamer.extractName(hospitalikyFile) == "Popeye The Sailor") { "Expected 'Popeye The Sailor' but got '${contentRenamer.extractName(hospitalikyFile)}'" }
-        assert(contentRenamer.extractSeason(hospitalikyFile) == 1937) { "Expected season 1937 but got '${contentRenamer.extractSeason(hospitalikyFile)}'" }
-        assert(contentRenamer.extractEpisode(hospitalikyFile) == 4) { "Expected episode 4 but got '${contentRenamer.extractEpisode(hospitalikyFile)}'" }
+        assertThat(contentRenamer.extractName(hospitalikyFile)).isEqualTo("Popeye The Sailor")
+        assertThat(contentRenamer.extractSeason(hospitalikyFile)).isEqualTo(1937)
+        assertThat(contentRenamer.extractEpisode(hospitalikyFile)).isEqualTo(4)
 
         val goonlandFile = File("~/Series-Shows/P/Popeye.The.Sailor.1933-1943.COMPLETE.DVDRip.x264-panos[rartv]/1938e10-Goonland.mkv")
-        assert(contentRenamer.extractName(goonlandFile) == "Popeye The Sailor") { "Expected 'Popeye The Sailor' but got '${contentRenamer.extractName(goonlandFile)}'" }
-        assert(contentRenamer.extractSeason(goonlandFile) == 1938) { "Expected season 1938 but got '${contentRenamer.extractSeason(goonlandFile)}'" }
-        assert(contentRenamer.extractEpisode(goonlandFile) == 10) { "Expected episode 10 but got '${contentRenamer.extractEpisode(goonlandFile)}'" }
+        assertThat(contentRenamer.extractName(goonlandFile)).isEqualTo("Popeye The Sailor")
+        assertThat(contentRenamer.extractSeason(goonlandFile)).isEqualTo(1938)
+        assertThat(contentRenamer.extractEpisode(goonlandFile)).isEqualTo(10)
 
         val actFile = File("~/Series-Shows/P/Popeye.The.Sailor.1933-1943.COMPLETE.DVDRip.x264-panos[rartv]/Act.mkv")
-        assert(contentRenamer.extractName(actFile) == "Popeye The Sailor") { "Expected 'Popeye The Sailor' but got '${contentRenamer.extractName(actFile)}'" }
+        assertThat(contentRenamer.extractName(actFile)).isEqualTo("Popeye The Sailor")
 
         val finichFile = File("~/Series-Shows/P/Popeye.The.Sailor.1933-1943.COMPLETE.DVDRip.x264-panos[rartv]/Finich.mkv")
-        assert(contentRenamer.extractName(finichFile) == "Popeye The Sailor") { "Expected 'Popeye The Sailor' but got '${contentRenamer.extractName(finichFile)}'" }
+        assertThat(contentRenamer.extractName(finichFile)).isEqualTo("Popeye The Sailor")
 
         val elephinksFile = File("~/Series-Shows/P/Popeye.The.Sailor.1933-1943.COMPLETE.DVDRip.x264-panos[rartv]/Elephinks.mkv")
-        assert(contentRenamer.extractName(elephinksFile) == "Popeye The Sailor") { "Expected 'Popeye The Sailor' but got '${contentRenamer.extractName(elephinksFile)}'" }
+        assertThat(contentRenamer.extractName(elephinksFile)).isEqualTo("Popeye The Sailor")
     }
 
     @Test
@@ -769,7 +712,7 @@ class ContentRenamerTest {
 
         val file = File("~/Series-Shows/S/SampleShow/[Group_Long_Tag_12345678901234567890] SampleShow - 05.mkv")
         val episode = contentRenamer.extractEpisode(file)
-        assert(episode == 5) { "Expected episode 5 but got $episode" }
+        assertThat(episode).isEqualTo(5)
     }
 
     @Test
@@ -784,9 +727,9 @@ class ContentRenamerTest {
         val season = contentRenamer.extractSeason(file)
         val episode = contentRenamer.extractEpisode(file)
 
-        assert(name == "MST3K") { "Expected 'MST3K' but got '$name'" }
-        assert(season == 3) { "Expected season 3 but got $season" }
-        assert(episode == 8) { "Expected episode 8 but got $episode" }
+        assertThat(name).isEqualTo("MST3K")
+        assertThat(season).isEqualTo(3)
+        assertThat(episode).isEqualTo(8)
     }
 
     @Test
@@ -802,10 +745,10 @@ class ContentRenamerTest {
         val season = contentRenamer.extractSeason(file)
         val episode = contentRenamer.extractEpisode(file)
 
-        assert(name == "DOUG") { "Expected 'DOUG' but got '$name'" }
-        assert(year == 1991) { "Expected year 1991 but got $year" }
-        assert(season == 7) { "Expected season 7 but got $season" }
-        assert(episode == 25) { "Expected episode 25 but got $episode" }
+        assertThat(name).isEqualTo("DOUG")
+        assertThat(year).isEqualTo(1991)
+        assertThat(season).isEqualTo(7)
+        assertThat(episode).isEqualTo(25)
     }
 
     @Test
@@ -819,16 +762,14 @@ class ContentRenamerTest {
         val year = contentRenamer.extractYear(file.absolutePath)
         val episode = contentRenamer.extractEpisode(file)
 
-        assert(name == "COPS") { "Expected 'COPS' but got '$name'" }
-        assert(year == 1988) { "Expected year 1988 but got $year" }
-        assert(episode == 2) { "Expected episode 2 but got $episode" }
+        assertThat(name).isEqualTo("COPS")
+        assertThat(year).isEqualTo(1988)
+        assertThat(episode).isEqualTo(2)
 
         val searchResult = mediaProxyService.search(name, year ?: 0)
-        assert(searchResult.isNotEmpty()) { "Expected search results for COPS (1988)" }
-        assert(searchResult.first().title == "C.O.P.S." || searchResult.first().title == "Cops") {
-            "Expected 'C.O.P.S.' or 'Cops' but got '${searchResult.first().title}'"
-        }
-        assert(searchResult.first().title != "Katts and Dog") { "Should not match 'Katts and Dog'" }
+        assertThat(searchResult).isNotEmpty()
+        assertThat(searchResult.first().title == "C.O.P.S." || searchResult.first().title == "Cops").isTrue()
+        assertThat(searchResult.first().title).isNotEqualTo("Katts and Dog")
     }
 
     @Test
@@ -843,21 +784,17 @@ class ContentRenamerTest {
         val season = contentRenamer.extractSeason(file)
         val episode = contentRenamer.extractEpisode(file)
 
-        assert(name == "Ramsays Kitchen Nightmares" || name == "Ramsay's Kitchen Nightmares") {
-            "Expected 'Ramsays Kitchen Nightmares' or 'Ramsay\\'s Kitchen Nightmares' but got '$name'"
-        }
-        assert(!name.contains("\\")) { "Extracted name should not contain escape characters" }
-        assert(!name.lowercase().contains("all seasons")) { "Extracted name should not contain 'all seasons'" }
-        assert(!name.endsWith(" UK")) { "Extracted name should not have 'UK' appended from season folder" }
-        assert(year == 2007) { "Expected year 2007 but got $year" }
-        assert(season == 5) { "Expected season 5 but got $season" }
-        assert(episode == 7) { "Expected episode 7 but got $episode" }
+        assertThat(name == "Ramsays Kitchen Nightmares" || name == "Ramsay's Kitchen Nightmares").isTrue()
+        assertThat(name).doesNotContain("\\")
+        assertThat(name.lowercase()).doesNotContain("all seasons")
+        assertThat(name).doesNotEndWith(" UK")
+        assertThat(year).isEqualTo(2007)
+        assertThat(season).isEqualTo(5)
+        assertThat(episode).isEqualTo(7)
 
         val searchResult = mediaProxyService.search(name, year ?: 0)
-        assert(searchResult.isNotEmpty()) { "Expected search results for $name ($year)" }
-        assert(searchResult.first().title.contains("Kitchen Nightmares", ignoreCase = true)) {
-            "Expected 'Kitchen Nightmares' in title but got '${searchResult.first().title}'"
-        }
+        assertThat(searchResult).isNotEmpty()
+        assertThat(searchResult.first().title).containsIgnoringCase("Kitchen Nightmares")
     }
 
     @Test
@@ -872,19 +809,15 @@ class ContentRenamerTest {
         val season = contentRenamer.extractSeason(file)
         val episode = contentRenamer.extractEpisode(file)
 
-        assert(name == "Lupin III Pilot Film") {
-            "Expected 'Lupin III Pilot Film' but got '$name'"
-        }
-        assert(!name.contains("Full Collection", ignoreCase = true)) { "Extracted name should not contain 'Full Collection'" }
-        assert(!name.contains("Movies, Specials", ignoreCase = true)) { "Extracted name should not contain 'Movies, Specials'" }
-        assert(!name.contains("OVA", ignoreCase = true)) { "Extracted name should not contain 'OVA'" }
-        assert(year == 1969) { "Expected year 1969 but got $year" }
+        assertThat(name).isEqualTo("Lupin III Pilot Film")
+        assertThat(name).doesNotContainIgnoringCase("Full Collection")
+        assertThat(name).doesNotContainIgnoringCase("Movies, Specials")
+        assertThat(name).doesNotContainIgnoringCase("OVA")
+        assertThat(year).isEqualTo(1969)
 
         val searchResult = mediaProxyService.search(name, year ?: 0)
-        assert(searchResult.isNotEmpty()) { "Expected search results for $name ($year)" }
-        assert(searchResult.first().title.contains("Lupin", ignoreCase = true) && searchResult.first().title.contains("Pilot", ignoreCase = true)) {
-            "Expected 'Lupin' and 'Pilot' in title but got '${searchResult.first().title}'"
-        }
+        assertThat(searchResult).isNotEmpty()
+        assertThat(searchResult.first().title.contains("Lupin", ignoreCase = true) && searchResult.first().title.contains("Pilot", ignoreCase = true)).isTrue()
     }
 
     @Test
@@ -901,17 +834,15 @@ class ContentRenamerTest {
 
         System.out.println("[DEBUG_LOG] Moesha -> Name: '$name', Year: $year, Season: $season, Episode: $episode")
 
-        assert(name == "Moesha" || name == "MOESHA") { "Expected 'Moesha' or 'MOESHA' but got '$name'" }
-        assert(year == 1996) { "Expected year 1996 but got $year" }
-        assert(season == 3) { "Expected season 3 but got $season" }
-        assert(episode == 6) { "Expected episode 6 but got $episode" }
+        assertThat(name == "Moesha" || name == "MOESHA").isTrue()
+        assertThat(year).isEqualTo(1996)
+        assertThat(season).isEqualTo(3)
+        assertThat(episode).isEqualTo(6)
 
         val searchResult = mediaProxyService.search(name, year ?: 0)
         System.out.println("[DEBUG_LOG] Moesha searchResult: $searchResult")
-        assert(searchResult.isNotEmpty()) { "Expected search results for $name ($year)" }
-        assert(searchResult.first().title.equals("Moesha", ignoreCase = true)) {
-            "Expected 'Moesha' in title but got '${searchResult.first().title}'"
-        }
+        assertThat(searchResult).isNotEmpty()
+        assertThat(searchResult.first().title).isEqualToIgnoringCase("Moesha")
     }
 
     @Test
@@ -928,15 +859,13 @@ class ContentRenamerTest {
 
         System.out.println("[DEBUG_LOG] Golgo 13 -> Name: '$name', Year: $year, Season: $season, Episode: $episode")
 
-        assert(name == "Golgo 13") { "Expected 'Golgo 13' but got '$name'" }
-        assert(episode == 20) { "Expected episode 20 but got $episode" }
+        assertThat(name).isEqualTo("Golgo 13")
+        assertThat(episode).isEqualTo(20)
 
         val searchResult = mediaProxyService.search(name, year ?: 0)
         System.out.println("[DEBUG_LOG] Golgo 13 searchResult: $searchResult")
-        assert(searchResult.isNotEmpty()) { "Expected search results for $name ($year)" }
-        assert(searchResult.first().title.contains("Golgo 13", ignoreCase = true)) {
-            "Expected 'Golgo 13' in title but got '${searchResult.first().title}'"
-        }
+        assertThat(searchResult).isNotEmpty()
+        assertThat(searchResult.first().title).containsIgnoringCase("Golgo 13")
     }
 
     @Test
@@ -948,22 +877,20 @@ class ContentRenamerTest {
         val fileWithParentheses = File("~/Series-Shows/S/Space 1999 (1975)/Season 1/Space 1999 - S01E01 - Breakaway.mkv")
         val nameWithParen = contentRenamer.extractName(fileWithParentheses)
         val yearWithParen = contentRenamer.extractYear(fileWithParentheses.absolutePath)
-        assert(nameWithParen == "Space 1999") { "Expected 'Space 1999' but got '$nameWithParen'" }
-        assert(yearWithParen == 1975) { "Expected year 1975 but got $yearWithParen" }
+        assertThat(nameWithParen).isEqualTo("Space 1999")
+        assertThat(yearWithParen).isEqualTo(1975)
 
         val searchResultParen = mediaProxyService.search(nameWithParen, yearWithParen ?: 0, MediaType.Series)
-        assert(searchResultParen.isNotEmpty()) { "Expected search results for Space 1999 (1975)" }
-        assert(searchResultParen.first().title.contains("Space: 1999", ignoreCase = true) || searchResultParen.first().title.contains("Space 1999", ignoreCase = true)) {
-            "Expected 'Space: 1999' but got '${searchResultParen.first().title}'"
-        }
+        assertThat(searchResultParen).isNotEmpty()
+        assertThat(searchResultParen.first().title.contains("Space: 1999", ignoreCase = true) || searchResultParen.first().title.contains("Space 1999", ignoreCase = true)).isTrue()
 
         val fileCastInterview = File("~/Series-Shows/S/Space 1999 (Complete)/# Cast Interviews/Space 1999 - Interviews ~ Catherine Schell (Maya).mpg")
         val nameInterview = contentRenamer.extractName(fileCastInterview)
         val yearInterview = contentRenamer.extractYear(fileCastInterview.absolutePath)
         val searchResultInterview = mediaProxyService.search("Space 1999", MediaType.Series)
-        assert(searchResultInterview.isNotEmpty()) { "Expected search results for Space 1999" }
-        assert(searchResultInterview.first().type == MediaType.Series) { "Expected Series but got ${searchResultInterview.first().type}" }
-        assert(searchResultInterview.first().title.contains("Space: 1999", ignoreCase = true) || searchResultInterview.first().title.contains("Space 1999", ignoreCase = true))
+        assertThat(searchResultInterview).isNotEmpty()
+        assertThat(searchResultInterview.first().type).isEqualTo(MediaType.Series)
+        assertThat(searchResultInterview.first().title.contains("Space: 1999", ignoreCase = true) || searchResultInterview.first().title.contains("Space 1999", ignoreCase = true)).isTrue()
     }
 
     @Test
@@ -976,16 +903,12 @@ class ContentRenamerTest {
         val name = contentRenamer.extractName(file)
         val year = contentRenamer.extractYear(file.absolutePath)
 
-        assert(name.contains("2001 A Space Odyssey") || name.contains("2001: A Space Odyssey") || name == "2001 A Space Odyssey") {
-            "Expected '2001 A Space Odyssey' but got '$name'"
-        }
-        assert(year == 1968) { "Expected year 1968 but got $year" }
+        assertThat(name.contains("2001 A Space Odyssey") || name.contains("2001: A Space Odyssey") || name == "2001 A Space Odyssey").isTrue()
+        assertThat(year).isEqualTo(1968)
 
         val searchResult = mediaProxyService.search(name, year ?: 0)
-        assert(searchResult.isNotEmpty()) { "Expected search results for $name ($year)" }
-        assert(searchResult.first().title.contains("2001: A Space Odyssey") || searchResult.first().title.contains("2001 A Space Odyssey")) {
-            "Expected '2001: A Space Odyssey' but got '${searchResult.first().title}'"
-        }
+        assertThat(searchResult).isNotEmpty()
+        assertThat(searchResult.first().title.contains("2001: A Space Odyssey") || searchResult.first().title.contains("2001 A Space Odyssey")).isTrue()
     }
 
     @Test
@@ -998,12 +921,12 @@ class ContentRenamerTest {
         val name = contentRenamer.extractName(file)
         val year = contentRenamer.extractYear(file.absolutePath)
 
-        assert(name == "2012") { "Expected '2012' but got '$name'" }
-        assert(year == 2009) { "Expected year 2009 but got $year" }
+        assertThat(name).isEqualTo("2012")
+        assertThat(year).isEqualTo(2009)
 
         val searchResult = mediaProxyService.search(name, year ?: 0)
-        assert(searchResult.isNotEmpty()) { "Expected search results for 2012 (2009)" }
-        assert(searchResult.first().title == "2012") { "Expected '2012' but got '${searchResult.first().title}'" }
+        assertThat(searchResult).isNotEmpty()
+        assertThat(searchResult.first().title).isEqualTo("2012")
     }
 
     @Test
@@ -1016,12 +939,12 @@ class ContentRenamerTest {
         val name = contentRenamer.extractName(file)
         val year = contentRenamer.extractYear(file.absolutePath)
 
-        assert(name == "1917") { "Expected '1917' but got '$name'" }
-        assert(year == 2019) { "Expected year 2019 but got $year" }
+        assertThat(name).isEqualTo("1917")
+        assertThat(year).isEqualTo(2019)
 
         val searchResult = mediaProxyService.search(name, year ?: 0)
-        assert(searchResult.isNotEmpty()) { "Expected search results for 1917 (2019)" }
-        assert(searchResult.first().title == "1917") { "Expected '1917' but got '${searchResult.first().title}'" }
+        assertThat(searchResult).isNotEmpty()
+        assertThat(searchResult.first().title).isEqualTo("1917")
     }
 
     @Test
@@ -1034,14 +957,12 @@ class ContentRenamerTest {
         val name = contentRenamer.extractName(file)
         val year = contentRenamer.extractYear(file.absolutePath)
 
-        assert(name == "Class of 1999") { "Expected 'Class of 1999' but got '$name'" }
-        assert(year == 1990) { "Expected year 1990 but got $year" }
+        assertThat(name).isEqualTo("Class of 1999")
+        assertThat(year).isEqualTo(1990)
 
         val searchResult = mediaProxyService.search(name, year ?: 0)
-        assert(searchResult.isNotEmpty()) { "Expected search results for Class of 1999 (1990)" }
-        assert(searchResult.first().title.contains("Class of 1999", ignoreCase = true)) {
-            "Expected 'Class of 1999' but got '${searchResult.first().title}'"
-        }
+        assertThat(searchResult).isNotEmpty()
+        assertThat(searchResult.first().title).containsIgnoringCase("Class of 1999")
     }
 
     @Test
@@ -1056,19 +977,15 @@ class ContentRenamerTest {
         val season = contentRenamer.extractSeason(file)
         val episode = contentRenamer.extractEpisode(file)
 
-        assert(name == "MASH") { "Expected 'MASH' but got '$name'" }
-        assert(year == 1970) { "Expected year 1970 but got $year" }
-        assert(season == 1) { "Expected season 1 but got $season" }
-        assert(episode == 3) { "Expected episode 3 but got $episode" }
+        assertThat(name).isEqualTo("MASH")
+        assertThat(year).isEqualTo(1970)
+        assertThat(season).isEqualTo(1)
+        assertThat(episode).isEqualTo(3)
 
         val searchResult = mediaProxyService.search(name, year ?: 0, MediaType.Series)
-        assert(searchResult.isNotEmpty()) { "Expected search results for MASH (1970)" }
-        assert(searchResult.first().title == "M*A*S*H") {
-            "Expected 'M*A*S*H' but got '${searchResult.first().title}'"
-        }
-        assert(searchResult.first().type == MediaType.Series) {
-            "Expected Series but got ${searchResult.first().type}"
-        }
+        assertThat(searchResult).isNotEmpty()
+        assertThat(searchResult.first().title).isEqualTo("M*A*S*H")
+        assertThat(searchResult.first().type).isEqualTo(MediaType.Series)
     }
 
 }
