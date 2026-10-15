@@ -9,6 +9,7 @@ import java.io.File
 import java.io.FileWriter
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
+import kotlin.io.path.moveTo
 
 class ContentRenamer(val mediaProxyService: MediaProxyService) {
 
@@ -951,13 +952,18 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
                         // actual move
                         // Create the parent directories if they don't exist
                         val newFile = File(targetFile)
-                        if(!isTestRun) {
+                        if(!isTestRun && !file.toPath().equals(newFile.toPath())) {
                             newFile.parentFile?.mkdirs()
                             // Then move and rename
-                            //file.toPath().moveTo(newFile.toPath(), overwrite = true)
-                            //println("T-Moving\n'$file'\n'$newFile'")
+                            try {
+                                file.toPath().moveTo(newFile.toPath(), overwrite = true)
+                                logWriter?.write("Moved:\n'$file'\n'$newFile'\n")
+                            } catch (e:Exception) {
+                                println("Error moving file: $e")
+                                logWriter?.write("Failed to move:\n'$file'\n'$newFile'\n")
+                            }
+
                         }
-                        logWriter?.write("T-Moving\n'$file'\n'$newFile'\n")
                     }
                     println(logLine)
                     logWriter?.write(logLine + "\n")
