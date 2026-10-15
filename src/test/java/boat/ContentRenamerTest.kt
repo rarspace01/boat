@@ -1006,4 +1006,19 @@ class ContentRenamerTest {
         assertThat(searchResult.first().type).isEqualTo(MediaType.Series)
     }
 
+    @Test
+    fun testFOTBExtraction() {
+        val httpHelper = HttpHelper()
+        val mediaProxyService = MediaProxyService(TheMovieDataBaseService(httpHelper), TheTVDBService(httpHelper))
+        val contentRenamer = ContentRenamer(mediaProxyService)
+        val file = File("~/Series-Shows/F/Fresh.Off.The.Boat.S0106.(2015-)/Fresh off the Boat S02 (360p re-webrip)/Fresh off the Boat 02E14 Michael Chang Fever.mp4")
+        val name = contentRenamer.extractName(file)
+        val season = contentRenamer.extractSeason(file)
+        val episode = contentRenamer.extractEpisode(file)
+
+        assertThat(name).isEqualTo("Fresh off the Boat")
+        assertThat(episode).isEqualTo(14)
+        assertThat(season).isEqualTo(2)
+    }
+
 }

@@ -11,7 +11,7 @@ import java.nio.charset.StandardCharsets
 class ContentRenamer(val mediaProxyService: MediaProxyService) {
 
     companion object {
-        val seasonPattern = "(?<=^|[^a-zA-Z])S([0-9]{1,2})(?:[x._\\-\\s]?(?:E|EP)[0-9]{1,3})?".toRegex(RegexOption.IGNORE_CASE)
+        val seasonPattern = "(?<=^|[^a-zA-Z])(?:S([0-9]{1,2})(?:[x._\\-\\s]?(?:E|EP)[0-9]{1,3})?|(?<![0-9])([0-9]{1,2})[x._\\-\\s]?(?:E|EP)[0-9]{1,3}(?=[^a-zA-Z0-9]|$))".toRegex(RegexOption.IGNORE_CASE)
         val seasonPattern2 = "(?:\\[|\\b)([0-9]{1,2})x([0-9]{1,2})(?:\\]|\\b)".toRegex()
         val episodePattern =
             "(?:(?<=^|[^a-zA-Z0-9])(?:Episode|Ep\\.?|E)|(?:\\s-\\s|\\s|-|\\.))([0-9]{1,3})(?=[^a-zA-Z0-9]|$)".toRegex(RegexOption.IGNORE_CASE)
@@ -24,7 +24,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         val dayInNamePattern = "(?<=^|[\\s_.-])Day\\s([0-9]{1,2})".toRegex(RegexOption.IGNORE_CASE)
         val packInNamePattern = "(?<=^|[\\s_.-])(?:Complete(?:[\\s_.-]+(?:Series|Season|Seasons|Collection|Set|Pack|Boxset|Box[\\s_.-]+Set|With[\\s_.-]+Subtitles))?|Completo|All[\\s_.-]+(?:Series|Season|Seasons|Episodes|Eps|Collection|Set|Pack|Boxset|Box[\\s_.-]+Set)|Entire[\\s_.-]+(?:Series|Season|Seasons|Collection|Set|Pack|Boxset|Box[\\s_.-]+Set)|Full[\\s_.-]+(?:Series|Season|Seasons|Collection|Set|Pack|Boxset|Box[\\s_.-]+Set)|(?:Boxset|Box[\\s_.-]+Set|Collection|Collector(?:'s|s)?[\\s_.-]+Edition)|With[\\s_.-]+(?:Subtitles|Subs)|Dual[\\s_.-]+Audio|Multi[- ]Audio|Multi[- ]Subs|Tv[\\s_.-]+Series(?:[\\s_.-]+(?:Season|Seasons))?)(?=\\b|[\\s_.-]|$)".toRegex(RegexOption.IGNORE_CASE)
         val extrasInNamePattern = "(?<=^|[\\s_.-])(?:Extras|Extra|Featurettes|Featurette|Bonus|Subs|Subtitles|Gallery|Galleries)(?=\\b|[\\s_.-]|$)".toRegex(RegexOption.IGNORE_CASE)
-        val startsWithEpisodeNumberPattern = "^(?:[0-9]{1,3}\\s?[.x-]\\s?[0-9]{1,3}\\s?-\\s?|(?:19[0-9]{2}|20[0-2][0-9])[eExX][0-9]{1,3}[-._\\s]?|S[0-9]{1,2}[x._\\-\\s]?(?:E|EP)[0-9]{1,3}[-._\\s]?|[0-9]{1,2}x[0-9]{1,2}[-._\\s]?)".toRegex(RegexOption.IGNORE_CASE)
+        val startsWithEpisodeNumberPattern = "^(?:[0-9]{1,3}\\s?[.x-]\\s?[0-9]{1,3}\\s?-\\s?|(?:19[0-9]{2}|20[0-2][0-9])[eExX][0-9]{1,3}[-._\\s]?|S?[0-9]{1,2}[x._\\-\\s]?(?:E|EP)[0-9]{1,3}[-._\\s]?|[0-9]{1,2}x[0-9]{1,2}[-._\\s]?)".toRegex(RegexOption.IGNORE_CASE)
     }
 
     fun cleanName(inputName: String): String {
@@ -613,10 +613,11 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
     }
 
     fun extractDirectSeason(file: File): Int? {
-        val seasonPattern = "(?<=^|[^a-zA-Z])S([0-9]{1,2})(?=[^a-zA-Z0-9]|$|[x._\\-\\s]?(?:E|EP)[0-9]{1,3})".toRegex(RegexOption.IGNORE_CASE)
+        val seasonPattern = "(?<=^|[^a-zA-Z])(?:S([0-9]{1,2})(?=[^a-zA-Z0-9]|$|[x._\\-\\s]?(?:E|EP)[0-9]{1,3})|(?<![0-9])([0-9]{1,2})[x._\\-\\s]?(?:E|EP)[0-9]{1,3}(?=[^a-zA-Z0-9]|$))".toRegex(RegexOption.IGNORE_CASE)
         val seasonPatternInName = "(?<=(?:Season|Day)[\\s_.-]?)([0-9]{1,2})".toRegex(RegexOption.IGNORE_CASE)
         val seasonPattern2 = "(?:\\[|\\b)([0-9]{1,2})x([0-9]{1,2})(?:\\]|\\b)".toRegex()
         val dvdPattern = "(?<=^|\\s)(?:dvd|disc|cd|book|volume|vol)\\s?([0-9]{1,2})".toRegex(RegexOption.IGNORE_CASE)
+        val yearEpisodePattern = "(?<=^|[^a-zA-Z0-9])(19[0-9]{2}|20[0-2][0-9])[eExX][0-9]{1,3}(?=[^a-zA-Z0-9]|$)".toRegex(RegexOption.IGNORE_CASE)
 
         // Check seasonPattern2 (e.g. [2x01]) first across file and parents
         var current: File? = file
@@ -631,18 +632,18 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
             depth++
         }
 
-        // Check seasonPattern (e.g. S01), seasonPatternInName (e.g. Season 1), dvdPattern, yearEpisodePattern
-        val yearEpisodePattern = "(?<=^|[^a-zA-Z0-9])(19[0-9]{2}|20[0-2][0-9])[eExX][0-9]{1,3}(?=[^a-zA-Z0-9]|$)".toRegex(RegexOption.IGNORE_CASE)
+        // Check yearEpisodePattern, seasonPattern (e.g. S01), seasonPatternInName (e.g. Season 1), dvdPattern
         current = file
         depth = 0
         while (current != null && depth < 6) {
             val name = decodeIfEncoded(current.name)
-            val match = seasonPattern.find(name)
+            val match = yearEpisodePattern.find(name)
+                ?: seasonPattern.find(name)
                 ?: seasonPatternInName.find(name)
                 ?: dvdPattern.find(name)
-                ?: yearEpisodePattern.find(name)
             if (match != null) {
-                return match.groupValues[match.groupValues.size - 1].toInt()
+                val groupVal = match.groupValues.drop(1).firstOrNull { it.isNotEmpty() } ?: match.groupValues.last()
+                return groupVal.toInt()
             }
             current = current.parentFile
             depth++
@@ -701,7 +702,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         val standaloneEpisodePattern = "(?:\\s|^)([0-9]{3})(?:\\s|$)".toRegex()
         val zeroPaddedSeasonEpisodePattern = "(?<=^|[^a-zA-Z0-9])(0[1-9][0-9]{2})(?=[^a-zA-Z0-9]|$)".toRegex()
         val yearPattern = "\\b([1-2][0-9]{3})\\b".toRegex()
-        val seasonEpisodePattern = "(?<=^|[^a-zA-Z])S[0-9]{1,2}[x._\\-\\s]?(?:E|EP)([0-9]{1,3})".toRegex(RegexOption.IGNORE_CASE)
+        val seasonEpisodePattern = "(?<=^|[^a-zA-Z])(?:S[0-9]{1,2}[x._\\-\\s]?(?:E|EP)|(?<![0-9])[0-9]{1,2}[eE])([0-9]{1,3})(?=[^a-zA-Z0-9]|$)".toRegex(RegexOption.IGNORE_CASE)
         val yearEpisodePattern = "(?<=^|[^a-zA-Z0-9])(?:19[0-9]{2}|20[0-2][0-9])[eExX]([0-9]{1,3})(?=[^a-zA-Z0-9]|$)".toRegex(RegexOption.IGNORE_CASE)
         val acronymEpisodePattern = "(?<=^|[^a-zA-Z0-9])([a-zA-Z]{1,4})([0-9]{1,3})(?=[^a-zA-Z0-9]|$)".toRegex(RegexOption.IGNORE_CASE)
         val excludedAcronyms = setOf(
