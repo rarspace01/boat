@@ -799,7 +799,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         return false
     }
 
-    fun processFilesFromDirectory(path: String, logFile: File? = null) {
+    fun processFilesFromDirectory(path: String, logFile: File? = null, isTestRun: Boolean = true) {
         val files = File(path).listFiles()
         files?.let { files ->
             for (file in files) {
@@ -879,11 +879,12 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
                         // actual move
                         // Create the parent directories if they don't exist
                         val newFile = File(targetFile)
-                        newFile.parentFile?.mkdirs()
-
-                        // Then move and rename
-                        //file.toPath().moveTo(newFile.toPath(), overwrite = true)
-                        //println("T-Moving\n'$file'\n'$newFile'")
+                        if(!isTestRun) {
+                            newFile.parentFile?.mkdirs()
+                            // Then move and rename
+                            //file.toPath().moveTo(newFile.toPath(), overwrite = true)
+                            //println("T-Moving\n'$file'\n'$newFile'")
+                        }
                         logFile?.appendText("T-Moving\n'$file'\n'$newFile'\n")
                     }
                     println(logLine)
