@@ -866,7 +866,7 @@ class ContentRenamerTest {
         val mediaProxyService = MediaProxyService(TheMovieDataBaseService(httpHelper), TheTVDBService(httpHelper))
         val contentRenamer = ContentRenamer(mediaProxyService)
 
-        val file = File("/home/denis/pfdb/PFDB/Series-Shows/L/Lupin III -  Full Collection 2018/Movies, Specials & OVA/(1969) [Movie] Pilot Film/Lupin III Pilot Film 1 - TV [480p][neo1024][03AE79BB].mkv")
+        val file = File("~/Series-Shows/L/Lupin III -  Full Collection 2018/Movies, Specials & OVA/(1969) [Movie] Pilot Film/Lupin III Pilot Film 1 - TV [480p][neo1024][03AE79BB].mkv")
         val name = contentRenamer.extractName(file)
         val year = contentRenamer.extractYear(file.path)
         val season = contentRenamer.extractSeason(file)
@@ -893,7 +893,7 @@ class ContentRenamerTest {
         val mediaProxyService = MediaProxyService(TheMovieDataBaseService(httpHelper), TheTVDBService(httpHelper))
         val contentRenamer = ContentRenamer(mediaProxyService)
 
-        val file = File("/home/denis/pfdb/PFDB/Series-Shows/M/Moesha.(1996-2001).Tv.Series.Season.S0106:/Season 3 (1997-98)/MOESHA - S03 E06 - The Play Scene (480p - NF Web-DL).mp4")
+        val file = File("~/Series-Shows/M/Moesha.(1996-2001).Tv.Series.Season.S0106:/Season 3 (1997-98)/MOESHA - S03 E06 - The Play Scene (480p - NF Web-DL).mp4")
         val name = contentRenamer.extractName(file)
         val year = contentRenamer.extractYear(file.path)
         val season = contentRenamer.extractSeason(file)
@@ -920,7 +920,7 @@ class ContentRenamerTest {
         val mediaProxyService = MediaProxyService(TheMovieDataBaseService(httpHelper), TheTVDBService(httpHelper))
         val contentRenamer = ContentRenamer(mediaProxyService)
 
-        val file = File("/home/denis/pfdb/PFDB/Series-Shows/G/Golgo.13/[subs4u]_Golgo_13_20_(Xvid,ger.sub)[9378A5C4].avi")
+        val file = File("~/Series-Shows/G/Golgo.13/[subs4u]_Golgo_13_20_(Xvid,ger.sub)[9378A5C4].avi")
         val name = contentRenamer.extractName(file)
         val year = contentRenamer.extractYear(file.path)
         val season = contentRenamer.extractSeason(file)
@@ -1041,6 +1041,33 @@ class ContentRenamerTest {
         assert(searchResult.isNotEmpty()) { "Expected search results for Class of 1999 (1990)" }
         assert(searchResult.first().title.contains("Class of 1999", ignoreCase = true)) {
             "Expected 'Class of 1999' but got '${searchResult.first().title}'"
+        }
+    }
+
+    @Test
+    fun testMASHExtraction() {
+        val httpHelper = HttpHelper()
+        val mediaProxyService = MediaProxyService(TheMovieDataBaseService(httpHelper), TheTVDBService(httpHelper))
+        val contentRenamer = ContentRenamer(mediaProxyService)
+
+        val file = File("~/Series-Shows/M/M.A.S.H_1970-1982.dvdrip_[teko]/Season_01/s01e03_Requiem.For.A.Lightweight.avi")
+        val name = contentRenamer.extractName(file)
+        val year = contentRenamer.extractYear(file.absolutePath)
+        val season = contentRenamer.extractSeason(file)
+        val episode = contentRenamer.extractEpisode(file)
+
+        assert(name == "MASH") { "Expected 'MASH' but got '$name'" }
+        assert(year == 1970) { "Expected year 1970 but got $year" }
+        assert(season == 1) { "Expected season 1 but got $season" }
+        assert(episode == 3) { "Expected episode 3 but got $episode" }
+
+        val searchResult = mediaProxyService.search(name, year ?: 0, MediaType.Series)
+        assert(searchResult.isNotEmpty()) { "Expected search results for MASH (1970)" }
+        assert(searchResult.first().title == "M*A*S*H") {
+            "Expected 'M*A*S*H' but got '${searchResult.first().title}'"
+        }
+        assert(searchResult.first().type == MediaType.Series) {
+            "Expected Series but got ${searchResult.first().type}"
         }
     }
 

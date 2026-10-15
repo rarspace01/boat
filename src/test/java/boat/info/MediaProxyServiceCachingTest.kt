@@ -75,6 +75,7 @@ class MediaProxyServiceCachingTest {
         val hackRoots = MediaItem(".hack//Roots", ".hack//Roots", 2006, MediaType.Series)
 
         every { tvdbService.search(query) } returns listOf(sommerCamp, hackRoots)
+        every { tmdbService.search(query) } returns emptyList()
 
         val results = mediaProxyService.search(query, MediaType.Series)
         assertEquals(listOf(hackRoots, sommerCamp), results)
@@ -144,6 +145,7 @@ class MediaProxyServiceCachingTest {
         val seriesName = "Breaking Bad"
         val seriesResults = listOf(MediaItem(seriesName, seriesName, 2008, MediaType.Series))
         every { tvdb1.search(seriesName) } returns seriesResults
+        every { tmdb1.search(seriesName) } returns emptyList()
 
         val result1 = serviceInstance1.search(movieName)
         val result2 = serviceInstance1.search(seriesName, MediaType.Series)
@@ -155,6 +157,7 @@ class MediaProxyServiceCachingTest {
 
         verify(exactly = 1) { tmdb1.search(movieName) }
         verify(exactly = 1) { tvdb1.search(seriesName) }
+        verify(exactly = 1) { tmdb1.search(seriesName) }
 
         // Second service instance pointing to the same cache file
         val tmdb2: TheMovieDataBaseService = mockk()

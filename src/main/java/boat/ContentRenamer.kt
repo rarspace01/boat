@@ -519,7 +519,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
 
     fun extractYear(fullName: String): Int? {
         val parenthesizedYearRegex = "[(\\[](19[0-9]{2}|20[0-2][0-9])(?:-[0-9]{2,4})?[)\\]]".toRegex()
-        val yearRegex = "\\b(19[0-9]{2}|20[0-2][0-9])\\b".toRegex()
+        val yearRegex = "(?<=^|[^0-9])(19[0-9]{2}|20[0-2][0-9])(?=[^0-9]|$)".toRegex()
         val file = File(fullName)
 
         // 1. Prefer explicit parenthesized year in file name
@@ -528,7 +528,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
 
         val parent = file.parentFile
         val isSeasonFolder = parent?.name?.let {
-            "(?i)^(?:uk|us|usa|ger|fra|fr|de|es|ita|it|jp|jpn|kr|kor|cn|chi|ru|rus|eng|en)?[\\s_.-]*(?:Season|Series|Specials|Dis[ck]|DVD|CD|Vol(?:ume)?)\\b".toRegex().containsMatchIn(it)
+            "(?i)^(?:uk|us|usa|ger|fra|fr|de|es|ita|it|jp|jpn|kr|kor|cn|chi|ru|rus|eng|en)?[\\s_.-]*(?:Season|Series|Specials|Dis[ck]|DVD|CD|Vol(?:ume)?)(?:[\\s_.-]*[0-9]{1,4}|\\b)".toRegex().containsMatchIn(it)
         } ?: false
 
         // If parent is a season folder, check grandparent show folder first
@@ -546,23 +546,42 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         }
 
         // 2. Prefer explicit parenthesized year in parent folders
-        val parentParenMatch = parent?.let { parenthesizedYearRegex.find(it.name) }
-        if (parentParenMatch != null) return parentParenMatch.groupValues[1].toInt()
-
-        val grandParentParenMatch = parent?.parentFile?.let { parenthesizedYearRegex.find(it.name) }
-        if (grandParentParenMatch != null) return grandParentParenMatch.groupValues[1].toInt()
+        var current: File? = parent
+        var depth = 0
+        while (current != null && depth < 5) {
+            val parentParenMatch = parenthesizedYearRegex.find(current.name)
+            if (parentParenMatch != null) return parentParenMatch.groupValues[1].toInt()
+            current = current.parentFile
+            depth++
+        }
 
         // 3. Fall back to unparenthesized year (prefer match where index > 0)
         val nameMatch = yearRegex.find(file.name)
         if (nameMatch != null && nameMatch.range.first > 0) return nameMatch.groupValues[1].toInt()
 
-        val parentMatch = parent?.let { yearRegex.find(it.name) }
-        if (parentMatch != null && parentMatch.range.first > 0) {
-            return parentMatch.groupValues[1].toInt()
+        current = parent
+        depth = 0
+        while (current != null && depth < 5) {
+            val currMatch = yearRegex.find(current.name)
+            if (currMatch != null && currMatch.range.first > 0) {
+                return currMatch.groupValues[1].toInt()
+            }
+            current = current.parentFile
+            depth++
         }
 
         if (nameMatch != null) return nameMatch.groupValues[1].toInt()
-        if (parentMatch != null) return parentMatch.groupValues[1].toInt()
+
+        current = parent
+        depth = 0
+        while (current != null && depth < 5) {
+            val currMatch = yearRegex.find(current.name)
+            if (currMatch != null) {
+                return currMatch.groupValues[1].toInt()
+            }
+            current = current.parentFile
+            depth++
+        }
 
         return null
     }

@@ -111,8 +111,12 @@ class MediaProxyService(
         val cacheKey = "search:$name:$type"
         return getCachedOrPut(cacheKey) {
             val results = when (type) {
-                MediaType.Movie -> theMovieDataBaseService.search(name) ?: emptyList()
-                MediaType.Series -> theTVDBService.search(name)
+                MediaType.Movie -> theMovieDataBaseService.search(name)?.filter { it.type == MediaType.Movie } ?: emptyList()
+                MediaType.Series -> {
+                    val tvdbResults = theTVDBService.search(name)
+                    val tmdbResults = theMovieDataBaseService.search(name)?.filter { it.type == MediaType.Series } ?: emptyList()
+                    tvdbResults.plus(tmdbResults).distinctBy { it.title + it.year + it.type }
+                }
                 else -> search(name)
             }
             rankResults(name, results)
@@ -124,8 +128,12 @@ class MediaProxyService(
         val cacheKey = "search:$name:$year:$type"
         return getCachedOrPut(cacheKey) {
             val results = when (type) {
-                MediaType.Movie -> theMovieDataBaseService.search(name, year) ?: emptyList()
-                MediaType.Series -> theTVDBService.search(name, year)
+                MediaType.Movie -> theMovieDataBaseService.search(name, year)?.filter { it.type == MediaType.Movie } ?: emptyList()
+                MediaType.Series -> {
+                    val tvdbResults = theTVDBService.search(name, year)
+                    val tmdbResults = theMovieDataBaseService.search(name, year)?.filter { it.type == MediaType.Series } ?: emptyList()
+                    tvdbResults.plus(tmdbResults).distinctBy { it.title + it.year + it.type }
+                }
                 else -> search(name, year)
             }
             rankResults(name, results, year)

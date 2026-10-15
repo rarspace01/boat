@@ -15,16 +15,9 @@ internal class TheTVDBServiceTest {
 
     @Test
     fun search() {
-        // Given
-        // When
-        val mediaItems = tvdbs!!.search("Planet Earth")
-        
-        // Then
-        // Note: This will fail if TVDB_APIKEY is not set in boat.cfg, but we want to see the result
-        if (mediaItems != null) {
-            println("TVDB Search results: ${mediaItems.size}")
-            mediaItems.forEach { println(it) }
-        }
+        val mediaItems = tvdbs!!.search("MASH")
+        Assertions.assertTrue(mediaItems.isNotEmpty())
+        Assertions.assertTrue(mediaItems.any { it.title == "M*A*S*H" && it.year == 1972 })
     }
 
     @Test

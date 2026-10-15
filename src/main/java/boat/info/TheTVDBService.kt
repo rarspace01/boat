@@ -45,9 +45,27 @@ class TheTVDBService @Autowired constructor(private val httpHelper: HttpHelper) 
     fun search(name: String?): List<MediaItem> {
         return name?.let {
             val jwtToken = getToken() ?: return emptyList()
-            val url = "$baseUrl/search?q=${urlEncode(name)}&type=series"
             val headers = mapOf("Authorization" to "Bearer $jwtToken")
-            parseResponsePage(httpHelper.getPage(url, null, headers))
+            val queries = mutableListOf(name)
+            if (name.matches("^[a-zA-Z]{2,6}$".toRegex())) {
+                val dotted = name.toCharArray().joinToString(".")
+                queries.add(dotted)
+                queries.add("$dotted.")
+            } else if (name.contains(".")) {
+                val withoutDots = name.replace(".", "")
+                if (withoutDots.isNotBlank() && withoutDots != name) {
+                    queries.add(withoutDots)
+                }
+            }
+            val results = mutableListOf<MediaItem>()
+            for (q in queries.distinct()) {
+                val url = "$baseUrl/search?q=${urlEncode(q)}&type=series"
+                val items = parseResponsePage(httpHelper.getPage(url, null, headers))
+                if (items != null) {
+                    results.addAll(items)
+                }
+            }
+            results.distinctBy { (it.id ?: "") + it.title + it.year }
         } ?: emptyList()
     }
 
