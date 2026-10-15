@@ -997,7 +997,7 @@ class ContentRenamerTest {
         val name = contentRenamer.extractName(file)
         val episode = contentRenamer.extractEpisode(file)
 
-        assertThat(name.startsWith("Cowboy Bebop")).isTrue()
+        assertThat(name).isEqualTo("Cowboy Bebop")
         assertThat(episode).isEqualTo(19)
 
         val searchResult = mediaProxyService.search("Cowboy Bebop", MediaType.Series)

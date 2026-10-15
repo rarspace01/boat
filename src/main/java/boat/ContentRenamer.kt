@@ -7,7 +7,6 @@ import boat.utilities.StringUtil
 import java.io.File
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
-import kotlin.io.path.moveTo
 
 class ContentRenamer(val mediaProxyService: MediaProxyService) {
 
@@ -59,6 +58,9 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
 
         val parenthesizedEpisodeRangePattern = "\\([0-9]{1,3}-[0-9]{1,3}\\)".toRegex()
         name = name.replace(parenthesizedEpisodeRangePattern, " ")
+
+        val episodeRangePattern = "(?<=[a-zA-Z\\s])[0-9]{1,3}-[0-9]{1,3}(?=\\s*(?:\\+|$|\\b))".toRegex()
+        name = name.replace(episodeRangePattern, " ")
 
         val parenthesizedYearPattern = "[(\\[](?:19[0-9]{2}|20[0-2][0-9])(?:-[0-9]{2,4})?[)\\]]".toRegex()
         val hasParenthesizedYear = parenthesizedYearPattern.containsMatchIn(name)
