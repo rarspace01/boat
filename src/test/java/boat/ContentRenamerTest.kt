@@ -240,7 +240,7 @@ class ContentRenamerTest {
         assertThat(contentRenamer.extractEpisode(hackSignFile)).isEqualTo(22)
 
         val hackSignExtrasFile = File("~/Series-Shows/#/.Hack Sign 1-28+Extras/[V-A]_hack_SIGN_-_05_[E3229E6C].mkv")
-        assertThat(contentRenamer.extractName(hackSignExtrasFile)).isEqualTo("hack SIGN")
+        assertThat(contentRenamer.extractName(hackSignExtrasFile)).isEqualTo("Hack Sign")
         assertThat(contentRenamer.extractSeason(hackSignExtrasFile)).isNull()
         assertThat(contentRenamer.extractEpisode(hackSignExtrasFile)).isEqualTo(5)
 
@@ -250,7 +250,7 @@ class ContentRenamerTest {
         assertThat(contentRenamer.extractEpisode(hackLegendTwilightFile)).isEqualTo(8)
 
         val hackRootsFile = File("~/Series-Shows/#/_HACK/ROOTS/hack_roots-21.avi")
-        assertThat(contentRenamer.extractName(hackRootsFile)).isEqualTo("hack roots")
+        assertThat(contentRenamer.extractName(hackRootsFile)).isEqualTo("HACK ROOTS")
         assertThat(contentRenamer.extractSeason(hackRootsFile)).isNull()
         assertThat(contentRenamer.extractEpisode(hackRootsFile)).isEqualTo(21)
 
@@ -637,7 +637,7 @@ class ContentRenamerTest {
         assertThat(contentRenamer.extractName(hackGift)).isEqualTo("hack GIFT")
 
         val shopForKillers = File("~/Series-Shows/S/A.Shop.For.Killers.Korean.S01.2024.Hevc33/A.Shop.for.Killers.KOREAN.S01E01.2024.1080p.WEBRip.x265.HEVC-kkolev33.mkv")
-        assertThat(contentRenamer.extractName(shopForKillers)).isEqualTo("A Shop for Killers")
+        assertThat(contentRenamer.extractName(shopForKillers)).isEqualTo("A Shop For Killers")
         assertThat(contentRenamer.extractSeason(shopForKillers)).isEqualTo(1)
         assertThat(contentRenamer.extractEpisode(shopForKillers)).isEqualTo(1)
 
@@ -1016,9 +1016,24 @@ class ContentRenamerTest {
         val season = contentRenamer.extractSeason(file)
         val episode = contentRenamer.extractEpisode(file)
 
-        assertThat(name).isEqualTo("Fresh off the Boat")
+        assertThat(name).isEqualTo("Fresh Off The Boat")
         assertThat(episode).isEqualTo(14)
         assertThat(season).isEqualTo(2)
+    }
+
+    @Test
+    fun testNoiseAfterTitleExtraction() {
+        val httpHelper = HttpHelper()
+        val mediaProxyService = MediaProxyService(TheMovieDataBaseService(httpHelper), TheTVDBService(httpHelper))
+        val contentRenamer = ContentRenamer(mediaProxyService)
+        val file = File("~/Series-Shows/A/Arrow/S3/arrow.301.hdtv-lol.mp4")
+        val name = contentRenamer.extractName(file)
+        val season = contentRenamer.extractSeason(file)
+        val episode = contentRenamer.extractEpisode(file)
+
+        assertThat(name).isEqualTo("Arrow")
+        assertThat(episode).isEqualTo(1)
+        assertThat(season).isEqualTo(3)
     }
 
 }

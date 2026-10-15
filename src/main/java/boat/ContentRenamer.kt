@@ -17,7 +17,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         val seasonPattern2 = "(?:\\[|\\b)([0-9]{1,2})x([0-9]{1,2})(?:\\]|\\b)".toRegex()
         val episodePattern =
             "(?:(?<=^|[^a-zA-Z0-9])(?:Episode|Ep\\.?|E)|(?:\\s-\\s|\\s|-|\\.))([0-9]{1,3})(?=[^a-zA-Z0-9]|$)".toRegex(RegexOption.IGNORE_CASE)
-        val standaloneEpisodePattern = "(?<=^|\\s)(?<![0-9])([0-9]{3})(?![0-9])(?=\\s|$)".toRegex()
+        val standaloneEpisodePattern = "(?<=^|[\\s._-])(?<![0-9])([0-9]{3})(?![0-9])(?=[\\s._-]|$)".toRegex()
         val yearPattern = "\\b(19[0-9]{2}|20[0-2][0-9])\\b".toRegex()
         val bracketPattern = "\\[.*?]".toRegex()
         val dvdPattern = "(?<=^|\\s)(?:dvd|disc|cd)\\s?([0-9]{1,2})".toRegex(RegexOption.IGNORE_CASE)
@@ -350,8 +350,8 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         val tokens = tokenNormalized.split(" ").filter { it.isNotBlank() }
         val hasKnownJunkOrTechToken = tokens.any { allTechnicalAndJunkTokens.contains(it) }
         if (hasKnownJunkOrTechToken && tokens.all { token ->
-            token.length <= 1 || token.matches(pureNumberPattern) || allTechnicalAndJunkTokens.contains(token)
-        }) {
+                token.length <= 1 || token.matches(pureNumberPattern) || allTechnicalAndJunkTokens.contains(token)
+            }) {
             return true
         }
 
@@ -539,13 +539,21 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         } else null
 
         if (!isCandidate0Junk && cleanedFileName.isNotBlank() && (!isShortAcronym || file.parentFile == null)) {
-            if (parentShowName != null && parentShowName.isNotBlank()) {
-                val remainder = cleanedFileName.removePrefix(parentShowName).trim()
-                if (remainder.matches(remainderEpisodePattern)) {
+            if (!parentShowName.isNullOrBlank()) {
+                val remainder = if (cleanedFileName.startsWith(parentShowName, ignoreCase = true)) {
+                    cleanedFileName.substring(parentShowName.length).trim()
+                } else {
+                    cleanedFileName.removePrefix(parentShowName).trim()
+                }
+                if (remainder.isEmpty() || remainder.matches(remainderEpisodePattern)) {
                     return parentShowName
                 }
-                val remainderParent = parentShowName.removePrefix(cleanedFileName).trim()
-                if (remainderParent.matches(remainderYearOrNumPattern)) {
+                val remainderParent = if (parentShowName.startsWith(cleanedFileName, ignoreCase = true)) {
+                    parentShowName.substring(cleanedFileName.length).trim()
+                } else {
+                    parentShowName.removePrefix(cleanedFileName).trim()
+                }
+                if (remainderParent.isEmpty() || remainderParent.matches(remainderYearOrNumPattern)) {
                     return parentShowName
                 }
                 if (isInsidePackOrSeriesFolder) {
@@ -995,7 +1003,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         val firstPart = homeDir+"/pfdb/PFDB/" + getMediaTypeFolderString(mediaResult) +
                 "/" + StringUtil.deductFirstTorrentLetter(getSafeTitle(mediaResult)) + "/${getSafeTitle(mediaResult)} ${mediaResult.id}"
         val optionalSeasonFolder = if(season != null){
-             "/Season ${season}"
+            "/Season $season"
         } else {
             ""
         }
