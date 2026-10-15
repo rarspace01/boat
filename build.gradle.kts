@@ -46,7 +46,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-security:$springBootVersion")
     implementation("com.github.ben-manes.caffeine:caffeine:3.3.0")
     implementation("commons-io:commons-io:2.22.0")
-    implementation("commons-codec:commons-codec:1.22.1")
+    implementation("commons-codec:commons-codec:1.23.0")
     implementation("commons-validator:commons-validator:1.11.0")
 
     implementation("org.projectlombok:lombok:$lombokVersion")
