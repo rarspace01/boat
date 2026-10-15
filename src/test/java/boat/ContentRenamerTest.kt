@@ -2,10 +2,10 @@ package boat
 
 import boat.info.MediaItem
 import boat.info.MediaProxyService
+import boat.info.MediaType
 import boat.info.TheMovieDataBaseService
 import boat.info.TheTVDBService
 import boat.utilities.HttpHelper
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import java.io.File
 
@@ -936,6 +936,111 @@ class ContentRenamerTest {
         assert(searchResult.isNotEmpty()) { "Expected search results for $name ($year)" }
         assert(searchResult.first().title.contains("Golgo 13", ignoreCase = true)) {
             "Expected 'Golgo 13' in title but got '${searchResult.first().title}'"
+        }
+    }
+
+    @Test
+    fun testSpace1999Extraction() {
+        val httpHelper = HttpHelper()
+        val mediaProxyService = MediaProxyService(TheMovieDataBaseService(httpHelper), TheTVDBService(httpHelper))
+        val contentRenamer = ContentRenamer(mediaProxyService)
+
+        val fileWithParentheses = File("~/Series-Shows/S/Space 1999 (1975)/Season 1/Space 1999 - S01E01 - Breakaway.mkv")
+        val nameWithParen = contentRenamer.extractName(fileWithParentheses)
+        val yearWithParen = contentRenamer.extractYear(fileWithParentheses.absolutePath)
+        assert(nameWithParen == "Space 1999") { "Expected 'Space 1999' but got '$nameWithParen'" }
+        assert(yearWithParen == 1975) { "Expected year 1975 but got $yearWithParen" }
+
+        val searchResultParen = mediaProxyService.search(nameWithParen, yearWithParen ?: 0, MediaType.Series)
+        assert(searchResultParen.isNotEmpty()) { "Expected search results for Space 1999 (1975)" }
+        assert(searchResultParen.first().title.contains("Space: 1999", ignoreCase = true) || searchResultParen.first().title.contains("Space 1999", ignoreCase = true)) {
+            "Expected 'Space: 1999' but got '${searchResultParen.first().title}'"
+        }
+
+        val fileCastInterview = File("~/Series-Shows/S/Space 1999 (Complete)/# Cast Interviews/Space 1999 - Interviews ~ Catherine Schell (Maya).mpg")
+        val nameInterview = contentRenamer.extractName(fileCastInterview)
+        val yearInterview = contentRenamer.extractYear(fileCastInterview.absolutePath)
+        val searchResultInterview = mediaProxyService.search("Space 1999", MediaType.Series)
+        assert(searchResultInterview.isNotEmpty()) { "Expected search results for Space 1999" }
+        assert(searchResultInterview.first().type == MediaType.Series) { "Expected Series but got ${searchResultInterview.first().type}" }
+        assert(searchResultInterview.first().title.contains("Space: 1999", ignoreCase = true) || searchResultInterview.first().title.contains("Space 1999", ignoreCase = true))
+    }
+
+    @Test
+    fun test2001SpaceOdysseyExtraction() {
+        val httpHelper = HttpHelper()
+        val mediaProxyService = MediaProxyService(TheMovieDataBaseService(httpHelper), TheTVDBService(httpHelper))
+        val contentRenamer = ContentRenamer(mediaProxyService)
+
+        val file = File("~/Movies/2/2001 A Space Odyssey (1968)/2001 A Space Odyssey (1968).1080p.mkv")
+        val name = contentRenamer.extractName(file)
+        val year = contentRenamer.extractYear(file.absolutePath)
+
+        assert(name.contains("2001 A Space Odyssey") || name.contains("2001: A Space Odyssey") || name == "2001 A Space Odyssey") {
+            "Expected '2001 A Space Odyssey' but got '$name'"
+        }
+        assert(year == 1968) { "Expected year 1968 but got $year" }
+
+        val searchResult = mediaProxyService.search(name, year ?: 0)
+        assert(searchResult.isNotEmpty()) { "Expected search results for $name ($year)" }
+        assert(searchResult.first().title.contains("2001: A Space Odyssey") || searchResult.first().title.contains("2001 A Space Odyssey")) {
+            "Expected '2001: A Space Odyssey' but got '${searchResult.first().title}'"
+        }
+    }
+
+    @Test
+    fun test2012MovieExtraction() {
+        val httpHelper = HttpHelper()
+        val mediaProxyService = MediaProxyService(TheMovieDataBaseService(httpHelper), TheTVDBService(httpHelper))
+        val contentRenamer = ContentRenamer(mediaProxyService)
+
+        val file = File("~/Movies/2/2012 (2009)/2012 (2009).1080p.mkv")
+        val name = contentRenamer.extractName(file)
+        val year = contentRenamer.extractYear(file.absolutePath)
+
+        assert(name == "2012") { "Expected '2012' but got '$name'" }
+        assert(year == 2009) { "Expected year 2009 but got $year" }
+
+        val searchResult = mediaProxyService.search(name, year ?: 0)
+        assert(searchResult.isNotEmpty()) { "Expected search results for 2012 (2009)" }
+        assert(searchResult.first().title == "2012") { "Expected '2012' but got '${searchResult.first().title}'" }
+    }
+
+    @Test
+    fun test1917MovieExtraction() {
+        val httpHelper = HttpHelper()
+        val mediaProxyService = MediaProxyService(TheMovieDataBaseService(httpHelper), TheTVDBService(httpHelper))
+        val contentRenamer = ContentRenamer(mediaProxyService)
+
+        val file = File("~/Movies/1/1917 (2019)/1917 (2019).1080p.mkv")
+        val name = contentRenamer.extractName(file)
+        val year = contentRenamer.extractYear(file.absolutePath)
+
+        assert(name == "1917") { "Expected '1917' but got '$name'" }
+        assert(year == 2019) { "Expected year 2019 but got $year" }
+
+        val searchResult = mediaProxyService.search(name, year ?: 0)
+        assert(searchResult.isNotEmpty()) { "Expected search results for 1917 (2019)" }
+        assert(searchResult.first().title == "1917") { "Expected '1917' but got '${searchResult.first().title}'" }
+    }
+
+    @Test
+    fun testClassOf1999Extraction() {
+        val httpHelper = HttpHelper()
+        val mediaProxyService = MediaProxyService(TheMovieDataBaseService(httpHelper), TheTVDBService(httpHelper))
+        val contentRenamer = ContentRenamer(mediaProxyService)
+
+        val file = File("~/Movies/C/Class of 1999 (1990)/Class of 1999 (1990).1080p.mkv")
+        val name = contentRenamer.extractName(file)
+        val year = contentRenamer.extractYear(file.absolutePath)
+
+        assert(name == "Class of 1999") { "Expected 'Class of 1999' but got '$name'" }
+        assert(year == 1990) { "Expected year 1990 but got $year" }
+
+        val searchResult = mediaProxyService.search(name, year ?: 0)
+        assert(searchResult.isNotEmpty()) { "Expected search results for Class of 1999 (1990)" }
+        assert(searchResult.first().title.contains("Class of 1999", ignoreCase = true)) {
+            "Expected 'Class of 1999' but got '${searchResult.first().title}'"
         }
     }
 
