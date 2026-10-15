@@ -330,7 +330,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
             "volume ", "vol ", "book ", "chapter ", "part ", "ep ", "episode ", "subs ", "subtitles ",
             "extras ", "featurette ", "featurettes ", "trailer ", "trailers ", "sample ", "samples ",
             "screenshot ", "screenshots ", "deleted scene", "deleted scenes", "making of ", "behind the scenes ",
-            "story ", "temporada ", "lesson ", "lessons "
+            "story ", "temporada "
         )
         if (junkPrefixes.any { normalized.startsWith(it) || lower.startsWith(it) }) return true
 

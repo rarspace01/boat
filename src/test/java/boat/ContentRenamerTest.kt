@@ -1036,4 +1036,19 @@ class ContentRenamerTest {
         assertThat(season).isEqualTo(3)
     }
 
+    @Test
+    fun shouldExtractSomething() {
+        val httpHelper = HttpHelper()
+        val mediaProxyService = MediaProxyService(TheMovieDataBaseService(httpHelper), TheTVDBService(httpHelper))
+        val contentRenamer = ContentRenamer(mediaProxyService)
+        val file = File("~/Series-Shows/L/Lessons.In.Chemistry.(2023)/Lessons in Chemistry (2023) - S01E06 - Poirot (1080p ATVP WEB-DL x265 Silence).mkv")
+        val name = contentRenamer.extractName(file)
+        val season = contentRenamer.extractSeason(file)
+        val episode = contentRenamer.extractEpisode(file)
+
+        assertThat(name).isEqualTo("Lessons In Chemistry")
+        assertThat(season).isEqualTo(1)
+        assertThat(episode).isEqualTo(6)
+    }
+
 }
