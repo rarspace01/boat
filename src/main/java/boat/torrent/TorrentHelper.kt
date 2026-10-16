@@ -316,6 +316,16 @@ object TorrentHelper {
         return searchName
     }
 
+    /**
+     * Strips special characters (e.g. ":" or "-") from a title for better search results,
+     * "Mission: Impossible - Fallout" becomes "Mission Impossible Fallout"
+     */
+    fun removeSpecialCharacters(title: String): String {
+        return title.replace("['`´’]".toRegex(), "")
+            .replace("[^\\p{L}\\p{N}]+".toRegex(), " ")
+            .trim()
+    }
+
     fun formatDuration(duration: Duration): String {
         return if (duration.toDays() > 0) {
             String.format(

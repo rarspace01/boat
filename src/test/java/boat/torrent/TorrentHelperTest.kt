@@ -240,4 +240,11 @@ internal class TorrentHelperTest {
         // THen
         assertThat(typeOfMedia).isEqualTo(TorrentType.MOVIES)
     }
+
+    @Test
+    fun shouldRemoveSpecialCharactersFromTitle() {
+        assertThat(TorrentHelper.removeSpecialCharacters("Mission: Impossible - Fallout")).isEqualTo("Mission Impossible Fallout")
+        assertThat(TorrentHelper.removeSpecialCharacters("Ocean's Eleven")).isEqualTo("Oceans Eleven")
+        assertThat(TorrentHelper.removeSpecialCharacters("Die Ärzte: Live")).isEqualTo("Die Ärzte Live")
+    }
 }

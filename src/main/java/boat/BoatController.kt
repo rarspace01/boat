@@ -11,6 +11,7 @@ import boat.services.TransferService
 import boat.torrent.Torrent
 import boat.torrent.TorrentHelper.getSearchNameFrom
 import boat.torrent.TorrentHelper.humanReadableByteCountBinary
+import boat.torrent.TorrentHelper.removeSpecialCharacters
 import boat.torrent.TorrentSearchEngineService
 import boat.utilities.HttpHelper
 import boat.utilities.LoggerDelegate
@@ -203,13 +204,14 @@ $switchToSearch$switchToSearchList${switchToProgress.replace("..", "../boat")}""
     /**
      * Media aware search flow:
      * 1. qq: look up the title via [MediaProxyService] and let the user pick a media item
-     * 2. t + mid: check for already downloaded files of the selected media item
+     * 2. t (+ y) + mid: check for already downloaded files of the selected media item
      * 3. q + mid: search torrents, download links carry the remote media id (e.g. {tmdb-123})
      */
     @RequestMapping("/boat/query2")
     fun searchTorrentsWithMedia(
         @RequestParam(value = "qq", required = false) mediaSearchString: String?,
         @RequestParam(value = "t", required = false) selectedTitle: String?,
+        @RequestParam(value = "y", required = false) selectedYear: Int?,
         @RequestParam(value = "q", required = false) searchString: String?,
         @RequestParam(value = "mid", required = false) remoteMediaId: String?,
     ): String {
@@ -224,13 +226,15 @@ $switchToSearch$switchToSearchList${switchToProgress.replace("..", "../boat")}""
             )
             htmlHeader + torrentList.take(50).joinToString(separator = "") { it.toHtml(mediaId) } + htmlFooter
         } else if (!selectedTitle.isNullOrBlank()) {
-            val existingFiles = (cloudService.findExistingFiles(selectedTitle) +
+            val cleanedTitle = removeSpecialCharacters(selectedTitle)
+            val torrentSearchString = cleanedTitle + (selectedYear?.let { " $it" } ?: "")
+            val existingFiles = (cloudService.findExistingFiles(cleanedTitle) +
                     (mediaId?.let { cloudService.findExistingFiles(it) } ?: emptyList())).distinct()
             if (existingFiles.isNotEmpty()) {
                 htmlHeader + ("We already found some files:<br/>" + existingFiles.joinToString("<br/>")
-                        + "<br/>Still want to search? <a href=\"?q=" + urlEncode(selectedTitle) + midParam + "\">Yes</a>") + htmlFooter
+                        + "<br/>Still want to search? <a href=\"?q=" + urlEncode(torrentSearchString) + midParam + "\">Yes</a>") + htmlFooter
             } else {
-                searchTorrentsWithMedia(null, null, selectedTitle, mediaId)
+                searchTorrentsWithMedia(null, null, null, torrentSearchString, mediaId)
             }
         } else if (!mediaSearchString.isNullOrBlank()) {
             val mediaItems = mediaProxyService.search(mediaSearchString)
@@ -240,7 +244,9 @@ $switchToSearch$switchToSearchList${switchToProgress.replace("..", "../boat")}""
             )
             val mediaList = mediaItems.joinToString(separator = "") { mediaItem ->
                 val itemMidParam = mediaItem.id?.let { "&mid=" + urlEncode(it) } ?: ""
-                "<a href=\"?t=" + urlEncode(mediaItem.title) + itemMidParam + "\">" + mediaItem.title +
+                val itemYearParam = mediaItem.year?.takeIf { mediaItem.type == boat.info.MediaType.Movie }
+                    ?.let { "&y=$it" } ?: ""
+                "<a href=\"?t=" + urlEncode(mediaItem.title) + itemYearParam + itemMidParam + "\">" + mediaItem.title +
                         (mediaItem.year?.let { " ($it)" } ?: "") +
                         (mediaItem.type?.let { " [$it]" } ?: "") +
                         (mediaItem.id?.let { " $it" } ?: "") + "</a><br/>\n"
