@@ -7,7 +7,11 @@ import boat.services.TransferService
 import boat.torrent.Torrent
 import boat.torrent.TorrentFile
 import boat.utilities.HttpHelper
+import io.mockk.Runs
+import io.mockk.every
+import io.mockk.just
 import io.mockk.mockk
+import io.mockk.slot
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeEach
@@ -131,5 +135,30 @@ internal class MultifileHosterServiceTest {
         val torrentToBeDownloaded = multifileHosterService.getTorrentToBeDownloaded()
         // Then
         Assertions.assertNotNull(torrentToBeDownloaded)
+    }
+
+    @Test
+    fun shouldNotUseMagnetUriAsTransferNameWhenAddingTorrent() {
+        // Given
+        val savedTransfer = slot<Transfer>()
+        every { transferService.save(capture(savedTransfer)) } just Runs
+        val torrent = Torrent.of("magnet:?xt=urn:btih:10e93389d579ba4538c68b8d297268a81620fae2&tr=udp%3A%2F%2Ftracker.org%3A6969&dn=Some.Movie.2020")
+        // When
+        multifileHosterService.addTorrentToTransfer(torrent)
+        // Then
+        assertThat(savedTransfer.captured.name).isEqualTo("Some.Movie.2020")
+        assertThat(savedTransfer.captured.uri).isEqualTo(torrent.magnetUri)
+    }
+
+    @Test
+    fun shouldNotUseMagnetUriAsTransferNameWhenAddingTorrentWithoutDn() {
+        // Given
+        val savedTransfer = slot<Transfer>()
+        every { transferService.save(capture(savedTransfer)) } just Runs
+        val torrent = Torrent.of("magnet:?xt=urn:btih:10e93389d579ba4538c68b8d297268a81620fae2")
+        // When
+        multifileHosterService.addTorrentToTransfer(torrent)
+        // Then
+        assertThat(savedTransfer.captured.name).doesNotContain("magnet:")
     }
 }

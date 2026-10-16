@@ -40,7 +40,7 @@ data class Torrent(
     ) : Comparable<Torrent> {
 
     private val magnetPattern = Pattern.compile("(btih:)([a-zA-Z0-9]*)&*")
-    private val magnetNamePattern = Pattern.compile("dn=(.*?)&")
+    private val magnetNamePattern = Pattern.compile("[?&]dn=([^&]*)", Pattern.CASE_INSENSITIVE)
     override fun toString(): String {
         return toHtml()
     }
@@ -138,9 +138,9 @@ data class Torrent(
             if (magnetUri.isEmpty()) {
                 return null
             }
-            val matcher = magnetNamePattern.matcher(magnetUri.lowercase())
-            return if (matcher.find()) {
-                matcher.group(1).lowercase(Locale.getDefault())
+            val matcher = magnetNamePattern.matcher(magnetUri)
+            return if (matcher.find() && matcher.group(1).isNotBlank()) {
+                matcher.group(1)
             } else {
                 null
             }

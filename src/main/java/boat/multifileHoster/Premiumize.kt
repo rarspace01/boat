@@ -27,11 +27,18 @@ class Premiumize(httpHelper: HttpHelper) : HttpUser(httpHelper), MultifileHoster
 
     override fun addTorrentToDownloadQueue(toBeAddedTorrent: Torrent): String {
         val response: String
-        val addTorrenntUrl =
-            "https://www.premiumize.me/api/transfer/create?apikey=" + PropertiesHelper.getProperty("PREMIUMIZE_APIKEY") +
-                    "&type=hello.torrent&src=" + cleanMagnetUri(toBeAddedTorrent.magnetUri)
+        val addTorrenntUrl = buildAddTransferUrl(PropertiesHelper.getProperty("PREMIUMIZE_APIKEY"), toBeAddedTorrent.magnetUri)
         response = httpHelper.getPage(addTorrenntUrl)
         return response
+    }
+
+    /**
+     * The magnet uri has to be url encoded as a whole, otherwise its own parameters (dn, tr) are interpreted
+     * as parameters of the premiumize api and premiumize names the transfer after the truncated magnet uri
+     */
+    fun buildAddTransferUrl(apiKey: String?, magnetUri: String): String {
+        return "https://www.premiumize.me/api/transfer/create?apikey=" + apiKey +
+                "&type=hello.torrent&src=" + TorrentHelper.urlEncode(cleanMagnetUri(magnetUri))
     }
 
     private fun cleanMagnetUri(magnetUri: String): String {

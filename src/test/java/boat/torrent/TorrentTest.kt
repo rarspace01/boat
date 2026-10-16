@@ -38,4 +38,40 @@ internal class TorrentTest {
         // Then
         org.assertj.core.api.Assertions.assertThat(list[0]).isEqualTo(torrent1)
     }
+
+    @Test
+    fun shouldGetNameFromUriIfDnIsInTheMiddle() {
+        val torrent = Torrent.of("magnet:?xt=urn:btih:10e93389d579ba4538c68b8d297268a81620fae2&dn=Some.Movie.2020&tr=udp%3A%2F%2Ftracker.org%3A6969")
+        Assertions.assertEquals("Some.Movie.2020", torrent.torrentNameFromUri)
+    }
+
+    @Test
+    fun shouldGetNameFromUriIfDnIsTheLastParameter() {
+        val torrent = Torrent.of("magnet:?xt=urn:btih:10e93389d579ba4538c68b8d297268a81620fae2&tr=udp%3A%2F%2Ftracker.org%3A6969&dn=Some.Movie.2020")
+        Assertions.assertEquals("Some.Movie.2020", torrent.torrentNameFromUri)
+    }
+
+    @Test
+    fun shouldGetNameFromUriIfDnIsTheFirstParameter() {
+        val torrent = Torrent.of("magnet:?dn=Some.Movie.2020&xt=urn:btih:10e93389d579ba4538c68b8d297268a81620fae2")
+        Assertions.assertEquals("Some.Movie.2020", torrent.torrentNameFromUri)
+    }
+
+    @Test
+    fun shouldNotGetNameFromUriWithoutDn() {
+        val torrent = Torrent.of("magnet:?xt=urn:btih:10e93389d579ba4538c68b8d297268a81620fae2&tr=udp%3A%2F%2Ftracker.org%3A6969")
+        Assertions.assertNull(torrent.torrentNameFromUri)
+    }
+
+    @Test
+    fun shouldNotGetNameFromUriWithEmptyDn() {
+        val torrent = Torrent.of("magnet:?xt=urn:btih:10e93389d579ba4538c68b8d297268a81620fae2&dn=&tr=udp%3A%2F%2Ftracker.org%3A6969")
+        Assertions.assertNull(torrent.torrentNameFromUri)
+    }
+
+    @Test
+    fun shouldNotMistakeOtherParametersEndingWithDnAsName() {
+        val torrent = Torrent.of("magnet:?xt=urn:btih:10e93389d579ba4538c68b8d297268a81620fae2&xdn=wrong")
+        Assertions.assertNull(torrent.torrentNameFromUri)
+    }
 }

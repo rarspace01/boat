@@ -346,11 +346,46 @@ object TorrentHelper {
     }
 
     fun extractTorrentName(torrent: Torrent): String {
-        return if (Strings.isNotEmpty(torrent.name) && torrent.name != "null") {
+        return if (isUsableName(torrent.name)) {
             torrent.name
         } else {
-            val torrentNameFromUri = torrent.torrentNameFromUri
-            if (torrentNameFromUri != null) urlDecode(torrentNameFromUri) else torrent.magnetUri
+            nameFromUri(torrent.magnetUri) ?: hashFromUri(torrent.magnetUri) ?: torrent.magnetUri
         }
+    }
+
+    /**
+     * Resolves a name that is safe to be used as file/folder name. Multifilehosters sometimes report the (truncated)
+     * magnet uri as name, so the first usable candidate wins, falling back to the dn or hash of the magnet uri.
+     */
+    fun resolveDownloadName(torrent: Torrent, vararg fallbackNames: String?): String {
+        val candidates = listOf(torrent.name, torrent.magnetUri) + fallbackNames
+        return listOf(torrent.name, *fallbackNames).firstOrNull { isUsableName(it) }
+            ?: candidates.firstNotNullOfOrNull { nameFromUri(it) }
+            ?: candidates.firstNotNullOfOrNull { hashFromUri(it) }
+            ?: torrent.name
+    }
+
+    fun isMagnetUriLike(name: String?): Boolean {
+        if (name == null) return false
+        val lowercasedName = name.trim().lowercase(Locale.ROOT)
+        return lowercasedName.startsWith("magnet:") || lowercasedName.contains("xt=urn:btih:") || lowercasedName.contains("urn:btih:")
+    }
+
+    private fun isUsableName(name: String?): Boolean {
+        return Strings.isNotBlank(name) && name != "null" && !isMagnetUriLike(name)
+    }
+
+    private fun nameFromUri(uri: String?): String? {
+        if (uri.isNullOrBlank()) return null
+        if (!isMagnetUriLike(uri)) {
+            return if (uri.startsWith("http")) urlDecode(uri.substringBefore("?").substringAfterLast("/")).ifBlank { null } else null
+        }
+        val nameFromUri = Torrent.of(uri).torrentNameFromUri?.let { urlDecode(it) }
+        return if (isUsableName(nameFromUri)) nameFromUri else null
+    }
+
+    private fun hashFromUri(uri: String?): String? {
+        if (uri.isNullOrBlank() || !isMagnetUriLike(uri)) return null
+        return Torrent.of(uri).torrentId.ifBlank { null }
     }
 }

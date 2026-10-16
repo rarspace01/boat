@@ -247,4 +247,93 @@ internal class TorrentHelperTest {
         assertThat(TorrentHelper.removeSpecialCharacters("Ocean's Eleven")).isEqualTo("Oceans Eleven")
         assertThat(TorrentHelper.removeSpecialCharacters("Die Ärzte: Live")).isEqualTo("Die Ärzte Live")
     }
+
+    @Test
+    fun shouldExtractNameFromDnIfDnIsTheLastParameter() {
+        val torrent = Torrent.of("magnet:?xt=urn:btih:10e93389d579ba4538c68b8d297268a81620fae2&tr=udp%3A%2F%2Ftracker.org%3A6969&dn=Some%20Movie%202020")
+        Assertions.assertEquals("Some Movie 2020", TorrentHelper.extractTorrentName(torrent))
+    }
+
+    @Test
+    fun shouldExtractNameWithOriginalCase() {
+        val torrent = Torrent.of("magnet:?xt=urn:btih:10e93389d579ba4538c68b8d297268a81620fae2&dn=Some.Movie.2020.1080p&tr=udp%3A%2F%2Ftracker.org%3A6969")
+        Assertions.assertEquals("Some.Movie.2020.1080p", TorrentHelper.extractTorrentName(torrent))
+    }
+
+    @Test
+    fun shouldNeverExtractMagnetUriAsName() {
+        listOf(
+            "magnet:?xt=urn:btih:10e93389d579ba4538c68b8d297268a81620fae2",
+            "magnet:?xt=urn:btih:10e93389d579ba4538c68b8d297268a81620fae2&tr=udp%3A%2F%2Ftracker.org%3A6969",
+            "magnet:?xt=urn:btih:10e93389d579ba4538c68b8d297268a81620fae2&dn=&tr=udp%3A%2F%2Ftracker.org%3A6969",
+            "magnet:?xt=urn:btih:10e93389d579ba4538c68b8d297268a81620fae2&tr=udp%3A%2F%2Ftracker.org%3A6969&dn=Name",
+        ).forEach { magnetUri ->
+            val name = TorrentHelper.extractTorrentName(Torrent.of(magnetUri))
+            assertThat(name).describedAs(magnetUri).doesNotContain("magnet:").doesNotContain("btih").doesNotContain("?").doesNotContain("&")
+        }
+    }
+
+    @Test
+    fun shouldFallbackToHashIfMagnetUriHasNoName() {
+        val torrent = Torrent.of("magnet:?xt=urn:btih:10e93389d579ba4538c68b8d297268a81620fae2&tr=udp%3A%2F%2Ftracker.org%3A6969")
+        Assertions.assertEquals("10e93389d579ba4538c68b8d297268a81620fae2", TorrentHelper.extractTorrentName(torrent))
+    }
+
+    @Test
+    fun shouldNotUseMagnetUriAsNameEvenIfSetAsName() {
+        val torrent = Torrent.of("magnet:?xt=urn:btih:10e93389d579ba4538c68b8d297268a81620fae2&dn=Some.Movie.2020")
+        torrent.name = "magnet:?xt=urn:btih:10e93389d579ba4538c68b8d297268a81620fae2"
+        Assertions.assertEquals("Some.Movie.2020", TorrentHelper.extractTorrentName(torrent))
+    }
+
+    @Test
+    fun shouldExtractFileNameFromDirectDownloadUrl() {
+        val torrent = Torrent.of("https://example.com/files/Some.Movie.2020.mkv?token=abc")
+        Assertions.assertEquals("Some.Movie.2020.mkv", TorrentHelper.extractTorrentName(torrent))
+    }
+
+    @Test
+    fun shouldDetectMagnetUriLikeNames() {
+        Assertions.assertTrue(TorrentHelper.isMagnetUriLike("magnet:?xt=urn:btih:10e93389d579ba4538c68b8d297268a81620fae2"))
+        Assertions.assertTrue(TorrentHelper.isMagnetUriLike(" MAGNET:?xt=urn:btih:10e93389d579ba4538c68b8d297268a81620fae2"))
+        Assertions.assertTrue(TorrentHelper.isMagnetUriLike("xt=urn:btih:10e93389d579ba4538c68b8d297268a81620fae2"))
+        Assertions.assertFalse(TorrentHelper.isMagnetUriLike("Some.Movie.2020.1080p"))
+        Assertions.assertFalse(TorrentHelper.isMagnetUriLike("Magnetic.Fields.2020"))
+        Assertions.assertFalse(TorrentHelper.isMagnetUriLike(null))
+    }
+
+    @Test
+    fun shouldKeepRemoteNameIfUsable() {
+        val torrent = Torrent("Premiumize")
+        torrent.name = "Some.Movie.2020.1080p"
+        Assertions.assertEquals("Some.Movie.2020.1080p", TorrentHelper.resolveDownloadName(torrent, "Other Name"))
+    }
+
+    @Test
+    fun shouldResolveDownloadNameFromTransferNameIfRemoteNameIsMagnetUri() {
+        val torrent = Torrent("Premiumize")
+        torrent.name = "magnet:?xt=urn:btih:10e93389d579ba4538c68b8d297268a81620fae2"
+        torrent.magnetUri = "magnet:?xt=urn:btih:10e93389d579ba4538c68b8d297268a81620fae2"
+        Assertions.assertEquals("Some Movie 2020", TorrentHelper.resolveDownloadName(torrent, "Some Movie 2020"))
+    }
+
+    @Test
+    fun shouldResolveDownloadNameFromTransferUriIfAllNamesAreMagnetUris() {
+        val torrent = Torrent("Premiumize")
+        torrent.name = "magnet:?xt=urn:btih:10e93389d579ba4538c68b8d297268a81620fae2"
+        val resolvedName = TorrentHelper.resolveDownloadName(
+            torrent,
+            "magnet:?xt=urn:btih:10e93389d579ba4538c68b8d297268a81620fae2",
+            "magnet:?xt=urn:btih:10e93389d579ba4538c68b8d297268a81620fae2&dn=Some.Movie.2020&tr=udp%3A%2F%2Ftracker.org%3A6969"
+        )
+        Assertions.assertEquals("Some.Movie.2020", resolvedName)
+    }
+
+    @Test
+    fun shouldResolveDownloadNameToHashAsLastResort() {
+        val torrent = Torrent("Premiumize")
+        torrent.name = "magnet:?xt=urn:btih:10e93389d579ba4538c68b8d297268a81620fae2"
+        torrent.magnetUri = "magnet:?xt=urn:btih:10e93389d579ba4538c68b8d297268a81620fae2"
+        Assertions.assertEquals("10e93389d579ba4538c68b8d297268a81620fae2", TorrentHelper.resolveDownloadName(torrent))
+    }
 }

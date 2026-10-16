@@ -223,7 +223,7 @@ class MultifileHosterService(
                 }?.also { transfer ->
                     transfer.transferStatus = torrent.remoteTransferStatus
                     transfer.progressInPercentage = torrent.remoteProgressInPercent
-                    transfer.name = torrent.name
+                    transfer.name = TorrentHelper.resolveDownloadName(torrent, transfer.name)
                     transfer.eta = torrent.eta
                     transfer.remoteId = torrent.remoteId
                     transferService.save(transfer)
@@ -244,7 +244,7 @@ class MultifileHosterService(
                     }?.also { transfer ->
                         transfer.transferStatus = torrent.remoteTransferStatus
                         transfer.progressInPercentage = torrent.remoteProgressInPercent
-                        transfer.name = torrent.name
+                        transfer.name = TorrentHelper.resolveDownloadName(torrent, transfer.name)
                         transfer.eta = torrent.eta
                         transfer.remoteId = torrent.remoteId
                         transferService.save(transfer)
@@ -280,7 +280,7 @@ class MultifileHosterService(
                     ?.also { transfer ->
                         transfer.transferStatus = torrent.remoteTransferStatus
                         transfer.progressInPercentage = torrent.remoteProgressInPercent
-                        transfer.name = torrent.name
+                        transfer.name = TorrentHelper.resolveDownloadName(torrent, transfer.name)
                         transfer.eta = torrent.eta
                         transfer.remoteId = torrent.remoteId
                         transferService.save(transfer)
@@ -338,6 +338,12 @@ class MultifileHosterService(
             var wasDownloadSuccessful = false
             if (transferToBeDownloaded.isEmpty) {
                 log.warn("Torrent not in transfers but downloading it: {}", torrentToBeDownloaded)
+            }
+            if (TorrentHelper.isMagnetUriLike(torrentToBeDownloaded.name)) {
+                val transfer = transferToBeDownloaded.orElse(null)
+                val resolvedName = TorrentHelper.resolveDownloadName(torrentToBeDownloaded, transfer?.name, transfer?.uri)
+                log.warn("Remote name is a magnet uri: [${torrentToBeDownloaded.name}] using [$resolvedName] instead")
+                torrentToBeDownloaded.name = resolvedName
             }
             try {
                 val filesFromTorrent = getFilesFromTorrent(torrentToBeDownloaded)
