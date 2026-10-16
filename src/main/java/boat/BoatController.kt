@@ -246,8 +246,7 @@ $switchToSearch$switchToSearchList${switchToProgress.replace("..", "../boat")}""
                         (mediaItem.id?.let { " $it" } ?: "") + "</a><br/>\n"
             }
             htmlHeader + (if (mediaItems.isEmpty()) "No media found.<br/>" else "Select a title:<br/>$mediaList") +
-                    "<br/>Not listed? Search without media info: <a href=\"?t=" + urlEncode(mediaSearchString) + "\">" +
-                    mediaSearchString + "</a>" + htmlFooter
+                    htmlFooter
         } else {
             htmlHeader + "Error: nothing to search" + htmlFooter
         }
