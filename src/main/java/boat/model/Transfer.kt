@@ -12,6 +12,7 @@ data class Transfer(
     var id: String = UUID.randomUUID().toString(),
     var name: String = "",
     var remoteId: String? = null,
+    var remoteMediaId: String? = null,
     var source: String = "☕",
     var uri: String = "",
     var transferStatus: TransferStatus = TransferStatus.NONE,
@@ -24,7 +25,7 @@ data class Transfer(
 ) {
     override fun toString(): String {
         return String.format(
-            "\n<br/>[<!-- ID:[%s]RID:[%s] -->%s,\uD83C\uDFE0%s,%s,%s,%s<!-- MSG: %s -->%s<!-- ,%s -->]", id, remoteId, name,
+            "\n<br/>[<!-- ID:[%s]RID:[%s]MID:[%s] -->%s,\uD83C\uDFE0%s,%s,%s,%s<!-- MSG: %s -->%s<!-- ,%s -->]", id, remoteId, remoteMediaId, name,
             source[0], transferStatus.string, type, percentageString, feedbackMessage,
             printDuration(),
             updated

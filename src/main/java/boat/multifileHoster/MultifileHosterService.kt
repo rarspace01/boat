@@ -67,7 +67,7 @@ class MultifileHosterService(
         return returnResults
     }
 
-    fun addTorrentToTransfer(torrent: Torrent) {
+    fun addTorrentToTransfer(torrent: Torrent, remoteMediaId: String? = null) {
         val listOfMultiHostersWithTrafficLeft = multifileHosterList.filter { multifileHoster -> multifileHoster.getRemainingTrafficInMB() > 30000 }
         val potentialMultiHosters = listOfMultiHostersWithTrafficLeft.ifEmpty { multifileHosterList }
         val selectedMultiFileHosterSource: MultifileHoster = if (potentialMultiHosters.size == 1) {
@@ -83,6 +83,7 @@ class MultifileHosterService(
                 transferStatus = TransferStatus.ADDED,
                 source = selectedMultiFileHosterSource.getName(),
                 uri = torrent.magnetUri,
+                remoteMediaId = remoteMediaId,
                 sizeInBytes = torrent.getByteSize()
         )
         transferService.save(transfer)

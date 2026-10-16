@@ -2,6 +2,7 @@ package boat.torrent
 
 import boat.model.TransferStatus
 import org.apache.logging.log4j.util.Strings
+import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.time.Duration
 import java.util.*
@@ -41,6 +42,10 @@ data class Torrent(
     private val magnetPattern = Pattern.compile("(btih:)([a-zA-Z0-9]*)&*")
     private val magnetNamePattern = Pattern.compile("dn=(.*?)&")
     override fun toString(): String {
+        return toHtml()
+    }
+
+    fun toHtml(remoteMediaId: String? = null): String {
         val stringBuilder = StringBuilder()
         val seedRatio: Double
         seedRatio = if (leecher > 0) {
@@ -64,7 +69,11 @@ data class Torrent(
             stringBuilder.append("✅")
         }
         if (isNotARemoteTorrent(magnetUriBase64)) {
-            stringBuilder.append("<a href=\"./download?d=").append(magnetUriBase64).append("\">Download</a>")
+            stringBuilder.append("<a href=\"./download?d=").append(magnetUriBase64)
+            if (!remoteMediaId.isNullOrEmpty()) {
+                stringBuilder.append("&mid=").append(URLEncoder.encode(remoteMediaId, StandardCharsets.UTF_8))
+            }
+            stringBuilder.append("\">Download</a>")
         }
         if (Strings.isNotEmpty(debugRating)) {
             stringBuilder.append(debugRating)

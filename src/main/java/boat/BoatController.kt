@@ -27,6 +27,7 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseBody
 import org.springframework.web.bind.annotation.RestController
 import java.lang.management.ManagementFactory
+import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.util.*
 import java.util.stream.Collectors
@@ -184,10 +185,81 @@ $switchToSearch${switchToProgress}""" + htmlFooter
         }
     }
 
+    @GetMapping("/boat/search2")
+    fun search2(): String {
+        return htmlHeader + """
+<h2>Here to serve you</h2>
+
+<form action="./query2" target="_blank" method="GET">
+  Title:<br>
+  <input type="text" name="qq" value="">
+$BREAK_LINK_HTML  <input type="reset" value="Reset">
+  <input type="submit" value="Search">
+</form>
+<br/>
+$switchToSearch$switchToSearchList${switchToProgress.replace("..", "../boat")}""" + htmlFooter
+    }
+
+    /**
+     * Media aware search flow:
+     * 1. qq: look up the title via [MediaProxyService] and let the user pick a media item
+     * 2. t + mid: check for already downloaded files of the selected media item
+     * 3. q + mid: search torrents, download links carry the remote media id (e.g. {tmdb-123})
+     */
+    @RequestMapping("/boat/query2")
+    fun searchTorrentsWithMedia(
+        @RequestParam(value = "qq", required = false) mediaSearchString: String?,
+        @RequestParam(value = "t", required = false) selectedTitle: String?,
+        @RequestParam(value = "q", required = false) searchString: String?,
+        @RequestParam(value = "mid", required = false) remoteMediaId: String?,
+    ): String {
+        val startTime = System.currentTimeMillis()
+        val mediaId = remoteMediaId?.ifBlank { null }
+        val midParam = if (mediaId != null) "&mid=" + urlEncode(mediaId) else ""
+        return if (!searchString.isNullOrBlank()) {
+            val torrentList = torrentSearchEngineService.searchTorrents(searchString)
+            logger.info(
+                "Took: [{}]ms for [{}]{} found [{}]", System.currentTimeMillis() - startTime, searchString,
+                mediaId ?: "", torrentList.size
+            )
+            htmlHeader + torrentList.take(50).joinToString(separator = "") { it.toHtml(mediaId) } + htmlFooter
+        } else if (!selectedTitle.isNullOrBlank()) {
+            val existingFiles = (cloudService.findExistingFiles(selectedTitle) +
+                    (mediaId?.let { cloudService.findExistingFiles(it) } ?: emptyList())).distinct()
+            if (existingFiles.isNotEmpty()) {
+                htmlHeader + ("We already found some files:<br/>" + existingFiles.joinToString("<br/>")
+                        + "<br/>Still want to search? <a href=\"?q=" + urlEncode(selectedTitle) + midParam + "\">Yes</a>") + htmlFooter
+            } else {
+                searchTorrentsWithMedia(null, null, selectedTitle, mediaId)
+            }
+        } else if (!mediaSearchString.isNullOrBlank()) {
+            val mediaItems = mediaProxyService.search(mediaSearchString)
+            logger.info(
+                "Took: [{}]ms for media search [{}] found [{}]", System.currentTimeMillis() - startTime,
+                mediaSearchString, mediaItems.size
+            )
+            val mediaList = mediaItems.joinToString(separator = "") { mediaItem ->
+                val itemMidParam = mediaItem.id?.let { "&mid=" + urlEncode(it) } ?: ""
+                "<a href=\"?t=" + urlEncode(mediaItem.title) + itemMidParam + "\">" + mediaItem.title +
+                        (mediaItem.year?.let { " ($it)" } ?: "") +
+                        (mediaItem.type?.let { " [$it]" } ?: "") +
+                        (mediaItem.id?.let { " $it" } ?: "") + "</a><br/>\n"
+            }
+            htmlHeader + (if (mediaItems.isEmpty()) "No media found.<br/>" else "Select a title:<br/>$mediaList") +
+                    "<br/>Not listed? Search without media info: <a href=\"?t=" + urlEncode(mediaSearchString) + "\">" +
+                    mediaSearchString + "</a>" + htmlFooter
+        } else {
+            htmlHeader + "Error: nothing to search" + htmlFooter
+        }
+    }
+
+    private fun urlEncode(value: String): String = URLEncoder.encode(value, StandardCharsets.UTF_8)
+
     @RequestMapping("/boat/download")
     fun downloadTorrentToMultifileHoster(
         @RequestParam(value = "d", required = false) downloadUri: String?,
         @RequestParam(value = "dd", required = false) directDownloadUri: String?,
+        @RequestParam(value = "mid", required = false) remoteMediaId: String?,
     ): String {
         val torrentsToBeDownloaded: MutableList<Torrent> = ArrayList()
         val decodedUri: String
@@ -220,7 +292,7 @@ $switchToSearch${switchToProgress}""" + htmlFooter
             }
         }
         torrentsToBeDownloaded.map {
-            multifileHosterService.addTorrentToTransfer(it)
+            multifileHosterService.addTorrentToTransfer(it, remoteMediaId?.ifBlank { null })
         }
         multifileHosterService.addTransfersToDownloadQueue()
         return switchToProgress
