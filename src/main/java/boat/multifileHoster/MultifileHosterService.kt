@@ -96,6 +96,7 @@ class MultifileHosterService(
         return TransferType.URL
     }
 
+    @Synchronized
     fun addTransfersToDownloadQueue() {
         // filter for traffic left
         val transfersToBeDownloaded = transferService.getAll()
@@ -104,7 +105,8 @@ class MultifileHosterService(
         multifileHosterListForDownloads.forEach { multifileHoster ->
             val transfersForHoster = transfersToBeDownloaded.filter { transfer -> transfer.source == multifileHoster.getName() }
             transfersForHoster.forEach { transfer ->
-                val addTorrentToQueueMessage = multifileHoster.addTorrentToDownloadQueue(TorrentMapper.mapTransferToTorrent(transfer))
+                val addTransferResult = multifileHoster.addTorrentToDownloadQueue(TorrentMapper.mapTransferToTorrent(transfer))
+                val addTorrentToQueueMessage = addTransferResult.message
                 transfer.feedbackMessage = addTorrentToQueueMessage
                 if (addTorrentToQueueMessage.contains("error")) {
                     log.error("addTorrentToQueueMessage error: {} for transfer {}", addTorrentToQueueMessage, transfer)
@@ -114,7 +116,7 @@ class MultifileHosterService(
                         transfer.transferStatus = TransferStatus.SERVER_ERROR
                     }
                 } else {
-                    transfer.remoteId = extractRemoteIdFromMessage(transfer)
+                    transfer.remoteId = addTransferResult.remoteId ?: extractRemoteIdFromMessage(transfer)
                     transfer.transferStatus = TransferStatus.ADDED_TO_MULTIHOSTER
                 }
                 transferService.save(transfer)
@@ -293,7 +295,7 @@ class MultifileHosterService(
     }
 
     private fun transferMatchedTorrentBySource(transfer: Transfer, torrent: Torrent): Boolean {
-        return Strings.isNotEmpty(transfer.uri) && transfer.source == torrent.magnetUri
+        return Strings.isNotEmpty(transfer.uri) && transfer.uri == torrent.magnetUri
     }
 
     fun transferMatchedTorrentByName(transfer: Transfer, torrent: Torrent, maxDiff: Int = 0): Boolean {

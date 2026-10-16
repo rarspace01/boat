@@ -25,11 +25,55 @@ import java.util.stream.Collectors
 class Premiumize(httpHelper: HttpHelper) : HttpUser(httpHelper), MultifileHoster {
     private val jsonMapper = JsonMapper.builder().build()
 
-    override fun addTorrentToDownloadQueue(toBeAddedTorrent: Torrent): String {
-        val response: String
+    /**
+     * For already cached torrents the id returned by transfer/create differs from the id in transfer/list,
+     * so the remote id is resolved by diffing the transfer list before and after the add.
+     */
+    @Synchronized
+    override fun addTorrentToDownloadQueue(toBeAddedTorrent: Torrent): AddTransferResult {
+        val remoteIdsBefore = getRemoteTorrents().map { it.remoteId }.toSet()
         val addTorrenntUrl = buildAddTransferUrl(PropertiesHelper.getProperty("PREMIUMIZE_APIKEY"), toBeAddedTorrent.magnetUri)
-        response = httpHelper.getPage(addTorrenntUrl)
-        return response
+        val response = httpHelper.getPage(addTorrenntUrl)
+        val createdId = extractCreatedId(response) ?: return AddTransferResult(response)
+        var remoteTorrentsAfter = getRemoteTorrents()
+        if (remoteTorrentsAfter.none { it.remoteId !in remoteIdsBefore }) {
+            Thread.sleep(2000)
+            remoteTorrentsAfter = getRemoteTorrents()
+        }
+        val remoteId = resolveRemoteId(toBeAddedTorrent, remoteIdsBefore, remoteTorrentsAfter, createdId)
+        return AddTransferResult(response, remoteId)
+    }
+
+    private fun extractCreatedId(response: String): String? {
+        return try {
+            val jsonNode = jsonMapper.readTree(response)
+            if (jsonNode.path("status").asString() == "success") jsonNode.path("id").asString().ifEmpty { null } else null
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    fun resolveRemoteId(
+        toBeAddedTorrent: Torrent,
+        remoteIdsBefore: Set<String>,
+        remoteTorrentsAfter: List<Torrent>,
+        createdId: String
+    ): String {
+        val newRemoteTorrents = remoteTorrentsAfter.filter { it.remoteId !in remoteIdsBefore }
+        val hash = toBeAddedTorrent.torrentId.lowercase()
+        newRemoteTorrents.firstOrNull { it.magnetUri.isNotEmpty() && it.torrentId == hash }?.let { return it.remoteId }
+        if (newRemoteTorrents.size == 1) {
+            val remoteId = newRemoteTorrents.first().remoteId
+            if (remoteId != createdId) {
+                log.info("resolved remote id [{}] instead of created id [{}] for [{}]", remoteId, createdId, toBeAddedTorrent.magnetUri)
+            }
+            return remoteId
+        }
+        log.warn(
+            "couldn't resolve remote id for [{}], {} new remote transfers, using created id [{}]",
+            toBeAddedTorrent.magnetUri, newRemoteTorrents.size, createdId
+        )
+        return createdId
     }
 
     /**

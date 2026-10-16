@@ -17,7 +17,7 @@ import java.util.function.Consumer
 import java.util.stream.Collectors
 
 class Alldebrid(httpHelper: HttpHelper) : HttpUser(httpHelper), MultifileHoster {
-    override fun addTorrentToDownloadQueue(toBeAddedTorrent: Torrent): String {
+    override fun addTorrentToDownloadQueue(toBeAddedTorrent: Torrent): AddTransferResult {
         val requestUrl =
             "https://api.alldebrid.com/v4/magnet/upload?agent=boat&apikey=" + PropertiesHelper.getProperty("ALLDEBRID_APIKEY") + "%s"
         val urlEncodedBrackets = TorrentHelper.urlEncode("[]")
@@ -27,7 +27,7 @@ class Alldebrid(httpHelper: HttpHelper) : HttpUser(httpHelper), MultifileHoster 
         val pageContent = httpHelper.getPage(checkUrl)
         val jsonRoot = JsonParser.parseString(pageContent)
         val status = jsonRoot.asJsonObject["status"]
-        return if (status != null) status.asString else "error"
+        return AddTransferResult(if (status != null) status.asString else "error")
     }
 
     override fun getRemoteTorrents(): List<Torrent> {
