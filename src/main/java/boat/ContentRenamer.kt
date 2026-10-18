@@ -151,6 +151,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         val seasonFolderMarkerPattern = "(?i)(?<![a-z0-9])(?:S[0-9]{1,2}|Season[\\s._-]*[0-9]{1,2})(?![0-9])".toRegex()
 
         // files that aren't renamed at all
+        val creditlessFolderPattern = "(?i)^(?:nc|ncop|nced|ncop\\s*&\\s*nced|creditless(?:[\\s_.-].*)?)$".toRegex()
         val discStructureRootNames = setOf("bdmv", "video_ts", "audio_ts", "certificate", "aacs")
         val discStructureFolderNames = discStructureRootNames + setOf("stream", "playlist", "clipinf", "backup", "bdjo", "meta", "jar")
         val coursePattern = "(?i)udemy|cbt[\\s._-]?nuggets?|freecoursesonline|masterclass|devcourseweb|lynda|pluralsight|coursera|skillshare|linkedin[\\s._-]learning".toRegex()
@@ -832,6 +833,18 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
     }
 
     /**
+     * Extras folders inside a movie or show folder, like "Movie (2010)/Featurettes" or "Show/NC". The top folder itself
+     * doesn't count, packs are named like "Good Omens Season 1 + Extras".
+     */
+    private fun isInExtrasFolder(file: File): Boolean {
+        val folders = generateSequence(file.parentFile) { it.parentFile }.take(6).takeWhile { !isLibraryGroupFolder(it) }.toList()
+        return folders.dropLast(1).any { folder ->
+            val name = decodeIfEncoded(folder.name)
+            movieExtraPattern.containsMatchIn(name) || creditlessFolderPattern.matches(name.trim())
+        }
+    }
+
+    /**
      * Files left alone: parts of a disc structure (moving them breaks the disc) and video courses, which no media
      * database knows.
      */
@@ -1190,6 +1203,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
                     }
 
                     val skipReason = getSkipReason(file)
+                        ?: if (isMoviePath && isInExtrasFolder(file)) "extras" else null
                         ?: if (mediaIndicator == MediaType.Movie && !isMovieFile(file)) "no movie file" else null
                     if (skipReason != null) {
                         val logLine = "F:'$fullName'→'$extractedName'→'null' (Y: $year, S: $season, E: $episode)  skipped, $skipReason"

@@ -209,6 +209,23 @@ class ContentRenamerMovieTest {
     }
 
     @Test
+    fun `should skip extras folders but not packs with extras`(@TempDir tempDir: Path) {
+        val base = tempDir.toFile()
+        val featurette = createFile(base, "Movies/G/Good Omens (2019) Season 1 S01 + Extras (1080p)/Featurettes/Bookshop Tour.mkv")
+        val creditless = createFile(base, "Movies/K/Kekkai Sensen S01+02+OVA+Extra/Blood Blockade Battlefront/NC/Blood Blockade Battlefront - NCOP.mkv")
+        val sample = createFile(base, "Movies/I/Inception.2010.1080p/Sample/inception-sample.mkv")
+        val episode = createFile(base, "Movies/G/Good Omens (2019) Season 1 S01 + Extras (1080p)/Good Omens (2019) - S01E01 - In the Beginning (1080p).mkv")
+        every { mediaProxyService.search("Good Omens", 2019, MediaType.Series) } returns listOf(MediaItem("Good Omens", "Good Omens", 2019, MediaType.Series, "{tvdb-359569}"))
+
+        contentRenamer.processFilesFromDirectory(File(base, "Movies").absolutePath, null, isTestRun = false, basePath = base.absolutePath)
+
+        verify(exactly = 0) { mediaProxyService.search(any(), any<Int>(), MediaType.Movie) }
+        assertThat(listOf(featurette, creditless, sample)).allMatch { it.exists() }
+        assertThat(episode).doesNotExist()
+        assertThat(File(base, "Series-Shows/G/Good Omens {tvdb-359569}/Season 1/Good Omens.S01E01.1080p.mkv")).exists()
+    }
+
+    @Test
     fun `should not rename a movie to a namesake released years apart`(@TempDir tempDir: Path) {
         val base = tempDir.toFile()
         val air = createFile(base, "Movies/A/Air.2015.1080p.BluRay.x264-[YTS.LT].mp4")
