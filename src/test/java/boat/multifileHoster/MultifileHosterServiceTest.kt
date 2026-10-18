@@ -262,6 +262,7 @@ internal class MultifileHosterServiceTest {
         every { transferService.getAll() } returns listOf(transfer)
         every { mediaProxyService.findByRemoteMediaId("{tmdb-27205}", any(), any()) } returns mediaItem
         every { contentRenamer.getSafeTitle(mediaItem) } returns "Inception"
+        every { contentRenamer.extractSeasonAndEpisode(any(), mediaItem) } returns Pair(null, null)
         every { contentRenamer.getTargetFile(any(), mediaItem, "Inception", null, null, any()) } returns "/destination/Movies/I/Inception {tmdb-27205}.mkv"
 
         val torrentFile = TorrentFile(name = "Inception.mkv", url = "http://premiumize.me/dl/inception.mkv", filesize = 1000L)
@@ -271,8 +272,6 @@ internal class MultifileHosterServiceTest {
         multifileHosterService.checkForDownloadableTorrentsAndDownloadTheFirst()
 
         io.mockk.verify { transferService.delete(transfer) }
-        io.mockk.verify(exactly = 0) { contentRenamer.extractSeason(any()) }
-        io.mockk.verify(exactly = 0) { contentRenamer.extractEpisode(any(), any()) }
     }
 
     @Test
@@ -290,6 +289,7 @@ internal class MultifileHosterServiceTest {
         every { transferService.getAll() } returns listOf(transfer)
         every { mediaProxyService.findByRemoteMediaId("{tmdb-27205}", "Inception.2010.1080p", MediaType.Movie) } returns mediaItem
         every { contentRenamer.getSafeTitle(mediaItem) } returns "Inception"
+        every { contentRenamer.extractSeasonAndEpisode(any(), mediaItem) } returns Pair(null, null)
         every { contentRenamer.getTargetFile(any(), mediaItem, "Inception", null, null, any()) } returns "/destination/Movies/I/Inception {tmdb-27205}.mkv"
         val folderResponse = "{\"status\":\"success\",\"content\":[{\"id\":\"f1\",\"name\":\"Inception.mkv\",\"type\":\"file\",\"size\":1000,\"link\":\"http://premiumize.me/dl/inception.mkv\"}]}"
         every { httpHelper.getPage(match { it.contains("folder/list") }) } returns folderResponse
@@ -301,7 +301,7 @@ internal class MultifileHosterServiceTest {
     }
 
     @Test
-    fun shouldDefaultToSeasonOneForSeriesEpisodeWithoutSeason() {
+    fun shouldUseSeasonAndEpisodeFromContentRenamerForSeries() {
         val transfer = Transfer(
             name = "Breaking.Bad.E05",
             transferStatus = TransferStatus.READY_TO_BE_DOWNLOADED,
@@ -314,8 +314,7 @@ internal class MultifileHosterServiceTest {
         every { transferService.getAll() } returns listOf(transfer)
         every { mediaProxyService.findByRemoteMediaId("{tvdb-81189}", any(), any()) } returns mediaItem
         every { contentRenamer.getSafeTitle(mediaItem) } returns "Breaking Bad"
-        every { contentRenamer.extractSeason(any()) } returns null
-        every { contentRenamer.extractEpisode(any(), mediaItem) } returns 5
+        every { contentRenamer.extractSeasonAndEpisode(any(), mediaItem) } returns Pair(1, 5)
         every { contentRenamer.getTargetFile(any(), mediaItem, "Breaking Bad", 1, 5, any()) } returns "/destination/Series-Shows/B/Breaking Bad {tvdb-81189}/Season 1/Breaking Bad.S01E05.mkv"
         val folderResponse = "{\"status\":\"success\",\"content\":[{\"id\":\"f1\",\"name\":\"Breaking.Bad.E05.mkv\",\"type\":\"file\",\"size\":1000,\"link\":\"http://premiumize.me/dl/bb05.mkv\"}]}"
         every { httpHelper.getPage(match { it.contains("folder/list") }) } returns folderResponse
@@ -339,8 +338,7 @@ internal class MultifileHosterServiceTest {
         every { transferService.getAll() } returns listOf(transfer)
         every { mediaProxyService.findByRemoteMediaId("{tvdb-81189}", any(), any()) } returns mediaItem
         every { contentRenamer.getSafeTitle(mediaItem) } returns "Breaking Bad"
-        every { contentRenamer.extractSeason(any()) } returns 1
-        every { contentRenamer.extractEpisode(any(), mediaItem) } returns 1
+        every { contentRenamer.extractSeasonAndEpisode(any(), mediaItem) } returns Pair(1, 1)
         every { contentRenamer.getTargetFile(any(), mediaItem, "Breaking Bad", 1, 1, any()) } returns "/destination/Series-Shows/B/Breaking Bad {tvdb-81189}/Season 1/Breaking Bad.S01E01.mkv"
 
         val folderResponse = "{\"status\":\"success\",\"content\":[" +

@@ -5,7 +5,6 @@ import boat.info.CloudFileService
 import boat.info.CloudService
 import boat.info.MediaItem
 import boat.info.MediaProxyService
-import boat.info.MediaType
 import boat.mapper.TorrentMapper
 import boat.model.Transfer
 import boat.model.TransferStatus
@@ -456,27 +455,13 @@ class MultifileHosterService(
     }
 
     /**
-     * Builds the target path and index letter for a file of a known media item. Season/episode detection is only
-     * needed for series (and unknown types), movies are stored without it.
+     * Builds the target path and index letter for a file of a known media item.
      */
     private fun buildMediaTargetFile(file: File, mediaItem: MediaItem, basePath: String): Pair<String, String> {
         val safeTitle = contentRenamer.getSafeTitle(mediaItem)
-        val (season, episode) = when (mediaItem.type) {
-            MediaType.Movie -> Pair(null, null)
-            MediaType.Series -> extractSeriesSeasonAndEpisode(file, mediaItem)
-            else -> Pair(contentRenamer.extractSeason(file), contentRenamer.extractEpisode(file, mediaItem))
-        }
+        val (season, episode) = contentRenamer.extractSeasonAndEpisode(file, mediaItem)
         val targetFilePath = contentRenamer.getTargetFile(file, mediaItem, safeTitle, season, episode, basePath)
         return Pair(targetFilePath, StringUtil.deductFirstTorrentLetter(safeTitle))
-    }
-
-    private fun extractSeriesSeasonAndEpisode(file: File, mediaItem: MediaItem): Pair<Int?, Int?> {
-        val season = contentRenamer.extractSeason(file)
-        val episode = contentRenamer.extractEpisode(file, mediaItem)
-        if (season == null && episode != null) {
-            return Pair(1, episode)
-        }
-        return Pair(season, episode)
     }
 
     fun getTransferToBeDownloaded(): Transfer? {

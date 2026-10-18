@@ -92,6 +92,12 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
 
         val resolutionPattern = "(?i)(?<=^|[^a-zA-Z0-9])(2160p|1080p|1080i|720p|576p|576i|480p|480i|4k)(?=[^a-zA-Z0-9]|$)".toRegex()
         val codecPattern = "(?i)(?<=^|[^a-zA-Z0-9])(x265|x264|h265|h264|hevc|avc|xvid|divx|av1|vp9|h\\.264|h\\.265|x\\.264|x\\.265)(?=[^a-zA-Z0-9]|$)".toRegex()
+        val movieExtraPattern = "(?i)(?<=^|[^a-zA-Z0-9])(?:sample|trailer|trailers|featurette|featurettes|extra|extras|bonus|behind[\\s_.-]the[\\s_.-]scenes|deleted[\\s_.-]scenes?|interviews?)(?=[^a-zA-Z0-9]|$)".toRegex()
+        val moviePartPattern = "(?i)(?<=^|[\\s._\\-\\[(])(?:cd|disc|disk|part|pt)[\\s._\\-]?([0-9]{1,2})(?=$|[\\s._\\-\\])])".toRegex()
+        val subtitleExtensions = setOf("srt", "sub", "idx", "ass", "ssa", "vtt", "sup")
+        // ISO 639-1 and 639-2/T codes, plus the 639-2/B variants commonly used for subtitles (e.g. ger instead of deu)
+        private val languageCodes = java.util.Locale.getISOLanguages().flatMap { listOfNotNull(it, runCatching { java.util.Locale.of(it).isO3Language }.getOrNull()) }.toSet() +
+                setOf("alb", "arm", "baq", "bur", "chi", "cze", "dut", "fre", "geo", "ger", "gre", "ice", "mac", "mao", "may", "per", "rum", "slo", "tib", "wel")
         val invalidFileCharsPattern = Regex("[\\\\/:*?\"<>|]")
     }
 
@@ -930,20 +936,9 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
                     }
 
                     if (mediaResult != null) {
-                        val refinedEpisode = extractEpisode(file, mediaResult)
-                        if (refinedEpisode != null) {
-                            episode = refinedEpisode
-                        }
-                        if (season == null && episode != null && episode > 100 && mediaResult.type == MediaType.Series) {
-                            if (mediaResult.seasonCount != null && (episode / 100) <= (mediaResult.seasonCount ?: 1) && (episode % 100) in 1..99) {
-                                season = episode / 100
-                                episode = episode % 100
-                            }
-                        }
-                    }
-
-                    if (season == null && episode != null && mediaResult?.type == MediaType.Series) {
-                        season = 1
+                        val seasonAndEpisode = extractSeasonAndEpisode(file, mediaResult)
+                        season = seasonAndEpisode.first
+                        episode = seasonAndEpisode.second
                     }
 
                     val idString = mediaResult?.id ?: ""
@@ -1006,6 +1001,26 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         return null
     }
 
+    /**
+     * Detects season and episode of a file belonging to [mediaItem]. Movies have neither. For series without a
+     * season, absolute episode numbers like 105 become S01E05 if they fit the season count, otherwise season 1.
+     */
+    fun extractSeasonAndEpisode(file: File, mediaItem: MediaItem): Pair<Int?, Int?> {
+        if (mediaItem.type == MediaType.Movie) return Pair(null, null)
+        var season = extractSeason(file)
+        var episode = extractEpisode(file, mediaItem) ?: extractEpisode(file)
+        if (season == null && episode != null && mediaItem.type == MediaType.Series) {
+            val seasonCount = mediaItem.seasonCount
+            if (episode > 100 && seasonCount != null && (episode / 100) <= seasonCount && (episode % 100) in 1..99) {
+                season = episode / 100
+                episode %= 100
+            } else {
+                season = 1
+            }
+        }
+        return Pair(season, episode)
+    }
+
     fun getTargetFile(
         file: File,
         mediaResult: MediaItem,
@@ -1016,6 +1031,9 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
     ): String {
         val base = basePath ?: (System.getProperty("user.home") + "/pfdb/PFDB")
         val idPart = if (!mediaResult.id.isNullOrBlank()) " ${mediaResult.id}" else ""
+        if (mediaResult.type == MediaType.Movie) {
+            return getMovieTargetFile(file, mediaResult, base, idPart)
+        }
         val firstPart = base + "/" + getMediaTypeFolderString(mediaResult) +
                 "/" + StringUtil.deductFirstTorrentLetter(getSafeTitle(mediaResult)) + "/${getSafeTitle(mediaResult)}$idPart"
         val optionalSeasonFolder = if(season != null){
@@ -1038,6 +1056,44 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         }
         val fileExtension = file.name.replace(file.nameWithoutExtension, "")
         return firstPart + optionalSeasonFolder+optionalFileNaming+fileExtension
+    }
+
+    /**
+     * Movies are stored flat in their letter folder as "Title (Year) {id}.resolution.codec.ext". Subtitles with a
+     * language code follow the movie name, extras/samples keep their original name so they don't overwrite the movie.
+     */
+    private fun getMovieTargetFile(file: File, mediaResult: MediaItem, base: String, idPart: String): String {
+        val safeTitle = getSafeTitle(mediaResult)
+        val folder = base + "/" + getMediaTypeFolderString(mediaResult) + "/" + StringUtil.deductFirstTorrentLetter(safeTitle)
+        val extension = file.extension.lowercase()
+        val isSubtitle = extension in subtitleExtensions
+        val subtitleLanguage = if (isSubtitle) extractSubtitleLanguage(file) else null
+        if (isMovieExtra(file) || (isSubtitle && subtitleLanguage == null)) {
+            return "$folder/${file.name}"
+        }
+        val yearPart = mediaResult.year?.let { " ($it)" } ?: ""
+        val mediaInfo = listOfNotNull(extractResolution(file), extractCodec(file))
+        val mediaInfoSuffix = if (mediaInfo.isNotEmpty()) "." + mediaInfo.joinToString(".") else ""
+        val partSuffix = moviePartPattern.find(file.nameWithoutExtension)?.let { " - pt${it.groupValues[1].toInt()}" } ?: ""
+        val languageSuffix = subtitleLanguage?.let { ".$it" } ?: ""
+        val fileExtension = if (file.extension.isNotEmpty()) ".${file.extension}" else ""
+        return "$folder/$safeTitle$yearPart$idPart$mediaInfoSuffix$partSuffix$languageSuffix$fileExtension"
+    }
+
+    private fun isMovieExtra(file: File): Boolean {
+        return movieExtraPattern.containsMatchIn(decodeIfEncoded(file.nameWithoutExtension)) ||
+                file.parentFile?.let { movieExtraPattern.containsMatchIn(decodeIfEncoded(it.name)) } == true
+    }
+
+    private fun extractSubtitleLanguage(file: File): String? {
+        val parts = file.nameWithoutExtension.lowercase().split('.')
+        // e.g. movie.en.srt, movie.eng.forced.srt
+        val flags = setOf("forced", "sdh", "cc")
+        val languageIndex = parts.indexOfLast { it !in flags }
+        if (languageIndex <= 0) return null
+        val language = parts[languageIndex]
+        if (language.length !in 2..3 || language !in languageCodes) return null
+        return (listOf(language) + parts.drop(languageIndex + 1)).joinToString(".")
     }
 
     fun getSafeTitle(mediaResult: MediaItem): String {

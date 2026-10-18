@@ -292,6 +292,23 @@ class ContentRenamerTest {
     }
 
     @Test
+    fun testExtractSeasonAndEpisode() {
+        val httpHelper = HttpHelper()
+        val contentRenamer = ContentRenamer(
+            MediaProxyService(TheMovieDataBaseService(httpHelper), TheTVDBService(httpHelper))
+        )
+        val seriesItem = MediaItem(title = "Breaking Bad", type = boat.info.MediaType.Series, id = "{tvdb-81189}")
+        seriesItem.seasonCount = 5
+        val movieItem = MediaItem(title = "Inception", year = 2010, type = boat.info.MediaType.Movie, id = "{tmdb-27205}")
+
+        assertThat(contentRenamer.extractSeasonAndEpisode(File("Breaking.Bad.S02E03.mkv"), seriesItem)).isEqualTo(Pair(2, 3))
+        // episode without season defaults to season 1
+        assertThat(contentRenamer.extractSeasonAndEpisode(File("Breaking Bad - 05.mkv"), seriesItem)).isEqualTo(Pair(1, 5))
+        // movies have no season/episode
+        assertThat(contentRenamer.extractSeasonAndEpisode(File("Inception.2010.E01.mkv"), movieItem)).isEqualTo(Pair(null, null))
+    }
+
+    @Test
     fun testGetTargetFile() {
         val httpHelper = HttpHelper()
         val contentRenamer = ContentRenamer(
@@ -319,6 +336,34 @@ class ContentRenamerTest {
         val movieItem = MediaItem(title = "Inception", type = boat.info.MediaType.Movie, id = "67890")
         val targetMovie = contentRenamer.getTargetFile(File("inception.mkv"), movieItem, "Inception", null, null)
         assertThat(targetMovie).endsWith("/Movies/I/Inception 67890.mkv")
+
+        // Movie with year, resolution and codec
+        val inceptionItem = MediaItem(title = "Inception", year = 2010, type = boat.info.MediaType.Movie, id = "{tmdb-27205}")
+        val movieFolder = File("Inception.2010.1080p.BluRay.x264-SPARKS")
+        assertThat(contentRenamer.getTargetFile(File(movieFolder, "sparks-inception.mkv"), inceptionItem, "Inception", null, null))
+            .endsWith("/Movies/I/Inception (2010) {tmdb-27205}.1080p.x264.mkv")
+
+        // Movie subtitles with language code follow the movie name
+        assertThat(contentRenamer.getTargetFile(File(movieFolder, "Inception.2010.1080p.en.srt"), inceptionItem, "Inception", null, null))
+            .endsWith("/Movies/I/Inception (2010) {tmdb-27205}.1080p.x264.en.srt")
+        assertThat(contentRenamer.getTargetFile(File(movieFolder, "Inception.ger.forced.srt"), inceptionItem, "Inception", null, null))
+            .endsWith("/Movies/I/Inception (2010) {tmdb-27205}.1080p.x264.ger.forced.srt")
+
+        // Movie subtitles without language code and extras keep their name, so they don't overwrite the movie
+        assertThat(contentRenamer.getTargetFile(File(File(movieFolder, "Subs"), "2_English.srt"), inceptionItem, "Inception", null, null))
+            .endsWith("/Movies/I/2_English.srt")
+        assertThat(contentRenamer.getTargetFile(File(File(movieFolder, "Sample"), "sparks-inception-sample.mkv"), inceptionItem, "Inception", null, null))
+            .endsWith("/Movies/I/sparks-inception-sample.mkv")
+        assertThat(contentRenamer.getTargetFile(File(File(movieFolder, "Featurettes"), "Dreams.mkv"), inceptionItem, "Inception", null, null))
+            .endsWith("/Movies/I/Dreams.mkv")
+
+        // Multi part movies get a part suffix
+        assertThat(contentRenamer.getTargetFile(File(movieFolder, "inception.cd2.mkv"), inceptionItem, "Inception", null, null))
+            .endsWith("/Movies/I/Inception (2010) {tmdb-27205}.1080p.x264 - pt2.mkv")
+
+        // Movies ignore season/episode
+        assertThat(contentRenamer.getTargetFile(File(movieFolder, "sparks-inception.mkv"), inceptionItem, "Inception", 1, 5))
+            .endsWith("/Movies/I/Inception (2010) {tmdb-27205}.1080p.x264.mkv")
 
         // 9-1-1 Series with resolution and codec
         val nineOneOneItem = MediaItem(title = "9-1-1", type = boat.info.MediaType.Series, id = "{tvdb-334586}")
