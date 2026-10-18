@@ -68,6 +68,28 @@ class MediaProxyServiceCachingTest {
     }
 
     @Test
+    fun `search should match titles regardless of accents and spaces`() {
+        val selfless = MediaItem("Self/less", "Self/less", 2015, MediaType.Movie)
+        val amelie = MediaItem("Amélie", "Le Fabuleux Destin d'Amélie Poulain", 2001, MediaType.Movie)
+        val liebeAmelie = MediaItem("Liebe Amelie", "Liebe Amelie", 2005, MediaType.Movie)
+
+        assertThat(mediaProxyService.rankResults("Selfless", listOf(selfless))).containsExactly(selfless)
+        assertThat(mediaProxyService.rankResults("Amelie", listOf(liebeAmelie, amelie))).containsExactly(amelie, liebeAmelie)
+    }
+
+    @Test
+    fun `movie search with year should keep movies found by alternative titles`() {
+        val dayOfTheWoman = MediaItem("Day of the Woman", "Day of the Woman", 1978, MediaType.Movie)
+        val iSpit = MediaItem("I Spit on Your Grave", "I Spit on Your Grave", 2010, MediaType.Movie)
+        every { tmdbService.search("I Spit on Your Grave", 1978, MediaType.Movie) } returns listOf(dayOfTheWoman, iSpit)
+
+        assertThat(mediaProxyService.search("I Spit on Your Grave", 1978, MediaType.Movie)).containsExactly(iSpit, dayOfTheWoman)
+
+        every { tmdbService.search("Dune", 2000, MediaType.Movie) } returns listOf(MediaItem("The Story of a Rose", null, 2000, MediaType.Movie))
+        assertThat(mediaProxyService.search("Dune", 2000, MediaType.Movie)).isEmpty()
+    }
+
+    @Test
     fun `search should rank items by query relevance`() {
         val query = "hack roots"
         val sommerCamp = MediaItem("SommerCamp – Back to the Roots", "SommerCamp – Back to the Roots", 2020, MediaType.Series)

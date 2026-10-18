@@ -93,7 +93,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
 
         val resolutionPattern = "(?i)(?<=^|[^a-zA-Z0-9])(2160p|1080p|1080i|720p|576p|576i|480p|480i|4k)(?=[^a-zA-Z0-9]|$)".toRegex()
         val codecPattern = "(?i)(?<=^|[^a-zA-Z0-9])(x265|x264|h265|h264|hevc|avc|xvid|divx|av1|vp9|h\\.264|h\\.265|x\\.264|x\\.265)(?=[^a-zA-Z0-9]|$)".toRegex()
-        val movieExtraPattern = "(?i)(?<=^|[^a-zA-Z0-9])(?:sample|trailer|trailers|featurette|featurettes|extra|extras|bonus|behind[\\s_.-]the[\\s_.-]scenes|deleted[\\s_.-]scenes?|interviews?)(?=[^a-zA-Z0-9]|$)".toRegex()
+        val movieExtraPattern = "(?i)(?<=^|[^a-zA-Z0-9])(?:sample|trailer|trailers|featurette|featurettes|extra|extras|bonus|behind[\\s_.-]?the[\\s_.-]?scenes|deleted[\\s_.-]scenes?|interviews?)(?=[^a-zA-Z0-9]|$)".toRegex()
         val moviePartPattern = "(?i)(?<=^|[\\s._\\-\\[(])(?:cd|disc|disk|part|pt)[\\s._\\-]?([0-9]{1,2})(?=$|[\\s._\\-\\])])".toRegex()
         val subtitleExtensions = setOf("srt", "sub", "idx", "ass", "ssa", "vtt", "sup")
         val videoExtensions = setOf("mkv", "mp4", "avi", "m4v", "mov", "wmv", "mpg", "mpeg", "ts", "m2ts", "webm", "flv", "divx", "ogm")
@@ -123,6 +123,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         val movieTechnicalTagPattern = ("^(?:[0-9]{3,4}[pi]|[248]k|uhd|ultrahd|fhd|hdr(?:10)?(?:plus)?|dovi|10bit|8bit|" +
                 "(?:b[dr]|hd|dvd|vhs|web|fhd|tv|hdtv|sat|dvb)rip|bluray|blu-ray|bdremux|remux|dvd[59r]?|dvdscr|webdl|web-dl|hdtv|hdcam|screener|ntsc|" +
                 "x26[45]|h26[45]|hevc|avc|xvid|divx|av1|aac[0-9]*|e?ac3|dts(?:hd)?(?:ma)?|truehd|atmos|ddp[0-9]*|dd[0-9]+|flac|" +
+                "amzn|hmax|dsnp|atvp|hulu|itunes|" +
                 "mkv|mp4|avi|[0-9]+(?:[.,][0-9]+)?[mg]b|[0-9]{3,4}x[0-9]{3,4})$").toRegex()
         val movieLanguageOrEditionTagPattern = ("^(?:german|deutsch|ger|dl|eng|ita|fre|fra|vf|vff|vostfr|truefrench|spa|esp|castellano|latino|rus|ukr|kor|jap|jpn|hindi|chs|cht|" +
                 "multi|multisubs?|dual|dubbed|subbed|ensubbed|esubs?|omu|nlsubs?|hardsubs?|subs?|" +
@@ -130,11 +131,14 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         val trailingMovieTagPattern = ("(?i)\\s+(?:german|deutsch|ger|dl|eng|ita|multisubs?|dubbed|subbed|" +
                 "unrated|uncut|remastered|extended|internal|proper|repack|limited|criterion|imax|rm4k|theatrical|retail|" +
                 "directors?'?s?[\\s-]+cut|(?:extended|theatrical|unrated)[\\s-]+(?:cut|edition|version)|uncut[\\s-]+version|" +
-                "(?:special|collectors?'?s?)[\\s-]+edition)$").toRegex()
+                "(?:special|collectors?'?s?)[\\s-]+edition|(?:with|plus)[\\s-]+extras)$").toRegex()
+        val movieSitePrefixPattern = "(?i)^www\\.\\S+?\\.(?:com|org|net|me|to|tv|re|io|cc|ws)\\s*-?\\s+".toRegex()
         val leadingBracketGroupsPattern = "^(?:\\s*\\[[^\\]]*])+".toRegex()
         // list numbering of collections like "01. The Big Boss" or "a. Bruce", not titles like "12.Angry.Men"
         val listNumberPrefixPattern = "^(?:[0-9]{1,3}[a-z]?|[a-z])\\.\\s+".toRegex(RegexOption.IGNORE_CASE)
         val tokenPattern = "\\S+".toRegex()
+        val yearRangePattern = "(19[0-9]{2}|20[0-2][0-9])\\s*-\\s*(19[0-9]{2}|20[0-2][0-9]|[0-9]{2})(?![0-9])".toRegex()
+        val leadingYearTitlePattern = "^(19[0-9]{2}|20[0-2][0-9])\\s+(.*[a-zA-Z].*)$".toRegex()
         val episodeLikeShortPattern = "^(?:e|s|se|pt|x)\\s?[0-9]+$".toRegex()
 
         // series detection in the movies folder
@@ -653,8 +657,10 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         val isInExtrasFolder = file.parentFile?.let { parent ->
             movieExtraPattern.containsMatchIn(decodeIfEncoded(parent.name)) && parent.parentFile?.let { !isLibraryGroupFolder(it) } == true
         } == true
-        if (!isInExtrasFolder && isMovieTitle(parsedFileName)) {
-            return parsedFileName
+        // and extras like "Movie (2010)/Movie Trailer.mkv" to the movie of their folder
+        val isExtraInMovieFolder = movieExtraPattern.containsMatchIn(rawBaseName) && file.parentFile?.let { !isLibraryGroupFolder(it) } == true
+        if (!isInExtrasFolder && !isExtraInMovieFolder && isMovieTitle(parsedFileName)) {
+            return yearPrefixedTitle(file, parsedFileName) ?: parsedFileName
         }
         var current: File? = file.parentFile
         var depth = 0
@@ -677,9 +683,10 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
      * "Zabriskie Point (Antonioni 1970)".
      */
     fun parseMovieName(rawName: String): Pair<String, Int?> {
-        var name = rawName.replace("：", " ").replace("?", " ")
+        // "!" separates like "Werner - Beinhart!1990"
+        var name = rawName.replace("：", " ").replace("?", " ").replace("!", "! ")
         name = name.replace(remoteMediaIdPattern, " ")
-        name = name.replace(sitePrefixPattern, "")
+        name = name.replace(movieSitePrefixPattern, "")
         name = name.replace(leadingBracketGroupsPattern, "").trim()
         name = removeReleaseGroups(name)
         name = name.replace(listNumberPrefixPattern, "")
@@ -691,7 +698,8 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         // dash separated names like "Fear.Eats.the.Soul-1974--720p-EN" or "maleficent-1080p", but not "Spider-Man"
         name = name.replace(tokenPattern) { token ->
             val parts = token.value.split('-')
-            if (parts.drop(1).any { it.lowercase().matches(movieTechnicalTagPattern) || it.matches(movieYearPattern) }) parts.joinToString(" ") else token.value
+            val isTaggedPart = parts.size > 1 && parts.any { it.lowercase().matches(movieTechnicalTagPattern) || it.matches(movieYearPattern) }
+            if (isTaggedPart) parts.joinToString(" ") else token.value
         }.replace(whitespacePattern, " ").trim()
 
         val tokens = tokenPattern.findAll(name).toList()
@@ -703,11 +711,12 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         val firstTechnicalTag = (1 until tokens.size).firstOrNull { isTag(it, movieTechnicalTagPattern) } ?: tokens.size
         val firstLanguageOrEditionTag = (1 until tokens.size).firstOrNull { isTag(it, movieLanguageOrEditionTagPattern) } ?: tokens.size
         val yearCandidates = (1 until firstTechnicalTag).filter { cores[it].matches(movieYearPattern) }
-        // the release year is in parentheses or followed by tags, otherwise it's the first one ("Summer of 1984 2023 1080p", "2000 Mules 2022 - ... of 2020")
+        // the release year is in parentheses, follows a year of the title or is followed by tags, otherwise it's the first
+        // one ("Wonder Woman 1984 2020", "Summer of 1984 2023 1080p", "2000 Mules 2022 - ... of 2020")
         val yearIndex = yearCandidates.lastOrNull { index ->
             val token = tokens[index].value
             (token.startsWith("(") && token.endsWith(")")) || (token.startsWith("[") && token.endsWith("]")) ||
-                    (index + 1 < tokens.size && (cores[index + 1].matches(movieYearPattern) || isAnyTag(index + 1)))
+                    cores[index - 1].matches(movieYearPattern) || (index + 1 < tokens.size && isAnyTag(index + 1))
         } ?: yearCandidates.firstOrNull()
         val cutIndex = yearIndex ?: minOf(firstTechnicalTag, firstLanguageOrEditionTag)
 
@@ -730,9 +739,26 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         return Pair(title, yearIndex?.let { cores[it].toInt() })
     }
 
+    /**
+     * Collections like "The Texas Chainsaw Massacre Collection (1974-2017)/2017.Leatherface.mkv" put the year in front.
+     */
+    private fun yearPrefixedTitle(file: File, titleAndYear: Pair<String, Int?>): Pair<String, Int?>? {
+        if (titleAndYear.second != null) return null
+        val match = leadingYearTitlePattern.find(titleAndYear.first) ?: return null
+        val year = match.groupValues[1].toInt()
+        val isInCollectionOfThatTime = generateSequence(file.parentFile) { it.parentFile }.take(3).takeWhile { !isLibraryGroupFolder(it) }.any { folder ->
+            yearRangePattern.findAll(decodeIfEncoded(folder.name)).any { range ->
+                val from = range.groupValues[1].toInt()
+                val to = range.groupValues[2].let { if (it.length == 2) from / 100 * 100 + it.toInt() else it.toInt() }
+                year in from..to
+            }
+        }
+        return if (isInCollectionOfThatTime) Pair(match.groupValues[2], year) else null
+    }
+
     private fun isMovieTitle(titleAndYear: Pair<String, Int?>): Boolean {
         val (title, year) = titleAndYear
-        if (title.isBlank() || title.none { it.isLetterOrDigit() }) return false
+        if (title.isBlank() || title.none { it.isLetterOrDigit() } || title.lowercase().matches(movieTechnicalTagPattern)) return false
         // numeric titles like 300 or 1917 need a release year, "00001.m2ts" or "2022.mp4" aren't titles
         if (title.matches(pureNumberPattern)) return !title.startsWith("0") && year != null
         // with a release year short titles like "It (2017)", "Home (2015)" or "48.Hrs.1982" are titles as well
@@ -1144,7 +1170,9 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
 
                     // extract Movie or TV show name from full path
                     val (extractedName, year) = if (mediaIndicator == MediaType.Movie) {
-                        extractMovieNameAndYear(file).let { (name, movieYear) -> Pair(name, movieYear ?: extractYear(fullName)) }
+                        // a year from the future is part of a hash like [6D2027D6]
+                        val currentYear = java.time.Year.now().value
+                        extractMovieNameAndYear(file).let { (name, movieYear) -> Pair(name, movieYear ?: extractYear(fullName)?.takeIf { it <= currentYear }) }
                     } else {
                         Pair(extractName(file), extractYear(fullName))
                     }
@@ -1203,6 +1231,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
 
     private fun searchMediaForFile(extractedName: String, year: Int?, mediaIndicator: MediaType?, isSeriesPath: Boolean): MediaItem? {
         if (extractedName.isBlank()) return null
+        if (mediaIndicator == MediaType.Movie && year != null) return searchMovie(extractedName, year)
         val primaryResult = if (year != null) {
             val res = mediaProxyService.search(extractedName, year, mediaIndicator).firstOrNull()
             res ?: mediaProxyService.search(extractedName, mediaIndicator).firstOrNull()
@@ -1210,7 +1239,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
             mediaProxyService.search(extractedName, mediaIndicator).firstOrNull()
         }
 
-        val result = if (year != null && (primaryResult == null || (mediaIndicator == MediaType.Series && primaryResult.type != MediaType.Series) || (isSeriesPath && primaryResult.type != MediaType.Series))) {
+        return if (year != null && (primaryResult == null || (mediaIndicator == MediaType.Series && primaryResult.type != MediaType.Series) || (isSeriesPath && primaryResult.type != MediaType.Series))) {
             val unstrippedName = "$extractedName $year".trim()
             val fallbackResult = mediaProxyService.search(unstrippedName, mediaIndicator).firstOrNull()
             if (fallbackResult != null && (primaryResult == null || fallbackResult.type == MediaType.Series || fallbackResult.title.contains(year.toString()))) {
@@ -1221,13 +1250,27 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         } else {
             primaryResult
         }
-        // a movie released years apart is another movie with the same name (Air 2015 vs. Air 2023), better leave the file alone
-        val resultYear = result?.year
-        if (mediaIndicator == MediaType.Movie && result?.type == MediaType.Movie && year != null && resultYear != null && abs(resultYear - year) > 2) {
-            return null
-        }
-        return result
     }
+
+    /**
+     * An exact title released within a year wins over other matches of the year search, e.g. "Fargo" (1996) for
+     * Fargo.1995 instead of "Danzig: Live at Fargo" (1995). A movie released years apart is another movie with the same
+     * name (Air 2015 vs. Air 2023), then the file is better left alone.
+     */
+    private fun searchMovie(name: String, year: Int): MediaItem? {
+        val yearResults = mediaProxyService.search(name, year, MediaType.Movie)
+        val nameResults = mediaProxyService.search(name, MediaType.Movie)
+        val normalizedName = normalizeMovieTitle(name)
+        fun isReleasedNear(item: MediaItem, years: Int) = item.year?.let { abs(it - year) <= years } == true
+        fun hasSameTitle(item: MediaItem) = listOfNotNull(item.title, item.originalTitle).any { normalizeMovieTitle(it) == normalizedName }
+        return (yearResults + nameResults).firstOrNull { it.type == MediaType.Movie && isReleasedNear(it, 1) && hasSameTitle(it) }
+            ?: yearResults.firstOrNull { it.type == MediaType.Movie && isReleasedNear(it, 2) }
+            ?: nameResults.firstOrNull { it.type == MediaType.Movie && isReleasedNear(it, 2) }
+            // titles containing a year, e.g. "Blade Runner 2049"
+            ?: mediaProxyService.search("$name $year", MediaType.Movie).firstOrNull { it.title.contains(year.toString()) }
+    }
+
+    private fun normalizeMovieTitle(title: String) = MediaProxyService.normalizeTitle(title).removePrefix("the ").replace(" ", "")
 
     fun extractResolution(file: File): String? {
         var current: File? = file

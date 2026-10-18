@@ -26,6 +26,23 @@ class MediaProxyService(
         const val CACHE_FILE_NAME = "mediaProxyCache"
         private val DIACRITICS_PATTERN = "\\p{InCombiningDiacriticalMarks}+".toRegex()
         private val REMOTE_MEDIA_ID_PATTERN = "\\{?(tmdb|tvdb)-(\\d+)}?".toRegex(RegexOption.IGNORE_CASE)
+        private val ACRONYM_PATTERN = "(?<=(?:^|[^a-zA-Z0-9]))(?:[a-zA-Z][.*]){1,}[a-zA-Z](?:[.*](?=[^a-zA-Z0-9]|$)|(?=[^a-zA-Z0-9]|$))".toRegex()
+        private val NON_ALPHANUMERIC_PATTERN = "[^a-z0-9]+".toRegex()
+
+        /**
+         * Lowercase title without accents and punctuation, words separated by a single space.
+         */
+        fun normalizeTitle(input: String): String {
+            val withoutAcronymDelimiters = input.replace(ACRONYM_PATTERN) { matchResult ->
+                matchResult.value.replace("*", "").replace(".", "")
+            }
+            // strip accents, so Amelie matches Amélie
+            return Normalizer.normalize(withoutAcronymDelimiters.replace("¢", "c"), Normalizer.Form.NFD)
+                .replace(DIACRITICS_PATTERN, "")
+                .lowercase()
+                .replace(NON_ALPHANUMERIC_PATTERN, " ")
+                .trim()
+        }
     }
 
     private val logger by LoggerDelegate()
@@ -81,6 +98,9 @@ class MediaProxyService(
         }
     }
 
+    /**
+     * Results are cached as returned by the services and ranked when read, so ranking changes apply to cached searches.
+     */
     private fun getCachedOrPut(cacheKey: String, compute: () -> List<MediaItem>): List<MediaItem> {
         val cached = cache[cacheKey]
         if (cached != null) {
@@ -95,12 +115,12 @@ class MediaProxyService(
     fun search(name: String?): List<MediaItem> {
         if (name.isNullOrBlank()) return emptyList()
         val cacheKey = "search:$name"
-        return getCachedOrPut(cacheKey) {
+        val results = getCachedOrPut(cacheKey) {
             val tmdbResults = theMovieDataBaseService.search(name) ?: emptyList()
             val tvdbResults = theTVDBService.search(name)
-            val combined = tmdbResults.plus(tvdbResults).distinctBy { it.title + it.year + it.type }
-            rankResults(name, combined)
+            tmdbResults.plus(tvdbResults).distinctBy { it.title + it.year + it.type }
         }
+        return rankResults(name, results)
     }
 
     /**
@@ -143,19 +163,19 @@ class MediaProxyService(
     fun search(name: String?, year: Int): List<MediaItem> {
         if (name.isNullOrBlank()) return emptyList()
         val cacheKey = "search:$name:$year"
-        return getCachedOrPut(cacheKey) {
+        val results = getCachedOrPut(cacheKey) {
             val tmdbResults = theMovieDataBaseService.search(name, year) ?: emptyList()
             val tvdbResults = theTVDBService.search(name, year)
-            val combined = tmdbResults.plus(tvdbResults).distinctBy { it.title + it.year + it.type }
-            rankResults(name, combined, year)
+            tmdbResults.plus(tvdbResults).distinctBy { it.title + it.year + it.type }
         }
+        return rankResults(name, results, year)
     }
 
     fun search(name: String?, type: MediaType?): List<MediaItem> {
         if (name.isNullOrBlank()) return emptyList()
         val cacheKey = "search:$name:$type"
-        return getCachedOrPut(cacheKey) {
-            val results = when (type) {
+        val results = getCachedOrPut(cacheKey) {
+            when (type) {
                 MediaType.Movie -> theMovieDataBaseService.search(name)?.filter { it.type == MediaType.Movie } ?: emptyList()
                 MediaType.Series -> {
                     val tvdbResults = theTVDBService.search(name)
@@ -164,16 +184,17 @@ class MediaProxyService(
                 }
                 else -> search(name)
             }
-            rankResults(name, results)
         }
+        return rankResults(name, results)
     }
 
     fun search(name: String?, year: Int, type: MediaType?): List<MediaItem> {
         if (name.isNullOrBlank()) return emptyList()
-        // typed TMDB searches filter by year, so they don't share cache entries with the former search/multi results
-        val cacheKey = "typedSearch:$name:$year:$type"
-        return getCachedOrPut(cacheKey) {
-            val results = when (type) {
+        // typed TMDB searches filter by year, they don't share cache entries with the former search/multi results nor
+        // with the former typed searches, which were cached after ranking and so missed titles like "Self/less"
+        val cacheKey = "yearSearch:$name:$year:$type"
+        val results = getCachedOrPut(cacheKey) {
+            when (type) {
                 MediaType.Movie -> theMovieDataBaseService.search(name, year, MediaType.Movie) ?: emptyList()
                 MediaType.Series -> {
                     val tvdbResults = theTVDBService.search(name, year)
@@ -182,8 +203,12 @@ class MediaProxyService(
                 }
                 else -> search(name, year)
             }
-            rankResults(name, results, year)
         }
+        val ranked = rankResults(name, results, year)
+        // TMDB also finds movies by alternative titles ("I Spit on Your Grave" is "Day of the Woman"), they come after the
+        // ranked ones. Short names like "Dune" or "nde" match too many unrelated titles.
+        val isDistinctiveName = name.count { it.isLetter() } >= 8
+        return if (type == MediaType.Movie && isDistinctiveName) ranked + results.filter { it !in ranked } else ranked
     }
 
     internal fun rankResults(query: String, items: List<MediaItem>, year: Int? = null): List<MediaItem> {
@@ -193,21 +218,8 @@ class MediaProxyService(
         return scored.sortedByDescending { it.second }.map { it.first }
     }
 
-    private fun normalizeString(input: String): String {
-        val acronymPattern = "(?<=(?:^|[^a-zA-Z0-9]))(?:[a-zA-Z][.*]){1,}[a-zA-Z](?:[.*](?=[^a-zA-Z0-9]|$)|(?=[^a-zA-Z0-9]|$))".toRegex()
-        val withoutAcronymDelimiters = input.replace(acronymPattern) { matchResult ->
-            matchResult.value.replace("*", "").replace(".", "")
-        }
-        // strip accents, so Amelie matches Amélie
-        return Normalizer.normalize(withoutAcronymDelimiters, Normalizer.Form.NFD)
-            .replace(DIACRITICS_PATTERN, "")
-            .lowercase()
-            .replace(Regex("[^a-z0-9]+"), " ")
-            .trim()
-    }
-
     private fun calculateScore(query: String, item: MediaItem, targetYear: Int? = null): Double {
-        val normalizedQuery = normalizeString(query)
+        val normalizedQuery = normalizeTitle(query)
         val queryWords = normalizedQuery.split(" ").filter { it.isNotBlank() }
         if (queryWords.isEmpty()) return 0.0
 
@@ -231,12 +243,14 @@ class MediaProxyService(
     }
 
     private fun scoreTitle(queryWords: List<String>, normalizedQuery: String, rawTitle: String): Double {
-        val normalizedTitle = normalizeString(rawTitle)
+        val normalizedTitle = normalizeTitle(rawTitle)
         val titleWords = normalizedTitle.split(" ").filter { it.isNotBlank() }
         if (titleWords.isEmpty()) return 0.0
 
         val matchingWords = queryWords.count { qWord -> titleWords.contains(qWord) }
-        val hasSubstringMatch = normalizedTitle.contains(normalizedQuery) || normalizedQuery.contains(normalizedTitle)
+        // titles written apart or together, e.g. "Self/less" for "Selfless"
+        val isSameWithoutSpaces = normalizedTitle.replace(" ", "") == normalizedQuery.replace(" ", "")
+        val hasSubstringMatch = normalizedTitle.contains(normalizedQuery) || normalizedQuery.contains(normalizedTitle) || isSameWithoutSpaces
         if (matchingWords == 0 && !hasSubstringMatch) {
             return 0.0
         }
@@ -258,7 +272,7 @@ class MediaProxyService(
         }
 
         // Exact match
-        if (normalizedTitle == normalizedQuery) {
+        if (normalizedTitle == normalizedQuery || isSameWithoutSpaces) {
             score += 1000.0
         }
 

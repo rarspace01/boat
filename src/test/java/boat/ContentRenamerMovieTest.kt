@@ -114,6 +114,11 @@ class ContentRenamerMovieTest {
             "Eternals+2021+1080p+" to Pair("Eternals", 2021),
             "Ali-Angst.essen.Seele.auf-Fear.Eats.the.Soul-1974--720p-EN.subs-x265-HEVC" to Pair("Ali-Angst essen Seele auf-Fear Eats the Soul", 1974),
             "Spider-Man.2002.1080p" to Pair("Spider-Man", 2002),
+            "Man.Up.2015-HD" to Pair("Man Up", 2015),
+            "www.torrenting.com  - Style.Wars.1983.REMASTERED.EXTRAS.REPACK.DVDRip" to Pair("Style Wars", 1983),
+            "Werner.-.Beinhart!1990.WEB-DL.1080p" to Pair("Werner - Beinhart", 1990),
+            "Winter.Soldier.with.Extras.1972.Documentary.Vietnam.War.DVDRip.480p" to Pair("Winter Soldier", 1972),
+            "Wonder.Woman.1984.2020.HMAX.IMAX.2160p.HDR.WEB-DL" to Pair("Wonder Woman 1984", 2020),
         )
         expected.forEach { (rawName, titleAndYear) ->
             assertThat(contentRenamer.parseMovieName(rawName)).describedAs(rawName).isEqualTo(titleAndYear)
@@ -140,7 +145,11 @@ class ContentRenamerMovieTest {
         assertThat(contentRenamer.extractMovieNameAndYear(File("~/Movies/I/It (2017) [1080p] [YTS.AG].mp4"))).isEqualTo(Pair("It", 2017))
         assertThat(contentRenamer.extractMovieNameAndYear(File("~/Movies/0-9/48.Hrs.1982.1080p.BluRay.x264-TENEIGHTY.mkv"))).isEqualTo(Pair("48 Hrs", 1982))
         assertThat(contentRenamer.extractMovieNameAndYear(File("~/Movies/I/Interview.with.the.Vampire.1994.1080p.mp4"))).isEqualTo(Pair("Interview with the Vampire", 1994))
+        assertThat(contentRenamer.extractMovieNameAndYear(File("~/Movies/H/H264.m4v"))).isEqualTo(Pair("", null))
+        assertThat(contentRenamer.extractMovieNameAndYear(File("~/Movies/T/The Texas Chainsaw Massacre Collection (1974-2017)/2017.Leatherface.mkv")))
+            .isEqualTo(Pair("Leatherface", 2017))
         // extras are named after their movie
+        assertThat(contentRenamer.extractMovieNameAndYear(File("~/Movies/U/Uncut Gems (2019)/Uncut Gems Trailer 2-trailer.mkv"))).isEqualTo(Pair("Uncut Gems", 2019))
         assertThat(contentRenamer.extractMovieNameAndYear(File("~/Movies/C/The.French.Connection.1971.Bluray.1080p.DTS-HD.x264-Grym/The.French.Connection.Extras-Grym/The.Poughkeepsie.Shuffle.2000.SD.NTSC.mkv")))
             .isEqualTo(Pair("The French Connection", 1971))
     }
@@ -205,5 +214,31 @@ class ContentRenamerMovieTest {
         contentRenamer.processFilesFromDirectory(File(base, "Movies").absolutePath, null, isTestRun = false, basePath = base.absolutePath)
 
         assertThat(air).exists()
+    }
+
+    @Test
+    fun `should prefer the exact title released within a year`(@TempDir tempDir: Path) {
+        val base = tempDir.toFile()
+        createFile(base, "Movies/F/Fargo.1995.RERIP.Remastered.Bluray.1080p.DTS-HD.x264-Grym.mkv")
+        every { mediaProxyService.search("Fargo", 1995, MediaType.Movie) } returns listOf(MediaItem("Danzig: [1995] Live at Fargo, ND", null, 1995, MediaType.Movie, "{tmdb-1}"))
+        every { mediaProxyService.search("Fargo", MediaType.Movie) } returns listOf(MediaItem("Fargo", "Fargo", 1996, MediaType.Movie, "{tmdb-275}"))
+
+        contentRenamer.processFilesFromDirectory(File(base, "Movies").absolutePath, null, isTestRun = false, basePath = base.absolutePath)
+
+        assertThat(File(base, "Movies/F/Fargo (1996) {tmdb-275}.1080p.x264.mkv")).exists()
+    }
+
+    @Test
+    fun `should skip namesakes released years apart`(@TempDir tempDir: Path) {
+        val base = tempDir.toFile()
+        createFile(base, "Movies/M/Mulan.2009.1080p.BluRay.x264-LCHD.mkv")
+        every { mediaProxyService.search("Mulan", 2009, MediaType.Movie) } returns listOf(
+            MediaItem("Mulan", "Mulan", 1998, MediaType.Movie, "{tmdb-10674}"),
+            MediaItem("Mulan: Rise of a Warrior", "花木兰", 2009, MediaType.Movie, "{tmdb-25707}")
+        )
+
+        contentRenamer.processFilesFromDirectory(File(base, "Movies").absolutePath, null, isTestRun = false, basePath = base.absolutePath)
+
+        assertThat(File(base, "Movies/M/Mulan Rise of a Warrior (2009) {tmdb-25707}.1080p.x264.mkv")).exists()
     }
 }
