@@ -166,6 +166,10 @@ class ContentRenamerMovieTest {
         listOf("01", "02v2", "10").forEach { createFile(base, "Movies/G/[ARC] Gunslinger Girl (2003)/[ARC] Gunslinger Girl $it [BD 714p 10-bit x264 FLAC].mkv") }
         assertThat(contentRenamer.hasSeriesMarkers(File(base, "Movies/G/[ARC] Gunslinger Girl (2003)/[ARC] Gunslinger Girl 10 [BD 714p 10-bit x264 FLAC].mkv"))).isTrue()
 
+        val gunslingerGirl10 = File(base, "Movies/G/[ARC] Gunslinger Girl (2003)/[ARC] Gunslinger Girl 10 [BD 714p 10-bit x264 FLAC].mkv")
+        assertThat(contentRenamer.removeEpisodeNumber(contentRenamer.extractName(gunslingerGirl10), gunslingerGirl10)).isEqualTo("Gunslinger Girl")
+        assertThat(contentRenamer.extractName(File("~/Movies/M/Mr. Bean - The Complete Collection (1990-2007)/S01 - E01 - Mr. Bean.mkv"))).isEqualTo("Mr Bean")
+
         // numbers in movie titles aren't episodes
         (11..13).forEach { createFile(base, "Movies/O/Oceans Trilogy/Oceans $it.mkv") }
         assertThat(contentRenamer.hasSeriesMarkers(File(base, "Movies/O/Oceans Trilogy/Oceans 11.mkv"))).isFalse()

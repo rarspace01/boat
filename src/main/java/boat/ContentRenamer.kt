@@ -55,6 +55,8 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         val trailingQualityTag = "(?i)\\s+(?:720p|1080p|1080i|2160p|480p|4k|uhd|fhd|hdtv|bluray|blu-ray|bdrip|dvdrip|dvd|web-dl|webdl|webrip|web|remux|proper|repack|rerip|x264|x265|h264|h265|hevc|xvid|dual audio|multi audio|multi subs|subbed|korean|french|german|japanese|spanish|english|director'?s cut|extended cut|uncensored|remastered|tv series|season|seasons|complete series|complete season|all seasons)$".toRegex()
         val trailingYearPattern = "(?<=[a-zA-Z\\s])\\s+(?:19[0-9]{2}|20[0-2][0-9])(?:-[0-9]{2,4})?$".toRegex()
         val trailingEpisodeMarkerPattern = Regex("(?i)(?:\\s*-\\s*|\\s+)(?:Episode|Ep|E)\\.?$")
+        // left over from cutting "Mr. Bean - The Complete Collection"
+        val trailingDashArticlePattern = Regex("(?i)\\s+-\\s+(?:the|a|an)$")
         val trailingEpisodePattern = "(?<=[a-zA-Z\\s])-(?:ep)?([0-9]{1,3})$".toRegex(RegexOption.IGNORE_CASE)
         val multiNumberTrailingPattern = "(?<=[0-9])\\s+([0-9]{1,3})$".toRegex()
 
@@ -297,6 +299,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
                 name = name.replace(trailingYearPattern, "").trim()
             }
             name = name.replace(trailingEpisodeMarkerPattern, "").trim()
+            name = name.replace(trailingDashArticlePattern, "").trim()
             while (name.isNotEmpty() && name.last() in trailingPunctuation) {
                 name = name.dropLast(1).trim()
             }
@@ -806,6 +809,14 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
     }
 
     /**
+     * Removes the episode number [extractName] keeps for plain numbered episodes, e.g. "Gunslinger Girl 10".
+     */
+    fun removeEpisodeNumber(seriesName: String, file: File): String {
+        val episodeNumber = episodeMarker(decodeIfEncoded(file.nameWithoutExtension))?.number ?: return seriesName
+        return seriesName.removeSuffix(" $episodeNumber").trim()
+    }
+
+    /**
      * Episode number in a file name, [isExplicit] if it's marked as episode (Ep. 20, - 47) rather than a plain trailing
      * number. [showName] is the normalized text in front of it.
      */
@@ -1174,7 +1185,8 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
                         val currentYear = java.time.Year.now().value
                         extractMovieNameAndYear(file).let { (name, movieYear) -> Pair(name, movieYear ?: extractYear(fullName)?.takeIf { it <= currentYear }) }
                     } else {
-                        Pair(extractName(file), extractYear(fullName))
+                        val seriesName = if (isSeriesInMoviePath) removeEpisodeNumber(extractName(file), file) else extractName(file)
+                        Pair(seriesName, extractYear(fullName))
                     }
 
                     val skipReason = getSkipReason(file)
