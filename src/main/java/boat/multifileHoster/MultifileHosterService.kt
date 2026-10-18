@@ -85,8 +85,10 @@ class MultifileHosterService(
                     .minByOrNull { it.getPrio() }
                     ?: potentialMultiHosters.first()
         }
+        val hosterName = TorrentHelper.extractTorrentName(torrent)
+        val mediaTitle = remoteMediaId?.let { mediaProxyService.findByRemoteMediaId(it, hosterName)?.title }
         val transfer = Transfer(
-                name = TorrentHelper.extractTorrentName(torrent),
+                name = Transfer.buildName(mediaTitle, hosterName),
                 transferType = extractType(torrent.magnetUri),
                 transferStatus = TransferStatus.ADDED,
                 source = selectedMultiFileHosterSource.getName(),
@@ -233,7 +235,7 @@ class MultifileHosterService(
                 }?.also { transfer ->
                     transfer.transferStatus = torrent.remoteTransferStatus
                     transfer.progressInPercentage = torrent.remoteProgressInPercent
-                    transfer.name = TorrentHelper.resolveDownloadName(torrent, transfer.name)
+                    transfer.updateHosterName(TorrentHelper.resolveDownloadName(torrent, transfer.hosterName()))
                     transfer.eta = torrent.eta
                     transfer.remoteId = torrent.remoteId
                     transferService.save(transfer)
@@ -254,7 +256,7 @@ class MultifileHosterService(
                     }?.also { transfer ->
                         transfer.transferStatus = torrent.remoteTransferStatus
                         transfer.progressInPercentage = torrent.remoteProgressInPercent
-                        transfer.name = TorrentHelper.resolveDownloadName(torrent, transfer.name)
+                        transfer.updateHosterName(TorrentHelper.resolveDownloadName(torrent, transfer.hosterName()))
                         transfer.eta = torrent.eta
                         transfer.remoteId = torrent.remoteId
                         transferService.save(transfer)
@@ -290,7 +292,7 @@ class MultifileHosterService(
                     ?.also { transfer ->
                         transfer.transferStatus = torrent.remoteTransferStatus
                         transfer.progressInPercentage = torrent.remoteProgressInPercent
-                        transfer.name = TorrentHelper.resolveDownloadName(torrent, transfer.name)
+                        transfer.updateHosterName(TorrentHelper.resolveDownloadName(torrent, transfer.hosterName()))
                         transfer.eta = torrent.eta
                         transfer.remoteId = torrent.remoteId
                         transferService.save(transfer)
@@ -307,9 +309,9 @@ class MultifileHosterService(
     }
 
     fun transferMatchedTorrentByName(transfer: Transfer, torrent: Torrent, maxDiff: Int = 0): Boolean {
-        val transferName = TorrentHelper.getNormalizedTorrentStringWithSpaces(transfer.name).lowercase()
+        val transferName = TorrentHelper.getNormalizedTorrentStringWithSpaces(transfer.hosterName()).lowercase()
         val torrentName = TorrentHelper.getNormalizedTorrentStringWithSpaces(torrent.name).lowercase()
-        val matchedByName = transfer.name.isNotEmpty() && transferName.lowercase() == torrentName.lowercase()
+        val matchedByName = transfer.hosterName().isNotEmpty() && transferName.lowercase() == torrentName.lowercase()
         return if (matchedByName) {
             log.warn("transfer only matched by name: {} <-> {}", transfer, torrent)
             true
@@ -352,9 +354,9 @@ class MultifileHosterService(
             isDownloadInProgress = true
             var wasDownloadSuccessful = false
             try {
-                val mediaItem = (transferToBeDownloaded.remoteMediaId?.let { mediaProxyService.findByRemoteMediaId(it, transferToBeDownloaded.name) }
+                val mediaItem = (transferToBeDownloaded.remoteMediaId?.let { mediaProxyService.findByRemoteMediaId(it, transferToBeDownloaded.hosterName()) }
                     ?: transferToBeDownloaded.remoteMediaId?.let { mediaProxyService.search(it).firstOrNull() }
-                    ?: mediaProxyService.search(transferToBeDownloaded.name).firstOrNull())
+                    ?: mediaProxyService.search(transferToBeDownloaded.hosterName()).firstOrNull())
 
                 val filesFromTorrent = getFilesFromTorrent(remoteTorrent)
                 if (filesFromTorrent.isEmpty()) {

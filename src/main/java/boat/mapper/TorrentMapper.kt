@@ -32,7 +32,7 @@ class TorrentMapper {
         fun mapTransferToTorrent(transfer: Transfer): Torrent {
             return Torrent(
                 source = transfer.source,
-                name = transfer.name,
+                name = transfer.hosterName(),
                 size = TorrentHelper.humanReadableByteCountBinary(transfer.sizeInBytes),
                 magnetUri = transfer.uri,
                 remoteStatusText = transfer.feedbackMessage ?: "",

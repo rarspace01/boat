@@ -32,6 +32,30 @@ data class Transfer(
         )
     }
 
+    /**
+     * The name as reported by the multifilehoster, without the media title prefix ("<media title> | <hoster name>").
+     * Functions instead of properties, so they don't get persisted.
+     */
+    fun hosterName(): String {
+        return if (hasMediaTitlePrefix()) name.substringAfter(MEDIA_TITLE_SEPARATOR) else name
+    }
+
+    fun updateHosterName(hosterName: String) {
+        name = if (hasMediaTitlePrefix()) name.substringBefore(MEDIA_TITLE_SEPARATOR) + MEDIA_TITLE_SEPARATOR + hosterName else hosterName
+    }
+
+    private fun hasMediaTitlePrefix(): Boolean {
+        return remoteMediaId != null && name.contains(MEDIA_TITLE_SEPARATOR)
+    }
+
+    companion object {
+        const val MEDIA_TITLE_SEPARATOR = " | "
+
+        fun buildName(mediaTitle: String?, hosterName: String): String {
+            return if (mediaTitle.isNullOrBlank()) hosterName else mediaTitle + MEDIA_TITLE_SEPARATOR + hosterName
+        }
+    }
+
     private val type: String
         get() = transferType.string
     private val percentageString: String

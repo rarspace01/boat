@@ -180,6 +180,62 @@ internal class MultifileHosterServiceTest {
     }
 
     @Test
+    fun shouldPrefixTransferNameWithMediaTitleWhenRemoteMediaIdIsPresent() {
+        // Given
+        val savedTransfer = slot<Transfer>()
+        every { transferService.save(capture(savedTransfer)) } just Runs
+        every { mediaProxyService.findByRemoteMediaId("{tmdb-27205}", "Inception.2010.1080p") } returns
+                MediaItem(title = "Inception", year = 2010, type = MediaType.Movie, id = "{tmdb-27205}")
+        val torrent = Torrent.of("magnet:?xt=urn:btih:10e93389d579ba4538c68b8d297268a81620fae2&dn=Inception.2010.1080p")
+        // When
+        multifileHosterService.addTorrentToTransfer(torrent, "{tmdb-27205}")
+        // Then
+        assertThat(savedTransfer.captured.name).isEqualTo("Inception | Inception.2010.1080p")
+        assertThat(savedTransfer.captured.hosterName()).isEqualTo("Inception.2010.1080p")
+        assertThat(savedTransfer.captured.remoteMediaId).isEqualTo("{tmdb-27205}")
+    }
+
+    @Test
+    fun shouldKeepHosterNameWhenMediaItemForRemoteMediaIdIsNotFound() {
+        // Given
+        val savedTransfer = slot<Transfer>()
+        every { transferService.save(capture(savedTransfer)) } just Runs
+        every { mediaProxyService.findByRemoteMediaId(any(), any()) } returns null
+        val torrent = Torrent.of("magnet:?xt=urn:btih:10e93389d579ba4538c68b8d297268a81620fae2&dn=Inception.2010.1080p")
+        // When
+        multifileHosterService.addTorrentToTransfer(torrent, "{tmdb-27205}")
+        // Then
+        assertThat(savedTransfer.captured.name).isEqualTo("Inception.2010.1080p")
+    }
+
+    @Test
+    fun shouldMatchTorrentByNameIgnoringMediaTitlePrefix() {
+        val transfer = Transfer(name = "Inception | Inception.2010.1080p", remoteMediaId = "{tmdb-27205}")
+        val torrent = Torrent("Premiumize").apply { name = "Inception.2010.1080p" }
+
+        assertThat(multifileHosterService.transferMatchedTorrentByName(transfer, torrent)).isTrue()
+    }
+
+    @Test
+    fun shouldKeepMediaTitlePrefixWhenHosterNameIsUpdated() {
+        val transfer = Transfer(name = "Inception | Inception.2010.1080p", remoteMediaId = "{tmdb-27205}")
+
+        transfer.updateHosterName("Inception.2010.1080p.BluRay")
+
+        assertThat(transfer.name).isEqualTo("Inception | Inception.2010.1080p.BluRay")
+        assertThat(transfer.hosterName()).isEqualTo("Inception.2010.1080p.BluRay")
+    }
+
+    @Test
+    fun shouldNotStripSeparatorFromTransferWithoutRemoteMediaId() {
+        val transfer = Transfer(name = "Some | Name")
+
+        assertThat(transfer.hosterName()).isEqualTo("Some | Name")
+        transfer.updateHosterName("Other")
+        assertThat(transfer.name).isEqualTo("Other")
+    }
+
+    @Test
     fun shouldGetTransferToBeDownloaded() {
         val transfer1 = Transfer(name = "T1", transferStatus = TransferStatus.ADDED)
         val transfer2 = Transfer(name = "T2", transferStatus = TransferStatus.READY_TO_BE_DOWNLOADED, sizeInBytes = 1000L)
