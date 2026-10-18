@@ -103,11 +103,12 @@ class MediaProxyService(
 
     /**
      * Resolves a remote media id like `{tmdb-27205}` or `{tvdb-81189}`. TMDB ids are only unique per
-     * media type, so if both a movie and a series match, [nameHint] (e.g. the torrent name) picks one.
+     * media type, so [mediaType] restricts the lookup if known. Otherwise, if both a movie and a series
+     * match, [nameHint] (e.g. the torrent name) picks one.
      */
-    fun findByRemoteMediaId(remoteMediaId: String?, nameHint: String? = null): MediaItem? {
+    fun findByRemoteMediaId(remoteMediaId: String?, nameHint: String? = null, mediaType: MediaType? = null): MediaItem? {
         if (remoteMediaId.isNullOrBlank()) return null
-        cache.values.flatten().firstOrNull { it.id == remoteMediaId }?.let { return it }
+        cache.values.flatten().firstOrNull { it.id == remoteMediaId && (mediaType == null || it.type == mediaType) }?.let { return it }
 
         val match = REMOTE_MEDIA_ID_PATTERN.find(remoteMediaId.trim())
         if (match == null) {
@@ -118,10 +119,8 @@ class MediaProxyService(
         val mediaItem = when (provider.lowercase()) {
             "tvdb" -> theTVDBService.findById(id)
             else -> {
-                val candidates = listOfNotNull(
-                    theMovieDataBaseService.findById(id, MediaType.Movie),
-                    theMovieDataBaseService.findById(id, MediaType.Series)
-                )
+                val typesToQuery = mediaType?.let { listOf(it) } ?: listOf(MediaType.Movie, MediaType.Series)
+                val candidates = typesToQuery.mapNotNull { theMovieDataBaseService.findById(id, it) }
                 if (candidates.size > 1 && !nameHint.isNullOrBlank()) {
                     rankResults(nameHint, candidates).firstOrNull() ?: candidates.first()
                 } else {

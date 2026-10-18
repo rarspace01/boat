@@ -86,14 +86,15 @@ class MultifileHosterService(
                     ?: potentialMultiHosters.first()
         }
         val hosterName = TorrentHelper.extractTorrentName(torrent)
-        val mediaTitle = remoteMediaId?.let { mediaProxyService.findByRemoteMediaId(it, hosterName)?.title }
+        val mediaItem = remoteMediaId?.let { mediaProxyService.findByRemoteMediaId(it, hosterName) }
         val transfer = Transfer(
-                name = Transfer.buildName(mediaTitle, hosterName),
+                name = Transfer.buildName(mediaItem?.title, hosterName),
                 transferType = extractType(torrent.magnetUri),
                 transferStatus = TransferStatus.ADDED,
                 source = selectedMultiFileHosterSource.getName(),
                 uri = torrent.magnetUri,
                 remoteMediaId = remoteMediaId,
+                mediaType = mediaItem?.type,
                 sizeInBytes = torrent.getByteSize()
         )
         transferService.save(transfer)
@@ -354,9 +355,11 @@ class MultifileHosterService(
             isDownloadInProgress = true
             var wasDownloadSuccessful = false
             try {
-                val mediaItem = (transferToBeDownloaded.remoteMediaId?.let { mediaProxyService.findByRemoteMediaId(it, transferToBeDownloaded.hosterName()) }
-                    ?: transferToBeDownloaded.remoteMediaId?.let { mediaProxyService.search(it).firstOrNull() }
-                    ?: mediaProxyService.search(transferToBeDownloaded.hosterName()).firstOrNull())
+                val mediaItem = (transferToBeDownloaded.remoteMediaId?.let {
+                    mediaProxyService.findByRemoteMediaId(it, transferToBeDownloaded.hosterName(), transferToBeDownloaded.mediaType)
+                }
+                    ?: transferToBeDownloaded.remoteMediaId?.let { mediaProxyService.search(it, transferToBeDownloaded.mediaType).firstOrNull() }
+                    ?: mediaProxyService.search(transferToBeDownloaded.hosterName(), transferToBeDownloaded.mediaType).firstOrNull())
 
                 val filesFromTorrent = getFilesFromTorrent(remoteTorrent)
                 if (filesFromTorrent.isEmpty()) {
@@ -377,20 +380,9 @@ class MultifileHosterService(
                     val indexLetter: String
 
                     if (mediaItem != null) {
-                        val safeTitle = contentRenamer.getSafeTitle(mediaItem)
-                        var season = contentRenamer.extractSeason(file)
-                        var episode = contentRenamer.extractEpisode(file, mediaItem)
-                        if (season == null && episode != null && mediaItem.type == MediaType.Series) {
-                            season = 1
-                        }
-                        if (season == null && episode != null && episode > 100 && mediaItem.type == MediaType.Series) {
-                            if (mediaItem.seasonCount != null && (episode / 100) <= (mediaItem.seasonCount ?: 1) && (episode % 100) in 1..99) {
-                                season = episode / 100
-                                episode %= 100
-                            }
-                        }
-                        targetFilePath = contentRenamer.getTargetFile(file, mediaItem, safeTitle, season, episode, basePath)
-                        indexLetter = StringUtil.deductFirstTorrentLetter(safeTitle)
+                        val mediaTarget = buildMediaTargetFile(file, mediaItem, basePath)
+                        targetFilePath = mediaTarget.first
+                        indexLetter = mediaTarget.second
                     } else {
                         val destination = cloudService.buildDestinationPath(remoteTorrent.name, listOf(fileToDownload))
                         targetFilePath = destination.second + buildFilename(remoteTorrent.name, fileToDownload.url)
@@ -398,7 +390,7 @@ class MultifileHosterService(
                     }
 
                     listOfCharactersToIndexUpdate.add(indexLetter)
-                    wasDownloadSuccessful = rcloneDownloadFileToGdrive(fileToDownload.url, targetFilePath)
+                    wasDownloadSuccessful = rcloneDownloadFileToDestination(fileToDownload.url, targetFilePath)
                     updateUploadStatus(remoteTorrent, listOf(fileToDownload), 1, null)
                     delete(remoteTorrent)
                     transferService.delete(transferToBeDownloaded)
@@ -416,20 +408,9 @@ class MultifileHosterService(
                         val indexLetter: String
 
                         if (mediaItem != null) {
-                            val safeTitle = contentRenamer.getSafeTitle(mediaItem)
-                            var season = contentRenamer.extractSeason(file)
-                            var episode = contentRenamer.extractEpisode(file, mediaItem)
-                            if (season == null && episode != null && mediaItem.type == MediaType.Series) {
-                                season = 1
-                            }
-                            if (season == null && episode != null && episode > 100 && mediaItem.type == MediaType.Series) {
-                                if (mediaItem.seasonCount != null && (episode / 100) <= (mediaItem.seasonCount ?: 1) && (episode % 100) in 1..99) {
-                                    season = episode / 100
-                                    episode %= 100
-                                }
-                            }
-                            targetFilePath = contentRenamer.getTargetFile(file, mediaItem, safeTitle, season, episode, basePath)
-                            indexLetter = StringUtil.deductFirstTorrentLetter(safeTitle)
+                            val mediaTarget = buildMediaTargetFile(file, mediaItem, basePath)
+                            targetFilePath = mediaTarget.first
+                            indexLetter = mediaTarget.second
                         } else {
                             val destination = cloudService.buildDestinationPath(remoteTorrent.name, filesFromTorrent)
                             val destinationPath: String = destination.second
@@ -442,7 +423,7 @@ class MultifileHosterService(
                         }
 
                         listOfCharactersToIndexUpdate.add(indexLetter)
-                        if (!rcloneDownloadFileToGdrive(torrentFile.url, targetFilePath)) {
+                        if (!rcloneDownloadFileToDestination(torrentFile.url, targetFilePath)) {
                             failedUploads++
                         }
                         currentFileNumber++
@@ -472,6 +453,30 @@ class MultifileHosterService(
                 )
             }
         }
+    }
+
+    /**
+     * Builds the target path and index letter for a file of a known media item. Season/episode detection is only
+     * needed for series (and unknown types), movies are stored without it.
+     */
+    private fun buildMediaTargetFile(file: File, mediaItem: MediaItem, basePath: String): Pair<String, String> {
+        val safeTitle = contentRenamer.getSafeTitle(mediaItem)
+        val (season, episode) = when (mediaItem.type) {
+            MediaType.Movie -> Pair(null, null)
+            MediaType.Series -> extractSeriesSeasonAndEpisode(file, mediaItem)
+            else -> Pair(contentRenamer.extractSeason(file), contentRenamer.extractEpisode(file, mediaItem))
+        }
+        val targetFilePath = contentRenamer.getTargetFile(file, mediaItem, safeTitle, season, episode, basePath)
+        return Pair(targetFilePath, StringUtil.deductFirstTorrentLetter(safeTitle))
+    }
+
+    private fun extractSeriesSeasonAndEpisode(file: File, mediaItem: MediaItem): Pair<Int?, Int?> {
+        val season = contentRenamer.extractSeason(file)
+        val episode = contentRenamer.extractEpisode(file, mediaItem)
+        if (season == null && episode != null) {
+            return Pair(1, episode)
+        }
+        return Pair(season, episode)
     }
 
     fun getTransferToBeDownloaded(): Transfer? {
@@ -599,7 +604,7 @@ class MultifileHosterService(
         return foundMatch?.replace("\\s".toRegex(), ".") ?: ""
     }
 
-    private fun rcloneDownloadFileToGdrive(fileURLFromTorrent: String?, destinationPath: String): Boolean {
+    private fun rcloneDownloadFileToDestination(fileURLFromTorrent: String?, destinationPath: String): Boolean {
         log.info("D>[{}]", destinationPath)
         val builder = ProcessBuilder()
         val commandToRun = String.format("rclone --no-check-certificate copyurl '%s' '%s'", fileURLFromTorrent, destinationPath.replace("'".toRegex(), ""))

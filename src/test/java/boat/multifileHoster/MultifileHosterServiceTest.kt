@@ -184,7 +184,7 @@ internal class MultifileHosterServiceTest {
         // Given
         val savedTransfer = slot<Transfer>()
         every { transferService.save(capture(savedTransfer)) } just Runs
-        every { mediaProxyService.findByRemoteMediaId("{tmdb-27205}", "Inception.2010.1080p") } returns
+        every { mediaProxyService.findByRemoteMediaId("{tmdb-27205}", "Inception.2010.1080p", null) } returns
                 MediaItem(title = "Inception", year = 2010, type = MediaType.Movie, id = "{tmdb-27205}")
         val torrent = Torrent.of("magnet:?xt=urn:btih:10e93389d579ba4538c68b8d297268a81620fae2&dn=Inception.2010.1080p")
         // When
@@ -193,6 +193,7 @@ internal class MultifileHosterServiceTest {
         assertThat(savedTransfer.captured.name).isEqualTo("Inception | Inception.2010.1080p")
         assertThat(savedTransfer.captured.hosterName()).isEqualTo("Inception.2010.1080p")
         assertThat(savedTransfer.captured.remoteMediaId).isEqualTo("{tmdb-27205}")
+        assertThat(savedTransfer.captured.mediaType).isEqualTo(MediaType.Movie)
     }
 
     @Test
@@ -200,7 +201,7 @@ internal class MultifileHosterServiceTest {
         // Given
         val savedTransfer = slot<Transfer>()
         every { transferService.save(capture(savedTransfer)) } just Runs
-        every { mediaProxyService.findByRemoteMediaId(any(), any()) } returns null
+        every { mediaProxyService.findByRemoteMediaId(any(), any(), any()) } returns null
         val torrent = Torrent.of("magnet:?xt=urn:btih:10e93389d579ba4538c68b8d297268a81620fae2&dn=Inception.2010.1080p")
         // When
         multifileHosterService.addTorrentToTransfer(torrent, "{tmdb-27205}")
@@ -259,7 +260,7 @@ internal class MultifileHosterServiceTest {
         val mediaItem = MediaItem(title = "Inception", year = 2010, type = MediaType.Movie, id = "{tmdb-27205}")
 
         every { transferService.getAll() } returns listOf(transfer)
-        every { mediaProxyService.findByRemoteMediaId("{tmdb-27205}", any()) } returns mediaItem
+        every { mediaProxyService.findByRemoteMediaId("{tmdb-27205}", any(), any()) } returns mediaItem
         every { contentRenamer.getSafeTitle(mediaItem) } returns "Inception"
         every { contentRenamer.getTargetFile(any(), mediaItem, "Inception", null, null, any()) } returns "/destination/Movies/I/Inception {tmdb-27205}.mkv"
 
@@ -270,6 +271,58 @@ internal class MultifileHosterServiceTest {
         multifileHosterService.checkForDownloadableTorrentsAndDownloadTheFirst()
 
         io.mockk.verify { transferService.delete(transfer) }
+        io.mockk.verify(exactly = 0) { contentRenamer.extractSeason(any()) }
+        io.mockk.verify(exactly = 0) { contentRenamer.extractEpisode(any(), any()) }
+    }
+
+    @Test
+    fun shouldUseStoredMediaTypeForRemoteMediaIdLookup() {
+        val transfer = Transfer(
+            name = "Inception | Inception.2010.1080p",
+            transferStatus = TransferStatus.READY_TO_BE_DOWNLOADED,
+            remoteId = "remote-123",
+            remoteMediaId = "{tmdb-27205}",
+            mediaType = MediaType.Movie,
+            source = "Premiumize"
+        )
+        val mediaItem = MediaItem(title = "Inception", year = 2010, type = MediaType.Movie, id = "{tmdb-27205}")
+
+        every { transferService.getAll() } returns listOf(transfer)
+        every { mediaProxyService.findByRemoteMediaId("{tmdb-27205}", "Inception.2010.1080p", MediaType.Movie) } returns mediaItem
+        every { contentRenamer.getSafeTitle(mediaItem) } returns "Inception"
+        every { contentRenamer.getTargetFile(any(), mediaItem, "Inception", null, null, any()) } returns "/destination/Movies/I/Inception {tmdb-27205}.mkv"
+        val folderResponse = "{\"status\":\"success\",\"content\":[{\"id\":\"f1\",\"name\":\"Inception.mkv\",\"type\":\"file\",\"size\":1000,\"link\":\"http://premiumize.me/dl/inception.mkv\"}]}"
+        every { httpHelper.getPage(match { it.contains("folder/list") }) } returns folderResponse
+
+        multifileHosterService.checkForDownloadableTorrentsAndDownloadTheFirst()
+
+        io.mockk.verify { mediaProxyService.findByRemoteMediaId("{tmdb-27205}", "Inception.2010.1080p", MediaType.Movie) }
+        io.mockk.verify { contentRenamer.getTargetFile(any(), mediaItem, "Inception", null, null, any()) }
+    }
+
+    @Test
+    fun shouldDefaultToSeasonOneForSeriesEpisodeWithoutSeason() {
+        val transfer = Transfer(
+            name = "Breaking.Bad.E05",
+            transferStatus = TransferStatus.READY_TO_BE_DOWNLOADED,
+            remoteId = "remote-456",
+            remoteMediaId = "{tvdb-81189}",
+            source = "Premiumize"
+        )
+        val mediaItem = MediaItem(title = "Breaking Bad", year = 2008, type = MediaType.Series, id = "{tvdb-81189}")
+
+        every { transferService.getAll() } returns listOf(transfer)
+        every { mediaProxyService.findByRemoteMediaId("{tvdb-81189}", any(), any()) } returns mediaItem
+        every { contentRenamer.getSafeTitle(mediaItem) } returns "Breaking Bad"
+        every { contentRenamer.extractSeason(any()) } returns null
+        every { contentRenamer.extractEpisode(any(), mediaItem) } returns 5
+        every { contentRenamer.getTargetFile(any(), mediaItem, "Breaking Bad", 1, 5, any()) } returns "/destination/Series-Shows/B/Breaking Bad {tvdb-81189}/Season 1/Breaking Bad.S01E05.mkv"
+        val folderResponse = "{\"status\":\"success\",\"content\":[{\"id\":\"f1\",\"name\":\"Breaking.Bad.E05.mkv\",\"type\":\"file\",\"size\":1000,\"link\":\"http://premiumize.me/dl/bb05.mkv\"}]}"
+        every { httpHelper.getPage(match { it.contains("folder/list") }) } returns folderResponse
+
+        multifileHosterService.checkForDownloadableTorrentsAndDownloadTheFirst()
+
+        io.mockk.verify { contentRenamer.getTargetFile(any(), mediaItem, "Breaking Bad", 1, 5, any()) }
     }
 
     @Test
@@ -284,7 +337,7 @@ internal class MultifileHosterServiceTest {
         val mediaItem = MediaItem(title = "Breaking Bad", year = 2008, type = MediaType.Series, id = "{tvdb-81189}")
 
         every { transferService.getAll() } returns listOf(transfer)
-        every { mediaProxyService.findByRemoteMediaId("{tvdb-81189}", any()) } returns mediaItem
+        every { mediaProxyService.findByRemoteMediaId("{tvdb-81189}", any(), any()) } returns mediaItem
         every { contentRenamer.getSafeTitle(mediaItem) } returns "Breaking Bad"
         every { contentRenamer.extractSeason(any()) } returns 1
         every { contentRenamer.extractEpisode(any(), mediaItem) } returns 1

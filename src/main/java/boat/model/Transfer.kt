@@ -1,5 +1,6 @@
 package boat.model
 
+import boat.info.MediaType
 import boat.torrent.TorrentHelper.formatDuration
 import org.springframework.data.annotation.Id
 import java.time.Duration
@@ -13,6 +14,7 @@ data class Transfer(
     var name: String = "",
     var remoteId: String? = null,
     var remoteMediaId: String? = null,
+    var mediaType: MediaType? = null,
     var source: String = "☕",
     var uri: String = "",
     var transferStatus: TransferStatus = TransferStatus.NONE,
@@ -25,7 +27,7 @@ data class Transfer(
 ) {
     override fun toString(): String {
         return String.format(
-            "\n<br/>[<!-- ID:[%s]RID:[%s]MID:[%s] -->%s,\uD83C\uDFE0%s,%s,%s,%s<!-- MSG: %s -->%s<!-- ,%s -->]", id, remoteId, remoteMediaId, name,
+            "\n<br/>[<!-- ID:[%s]RID:[%s]MID:[%s]MT:[%s] -->%s,\uD83C\uDFE0%s,%s,%s,%s<!-- MSG: %s -->%s<!-- ,%s -->]", id, remoteId, remoteMediaId, mediaType, name,
             source[0], transferStatus.string, type, percentageString, feedbackMessage,
             printDuration(),
             updated
