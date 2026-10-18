@@ -83,4 +83,127 @@ class ContentRenamerMovieTest {
         assertThat(File(base, "Movies/I/Inception (2010) {tmdb-27205}.1080p.x264.en.srt")).exists()
         assertThat(nfo).exists()
     }
+
+    @Test
+    fun `should parse movie title and year from release names`() {
+        val expected = mapOf(
+            "127.Hours.2010.720p.BluRay.x264" to Pair("127 Hours", 2010),
+            "300.2006.1080p.Bluray.x264" to Pair("300", 2006),
+            "1408(2007)BDRip-F.HD" to Pair("1408", 2007),
+            "101 Dalmatians" to Pair("101 Dalmatians", null),
+            "1917.2019.2160p.UHD.BluRay.x265.10bit.HDR.DTS-HD.MA.TrueHD.7.1.Atmos-SWTYBLZ" to Pair("1917", 2019),
+            "2001.A.Space.Odyssey.1968.REMASTERED.1080p.BluRay.x264.DTS-HD.MA.5.1-FGT" to Pair("2001 A Space Odyssey", 1968),
+            "2012.2009.1080p.BluRay.x264" to Pair("2012", 2009),
+            "10.Cloverfield.Lane.2016.4K.UltraHD.BluRay.2160p.x264.DTS-HD.MA.TrueHD.7.1.Atmos.ACC-7.1-POOP" to Pair("10 Cloverfield Lane", 2016),
+            "Alien.Romulus.2024.2160p.WEB-DL.DDP5.1.Atmos.DV.HDR.H.265-FLUX" to Pair("Alien Romulus", 2024),
+            "12 Years a Slave (2013) 1080p x264 ENG-ITA BluRay - 12 Anni Schiavo" to Pair("12 Years a Slave", 2013),
+            "Gold.Diggers.of.1935.(1935).95.min.Dick.Powell.H264" to Pair("Gold Diggers of 1935", 1935),
+            "Zabriskie Point (Antonioni 1970) [HD x264 Ita Ac3 Eng-Esp-Deu Aac - Multisubs]" to Pair("Zabriskie Point", 1970),
+            "Children of Men (BDrip 1080p ENG-ITA-FRA-GER-SPA - DTS) multisub x264 bluray (2006)" to Pair("Children of Men", null),
+            "Wrong Turn UNRATED (2003) [1080p]" to Pair("Wrong Turn", 2003),
+            "Agent.Ranjid.rettet.die.Welt.German.AC3.BDRip.XviD" to Pair("Agent Ranjid rettet die Welt", null),
+            "13.Semester.German.2009.DVDRip.XviD" to Pair("13 Semester", 2009),
+            "Charlotte's Web 2006 1080p" to Pair("Charlotte's Web", 2006),
+            "Diamonds Are Forever 1080p DTS HighCode" to Pair("Diamonds Are Forever", null),
+            "Kung Fu Panda 2 2011 1080p BluRay x264 Dual Audio [Hindi DD 5.1 - English DD 5.1] ESub [MW]" to Pair("Kung Fu Panda 2", 2011),
+            "01. The BIG Boss (1971 DUAL Audio - 720p BluRay)" to Pair("The BIG Boss", 1971),
+            "05a. GAME of DEATH (1978 - 720p BluRay)" to Pair("GAME of DEATH", 1978),
+            "Inception (2010) {tmdb-27205}.1080p.x264" to Pair("Inception", 2010),
+            "Das.Boot.Directors.Cut.1981.1080p.x264" to Pair("Das Boot", 1981),
+            "Black.Hawk.Down.-.Extended.Cut.2001.MULTi.2160p.UHD.Blu-ray" to Pair("Black Hawk Down", 2001),
+            "Eternals+2021+1080p+" to Pair("Eternals", 2021),
+            "Ali-Angst.essen.Seele.auf-Fear.Eats.the.Soul-1974--720p-EN.subs-x265-HEVC" to Pair("Ali-Angst essen Seele auf-Fear Eats the Soul", 1974),
+            "Spider-Man.2002.1080p" to Pair("Spider-Man", 2002),
+        )
+        expected.forEach { (rawName, titleAndYear) ->
+            assertThat(contentRenamer.parseMovieName(rawName)).describedAs(rawName).isEqualTo(titleAndYear)
+        }
+    }
+
+    @Test
+    fun `should not take a leading year for the release year`() {
+        assertThat(contentRenamer.extractYear("~/Movies/0-9/1917.2019.1080p.mkv")).isEqualTo(2019)
+        assertThat(contentRenamer.extractYear("~/Movies/0-9/2001.A.Space.Odyssey.1968.1080p.mkv")).isEqualTo(1968)
+        assertThat(contentRenamer.extractYear("~/Movies/0-9/2022.mp4")).isEqualTo(2022)
+    }
+
+    @Test
+    fun `should name movies in a collection after their file`() {
+        val collection = "~/Movies/B/BRUCE Lee (1971-1978) and BRANDON Lee (1986-1994) - The ULTIMATE Movies Collection - 720p x264/a. Bruce (1971-1978)"
+        assertThat(contentRenamer.extractMovieNameAndYear(File("$collection/01. The BIG Boss (1971 DUAL Audio - 720p BluRay).mp4")))
+            .isEqualTo(Pair("The BIG Boss", 1971))
+        // files without a title are named after their folder
+        assertThat(contentRenamer.extractMovieNameAndYear(File("~/Movies/I/Inception.2010.1080p.BluRay.x264-SPARKS/RARBG.txt")))
+            .isEqualTo(Pair("Inception", 2010))
+        assertThat(contentRenamer.extractMovieNameAndYear(File("~/Movies/0-9/00000.m2ts"))).isEqualTo(Pair("", null))
+        // short titles are fine with a release year
+        assertThat(contentRenamer.extractMovieNameAndYear(File("~/Movies/I/It (2017) [1080p] [YTS.AG].mp4"))).isEqualTo(Pair("It", 2017))
+        assertThat(contentRenamer.extractMovieNameAndYear(File("~/Movies/0-9/48.Hrs.1982.1080p.BluRay.x264-TENEIGHTY.mkv"))).isEqualTo(Pair("48 Hrs", 1982))
+        assertThat(contentRenamer.extractMovieNameAndYear(File("~/Movies/I/Interview.with.the.Vampire.1994.1080p.mp4"))).isEqualTo(Pair("Interview with the Vampire", 1994))
+        // extras are named after their movie
+        assertThat(contentRenamer.extractMovieNameAndYear(File("~/Movies/C/The.French.Connection.1971.Bluray.1080p.DTS-HD.x264-Grym/The.French.Connection.Extras-Grym/The.Poughkeepsie.Shuffle.2000.SD.NTSC.mkv")))
+            .isEqualTo(Pair("The French Connection", 1971))
+    }
+
+    @Test
+    fun `should detect series in the movies folder`(@TempDir tempDir: Path) {
+        val base = tempDir.toFile()
+        assertThat(contentRenamer.hasSeriesMarkers(createFile(base, "Movies/M/Mr.Inbetween/Mr.Inbetween.S02E01.1080p.mkv"))).isTrue()
+        assertThat(contentRenamer.hasSeriesMarkers(createFile(base, "Movies/S/Star.Trek.Discovery.S01-05.ITA/Star.Trek.Discovery.5x10.La.Vita.mkv"))).isTrue()
+        assertThat(contentRenamer.hasSeriesMarkers(createFile(base, "Movies/K/Kekkai Sensen S01+02+OVA/Blood Blockade Battlefront/Blood Blockade Battlefront - 01.mkv"))).isTrue()
+        (1..3).forEach { createFile(base, "Movies/L/Little Women/Tales.Of.Little.Women.EP$it.mkv") }
+        assertThat(contentRenamer.hasSeriesMarkers(File(base, "Movies/L/Little Women/Tales.Of.Little.Women.EP1.mkv"))).isTrue()
+
+        listOf("01", "02v2", "10").forEach { createFile(base, "Movies/G/[ARC] Gunslinger Girl (2003)/[ARC] Gunslinger Girl $it [BD 714p 10-bit x264 FLAC].mkv") }
+        assertThat(contentRenamer.hasSeriesMarkers(File(base, "Movies/G/[ARC] Gunslinger Girl (2003)/[ARC] Gunslinger Girl 10 [BD 714p 10-bit x264 FLAC].mkv"))).isTrue()
+
+        // numbers in movie titles aren't episodes
+        (11..13).forEach { createFile(base, "Movies/O/Oceans Trilogy/Oceans $it.mkv") }
+        assertThat(contentRenamer.hasSeriesMarkers(File(base, "Movies/O/Oceans Trilogy/Oceans 11.mkv"))).isFalse()
+        assertThat(contentRenamer.hasSeriesMarkers(createFile(base, "Movies/A/Apollo 13 (1995)/Apollo 13 (1995).mkv"))).isFalse()
+        createFile(base, "Movies/S/Star.Wars.Episode.2.Attack.of.the.Clones.2002.mkv")
+        createFile(base, "Movies/S/Star.Wars.Episode.3.Revenge.of.the.Sith.2005.mkv")
+        assertThat(contentRenamer.hasSeriesMarkers(createFile(base, "Movies/S/Star.Wars.Episode.1.The.Phantom.Menace.1999.mkv"))).isFalse()
+        assertThat(contentRenamer.hasSeriesMarkers(createFile(base, "Movies/O/Open.Season.2006.1080p/Open.Season.2006.1080p.mkv"))).isFalse()
+        assertThat(contentRenamer.hasSeriesMarkers(createFile(base, "Movies/A/Adieu.Galaxy.Express.999.(1981).(BDRip.1920x1080p.x265.FLACx2,.TrueHD.2.0x2+5.1).mkv"))).isFalse()
+    }
+
+    @Test
+    fun `should search series in the movies folder as series`(@TempDir tempDir: Path) {
+        val base = tempDir.toFile()
+        createFile(base, "Movies/M/Mr.Inbetween/Mr.Inbetween.S02E01.1080p.AMZN.WEB-DL.DDP5.1.H.264-KiNGS.mkv")
+        val mrInbetween = MediaItem("Mr Inbetween", "Mr Inbetween", 2018, MediaType.Series, "{tvdb-345678}")
+        every { mediaProxyService.search("Mr Inbetween", MediaType.Series) } returns listOf(mrInbetween)
+
+        contentRenamer.processFilesFromDirectory(File(base, "Movies").absolutePath, null, isTestRun = false, basePath = base.absolutePath)
+
+        verify(exactly = 0) { mediaProxyService.search(any(), MediaType.Movie) }
+        assertThat(File(base, "Series-Shows/M/Mr Inbetween {tvdb-345678}/Season 2/Mr Inbetween.S02E01.1080p.h264.mkv")).exists()
+    }
+
+    @Test
+    fun `should skip disc structures, courses and files that aren't movies`(@TempDir tempDir: Path) {
+        val base = tempDir.toFile()
+        val stream = createFile(base, "Movies/M/Minari.2020.KOREAN.1080p.BluRay.AVC-FGT/BDMV/STREAM/00001.m2ts")
+        val course = createFile(base, "Movies/C/CBT Nuggets - Amazon Web Services - AWS Foundations/01 - Getting the Most from this Series.mp4")
+        val pdf = createFile(base, "Movies/I/Inception.2010.1080p/Inception.2010.pdf")
+
+        contentRenamer.processFilesFromDirectory(File(base, "Movies").absolutePath, null, isTestRun = false, basePath = base.absolutePath)
+
+        verify(exactly = 0) { mediaProxyService.search(any(), any<Int>(), any()) }
+        verify(exactly = 0) { mediaProxyService.search(any(), any<MediaType>()) }
+        assertThat(listOf(stream, course, pdf)).allMatch { it.exists() }
+    }
+
+    @Test
+    fun `should not rename a movie to a namesake released years apart`(@TempDir tempDir: Path) {
+        val base = tempDir.toFile()
+        val air = createFile(base, "Movies/A/Air.2015.1080p.BluRay.x264-[YTS.LT].mp4")
+        every { mediaProxyService.search("Air", 2015, MediaType.Movie) } returns emptyList()
+        every { mediaProxyService.search("Air", MediaType.Movie) } returns listOf(MediaItem("Air", "Air", 2023, MediaType.Movie, "{tmdb-964980}"))
+
+        contentRenamer.processFilesFromDirectory(File(base, "Movies").absolutePath, null, isTestRun = false, basePath = base.absolutePath)
+
+        assertThat(air).exists()
+    }
 }

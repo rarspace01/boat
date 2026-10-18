@@ -6,6 +6,7 @@ import com.google.gson.reflect.TypeToken
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import java.io.File
+import java.text.Normalizer
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.abs
 
@@ -23,6 +24,7 @@ class MediaProxyService(
 
     companion object {
         const val CACHE_FILE_NAME = "mediaProxyCache"
+        private val DIACRITICS_PATTERN = "\\p{InCombiningDiacriticalMarks}+".toRegex()
         private val REMOTE_MEDIA_ID_PATTERN = "\\{?(tmdb|tvdb)-(\\d+)}?".toRegex(RegexOption.IGNORE_CASE)
     }
 
@@ -168,13 +170,14 @@ class MediaProxyService(
 
     fun search(name: String?, year: Int, type: MediaType?): List<MediaItem> {
         if (name.isNullOrBlank()) return emptyList()
-        val cacheKey = "search:$name:$year:$type"
+        // typed TMDB searches filter by year, so they don't share cache entries with the former search/multi results
+        val cacheKey = "typedSearch:$name:$year:$type"
         return getCachedOrPut(cacheKey) {
             val results = when (type) {
-                MediaType.Movie -> theMovieDataBaseService.search(name, year)?.filter { it.type == MediaType.Movie } ?: emptyList()
+                MediaType.Movie -> theMovieDataBaseService.search(name, year, MediaType.Movie) ?: emptyList()
                 MediaType.Series -> {
                     val tvdbResults = theTVDBService.search(name, year)
-                    val tmdbResults = theMovieDataBaseService.search(name, year)?.filter { it.type == MediaType.Series } ?: emptyList()
+                    val tmdbResults = theMovieDataBaseService.search(name, year, MediaType.Series) ?: emptyList()
                     tvdbResults.plus(tmdbResults).distinctBy { it.title + it.year + it.type }
                 }
                 else -> search(name, year)
@@ -195,7 +198,10 @@ class MediaProxyService(
         val withoutAcronymDelimiters = input.replace(acronymPattern) { matchResult ->
             matchResult.value.replace("*", "").replace(".", "")
         }
-        return withoutAcronymDelimiters.lowercase()
+        // strip accents, so Amelie matches Amélie
+        return Normalizer.normalize(withoutAcronymDelimiters, Normalizer.Form.NFD)
+            .replace(DIACRITICS_PATTERN, "")
+            .lowercase()
             .replace(Regex("[^a-z0-9]+"), " ")
             .trim()
     }

@@ -11,6 +11,7 @@ import java.io.FileWriter
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 import kotlin.io.path.moveTo
+import kotlin.math.abs
 
 @Service
 class ContentRenamer(val mediaProxyService: MediaProxyService) {
@@ -108,6 +109,45 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         private val languageCodes = java.util.Locale.getISOLanguages().flatMap { listOfNotNull(it, runCatching { java.util.Locale.of(it).isO3Language }.getOrNull()) }.toSet() +
                 setOf("alb", "arm", "baq", "bur", "chi", "cze", "dut", "fre", "geo", "ger", "gre", "ice", "mac", "mao", "may", "per", "rum", "slo", "tib", "wel")
         val invalidFileCharsPattern = Regex("[\\\\/:*?\"<>|]")
+
+        val categoryFolderNames = setOf(
+            "series-shows", "series shows", "series", "shows", "tv", "tv shows", "tv show", "tv-shows",
+            "tv series", "tv-series", "movies", "movie", "films", "film", "anime",
+            "cartoons", "cartoon", "documentaries", "documentary", "downloads", "download",
+            "torrents", "torrent", "complete", "incomplete", "pfdb", "data", "videos",
+            "video", "media", "home", "root", "desktop"
+        )
+
+        // movie name parsing
+        val movieYearPattern = "^(?:19[0-9]{2}|20[0-2][0-9])$".toRegex()
+        val movieTechnicalTagPattern = ("^(?:[0-9]{3,4}[pi]|[248]k|uhd|ultrahd|fhd|hdr(?:10)?(?:plus)?|dovi|10bit|8bit|" +
+                "(?:b[dr]|hd|dvd|vhs|web|fhd|tv|hdtv|sat|dvb)rip|bluray|blu-ray|bdremux|remux|dvd[59r]?|dvdscr|webdl|web-dl|hdtv|hdcam|screener|ntsc|" +
+                "x26[45]|h26[45]|hevc|avc|xvid|divx|av1|aac[0-9]*|e?ac3|dts(?:hd)?(?:ma)?|truehd|atmos|ddp[0-9]*|dd[0-9]+|flac|" +
+                "mkv|mp4|avi|[0-9]+(?:[.,][0-9]+)?[mg]b|[0-9]{3,4}x[0-9]{3,4})$").toRegex()
+        val movieLanguageOrEditionTagPattern = ("^(?:german|deutsch|ger|dl|eng|ita|fre|fra|vf|vff|vostfr|truefrench|spa|esp|castellano|latino|rus|ukr|kor|jap|jpn|hindi|chs|cht|" +
+                "multi|multisubs?|dual|dubbed|subbed|ensubbed|esubs?|omu|nlsubs?|hardsubs?|subs?|" +
+                "unrated|uncut|remastered|extended|internal|proper|repack|rerip|limited|criterion|imax|rm4k|theatrical|retail)$").toRegex()
+        val trailingMovieTagPattern = ("(?i)\\s+(?:german|deutsch|ger|dl|eng|ita|multisubs?|dubbed|subbed|" +
+                "unrated|uncut|remastered|extended|internal|proper|repack|limited|criterion|imax|rm4k|theatrical|retail|" +
+                "directors?'?s?[\\s-]+cut|(?:extended|theatrical|unrated)[\\s-]+(?:cut|edition|version)|uncut[\\s-]+version|" +
+                "(?:special|collectors?'?s?)[\\s-]+edition)$").toRegex()
+        val leadingBracketGroupsPattern = "^(?:\\s*\\[[^\\]]*])+".toRegex()
+        // list numbering of collections like "01. The Big Boss" or "a. Bruce", not titles like "12.Angry.Men"
+        val listNumberPrefixPattern = "^(?:[0-9]{1,3}[a-z]?|[a-z])\\.\\s+".toRegex(RegexOption.IGNORE_CASE)
+        val tokenPattern = "\\S+".toRegex()
+        val episodeLikeShortPattern = "^(?:e|s|se|pt|x)\\s?[0-9]+$".toRegex()
+
+        // series detection in the movies folder
+        val seasonEpisodeMarkerPattern = "(?i)(?<![a-z0-9])S[0-9]{1,2}[\\s._-]?E[0-9]{1,3}(?![0-9])".toRegex()
+        // 5x10, but not audio tags like 2.0x2 or resolutions like 1920x1080p
+        val seasonXEpisodeMarkerPattern = "(?<![0-9a-zA-Z.])(?:[1-9]|[0-9]{2})x[0-9]{2}(?![0-9a-zA-Z])".toRegex()
+        val trailingEpisodeNumberMarkerPattern = "\\s([0-9]{2,3})$".toRegex()
+        val seasonFolderMarkerPattern = "(?i)(?<![a-z0-9])(?:S[0-9]{1,2}|Season[\\s._-]*[0-9]{1,2})(?![0-9])".toRegex()
+
+        // files that aren't renamed at all
+        val discStructureRootNames = setOf("bdmv", "video_ts", "audio_ts", "certificate", "aacs")
+        val discStructureFolderNames = discStructureRootNames + setOf("stream", "playlist", "clipinf", "backup", "bdjo", "meta", "jar")
+        val coursePattern = "(?i)udemy|cbt[\\s._-]?nuggets?|freecoursesonline|masterclass|devcourseweb|lynda|pluralsight|coursera|skillshare|linkedin[\\s._-]learning".toRegex()
     }
 
     /**
@@ -288,14 +328,6 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         val lower = trimmed.lowercase()
         if (releaseGroups.contains(lower)) return true
 
-        // Category / root folder names
-        val categoryFolderNames = setOf(
-            "series-shows", "series shows", "series", "shows", "tv", "tv shows", "tv show", "tv-shows",
-            "tv series", "tv-series", "movies", "movie", "films", "film", "anime",
-            "cartoons", "cartoon", "documentaries", "documentary", "downloads", "download",
-            "torrents", "torrent", "complete", "incomplete", "pfdb", "data", "videos",
-            "video", "media", "home", "root", "desktop"
-        )
         val articles = setOf("the", "a", "an", "and", "or", "of", "in", "with", "&", "der", "die", "das", "le", "la", "les", "el", "los", "las", "il", "lo", "gli", "un", "une")
         if (articles.contains(lower) || articles.contains(normalized)) return true
 
@@ -480,14 +512,6 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         val isShortAcronym = cleanedFileName.matches(shortAcronymPattern) &&
                 (cleanedFileName == cleanedFileName.uppercase() || cleanedFileName.lowercase() in setOf("iasip", "btas", "tas", "cfwm", "stargatesg1"))
 
-        // Category / root folder names
-        val categoryFolderNames = setOf(
-            "series-shows", "series shows", "series", "shows", "tv", "tv shows", "tv show", "tv-shows",
-            "tv series", "tv-series", "movies", "movie", "films", "film", "anime",
-            "cartoons", "cartoon", "documentaries", "documentary", "downloads", "download",
-            "torrents", "torrent", "complete", "incomplete", "pfdb", "data", "videos",
-            "video", "media", "home", "root", "desktop"
-        )
 
         // Search upwards in parent directory hierarchy for candidates
         val candidates = mutableListOf<String>()
@@ -617,6 +641,172 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         return ""
     }
 
+    /**
+     * Movie title and year from the file name, or from the closest folder if the file name doesn't carry a title
+     * (e.g. cd1.mkv, sample.mkv, RARBG.txt). Unlike [extractName], folder names aren't combined, so movies in a
+     * collection like "Bruce Lee Collection/01. The Big Boss (1971).mp4" are named after their file.
+     */
+    fun extractMovieNameAndYear(file: File): Pair<String, Int?> {
+        val rawBaseName = decodeIfEncoded(file.name).substringBeforeLast(".")
+        val parsedFileName = parseMovieName(rawBaseName)
+        // extras like "Movie (2010)/Featurettes/Interview.mkv" belong to the movie of the folder above
+        val isInExtrasFolder = file.parentFile?.let { parent ->
+            movieExtraPattern.containsMatchIn(decodeIfEncoded(parent.name)) && parent.parentFile?.let { !isLibraryGroupFolder(it) } == true
+        } == true
+        if (!isInExtrasFolder && isMovieTitle(parsedFileName)) {
+            return parsedFileName
+        }
+        var current: File? = file.parentFile
+        var depth = 0
+        while (current != null && depth < 5 && !isLibraryGroupFolder(current)) {
+            val parentName = decodeIfEncoded(current.name)
+            if (parentName.lowercase() !in discStructureFolderNames && !(current == file.parentFile && isInExtrasFolder)) {
+                val parsedParentName = parseMovieName(parentName)
+                if (isMovieTitle(parsedParentName)) return parsedParentName
+            }
+            current = current.parentFile
+            depth++
+        }
+        return Pair("", null)
+    }
+
+    /**
+     * Splits a movie release name like "Alien.Romulus.2024.2160p.WEB-DL.DDP5.1" into title and year. Unlike [cleanName]
+     * numbers are never taken for episodes, so "127 Hours" or "1917.2019" keep their title. The name is cut at the
+     * release year, or without one at the first release tag. A cut inside parentheses drops the whole group, e.g.
+     * "Zabriskie Point (Antonioni 1970)".
+     */
+    fun parseMovieName(rawName: String): Pair<String, Int?> {
+        var name = rawName.replace("：", " ").replace("?", " ")
+        name = name.replace(remoteMediaIdPattern, " ")
+        name = name.replace(sitePrefixPattern, "")
+        name = name.replace(leadingBracketGroupsPattern, "").trim()
+        name = removeReleaseGroups(name)
+        name = name.replace(listNumberPrefixPattern, "")
+        name = name.replace("(", " (").replace(")", ") ").replace("[", " [").replace("]", "] ").replace("_", " ").replace("+", " ")
+        name = name.replace(acronymPattern) { matchResult ->
+            matchResult.value.replace(".", "")
+        }
+        name = name.replace(".", " ").replace(whitespacePattern, " ").trim()
+        // dash separated names like "Fear.Eats.the.Soul-1974--720p-EN" or "maleficent-1080p", but not "Spider-Man"
+        name = name.replace(tokenPattern) { token ->
+            val parts = token.value.split('-')
+            if (parts.drop(1).any { it.lowercase().matches(movieTechnicalTagPattern) || it.matches(movieYearPattern) }) parts.joinToString(" ") else token.value
+        }.replace(whitespacePattern, " ").trim()
+
+        val tokens = tokenPattern.findAll(name).toList()
+        val cores = tokens.map { token -> token.value.trim { !it.isLetterOrDigit() }.lowercase() }
+        fun isTag(index: Int, tagPattern: Regex) = cores[index].matches(tagPattern) || cores[index].split('-').any { it.matches(tagPattern) }
+        fun isAnyTag(index: Int) = isTag(index, movieTechnicalTagPattern) || isTag(index, movieLanguageOrEditionTagPattern)
+
+        // the first token is always part of the title, e.g. "1917" or "2012"
+        val firstTechnicalTag = (1 until tokens.size).firstOrNull { isTag(it, movieTechnicalTagPattern) } ?: tokens.size
+        val firstLanguageOrEditionTag = (1 until tokens.size).firstOrNull { isTag(it, movieLanguageOrEditionTagPattern) } ?: tokens.size
+        val yearCandidates = (1 until firstTechnicalTag).filter { cores[it].matches(movieYearPattern) }
+        // the release year is in parentheses or followed by tags, otherwise it's the first one ("Summer of 1984 2023 1080p", "2000 Mules 2022 - ... of 2020")
+        val yearIndex = yearCandidates.lastOrNull { index ->
+            val token = tokens[index].value
+            (token.startsWith("(") && token.endsWith(")")) || (token.startsWith("[") && token.endsWith("]")) ||
+                    (index + 1 < tokens.size && (cores[index + 1].matches(movieYearPattern) || isAnyTag(index + 1)))
+        } ?: yearCandidates.firstOrNull()
+        val cutIndex = yearIndex ?: minOf(firstTechnicalTag, firstLanguageOrEditionTag)
+
+        var cut = if (cutIndex < tokens.size) tokens[cutIndex].range.first else name.length
+        val prefix = name.substring(0, cut)
+        val openGroup = prefix.lastIndexOfAny(charArrayOf('(', '['))
+        if (openGroup >= 0 && prefix.indexOfAny(charArrayOf(')', ']'), openGroup) == -1) {
+            cut = openGroup
+        }
+
+        var title = name.substring(0, cut).replace(bracketPattern, " ").replace("(", " ").replace(")", " ")
+            .replace(whitespacePattern, " ").trim()
+        val trailingPunctuation = charArrayOf('-', '.', ',', ';', ':', '_', '~', '+', '!', '?', '/', '\\')
+        while (true) {
+            val before = title
+            title = title.replace(trailingMovieTagPattern, "").trimEnd(*trailingPunctuation).trim()
+            if (title == before) break
+        }
+        title = title.trimStart(*trailingPunctuation).trim()
+        return Pair(title, yearIndex?.let { cores[it].toInt() })
+    }
+
+    private fun isMovieTitle(titleAndYear: Pair<String, Int?>): Boolean {
+        val (title, year) = titleAndYear
+        if (title.isBlank() || title.none { it.isLetterOrDigit() }) return false
+        // numeric titles like 300 or 1917 need a release year, "00001.m2ts" or "2022.mp4" aren't titles
+        if (title.matches(pureNumberPattern)) return !title.startsWith("0") && year != null
+        // with a release year short titles like "It (2017)", "Home (2015)" or "48.Hrs.1982" are titles as well
+        if (year != null || !isJunk(title)) return true
+        // isJunk takes "Cars 2" or "Saw 3" for a season or volume
+        val normalized = title.lowercase()
+        return normalized.matches(shortWordNumPattern) && !normalized.matches(seasonDiscPartPattern) && !normalized.matches(episodeLikeShortPattern)
+    }
+
+    /**
+     * Letter, range (0-9) and category folders group the library, they never carry a title.
+     */
+    private fun isLibraryGroupFolder(folder: File): Boolean {
+        val name = decodeIfEncoded(folder.name).trim()
+        val lower = name.lowercase()
+        val normalized = lower.replace("_", " ").replace(".", " ").replace("-", " ").trim()
+        return name.length <= 1 || name.all { !it.isLetterOrDigit() } || lower.matches(rangeSinglePattern) || lower.matches(rangeLetterPattern) ||
+                lower in categoryFolderNames || normalized in categoryFolderNames
+    }
+
+    /**
+     * Series in the movies folder, detected by markers a movie title doesn't carry: S01E01 or 1x01 in the file name, a
+     * season folder or several numbered episodes of the same show next to each other. A plain number like in
+     * "Apollo 13" doesn't count.
+     */
+    fun hasSeriesMarkers(file: File): Boolean {
+        val fileName = decodeIfEncoded(file.nameWithoutExtension)
+        if (seasonEpisodeMarkerPattern.containsMatchIn(fileName) || seasonXEpisodeMarkerPattern.containsMatchIn(fileName)) return true
+
+        // files directly in a letter folder, e.g. Star.Wars.Episode.1, have no show folder
+        val showFolders = generateSequence(file.parentFile) { it.parentFile }.take(5).takeWhile { !isLibraryGroupFolder(it) }.toList()
+        if (showFolders.isEmpty()) return false
+        if (showFolders.any { seasonFolderMarkerPattern.containsMatchIn(decodeIfEncoded(it.name)) }) return true
+
+        // e.g. "Tales.Of.Little.Women.EP1", "Samurai Champloo - Ep. 20 - Elegy", "Patlabor ON TELEVISION - 47 (BDRip)" or "Gunslinger Girl 01"
+        val episodeMarker = episodeMarker(fileName) ?: return false
+        val episodeMarkers = file.parentFile.listFiles()
+            ?.filter { it.isFile && it.name != file.name && it.extension.lowercase() in videoExtensions }
+            ?.mapNotNull { sibling -> episodeMarker(decodeIfEncoded(sibling.nameWithoutExtension))?.takeIf { it.showName == episodeMarker.showName } }
+            .orEmpty()
+            .plus(episodeMarker)
+        // plain numbers only count zero-padded, "Ocean's 11", "Ocean's 12" and "Ocean's 13" are movies
+        val hasEpisodeNotation = episodeMarkers.any { it.isExplicit || it.number.startsWith("0") }
+        return hasEpisodeNotation && episodeMarkers.map { it.number.toInt() }.toSet().size >= 3
+    }
+
+    /**
+     * Episode number in a file name, [isExplicit] if it's marked as episode (Ep. 20, - 47) rather than a plain trailing
+     * number. [showName] is the normalized text in front of it.
+     */
+    private data class EpisodeMarker(val showName: String, val number: String, val isExplicit: Boolean)
+
+    private fun episodeMarker(name: String): EpisodeMarker? {
+        fun showName(text: String, end: Int) = text.substring(0, end).lowercase().replace(nonAlphanumericPattern, "")
+        (explicitEpisodeLookbehindPattern.find(name) ?: dashEpisodePattern.find(name))?.let {
+            return EpisodeMarker(showName(name, it.range.first), it.groupValues[1], true)
+        }
+        val withoutTags = name.replace(bracketPattern, " ").replace(versionPattern, "").trim()
+        return trailingEpisodeNumberMarkerPattern.find(withoutTags)?.let { EpisodeMarker(showName(withoutTags, it.range.first), it.groupValues[1], false) }
+    }
+
+    /**
+     * Files left alone: parts of a disc structure (moving them breaks the disc) and video courses, which no media
+     * database knows.
+     */
+    private fun getSkipReason(file: File): String? {
+        val folderNames = generateSequence(file.parentFile) { it.parentFile }.map { decodeIfEncoded(it.name).lowercase() }.toList()
+        return when {
+            folderNames.any { it in discStructureRootNames } -> "disc structure"
+            coursePattern.containsMatchIn(decodeIfEncoded(file.absolutePath)) -> "course"
+            else -> null
+        }
+    }
+
     fun extractYear(fullName: String): Int? {
         val file = File(fullName)
 
@@ -653,22 +843,22 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
             depth++
         }
 
-        // 3. Fall back to unparenthesized year (prefer match where index > 0)
-        val nameMatch = yearExtractorRegex.find(file.name)
-        if (nameMatch != null && nameMatch.range.first > 0) return nameMatch.groupValues[1].toInt()
+        // 3. Fall back to unparenthesized year (prefer match where index > 0, a leading year like 1917.2019 is the title)
+        val nameMatches = yearExtractorRegex.findAll(file.name).toList()
+        nameMatches.firstOrNull { it.range.first > 0 }?.let { return it.groupValues[1].toInt() }
 
         current = parent
         depth = 0
         while (current != null && depth < 5) {
-            val currMatch = yearExtractorRegex.find(current.name)
-            if (currMatch != null && currMatch.range.first > 0) {
+            val currMatch = yearExtractorRegex.findAll(current.name).firstOrNull { it.range.first > 0 }
+            if (currMatch != null) {
                 return currMatch.groupValues[1].toInt()
             }
             current = current.parentFile
             depth++
         }
 
-        if (nameMatch != null) return nameMatch.groupValues[1].toInt()
+        nameMatches.firstOrNull()?.let { return it.groupValues[1].toInt() }
 
         current = parent
         depth = 0
@@ -926,9 +1116,6 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
             for (file in fileList) {
                 if (file.isFile) {
                     val fullName = file.absolutePath
-                    // extract Movie or TV show name from full path
-                    val extractedName = extractName(file)
-                    val year = extractYear(file.absolutePath)
                     var season = extractSeason(file)
                     var episode = extractEpisode(file)
 
@@ -945,18 +1132,36 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
                             file.absolutePath.contains("/Films/", ignoreCase = true) ||
                             file.absolutePath.contains("/Documentaries/", ignoreCase = true)
 
-                    // the folder wins over season/episode detection, titles like "Apollo 13" would be detected as episode
+                    // the folder wins over season/episode detection, titles like "Apollo 13" would be detected as episode,
+                    // only explicit series markers move a file from the movies folder to the series
+                    val isSeriesInMoviePath = isMoviePath && !isSeriesPath && hasSeriesMarkers(file)
                     val mediaIndicator = when {
-                        isSeriesPath -> MediaType.Series
+                        isSeriesPath || isSeriesInMoviePath -> MediaType.Series
                         isMoviePath -> MediaType.Movie
                         episode != null || season != null -> MediaType.Series
                         else -> null
                     }
 
+                    // extract Movie or TV show name from full path
+                    val (extractedName, year) = if (mediaIndicator == MediaType.Movie) {
+                        extractMovieNameAndYear(file).let { (name, movieYear) -> Pair(name, movieYear ?: extractYear(fullName)) }
+                    } else {
+                        Pair(extractName(file), extractYear(fullName))
+                    }
+
+                    val skipReason = getSkipReason(file)
+                        ?: if (mediaIndicator == MediaType.Movie && !isMovieFile(file)) "no movie file" else null
+                    if (skipReason != null) {
+                        val logLine = "F:'$fullName'→'$extractedName'→'null' (Y: $year, S: $season, E: $episode)  skipped, $skipReason"
+                        println(logLine)
+                        logWriter?.write(logLine + "\n")
+                        continue
+                    }
+
                     // already renamed files carry their remote media id, the one closest to the file wins
                     val remoteMediaId = remoteMediaIdPattern.findAll(fullName).lastOrNull()?.value
                     val mediaResult = remoteMediaId?.let { mediaProxyService.findByRemoteMediaId(it, extractedName, mediaIndicator) }
-                        ?: searchMediaForFile(extractedName, year, mediaIndicator, isSeriesPath)
+                        ?: searchMediaForFile(extractedName, year, mediaIndicator, isSeriesPath || isSeriesInMoviePath)
 
                     if (mediaResult != null) {
                         val seasonAndEpisode = extractSeasonAndEpisode(file, mediaResult)
@@ -1005,7 +1210,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
             mediaProxyService.search(extractedName, mediaIndicator).firstOrNull()
         }
 
-        return if (year != null && (primaryResult == null || (mediaIndicator == MediaType.Series && primaryResult.type != MediaType.Series) || (isSeriesPath && primaryResult.type != MediaType.Series))) {
+        val result = if (year != null && (primaryResult == null || (mediaIndicator == MediaType.Series && primaryResult.type != MediaType.Series) || (isSeriesPath && primaryResult.type != MediaType.Series))) {
             val unstrippedName = "$extractedName $year".trim()
             val fallbackResult = mediaProxyService.search(unstrippedName, mediaIndicator).firstOrNull()
             if (fallbackResult != null && (primaryResult == null || fallbackResult.type == MediaType.Series || fallbackResult.title.contains(year.toString()))) {
@@ -1016,6 +1221,12 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         } else {
             primaryResult
         }
+        // a movie released years apart is another movie with the same name (Air 2015 vs. Air 2023), better leave the file alone
+        val resultYear = result?.year
+        if (mediaIndicator == MediaType.Movie && result?.type == MediaType.Movie && year != null && resultYear != null && abs(resultYear - year) > 2) {
+            return null
+        }
+        return result
     }
 
     fun extractResolution(file: File): String? {

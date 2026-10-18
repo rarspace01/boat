@@ -34,7 +34,16 @@ class TheMovieDataBaseService @Autowired constructor(private val httpHelper: Htt
         return parseResponsePage(page)
     }
 
-    fun parseResponsePage(pageContent: String?): List<MediaItem>? {
+    /**
+     * Searches only movies or only series. Unlike search/multi, which ignores the year, these endpoints filter by it.
+     */
+    fun search(name: String, year: Int, mediaType: MediaType): List<MediaItem>? {
+        val (path, yearParameter) = if (mediaType == MediaType.Series) "tv" to "first_air_date_year" else "movie" to "year"
+        val page = httpHelper.getPage("$apiRootUrl/search/$path?api_key=$apiKey&query=${urlEncode(name)}&$yearParameter=$year")
+        return parseResponsePage(page, path)
+    }
+
+    fun parseResponsePage(pageContent: String?, defaultMediaType: String? = null): List<MediaItem>? {
         if (pageContent == null) {
             return null
         }
@@ -46,8 +55,9 @@ class TheMovieDataBaseService @Autowired constructor(private val httpHelper: Htt
         val jsonArray = results.asJsonArray
         jsonArray.forEach(Consumer { jsonMedia: JsonElement ->
             val jsonMediaObject = jsonMedia.asJsonObject
-            val mediaTypeString = jsonMediaObject["media_type"].asString.lowercase(Locale.getDefault())
-            parseMediaObject(jsonMediaObject, mediaTypeString)?.let { mediaItems.add(it) }
+            // typed searches (search/movie, search/tv) don't return a media_type
+            val mediaTypeString = (jsonMediaObject["media_type"]?.asString ?: defaultMediaType)?.lowercase(Locale.getDefault())
+            mediaTypeString?.let { parseMediaObject(jsonMediaObject, it) }?.let { mediaItems.add(it) }
         })
         return mediaItems
     }
