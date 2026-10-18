@@ -56,6 +56,7 @@ class BoatController @Autowired constructor(
     private val switchToProgress = "<a href=\"./debug\">Show Progress</a> "
     private val switchToSearchList = "<a href=\"./searchList\">Search a List</a> "
     private val switchToSearch = "<a href=\"./search\">Search a single Title</a> "
+    private val switchToSearchOld = "<a href=\"./searchOld\">Old Search</a> "
 
     private val htmlHeader = """<!DOCTYPE html>
 <html>
@@ -101,12 +102,12 @@ class BoatController @Autowired constructor(
 """
     }
 
-    @GetMapping("/boat/search")
-    fun search(): String {
+    @GetMapping("/boat/searchOld")
+    fun searchOld(): String {
         return htmlHeader + """
 <h2>Here to serve you</h2>
 
-<form action="./query" target="_blank" method="GET">
+<form action="./queryOld" target="_blank" method="GET">
   Title:<br>
   <input type="text" name="qq" value="">
 $BREAK_LINK_HTML  <input type="reset" value="Reset">
@@ -119,14 +120,14 @@ $BREAK_LINK_HTML  <input type="reset" value="Reset">
   <input type="submit" value="Download">
 </form>
 <br/>
-$switchToSearchList${switchToProgress.replace("..", "../boat")}""" + htmlFooter
+$switchToSearch$switchToSearchList${switchToProgress.replace("..", "../boat")}""" + htmlFooter
     }
 
     @GetMapping("/boat/searchList")
     fun searchList(): String {
         return htmlHeader + """
 <h2>Here to serve you</h2>
-<form action="./query" target="_blank" method="POST">
+<form action="./queryOld" target="_blank" method="POST">
 Download multiple movies (one per line):<br>
 <textarea id="qqq" name="qqq" rows="25" cols="25">
 </textarea>
@@ -137,8 +138,8 @@ $BREAK_LINK_HTML  <input type="reset" value="Reset">
 $switchToSearch${switchToProgress}""" + htmlFooter
     }
 
-    @RequestMapping("/boat/query")
-    fun searchTorrents(
+    @RequestMapping("/boat/queryOld")
+    fun searchTorrentsOld(
         @RequestParam(value = "q", required = false) searchString: String?,
         @RequestParam(value = "qq", required = false) localSearchString: String?,
         @RequestParam(value = "qqq", required = false) luckySearchList: String?,
@@ -186,19 +187,19 @@ $switchToSearch${switchToProgress}""" + htmlFooter
         }
     }
 
-    @GetMapping("/boat/search2")
-    fun search2(): String {
+    @GetMapping("/boat/search")
+    fun search(): String {
         return htmlHeader + """
 <h2>Here to serve you</h2>
 
-<form action="./query2" target="_blank" method="GET">
+<form action="./query" target="_blank" method="GET">
   Title:<br>
   <input type="text" name="qq" value="">
 $BREAK_LINK_HTML  <input type="reset" value="Reset">
   <input type="submit" value="Search">
 </form>
 <br/>
-$switchToSearch$switchToSearchList${switchToProgress.replace("..", "../boat")}""" + htmlFooter
+$switchToSearchOld$switchToSearchList${switchToProgress.replace("..", "../boat")}""" + htmlFooter
     }
 
     /**
@@ -207,8 +208,8 @@ $switchToSearch$switchToSearchList${switchToProgress.replace("..", "../boat")}""
      * 2. t (+ y) + mid: check for already downloaded files of the selected media item
      * 3. q + mid: search torrents, download links carry the remote media id (e.g. {tmdb-123})
      */
-    @RequestMapping("/boat/query2")
-    fun searchTorrentsWithMedia(
+    @RequestMapping("/boat/query")
+    fun searchTorrents(
         @RequestParam(value = "qq", required = false) mediaSearchString: String?,
         @RequestParam(value = "t", required = false) selectedTitle: String?,
         @RequestParam(value = "y", required = false) selectedYear: Int?,
@@ -234,7 +235,7 @@ $switchToSearch$switchToSearchList${switchToProgress.replace("..", "../boat")}""
                 htmlHeader + ("We already found some files:<br/>" + existingFiles.joinToString("<br/>")
                         + "<br/>Still want to search? <a href=\"?q=" + urlEncode(torrentSearchString) + midParam + "\">Yes</a>") + htmlFooter
             } else {
-                searchTorrentsWithMedia(null, null, null, torrentSearchString, mediaId)
+                searchTorrents(null, null, null, torrentSearchString, mediaId)
             }
         } else if (!mediaSearchString.isNullOrBlank()) {
             val mediaItems = mediaProxyService.search(mediaSearchString)
