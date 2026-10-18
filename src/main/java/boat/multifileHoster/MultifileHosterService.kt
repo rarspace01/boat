@@ -5,6 +5,7 @@ import boat.info.CloudFileService
 import boat.info.CloudService
 import boat.info.MediaItem
 import boat.info.MediaProxyService
+import boat.info.MediaType
 import boat.mapper.TorrentMapper
 import boat.model.Transfer
 import boat.model.TransferStatus
@@ -74,7 +75,7 @@ class MultifileHosterService(
         return returnResults
     }
 
-    fun addTorrentToTransfer(torrent: Torrent, remoteMediaId: String? = null) {
+    fun addTorrentToTransfer(torrent: Torrent, remoteMediaId: String? = null, mediaType: MediaType? = null) {
         val listOfMultiHostersWithTrafficLeft = multifileHosterList.filter { multifileHoster -> multifileHoster.getRemainingTrafficInMB() > 30000 }
         val potentialMultiHosters = listOfMultiHostersWithTrafficLeft.ifEmpty { multifileHosterList }
         val selectedMultiFileHosterSource: MultifileHoster = if (potentialMultiHosters.size == 1) {
@@ -85,7 +86,7 @@ class MultifileHosterService(
                     ?: potentialMultiHosters.first()
         }
         val hosterName = TorrentHelper.extractTorrentName(torrent)
-        val mediaItem = remoteMediaId?.let { mediaProxyService.findByRemoteMediaId(it, hosterName) }
+        val mediaItem = remoteMediaId?.let { mediaProxyService.findByRemoteMediaId(it, hosterName, mediaType) }
         val transfer = Transfer(
                 name = Transfer.buildName(mediaItem?.title, hosterName),
                 transferType = extractType(torrent.magnetUri),
@@ -93,7 +94,7 @@ class MultifileHosterService(
                 source = selectedMultiFileHosterSource.getName(),
                 uri = torrent.magnetUri,
                 remoteMediaId = remoteMediaId,
-                mediaType = mediaItem?.type,
+                mediaType = mediaItem?.type ?: mediaType,
                 sizeInBytes = torrent.getByteSize()
         )
         transferService.save(transfer)

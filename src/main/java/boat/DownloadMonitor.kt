@@ -145,7 +145,9 @@ class DownloadMonitor(
             queueService.getQueue().stream().findFirst().ifPresent { mediaItem: MediaItem ->
                 logger.info("picked {}", mediaItem)
                 val matchedMediaItem = if (mediaItem.year != null) {
+                    // the year might be part of the title (e.g. "Space 1999"), so fall back to the full name
                     mediaProxyService.search(mediaItem.title, mediaItem.year).firstOrNull()
+                        ?: mediaProxyService.search("${mediaItem.title} ${mediaItem.year}").firstOrNull()
                 } else {
                     mediaProxyService.search(mediaItem.title).firstOrNull()
                 }
@@ -164,7 +166,7 @@ class DownloadMonitor(
                 if (existingFiles.isEmpty()) {
                     torrentSearchEngineService.searchTorrents(torrentSearchString).stream()
                         .findFirst()
-                        .ifPresent { torrent: Torrent? -> multifileHosterService.addTorrentToTransfer(torrent!!, remoteMediaId) }
+                        .ifPresent { torrent: Torrent? -> multifileHosterService.addTorrentToTransfer(torrent!!, remoteMediaId, matchedMediaItem?.type) }
                 } else {
                     logger.warn("Looks like Torrent was already downloaded, skipped {} - matched files: {}", mediaItem, existingFiles)
                 }

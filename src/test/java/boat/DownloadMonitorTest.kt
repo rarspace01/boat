@@ -68,7 +68,7 @@ internal class DownloadMonitorTest {
         downloadMonitor.checkForQueueEntries()
 
         verify(exactly = 1) { torrentSearchEngineService.searchTorrents("Avatar 2009") }
-        verify(exactly = 1) { multifileHosterService.addTorrentToTransfer(torrent, "{tmdb-19995}") }
+        verify(exactly = 1) { multifileHosterService.addTorrentToTransfer(torrent, "{tmdb-19995}", MediaType.Movie) }
         verify(exactly = 1) { queueService.remove(queueItem) }
         verify(exactly = 1) { queueService.saveQueue() }
     }
@@ -88,7 +88,7 @@ internal class DownloadMonitorTest {
         downloadMonitor.checkForQueueEntries()
 
         verify(exactly = 1) { torrentSearchEngineService.searchTorrents("Breaking Bad Season 1") }
-        verify(exactly = 1) { multifileHosterService.addTorrentToTransfer(torrent, "{tvdb-81189}") }
+        verify(exactly = 1) { multifileHosterService.addTorrentToTransfer(torrent, "{tvdb-81189}", MediaType.Series) }
         verify(exactly = 1) { queueService.remove(queueItem) }
         verify(exactly = 1) { queueService.saveQueue() }
     }
@@ -106,7 +106,7 @@ internal class DownloadMonitorTest {
         downloadMonitor.checkForQueueEntries()
 
         verify(exactly = 0) { torrentSearchEngineService.searchTorrents(any()) }
-        verify(exactly = 0) { multifileHosterService.addTorrentToTransfer(any(), any()) }
+        verify(exactly = 0) { multifileHosterService.addTorrentToTransfer(any(), any(), any()) }
         verify(exactly = 1) { queueService.remove(queueItem) }
         verify(exactly = 1) { queueService.saveQueue() }
     }
@@ -118,6 +118,7 @@ internal class DownloadMonitorTest {
 
         every { queueService.getQueue() } returns listOf(queueItem)
         every { mediaProxyService.search("Custom Show!", 2021) } returns emptyList()
+        every { mediaProxyService.search("Custom Show! 2021") } returns emptyList()
         every { cloudService.findExistingFiles("Custom Show") } returns emptyList()
         every { cloudService.findExistingFiles("{custom-id}") } returns emptyList()
         every { torrentSearchEngineService.searchTorrents("Custom Show 2021") } returns listOf(torrent)
@@ -125,8 +126,24 @@ internal class DownloadMonitorTest {
         downloadMonitor.checkForQueueEntries()
 
         verify(exactly = 1) { torrentSearchEngineService.searchTorrents("Custom Show 2021") }
-        verify(exactly = 1) { multifileHosterService.addTorrentToTransfer(torrent, "{custom-id}") }
+        verify(exactly = 1) { multifileHosterService.addTorrentToTransfer(torrent, "{custom-id}", null) }
         verify(exactly = 1) { queueService.remove(queueItem) }
         verify(exactly = 1) { queueService.saveQueue() }
+    }
+
+    @Test
+    fun shouldFallbackToFullNameWhenYearIsPartOfTheTitle() {
+        val queueItem = MediaItem(title = "Space", year = 1999)
+        val resolvedMedia = MediaItem(title = "Space: 1999", year = 1975, type = MediaType.Series, id = "{tvdb-77853}")
+        val torrent = Torrent("Space 1999 S01")
+
+        every { queueService.getQueue() } returns listOf(queueItem)
+        every { mediaProxyService.search("Space", 1999) } returns emptyList()
+        every { mediaProxyService.search("Space 1999") } returns listOf(resolvedMedia)
+        every { torrentSearchEngineService.searchTorrents("Space 1999") } returns listOf(torrent)
+
+        downloadMonitor.checkForQueueEntries()
+
+        verify(exactly = 1) { multifileHosterService.addTorrentToTransfer(torrent, "{tvdb-77853}", MediaType.Series) }
     }
 }

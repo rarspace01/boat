@@ -9,7 +9,11 @@ import boat.services.ConfigurationService
 import boat.services.TransferService
 import boat.torrent.TorrentSearchEngineService
 import boat.utilities.HttpHelper
+import boat.info.MediaItem
+import boat.info.MediaType
 import io.mockk.mockk
+import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Test
 
 internal class BoatControllerTest {
 
@@ -35,4 +39,18 @@ internal class BoatControllerTest {
         configurationService
     )
 
+    @Test
+    fun shouldParseTrailingYearOfSearchListEntry() {
+        assertThat(BoatController.parseSearchListEntry("Dune 1984")).isEqualTo(MediaItem("Dune", "Dune", 1984, MediaType.Other))
+        assertThat(BoatController.parseSearchListEntry("Dune (2021)\r")?.let { it.title to it.year }).isEqualTo("Dune" to 2021)
+        assertThat(BoatController.parseSearchListEntry("Inception.2010")?.let { it.title to it.year }).isEqualTo("Inception" to 2010)
+    }
+
+    @Test
+    fun shouldKeepTitleWithoutPlausibleYear() {
+        assertThat(BoatController.parseSearchListEntry("Blade Runner 2049")?.let { it.title to it.year }).isEqualTo("Blade Runner 2049" to null)
+        assertThat(BoatController.parseSearchListEntry("1917")?.let { it.title to it.year }).isEqualTo("1917" to null)
+        assertThat(BoatController.parseSearchListEntry("Inception")?.let { it.title to it.year }).isEqualTo("Inception" to null)
+        assertThat(BoatController.parseSearchListEntry("   ")).isNull()
+    }
 }

@@ -51,6 +51,23 @@ class BoatController @Autowired constructor(
     companion object {
         private val logger by LoggerDelegate()
         const val BREAK_LINK_HTML = "  <br>\n"
+        private val trailingYearPattern = "^(.+?)[\\s.(\\[]+((?:19|20)[0-9]{2})[)\\]]?$".toRegex()
+
+        /**
+         * Parses a line of the search list, a trailing year ("Dune 1984", "Dune (2021)") is used as year.
+         */
+        internal fun parseSearchListEntry(line: String): MediaItem? {
+            val entry = line.trim()
+            if (entry.isEmpty()) return null
+            val match = trailingYearPattern.find(entry)
+            val year = match?.groupValues?.get(2)?.toInt()?.takeIf { it <= Calendar.getInstance().get(Calendar.YEAR) + 1 }
+            val title = if (year != null) match.groupValues[1].trim() else entry
+            return MediaItem(title, title, year, boat.info.MediaType.Other)
+        }
+
+        private fun parseMediaType(mediaType: String?): boat.info.MediaType? {
+            return boat.info.MediaType.entries.firstOrNull { it.name.equals(mediaType, ignoreCase = true) }
+        }
     }
 
     private val switchToProgress = "<a href=\"./debug\">Show Progress</a> "
@@ -173,9 +190,8 @@ $switchToSearch${switchToProgress}""" + htmlFooter
             }
             if (Strings.isNotEmpty(pageWithEntries)) {
                 val titles = pageWithEntries.split("\n".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
-                val listOfMediaItems = Arrays.stream(titles).map { title: String? -> MediaItem(title!!, title, null, boat.info.MediaType.Other) }
+                val listOfMediaItems = titles.mapNotNull { parseSearchListEntry(it) }
                     .filter { mediaItem: MediaItem -> isNotAlreadyDownloaded(mediaItem) }
-                    .collect(Collectors.toList())
                 queueService.addAll(listOfMediaItems)
                 queueService.saveQueue()
                 htmlHeader + (switchToProgress.replace("..", "../boat") + listOfMediaItems) + htmlFooter
@@ -205,8 +221,8 @@ $switchToSearchOld$switchToSearchList${switchToProgress.replace("..", "../boat")
     /**
      * Media aware search flow:
      * 1. qq: look up the title via [MediaProxyService] and let the user pick a media item
-     * 2. t (+ y) + mid: check for already downloaded files of the selected media item
-     * 3. q + mid: search torrents, download links carry the remote media id (e.g. {tmdb-123})
+     * 2. t (+ y) + mid + mt: check for already downloaded files of the selected media item
+     * 3. q + mid + mt: search torrents, download links carry the remote media id (e.g. {tmdb-123}) and media type
      */
     @RequestMapping("/boat/query")
     fun searchTorrents(
@@ -215,17 +231,19 @@ $switchToSearchOld$switchToSearchList${switchToProgress.replace("..", "../boat")
         @RequestParam(value = "y", required = false) selectedYear: Int?,
         @RequestParam(value = "q", required = false) searchString: String?,
         @RequestParam(value = "mid", required = false) remoteMediaId: String?,
+        @RequestParam(value = "mt", required = false) mediaTypeString: String?,
     ): String {
         val startTime = System.currentTimeMillis()
         val mediaId = remoteMediaId?.ifBlank { null }
-        val midParam = if (mediaId != null) "&mid=" + urlEncode(mediaId) else ""
+        val mediaType = parseMediaType(mediaTypeString)
+        val midParam = (if (mediaId != null) "&mid=" + urlEncode(mediaId) else "") + (mediaType?.let { "&mt=${it.name}" } ?: "")
         return if (!searchString.isNullOrBlank()) {
             val torrentList = torrentSearchEngineService.searchTorrents(searchString)
             logger.info(
                 "Took: [{}]ms for [{}]{} found [{}]", System.currentTimeMillis() - startTime, searchString,
                 mediaId ?: "", torrentList.size
             )
-            htmlHeader + torrentList.take(50).joinToString(separator = "") { it.toHtml(mediaId) } + htmlFooter
+            htmlHeader + torrentList.take(50).joinToString(separator = "") { it.toHtml(mediaId, mediaType) } + htmlFooter
         } else if (!selectedTitle.isNullOrBlank()) {
             val cleanedTitle = removeSpecialCharacters(selectedTitle)
             val torrentSearchString = cleanedTitle + (selectedYear?.let { " $it" } ?: "")
@@ -235,7 +253,7 @@ $switchToSearchOld$switchToSearchList${switchToProgress.replace("..", "../boat")
                 htmlHeader + ("We already found some files:<br/>" + existingFiles.joinToString("<br/>")
                         + "<br/>Still want to search? <a href=\"?q=" + urlEncode(torrentSearchString) + midParam + "\">Yes</a>") + htmlFooter
             } else {
-                searchTorrents(null, null, null, torrentSearchString, mediaId)
+                searchTorrents(null, null, null, torrentSearchString, mediaId, mediaType?.name)
             }
         } else if (!mediaSearchString.isNullOrBlank()) {
             val mediaItems = mediaProxyService.search(mediaSearchString)
@@ -244,7 +262,7 @@ $switchToSearchOld$switchToSearchList${switchToProgress.replace("..", "../boat")
                 mediaSearchString, mediaItems.size
             )
             val mediaList = mediaItems.joinToString(separator = "") { mediaItem ->
-                val itemMidParam = mediaItem.id?.let { "&mid=" + urlEncode(it) } ?: ""
+                val itemMidParam = (mediaItem.id?.let { "&mid=" + urlEncode(it) } ?: "") + (mediaItem.type?.let { "&mt=${it.name}" } ?: "")
                 val itemYearParam = mediaItem.year?.takeIf { mediaItem.type == boat.info.MediaType.Movie }
                     ?.let { "&y=$it" } ?: ""
                 "<a href=\"?t=" + urlEncode(mediaItem.title) + itemYearParam + itemMidParam + "\">" + mediaItem.title +
@@ -266,6 +284,7 @@ $switchToSearchOld$switchToSearchList${switchToProgress.replace("..", "../boat")
         @RequestParam(value = "d", required = false) downloadUri: String?,
         @RequestParam(value = "dd", required = false) directDownloadUri: String?,
         @RequestParam(value = "mid", required = false) remoteMediaId: String?,
+        @RequestParam(value = "mt", required = false) mediaTypeString: String?,
     ): String {
         val torrentsToBeDownloaded: MutableList<Torrent> = ArrayList()
         val decodedUri: String
@@ -298,7 +317,7 @@ $switchToSearchOld$switchToSearchList${switchToProgress.replace("..", "../boat")
             }
         }
         torrentsToBeDownloaded.forEach {
-            multifileHosterService.addTorrentToTransfer(it, remoteMediaId?.ifBlank { null })
+            multifileHosterService.addTorrentToTransfer(it, remoteMediaId?.ifBlank { null }, parseMediaType(mediaTypeString))
         }
         multifileHosterService.addTransfersToDownloadQueue()
         return switchToProgress

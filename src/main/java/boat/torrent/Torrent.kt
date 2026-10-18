@@ -1,5 +1,6 @@
 package boat.torrent
 
+import boat.info.MediaType
 import boat.model.TransferStatus
 import org.apache.logging.log4j.util.Strings
 import java.net.URLEncoder
@@ -45,7 +46,7 @@ data class Torrent(
         return toHtml()
     }
 
-    fun toHtml(remoteMediaId: String? = null): String {
+    fun toHtml(remoteMediaId: String? = null, mediaType: MediaType? = null): String {
         val stringBuilder = StringBuilder()
         val seedRatio: Double
         seedRatio = if (leecher > 0) {
@@ -72,6 +73,9 @@ data class Torrent(
             stringBuilder.append("<a href=\"./download?d=").append(magnetUriBase64)
             if (!remoteMediaId.isNullOrEmpty()) {
                 stringBuilder.append("&mid=").append(URLEncoder.encode(remoteMediaId, StandardCharsets.UTF_8))
+            }
+            if (mediaType != null) {
+                stringBuilder.append("&mt=").append(mediaType.name)
             }
             stringBuilder.append("\">Download</a>")
         }

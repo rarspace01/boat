@@ -197,6 +197,33 @@ internal class MultifileHosterServiceTest {
     }
 
     @Test
+    fun shouldUseGivenMediaTypeForRemoteMediaIdLookupWhenAddingTorrent() {
+        // Given
+        val savedTransfer = slot<Transfer>()
+        every { transferService.save(capture(savedTransfer)) } just Runs
+        every { mediaProxyService.findByRemoteMediaId("{tmdb-1396}", any(), MediaType.Series) } returns
+                MediaItem(title = "Breaking Bad", year = 2008, type = MediaType.Series, id = "{tmdb-1396}")
+        val torrent = Torrent.of("magnet:?xt=urn:btih:10e93389d579ba4538c68b8d297268a81620fae2&dn=Breaking.Bad.S01")
+        // When
+        multifileHosterService.addTorrentToTransfer(torrent, "{tmdb-1396}", MediaType.Series)
+        // Then
+        assertThat(savedTransfer.captured.name).isEqualTo("Breaking Bad | Breaking.Bad.S01")
+        assertThat(savedTransfer.captured.mediaType).isEqualTo(MediaType.Series)
+    }
+
+    @Test
+    fun shouldKeepGivenMediaTypeWhenMediaItemForRemoteMediaIdIsNotFound() {
+        val savedTransfer = slot<Transfer>()
+        every { transferService.save(capture(savedTransfer)) } just Runs
+        every { mediaProxyService.findByRemoteMediaId(any(), any(), any()) } returns null
+        val torrent = Torrent.of("magnet:?xt=urn:btih:10e93389d579ba4538c68b8d297268a81620fae2&dn=Breaking.Bad.S01")
+
+        multifileHosterService.addTorrentToTransfer(torrent, "{tmdb-1396}", MediaType.Series)
+
+        assertThat(savedTransfer.captured.mediaType).isEqualTo(MediaType.Series)
+    }
+
+    @Test
     fun shouldKeepHosterNameWhenMediaItemForRemoteMediaIdIsNotFound() {
         // Given
         val savedTransfer = slot<Transfer>()
