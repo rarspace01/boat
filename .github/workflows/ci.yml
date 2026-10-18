@@ -63,6 +63,11 @@ jobs:
         if: github.event_name == 'pull_request'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TFDB_APIKEY: ${{ secrets.TFDB_APIKEY }}
+          TVDB_APIKEY: ${{ secrets.TVDB_APIKEY }}
+          PREMIUMIZE_APIKEY: ${{ secrets.PREMIUMIZE_APIKEY }}
+          ALLDEBRID_APIKEY: ${{ secrets.ALLDEBRID_APIKEY }}
+          MONGO_URI: ${{ secrets.MONGO_URI }}
         run: ./gradlew build --parallel --build-cache
 
       - name: Build with Gradle (main)
