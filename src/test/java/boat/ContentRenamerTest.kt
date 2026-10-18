@@ -304,6 +304,11 @@ class ContentRenamerTest {
         assertThat(contentRenamer.extractSeasonAndEpisode(File("Breaking.Bad.S02E03.mkv"), seriesItem)).isEqualTo(Pair(2, 3))
         // episode without season defaults to season 1
         assertThat(contentRenamer.extractSeasonAndEpisode(File("Breaking Bad - 05.mkv"), seriesItem)).isEqualTo(Pair(1, 5))
+        // absolute numbering within the season count keeps its season
+        assertThat(contentRenamer.extractSeasonAndEpisode(File("Breaking Bad - 305.mkv"), seriesItem)).isEqualTo(Pair(3, 5))
+        assertThat(contentRenamer.extractSeasonAndEpisode(File("Breaking Bad - 105.mkv"), seriesItem)).isEqualTo(Pair(1, 5))
+        // beyond the season count it stays an absolute episode
+        assertThat(contentRenamer.extractSeasonAndEpisode(File("Breaking Bad - 905.mkv"), seriesItem)).isEqualTo(Pair(1, 905))
         // movies have no season/episode
         assertThat(contentRenamer.extractSeasonAndEpisode(File("Inception.2010.E01.mkv"), movieItem)).isEqualTo(Pair(null, null))
     }

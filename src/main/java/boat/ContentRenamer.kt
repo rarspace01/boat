@@ -713,6 +713,13 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
     }
 
     fun extractEpisode(file: File, mediaItem: MediaItem? = null): Int? {
+        return extractEpisodeAndImpliedSeason(file, mediaItem)?.first
+    }
+
+    /**
+     * Episode number plus the season implied by its notation (1x05, 0105 or a disambiguated 305), if any.
+     */
+    private fun extractEpisodeAndImpliedSeason(file: File, mediaItem: MediaItem?): Pair<Int, Int?>? {
         val fileName = decodeIfEncoded(file.name)
         val parentName = decodeIfEncoded(file.parentFile?.name ?: "")
         val grandParentName = decodeIfEncoded(file.parentFile?.parentFile?.name ?: "")
@@ -724,7 +731,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
             ?: seasonPattern2.find(greatGrandParentName)
 
         if (match2 != null) {
-            return match2.groupValues[2].toInt()
+            return Pair(match2.groupValues[2].toInt(), match2.groupValues[1].toInt())
         }
 
         val rawEpisodeInfo = findRawEpisodeMatch(file) ?: return null
@@ -736,15 +743,15 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
                 val s = rawStr.substring(0, 2).toInt()
                 val e = rawStr.substring(2, 4).toInt()
                 if (directSeason == null || directSeason == s) {
-                    return e
+                    return Pair(e, s)
                 }
             }
             if (!rawStr.startsWith("0") && shouldDisambiguateAsSeasonEpisode(file, directSeason, num, rawStr, mediaItem)) {
-                return num % 100
+                return Pair(num % 100, num / 100)
             }
         }
 
-        return num
+        return Pair(num, null)
     }
 
     private fun findRawEpisodeMatch(file: File): Pair<String, Int>? {
@@ -1002,21 +1009,16 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
     }
 
     /**
-     * Detects season and episode of a file belonging to [mediaItem]. Movies have neither. For series without a
-     * season, absolute episode numbers like 105 become S01E05 if they fit the season count, otherwise season 1.
+     * Detects season and episode of a file belonging to [mediaItem]. Movies have neither. For series without an
+     * explicit season, the season implied by the episode number (e.g. 305 -> S03E05) is used, otherwise season 1.
      */
     fun extractSeasonAndEpisode(file: File, mediaItem: MediaItem): Pair<Int?, Int?> {
         if (mediaItem.type == MediaType.Movie) return Pair(null, null)
+        val episodeInfo = extractEpisodeAndImpliedSeason(file, mediaItem)
+        val episode = episodeInfo?.first
         var season = extractSeason(file)
-        var episode = extractEpisode(file, mediaItem) ?: extractEpisode(file)
         if (season == null && episode != null && mediaItem.type == MediaType.Series) {
-            val seasonCount = mediaItem.seasonCount
-            if (episode > 100 && seasonCount != null && (episode / 100) <= seasonCount && (episode % 100) in 1..99) {
-                season = episode / 100
-                episode %= 100
-            } else {
-                season = 1
-            }
+            season = episodeInfo.second ?: 1
         }
         return Pair(season, episode)
     }
