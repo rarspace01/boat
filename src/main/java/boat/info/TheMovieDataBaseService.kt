@@ -6,6 +6,7 @@ import boat.torrent.TorrentHelper.urlEncode
 import boat.utilities.HttpHelper
 import boat.utilities.PropertiesHelper
 import com.google.gson.JsonElement
+import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
@@ -18,10 +19,9 @@ import java.util.regex.Pattern
 
 @Service
 class TheMovieDataBaseService @Autowired constructor(private val httpHelper: HttpHelper) {
-    private val baseUrl = String.format(
-        "https://api.themoviedb.org/3/search/multi?api_key=%s",
-        PropertiesHelper.getProperty("TFDB_APIKEY")
-    )
+    private val apiRootUrl = "https://api.themoviedb.org/3"
+    private val apiKey = PropertiesHelper.getProperty("TFDB_APIKEY")
+    private val baseUrl = String.format("%s/search/multi?api_key=%s", apiRootUrl, apiKey)
 
     fun search(name: String?): List<MediaItem>? {
         return name?.let { val url = "$baseUrl&query=${urlEncode(name)}"
@@ -47,53 +47,80 @@ class TheMovieDataBaseService @Autowired constructor(private val httpHelper: Htt
         jsonArray.forEach(Consumer { jsonMedia: JsonElement ->
             val jsonMediaObject = jsonMedia.asJsonObject
             val mediaTypeString = jsonMediaObject["media_type"].asString.lowercase(Locale.getDefault())
-            var title: String? = null
-            var originalTitle: String? = null
-            if (mediaTypeString.contains("tv")) {
-                title = jsonMediaObject["name"].asString
-                originalTitle = jsonMediaObject["original_name"].asString
-            } else {
-                val titleElement = jsonMediaObject["title"]
-                val originalTitleElement = jsonMediaObject["original_title"]
-                if (titleElement != null) {
-                    title = titleElement.asString
-                }
-                if (originalTitleElement != null) {
-                    originalTitle = originalTitleElement.asString
-                }
-            }
-            val mediaType = determineMediaType(mediaTypeString)
-            var year: Int? = null
-            var seasonCount: Int? = null
-            try {
-                val calendar = Calendar.getInstance()
-                val releaseDate = jsonMediaObject["release_date"]
-                val firstAirDate = jsonMediaObject["first_air_date"]
-                val releaseDateString = if (releaseDate != null) releaseDate.asString else firstAirDate?.asString
-                if (releaseDateString != null) {
-                    calendar.time = SimpleDateFormat("yyyy-MM-dd").parse(releaseDateString)
-                    year = calendar[Calendar.YEAR]
-                }
-            } catch (_: ParseException) {
-            }
-            
-            // TMDB search multi doesn't provide season_count usually, 
-            // but sometimes it's available in other contexts.
-            // If it's a TV show, we might want it.
-            if (jsonMediaObject.has("season_count")) {
-                seasonCount = jsonMediaObject["season_count"].asInt
-            }
-
-            if (title != null || originalTitle != null) {
-                val mediaItem = MediaItem(title!!, originalTitle, year, mediaType)
-                mediaItem.seasonCount = seasonCount
-                if (jsonMediaObject.has("id")) {
-                    mediaItem.id = "{tmdb-${jsonMediaObject["id"].asInt}}"
-                }
-                mediaItems.add(mediaItem)
-            }
+            parseMediaObject(jsonMediaObject, mediaTypeString)?.let { mediaItems.add(it) }
         })
         return mediaItems
+    }
+
+    fun findById(id: String, mediaType: MediaType): MediaItem? {
+        val path = if (mediaType == MediaType.Series) "tv" else "movie"
+        val page = httpHelper.getPage("$apiRootUrl/$path/${urlEncode(id)}?api_key=$apiKey")
+        return parseDetailsPage(page, mediaType)
+    }
+
+    fun parseDetailsPage(pageContent: String?, mediaType: MediaType): MediaItem? {
+        if (pageContent.isNullOrBlank()) return null
+        return try {
+            val jsonRoot = JsonParser.parseString(pageContent)
+            if (!jsonRoot.isJsonObject) return null
+            val jsonMediaObject = jsonRoot.asJsonObject
+            if (!jsonMediaObject.has("id")) return null
+            parseMediaObject(jsonMediaObject, if (mediaType == MediaType.Series) "tv" else "movie")
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun parseMediaObject(jsonMediaObject: JsonObject, mediaTypeString: String): MediaItem? {
+        var title: String? = null
+        var originalTitle: String? = null
+        if (mediaTypeString.contains("tv")) {
+            title = jsonMediaObject["name"].asString
+            originalTitle = jsonMediaObject["original_name"].asString
+        } else {
+            val titleElement = jsonMediaObject["title"]
+            val originalTitleElement = jsonMediaObject["original_title"]
+            if (titleElement != null) {
+                title = titleElement.asString
+            }
+            if (originalTitleElement != null) {
+                originalTitle = originalTitleElement.asString
+            }
+        }
+        val mediaType = determineMediaType(mediaTypeString)
+        var year: Int? = null
+        var seasonCount: Int? = null
+        try {
+            val calendar = Calendar.getInstance()
+            val releaseDate = jsonMediaObject["release_date"]
+            val firstAirDate = jsonMediaObject["first_air_date"]
+            val releaseDateString = if (releaseDate != null) releaseDate.asString else firstAirDate?.asString
+            if (releaseDateString != null) {
+                calendar.time = SimpleDateFormat("yyyy-MM-dd").parse(releaseDateString)
+                year = calendar[Calendar.YEAR]
+            }
+        } catch (_: ParseException) {
+        }
+
+        // TMDB search multi doesn't provide season_count usually, 
+        // but sometimes it's available in other contexts.
+        // If it's a TV show, we might want it.
+        if (jsonMediaObject.has("season_count")) {
+            seasonCount = jsonMediaObject["season_count"].asInt
+        } else if (jsonMediaObject.has("number_of_seasons")) {
+            // provided by the tv details endpoint
+            seasonCount = jsonMediaObject["number_of_seasons"].asInt
+        }
+
+        if (title != null || originalTitle != null) {
+            val mediaItem = MediaItem(title ?: originalTitle!!, originalTitle, year, mediaType)
+            mediaItem.seasonCount = seasonCount
+            if (jsonMediaObject.has("id")) {
+                mediaItem.id = "{tmdb-${jsonMediaObject["id"].asInt}}"
+            }
+            return mediaItem
+        }
+        return null
     }
 
     private fun determineMediaType(mediaTypeString: String): MediaType {

@@ -203,7 +203,7 @@ internal class MultifileHosterServiceTest {
         val mediaItem = MediaItem(title = "Inception", year = 2010, type = MediaType.Movie, id = "{tmdb-27205}")
 
         every { transferService.getAll() } returns listOf(transfer)
-        every { mediaProxyService.findByRemoteMediaId("{tmdb-27205}") } returns mediaItem
+        every { mediaProxyService.findByRemoteMediaId("{tmdb-27205}", any()) } returns mediaItem
         every { contentRenamer.getSafeTitle(mediaItem) } returns "Inception"
         every { contentRenamer.getTargetFile(any(), mediaItem, "Inception", null, null, any()) } returns "/destination/Movies/I/Inception {tmdb-27205}.mkv"
 
@@ -228,7 +228,7 @@ internal class MultifileHosterServiceTest {
         val mediaItem = MediaItem(title = "Breaking Bad", year = 2008, type = MediaType.Series, id = "{tvdb-81189}")
 
         every { transferService.getAll() } returns listOf(transfer)
-        every { mediaProxyService.findByRemoteMediaId("{tvdb-81189}") } returns mediaItem
+        every { mediaProxyService.findByRemoteMediaId("{tvdb-81189}", any()) } returns mediaItem
         every { contentRenamer.getSafeTitle(mediaItem) } returns "Breaking Bad"
         every { contentRenamer.extractSeason(any()) } returns 1
         every { contentRenamer.extractEpisode(any(), mediaItem) } returns 1

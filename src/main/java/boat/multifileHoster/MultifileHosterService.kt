@@ -352,7 +352,7 @@ class MultifileHosterService(
             isDownloadInProgress = true
             var wasDownloadSuccessful = false
             try {
-                val mediaItem = (transferToBeDownloaded.remoteMediaId?.let { mediaProxyService.findByRemoteMediaId(it) }
+                val mediaItem = (transferToBeDownloaded.remoteMediaId?.let { mediaProxyService.findByRemoteMediaId(it, transferToBeDownloaded.name) }
                     ?: transferToBeDownloaded.remoteMediaId?.let { mediaProxyService.search(it).firstOrNull() }
                     ?: mediaProxyService.search(transferToBeDownloaded.name).firstOrNull())
 

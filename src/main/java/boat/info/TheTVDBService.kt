@@ -85,35 +85,76 @@ class TheTVDBService @Autowired constructor(private val httpHelper: HttpHelper) 
             if (data == null || !data.isJsonArray) return emptyList()
             val jsonArray = data.asJsonArray
             jsonArray.forEach(Consumer { jsonMedia: JsonElement ->
-                val jsonMediaObject = jsonMedia.asJsonObject
-                
-                val name = if (jsonMediaObject.has("name")) jsonMediaObject["name"].asString else null
-                val type = if (jsonMediaObject.has("type")) jsonMediaObject["type"].asString else ""
-                val year = if (jsonMediaObject.has("year")) {
-                    val yearStr = jsonMediaObject["year"].asString
-                    yearStr.substringBefore("-").toIntOrNull()
-                } else null
-                
-                val seasonCount = if (jsonMediaObject.has("season_count")) {
-                    jsonMediaObject["season_count"].asInt
-                } else null
-
-                if (name != null) {
-                    val titleToUse = extractTitle(jsonMediaObject, name)
-                    val mediaItem = MediaItem(titleToUse, name, year, determineMediaType(type))
-                    if (seasonCount != null) {
-                        mediaItem.seasonCount = seasonCount
-                    }
-                    if (jsonMediaObject.has("tvdb_id")) {
-                        mediaItem.id = "{tvdb-${jsonMediaObject["tvdb_id"].asString}}"
-                    }
-                    mediaItems.add(mediaItem)
-                }
+                parseMediaObject(jsonMedia.asJsonObject)?.let { mediaItems.add(it) }
             })
         } catch (e: Exception) {
             println("Error parsing TVDB response: ${e.message}")
         }
         return mediaItems
+    }
+
+    fun findById(id: String): MediaItem? {
+        val jwtToken = getToken() ?: return null
+        val headers = mapOf("Authorization" to "Bearer $jwtToken")
+        val url = "$baseUrl/series/${urlEncode(id)}/extended?meta=translations&short=true"
+        return parseSeriesPage(httpHelper.getPage(url, null, headers))
+    }
+
+    /**
+     * Parses the /series/{id}/extended response. Its field names differ from the search
+     * response, so they're mapped onto the search shape to reuse the title extraction.
+     */
+    fun parseSeriesPage(pageContent: String?): MediaItem? {
+        if (pageContent.isNullOrBlank()) {
+            return null
+        }
+        return try {
+            val jsonRoot = JsonParser.parseString(pageContent)
+            if (!jsonRoot.isJsonObject) return null
+            val data = jsonRoot.asJsonObject["data"]
+            if (data == null || !data.isJsonObject) return null
+            val series = data.asJsonObject
+            val mapped = JsonObject()
+            series["id"]?.let { mapped.add("tvdb_id", it) }
+            series["name"]?.let { mapped.add("name", it) }
+            mapped.addProperty("type", "series")
+            (series["year"] ?: series["firstAired"])?.let { mapped.add("year", it) }
+            series["originalLanguage"]?.let { mapped.add("primary_language", it) }
+            series["originalCountry"]?.let { mapped.add("country", it) }
+            series["aliases"]?.let { mapped.add("aliases", it) }
+            val translations = series["translations"]
+            if (translations != null && translations.isJsonObject) {
+                translations.asJsonObject["nameTranslations"]?.let { mapped.add("translations", it) }
+            }
+            parseMediaObject(mapped)
+        } catch (e: Exception) {
+            println("Error parsing TVDB series response: ${e.message}")
+            null
+        }
+    }
+
+    private fun parseMediaObject(jsonMediaObject: JsonObject): MediaItem? {
+        val name = if (jsonMediaObject.has("name") && !jsonMediaObject["name"].isJsonNull) jsonMediaObject["name"].asString else null
+        val type = if (jsonMediaObject.has("type")) jsonMediaObject["type"].asString else ""
+        val year = if (jsonMediaObject.has("year") && !jsonMediaObject["year"].isJsonNull) {
+            val yearStr = jsonMediaObject["year"].asString
+            yearStr.substringBefore("-").toIntOrNull()
+        } else null
+
+        val seasonCount = if (jsonMediaObject.has("season_count")) {
+            jsonMediaObject["season_count"].asInt
+        } else null
+
+        if (name == null) return null
+        val titleToUse = extractTitle(jsonMediaObject, name)
+        val mediaItem = MediaItem(titleToUse, name, year, determineMediaType(type))
+        if (seasonCount != null) {
+            mediaItem.seasonCount = seasonCount
+        }
+        if (jsonMediaObject.has("tvdb_id")) {
+            mediaItem.id = "{tvdb-${jsonMediaObject["tvdb_id"].asString}}"
+        }
+        return mediaItem
     }
 
     private fun isOriginallyGerman(jsonMediaObject: JsonObject): Boolean {

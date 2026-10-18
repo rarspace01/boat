@@ -23,6 +23,7 @@ class MediaProxyService(
 
     companion object {
         const val CACHE_FILE_NAME = "mediaProxyCache"
+        private val REMOTE_MEDIA_ID_PATTERN = "\\{?(tmdb|tvdb)-(\\d+)}?".toRegex(RegexOption.IGNORE_CASE)
     }
 
     private val logger by LoggerDelegate()
@@ -100,16 +101,42 @@ class MediaProxyService(
         }
     }
 
-    fun findByRemoteMediaId(remoteMediaId: String?): MediaItem? {
+    /**
+     * Resolves a remote media id like `{tmdb-27205}` or `{tvdb-81189}`. TMDB ids are only unique per
+     * media type, so if both a movie and a series match, [nameHint] (e.g. the torrent name) picks one.
+     */
+    fun findByRemoteMediaId(remoteMediaId: String?, nameHint: String? = null): MediaItem? {
         if (remoteMediaId.isNullOrBlank()) return null
-        return cache.values.flatten().firstOrNull { it.id == remoteMediaId }
-//            if(remoteMediaId.contains("tvdb")){
-//                //theTVDBService.findById(remoteMediaId)
-//            } else if(remoteMediaId.contains("tmdb")) {
-//                //theMovieDataBaseService.findById(remoteMediaId)
-//            } else {
-//                logger.warn("couldn't find media item with remote media id: $remoteMediaId")
-//            }
+        cache.values.flatten().firstOrNull { it.id == remoteMediaId }?.let { return it }
+
+        val match = REMOTE_MEDIA_ID_PATTERN.find(remoteMediaId.trim())
+        if (match == null) {
+            logger.warn("couldn't parse remote media id: $remoteMediaId")
+            return null
+        }
+        val (provider, id) = match.destructured
+        val mediaItem = when (provider.lowercase()) {
+            "tvdb" -> theTVDBService.findById(id)
+            else -> {
+                val candidates = listOfNotNull(
+                    theMovieDataBaseService.findById(id, MediaType.Movie),
+                    theMovieDataBaseService.findById(id, MediaType.Series)
+                )
+                if (candidates.size > 1 && !nameHint.isNullOrBlank()) {
+                    rankResults(nameHint, candidates).firstOrNull() ?: candidates.first()
+                } else {
+                    candidates.firstOrNull()
+                }
+            }
+        }
+        if (mediaItem == null) {
+            logger.warn("couldn't find media item with remote media id: $remoteMediaId")
+            return null
+        }
+        // only cache hits, so a transient API failure doesn't stick
+        cache["id:$remoteMediaId"] = listOf(mediaItem)
+        dirty = true
+        return mediaItem
     }
 
     fun search(name: String?, year: Int): List<MediaItem> {
