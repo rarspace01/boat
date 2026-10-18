@@ -11,29 +11,40 @@ import java.io.File
 class ContentRenamerIntegrationTest {
     val homeDir: String? = System.getProperty("user.home")
 
-   @Disabled
-   @Test
+    @Disabled
+    @Test
     fun manualFullRun() {
-        val httpHelper = HttpHelper()
-        val contentRenamer = ContentRenamer(
-            MediaProxyService(TheMovieDataBaseService(httpHelper), TheTVDBService(httpHelper))
-        )
-        // get folders and files in path
-        val path = "$homeDir/pfdb/PFDB/Series-Shows/"
-        val logFile = File("extraction.log")
-        if (logFile.exists()) logFile.delete()
-        if (File(path).exists()) {
-            contentRenamer.processFilesFromDirectory(path, logFile)
-        }
+        renameAll("$homeDir/pfdb/PFDB/Series-Shows/")
+    }
+
+    @Disabled
+    @Test
+    fun manualFullRunMovies() {
+        renameAll("$homeDir/pfdb/PFDB/Movies/")
     }
 
     @Disabled
     @Test
     fun deleteAll() {
-        // get folders and files in path
-        val path = "$homeDir/pfdb/PFDB/Series-Shows/"
-        val file = File(path)
-        processFile(file)
+        processFile(File("$homeDir/pfdb/PFDB/Series-Shows/"))
+    }
+
+    @Disabled
+    @Test
+    fun deleteAllMovies() {
+        processFile(File("$homeDir/pfdb/PFDB/Movies/"))
+    }
+
+    private fun renameAll(path: String) {
+        val httpHelper = HttpHelper()
+        val contentRenamer = ContentRenamer(
+            MediaProxyService(TheMovieDataBaseService(httpHelper), TheTVDBService(httpHelper))
+        )
+        val logFile = File("extraction.log")
+        if (logFile.exists()) logFile.delete()
+        if (File(path).exists()) {
+            contentRenamer.processFilesFromDirectory(path, logFile, basePath = "$homeDir/pfdb/PFDB")
+        }
     }
 
     private fun processFile(file: File) {

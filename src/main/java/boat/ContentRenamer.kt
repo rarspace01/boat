@@ -95,10 +95,35 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         val movieExtraPattern = "(?i)(?<=^|[^a-zA-Z0-9])(?:sample|trailer|trailers|featurette|featurettes|extra|extras|bonus|behind[\\s_.-]the[\\s_.-]scenes|deleted[\\s_.-]scenes?|interviews?)(?=[^a-zA-Z0-9]|$)".toRegex()
         val moviePartPattern = "(?i)(?<=^|[\\s._\\-\\[(])(?:cd|disc|disk|part|pt)[\\s._\\-]?([0-9]{1,2})(?=$|[\\s._\\-\\])])".toRegex()
         val subtitleExtensions = setOf("srt", "sub", "idx", "ass", "ssa", "vtt", "sup")
+        val videoExtensions = setOf("mkv", "mp4", "avi", "m4v", "mov", "wmv", "mpg", "mpeg", "ts", "m2ts", "webm", "flv", "divx", "ogm")
+        val remoteMediaIdPattern = "\\{(?:tmdb|tvdb)-[0-9]+}".toRegex(RegexOption.IGNORE_CASE)
+        val releaseGroups: Set<String> = ContentRenamer::class.java.getResourceAsStream("/releasegroups.txt")
+            ?.bufferedReader()
+            ?.useLines { lines -> lines.map { it.trim() }.filter { it.isNotEmpty() && !it.startsWith("#") }.map { it.lowercase() }.toSet() }
+            ?: emptySet()
+        private val releaseGroupAlternatives = releaseGroups.joinToString("|") { Regex.escape(it) }
+        private val leadingReleaseGroupPattern = "^(?:$releaseGroupAlternatives)-(?=.)".toRegex(RegexOption.IGNORE_CASE)
+        private val trailingReleaseGroupPattern = "(?<=.)-(?:$releaseGroupAlternatives)$".toRegex(RegexOption.IGNORE_CASE)
         // ISO 639-1 and 639-2/T codes, plus the 639-2/B variants commonly used for subtitles (e.g. ger instead of deu)
         private val languageCodes = java.util.Locale.getISOLanguages().flatMap { listOfNotNull(it, runCatching { java.util.Locale.of(it).isO3Language }.getOrNull()) }.toSet() +
                 setOf("alb", "arm", "baq", "bur", "chi", "cze", "dut", "fre", "geo", "ger", "gre", "ice", "mac", "mao", "may", "per", "rum", "slo", "tib", "wel")
         val invalidFileCharsPattern = Regex("[\\\\/:*?\"<>|]")
+    }
+
+    /**
+     * Removes known release groups attached with "-", e.g. "sparks-inception" or "Inception.2010.x264-SPARKS".
+     */
+    fun removeReleaseGroups(name: String): String {
+        if (releaseGroups.isEmpty()) return name
+        return name.replace(leadingReleaseGroupPattern, "").replace(trailingReleaseGroupPattern, "")
+    }
+
+    /**
+     * Files worth renaming for a movie, everything else (nfo, txt, images, ...) is left untouched.
+     */
+    fun isMovieFile(file: File): Boolean {
+        val extension = file.extension.lowercase()
+        return extension in videoExtensions || extension in subtitleExtensions
     }
 
     fun cleanName(inputName: String): String {
@@ -111,6 +136,10 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
 
         // Remove common release group/site prefixes
         name = name.replace(sitePrefixPattern, "")
+        name = removeReleaseGroups(name)
+
+        // Remove remote media ids of already renamed files like {tmdb-27205}
+        name = name.replace(remoteMediaIdPattern, " ").trim()
 
         // Remove release tag prefix like (B-A) or [GAX]
         name = name.replace(parenthesizedPrefixPattern, "")
@@ -257,6 +286,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
 
         val normalized = trimmed.lowercase().replace("_", " ").replace(".", " ").replace("-", " ").trim()
         val lower = trimmed.lowercase()
+        if (releaseGroups.contains(lower)) return true
 
         // Category / root folder names
         val categoryFolderNames = setOf(
@@ -876,10 +906,13 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         return false
     }
 
-    fun processFilesFromDirectory(path: String, logFile: File? = null, isTestRun: Boolean = true) {
+    /**
+     * Renames and moves the media files below [path] into the library at [basePath] (default ~/pfdb/PFDB).
+     */
+    fun processFilesFromDirectory(path: String, logFile: File? = null, isTestRun: Boolean = true, basePath: String? = null) {
         val writer = logFile?.let { BufferedWriter(FileWriter(it, true)) }
         try {
-            processFilesFromDirectoryInternal(path, writer, isTestRun)
+            processFilesFromDirectoryInternal(path, writer, isTestRun, basePath)
         } finally {
             writer?.flush()
             writer?.close()
@@ -887,7 +920,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         }
     }
 
-    private fun processFilesFromDirectoryInternal(path: String, logWriter: BufferedWriter?, isTestRun: Boolean) {
+    private fun processFilesFromDirectoryInternal(path: String, logWriter: BufferedWriter?, isTestRun: Boolean, basePath: String?) {
         val files = File(path).listFiles()
         files?.let { fileList ->
             for (file in fileList) {
@@ -912,35 +945,18 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
                             file.absolutePath.contains("/Films/", ignoreCase = true) ||
                             file.absolutePath.contains("/Documentaries/", ignoreCase = true)
 
+                    // the folder wins over season/episode detection, titles like "Apollo 13" would be detected as episode
                     val mediaIndicator = when {
-                        episode != null || season != null -> MediaType.Series
                         isSeriesPath -> MediaType.Series
                         isMoviePath -> MediaType.Movie
+                        episode != null || season != null -> MediaType.Series
                         else -> null
                     }
 
-                    val mediaResult = if (extractedName.isNotBlank()) {
-                        val primaryResult = if (year != null) {
-                            val res = mediaProxyService.search(extractedName, year, mediaIndicator).firstOrNull()
-                            res ?: mediaProxyService.search(extractedName, mediaIndicator).firstOrNull()
-                        } else {
-                            mediaProxyService.search(extractedName, mediaIndicator).firstOrNull()
-                        }
-
-                        if (year != null && (primaryResult == null || (mediaIndicator == MediaType.Series && primaryResult.type != MediaType.Series) || (isSeriesPath && primaryResult.type != MediaType.Series))) {
-                            val unstrippedName = "$extractedName $year".trim()
-                            val fallbackResult = mediaProxyService.search(unstrippedName, mediaIndicator).firstOrNull()
-                            if (fallbackResult != null && (primaryResult == null || fallbackResult.type == MediaType.Series || fallbackResult.title.contains(year.toString()))) {
-                                fallbackResult
-                            } else {
-                                primaryResult
-                            }
-                        } else {
-                            primaryResult
-                        }
-                    } else {
-                        null
-                    }
+                    // already renamed files carry their remote media id, the one closest to the file wins
+                    val remoteMediaId = remoteMediaIdPattern.findAll(fullName).lastOrNull()?.value
+                    val mediaResult = remoteMediaId?.let { mediaProxyService.findByRemoteMediaId(it, extractedName, mediaIndicator) }
+                        ?: searchMediaForFile(extractedName, year, mediaIndicator, isSeriesPath)
 
                     if (mediaResult != null) {
                         val seasonAndEpisode = extractSeasonAndEpisode(file, mediaResult)
@@ -949,10 +965,12 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
                     }
 
                     val idString = mediaResult?.id ?: ""
+                    val isSkippedMovieFile = mediaResult?.type == MediaType.Movie && !isMovieFile(file)
                     val logLine =
-                        "F:'$fullName'→'$extractedName'→'$mediaResult' (Y: $year, S: $season, E: $episode) $idString"
-                    mediaResult?.let {
-                        val targetFile = getTargetFile(file, mediaResult, extractedName, season, episode)
+                        "F:'$fullName'→'$extractedName'→'$mediaResult' (Y: $year, S: $season, E: $episode) $idString" +
+                                if (isSkippedMovieFile) " skipped, no movie file" else ""
+                    mediaResult?.takeUnless { isSkippedMovieFile }?.let {
+                        val targetFile = getTargetFile(file, mediaResult, extractedName, season, episode, basePath)
                         // actual move
                         // Create the parent directories if they don't exist
                         val newFile = File(targetFile)
@@ -972,9 +990,31 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
                     println(logLine)
                     logWriter?.write(logLine + "\n")
                 } else {
-                    processFilesFromDirectoryInternal(file.absolutePath, logWriter, isTestRun)
+                    processFilesFromDirectoryInternal(file.absolutePath, logWriter, isTestRun, basePath)
                 }
             }
+        }
+    }
+
+    private fun searchMediaForFile(extractedName: String, year: Int?, mediaIndicator: MediaType?, isSeriesPath: Boolean): MediaItem? {
+        if (extractedName.isBlank()) return null
+        val primaryResult = if (year != null) {
+            val res = mediaProxyService.search(extractedName, year, mediaIndicator).firstOrNull()
+            res ?: mediaProxyService.search(extractedName, mediaIndicator).firstOrNull()
+        } else {
+            mediaProxyService.search(extractedName, mediaIndicator).firstOrNull()
+        }
+
+        return if (year != null && (primaryResult == null || (mediaIndicator == MediaType.Series && primaryResult.type != MediaType.Series) || (isSeriesPath && primaryResult.type != MediaType.Series))) {
+            val unstrippedName = "$extractedName $year".trim()
+            val fallbackResult = mediaProxyService.search(unstrippedName, mediaIndicator).firstOrNull()
+            if (fallbackResult != null && (primaryResult == null || fallbackResult.type == MediaType.Series || fallbackResult.title.contains(year.toString()))) {
+                fallbackResult
+            } else {
+                primaryResult
+            }
+        } else {
+            primaryResult
         }
     }
 
