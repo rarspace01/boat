@@ -3,6 +3,8 @@ package boat
 import boat.info.CloudFileService
 import boat.info.CloudService
 import boat.info.MediaItem
+import boat.info.MediaProxyService
+import boat.info.MediaType
 import boat.info.QueueService
 import boat.model.Transfer
 import boat.model.TransferStatus
@@ -10,7 +12,7 @@ import boat.multifileHoster.MultifileHosterService
 import boat.services.ConfigurationService
 import boat.services.TransferService
 import boat.torrent.Torrent
-import boat.torrent.TorrentHelper.getSearchNameFrom
+import boat.torrent.TorrentHelper.removeSpecialCharacters
 import boat.torrent.TorrentSearchEngineService
 import boat.torrent.TorrentType
 import boat.utilities.HttpHelper
@@ -38,7 +40,8 @@ class DownloadMonitor(
     private val queueService: QueueService,
     private val transferService: TransferService,
     private val configurationService: ConfigurationService,
-    private val httpHelper: HttpHelper
+    private val httpHelper: HttpHelper,
+    private val mediaProxyService: MediaProxyService
 ) {
     @Async
     @Scheduled(fixedRate = (SECONDS_BETWEEN_SEARCH_ENGINE_POLLING * 1000).toLong())
@@ -141,12 +144,27 @@ class DownloadMonitor(
         if (numberOfTorrentsReadyToDownload == 0 && numberOfActiveRemoteTorrents < MAX_QUEUE_DOWNLOADS_LIMIT && multifileHosterService.getRemainingTrafficInMB() > MIN_GB_FOR_QUEUE * 1024) {
             queueService.getQueue().stream().findFirst().ifPresent { mediaItem: MediaItem ->
                 logger.info("picked {}", mediaItem)
-                val searchName = getSearchNameFrom(mediaItem)
-                val existingFiles = cloudService.findExistingFiles(searchName)
+                val matchedMediaItem = if (mediaItem.year != null) {
+                    mediaProxyService.search(mediaItem.title, mediaItem.year).firstOrNull()
+                } else {
+                    mediaProxyService.search(mediaItem.title).firstOrNull()
+                }
+                val selectedTitle = matchedMediaItem?.title ?: mediaItem.title
+                val selectedYear = if (matchedMediaItem != null) {
+                    matchedMediaItem.year?.takeIf { matchedMediaItem.type == MediaType.Movie }
+                } else {
+                    mediaItem.year
+                }
+                val remoteMediaId = (matchedMediaItem?.id ?: mediaItem.id)?.ifBlank { null }
+
+                val cleanedTitle = removeSpecialCharacters(selectedTitle)
+                val torrentSearchString = cleanedTitle + (selectedYear?.let { " $it" } ?: "")
+                val existingFiles = (cloudService.findExistingFiles(cleanedTitle) +
+                        (remoteMediaId?.let { cloudService.findExistingFiles(it) } ?: emptyList())).distinct()
                 if (existingFiles.isEmpty()) {
-                    torrentSearchEngineService.searchTorrents(searchName).stream()
+                    torrentSearchEngineService.searchTorrents(torrentSearchString).stream()
                         .findFirst()
-                        .ifPresent { torrent: Torrent? -> multifileHosterService.addTorrentToTransfer(torrent!!) }
+                        .ifPresent { torrent: Torrent? -> multifileHosterService.addTorrentToTransfer(torrent!!, remoteMediaId) }
                 } else {
                     logger.warn("Looks like Torrent was already downloaded, skipped {} - matched files: {}", mediaItem, existingFiles)
                 }
