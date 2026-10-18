@@ -4,6 +4,7 @@ import boat.info.MediaItem
 import boat.info.MediaProxyService
 import boat.info.MediaType
 import boat.utilities.StringUtil
+import org.springframework.stereotype.Service
 import java.io.BufferedWriter
 import java.io.File
 import java.io.FileWriter
@@ -11,6 +12,7 @@ import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 import kotlin.io.path.moveTo
 
+@Service
 class ContentRenamer(val mediaProxyService: MediaProxyService) {
 
     companion object {
@@ -1004,10 +1006,18 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         return null
     }
 
-    fun getTargetFile(file: File, mediaResult: MediaItem, extractedName: String, season: Int?, episode: Int?): String {
-        val homeDir = System.getProperty("user.home")
-        val firstPart = homeDir+"/pfdb/PFDB/" + getMediaTypeFolderString(mediaResult) +
-                "/" + StringUtil.deductFirstTorrentLetter(getSafeTitle(mediaResult)) + "/${getSafeTitle(mediaResult)} ${mediaResult.id}"
+    fun getTargetFile(
+        file: File,
+        mediaResult: MediaItem,
+        extractedName: String,
+        season: Int?,
+        episode: Int?,
+        basePath: String? = null
+    ): String {
+        val base = basePath ?: (System.getProperty("user.home") + "/pfdb/PFDB")
+        val idPart = if (!mediaResult.id.isNullOrBlank()) " ${mediaResult.id}" else ""
+        val firstPart = base + "/" + getMediaTypeFolderString(mediaResult) +
+                "/" + StringUtil.deductFirstTorrentLetter(getSafeTitle(mediaResult)) + "/${getSafeTitle(mediaResult)}$idPart"
         val optionalSeasonFolder = if(season != null){
             "/Season $season"
         } else {

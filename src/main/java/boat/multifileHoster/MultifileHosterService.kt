@@ -1,7 +1,11 @@
 package boat.multifileHoster
 
+import boat.ContentRenamer
 import boat.info.CloudFileService
 import boat.info.CloudService
+import boat.info.MediaItem
+import boat.info.MediaProxyService
+import boat.info.MediaType
 import boat.mapper.TorrentMapper
 import boat.model.Transfer
 import boat.model.TransferStatus
@@ -16,6 +20,8 @@ import boat.utilities.HttpHelper
 import boat.utilities.LoggerDelegate
 import boat.utilities.ProcessUtil
 import boat.utilities.StreamGobbler
+import boat.utilities.PropertiesHelper
+import boat.utilities.StringUtil
 import org.apache.logging.log4j.util.Strings
 import org.springframework.cache.CacheManager
 import org.springframework.stereotype.Service
@@ -39,6 +45,8 @@ class MultifileHosterService(
         private val cloudService: CloudService,
         private val cacheManager: CacheManager,
         private val cloudFileService: CloudFileService,
+        private val mediaProxyService: MediaProxyService,
+        private val contentRenamer: ContentRenamer = ContentRenamer(mediaProxyService),
 ) : HttpUser(httpHelper) {
     private var isDownloadInProgress: Boolean = false
     private var isRcloneInstalled: Boolean? = null
@@ -325,102 +333,132 @@ class MultifileHosterService(
         }
     }
 
-    private fun checkForDownloadableTorrentsAndDownloadTheFirst() {
-        val torrentToBeDownloaded: Torrent? = getTorrentToBeDownloaded()
-        if (torrentToBeDownloaded != null) {
-            var transferToBeDownloaded = transferService.getAll().stream()
-                    .filter { transfer: Transfer ->
-                        transfer.uri.isNotEmpty() && transfer.uri.lowercase(Locale.ROOT).contains(
-                                torrentToBeDownloaded.torrentId.lowercase(
-                                        Locale.ROOT
-                                )
-                        ) || transfer.remoteId != null && transfer.remoteId == torrentToBeDownloaded.remoteId
-                    }.findFirst()
+    internal fun checkForDownloadableTorrentsAndDownloadTheFirst() {
+        val transferToBeDownloaded = getTransferToBeDownloaded()
+        if (transferToBeDownloaded != null) {
+            val remoteTorrentsList = remoteTorrents
+            val remoteTorrent = remoteTorrentsList.firstOrNull {
+                it.remoteId == transferToBeDownloaded.remoteId ||
+                        (transferToBeDownloaded.uri.isNotEmpty() && transferToBeDownloaded.uri.lowercase(Locale.ROOT).contains(it.torrentId.lowercase(Locale.ROOT)))
+            } ?: TorrentMapper.mapTransferToTorrent(transferToBeDownloaded)
+
+            if (remoteTorrent.source.isEmpty()) {
+                remoteTorrent.source = transferToBeDownloaded.source
+            }
+            if (remoteTorrent.remoteId.isEmpty()) {
+                remoteTorrent.remoteId = transferToBeDownloaded.remoteId ?: ""
+            }
+
             isDownloadInProgress = true
             var wasDownloadSuccessful = false
-            if (transferToBeDownloaded.isEmpty) {
-                log.warn("Torrent not in transfers but downloading it: {}", torrentToBeDownloaded)
-            }
-            if (TorrentHelper.isMagnetUriLike(torrentToBeDownloaded.name)) {
-                val transfer = transferToBeDownloaded.orElse(null)
-                val resolvedName = TorrentHelper.resolveDownloadName(torrentToBeDownloaded, transfer?.name, transfer?.uri)
-                log.warn("Remote name is a magnet uri: [${torrentToBeDownloaded.name}] using [$resolvedName] instead")
-                torrentToBeDownloaded.name = resolvedName
-            }
             try {
-                val filesFromTorrent = getFilesFromTorrent(torrentToBeDownloaded)
-                if (isSingleFileDownload(filesFromTorrent)) {
-                    transferToBeDownloaded.ifPresent { transfer: Transfer? ->
-                        log.info(
-                                "SFD - {}",
-                                transfer
-                        )
-                    }
-                    val fileToDownload: TorrentFile = getMainFileURLFromTorrent(filesFromTorrent)
-                    updateUploadStatus(torrentToBeDownloaded, listOf(fileToDownload), 0, null)
-                    val extractFileNameFromUrl = extractFileNameFromUrl(fileToDownload.url)
-                    log.info("Name before: [${torrentToBeDownloaded.name}] after [$extractFileNameFromUrl]")
-                    torrentToBeDownloaded.name = extractFileNameFromUrl
-                    val destination = cloudService.buildDestinationPath(torrentToBeDownloaded.name, listOf(fileToDownload))
-                    wasDownloadSuccessful = rcloneDownloadFileToGdrive(
-                            fileToDownload.url,
-                            destination.second + buildFilename(
-                                    torrentToBeDownloaded.name, fileToDownload.url
-                            )
-                    )
-                    updateUploadStatus(torrentToBeDownloaded, listOf(fileToDownload), 1, null)
-                    delete(torrentToBeDownloaded)
+                val mediaItem = (transferToBeDownloaded.remoteMediaId?.let { mediaProxyService.findByRemoteMediaId(it) }
+                    ?: transferToBeDownloaded.remoteMediaId?.let { mediaProxyService.search(it).firstOrNull() }
+                    ?: mediaProxyService.search(transferToBeDownloaded.name).firstOrNull())
 
-                    transferToBeDownloaded = transferService.get(transferToBeDownloaded)
-                    transferToBeDownloaded.ifPresent { transfer: Transfer? -> transferService.delete(transfer!!) }
-                    updateIndexForLetters(destination.first)
-                } else {
-                    transferToBeDownloaded.ifPresent { transfer: Transfer? ->
-                        log.info(
-                                "MFD - {}",
-                                transfer
-                        )
+                val filesFromTorrent = getFilesFromTorrent(remoteTorrent)
+                if (filesFromTorrent.isEmpty()) {
+                    log.warn("No files found to download for transfer: {}", transferToBeDownloaded)
+                    return
+                }
+
+                val basePath = PropertiesHelper.getProperty(CloudService.RCLONE_DIR) ?: (System.getProperty("user.home") + "/pfdb/PFDB")
+                val listOfCharactersToIndexUpdate = mutableSetOf<String>()
+
+                if (isSingleFileDownload(filesFromTorrent)) {
+                    log.info("SFD - {}", transferToBeDownloaded)
+                    val fileToDownload: TorrentFile = getMainFileURLFromTorrent(filesFromTorrent)
+                    updateUploadStatus(remoteTorrent, listOf(fileToDownload), 0, null)
+
+                    val file = File(if (!fileToDownload.name.isNullOrBlank()) fileToDownload.name!! else extractFileNameFromUrl(fileToDownload.url))
+                    val targetFilePath: String
+                    val indexLetter: String
+
+                    if (mediaItem != null) {
+                        val safeTitle = contentRenamer.getSafeTitle(mediaItem)
+                        var season = contentRenamer.extractSeason(file)
+                        var episode = contentRenamer.extractEpisode(file, mediaItem)
+                        if (season == null && episode != null && mediaItem.type == MediaType.Series) {
+                            season = 1
+                        }
+                        if (season == null && episode != null && episode > 100 && mediaItem.type == MediaType.Series) {
+                            if (mediaItem.seasonCount != null && (episode / 100) <= (mediaItem.seasonCount ?: 1) && (episode % 100) in 1..99) {
+                                season = episode / 100
+                                episode %= 100
+                            }
+                        }
+                        targetFilePath = contentRenamer.getTargetFile(file, mediaItem, safeTitle, season, episode, basePath)
+                        indexLetter = StringUtil.deductFirstTorrentLetter(safeTitle)
+                    } else {
+                        val destination = cloudService.buildDestinationPath(remoteTorrent.name, listOf(fileToDownload))
+                        targetFilePath = destination.second + buildFilename(remoteTorrent.name, fileToDownload.url)
+                        indexLetter = destination.first
                     }
+
+                    listOfCharactersToIndexUpdate.add(indexLetter)
+                    wasDownloadSuccessful = rcloneDownloadFileToGdrive(fileToDownload.url, targetFilePath)
+                    updateUploadStatus(remoteTorrent, listOf(fileToDownload), 1, null)
+                    delete(remoteTorrent)
+                    transferService.delete(transferToBeDownloaded)
+                    updateIndexForLetters(listOfCharactersToIndexUpdate.joinToString())
+                } else {
+                    log.info("MFD - {}", transferToBeDownloaded)
                     var currentFileNumber = 0
                     var failedUploads = 0
                     val startTime = Instant.now()
-                    val listOfCharactersToIndexUpdate = mutableSetOf<String>()
+
                     for (torrentFile in filesFromTorrent) {
-                        // check fileSize to get rid of samples and NFO files?
-                        updateUploadStatus(torrentToBeDownloaded, filesFromTorrent, currentFileNumber, startTime)
-                        log.info("Name before: [${torrentToBeDownloaded.name}]")
-                        val destination = cloudService
-                                .buildDestinationPath(torrentToBeDownloaded.name, filesFromTorrent)
-                        listOfCharactersToIndexUpdate.add(destination.first)
-                        val destinationPath: String = destination.second
-                        var targetFilePath: String
-                        targetFilePath =
-                                if (destinationPath.contains(TorrentType.SERIES_SHOWS.type)) {
-                                    destinationPath + torrentFile.name
-                                } else {
-                                    destinationPath + torrentToBeDownloaded.name + "/" + torrentFile.name
+                        updateUploadStatus(remoteTorrent, filesFromTorrent, currentFileNumber, startTime)
+                        val file = File(if (!torrentFile.name.isNullOrBlank()) torrentFile.name!! else extractFileNameFromUrl(torrentFile.url))
+                        val targetFilePath: String
+                        val indexLetter: String
+
+                        if (mediaItem != null) {
+                            val safeTitle = contentRenamer.getSafeTitle(mediaItem)
+                            var season = contentRenamer.extractSeason(file)
+                            var episode = contentRenamer.extractEpisode(file, mediaItem)
+                            if (season == null && episode != null && mediaItem.type == MediaType.Series) {
+                                season = 1
+                            }
+                            if (season == null && episode != null && episode > 100 && mediaItem.type == MediaType.Series) {
+                                if (mediaItem.seasonCount != null && (episode / 100) <= (mediaItem.seasonCount ?: 1) && (episode % 100) in 1..99) {
+                                    season = episode / 100
+                                    episode %= 100
                                 }
+                            }
+                            targetFilePath = contentRenamer.getTargetFile(file, mediaItem, safeTitle, season, episode, basePath)
+                            indexLetter = StringUtil.deductFirstTorrentLetter(safeTitle)
+                        } else {
+                            val destination = cloudService.buildDestinationPath(remoteTorrent.name, filesFromTorrent)
+                            val destinationPath: String = destination.second
+                            targetFilePath = if (destinationPath.contains(TorrentType.SERIES_SHOWS.type)) {
+                                destinationPath + (torrentFile.name ?: "")
+                            } else {
+                                destinationPath + remoteTorrent.name + "/" + (torrentFile.name ?: "")
+                            }
+                            indexLetter = destination.first
+                        }
+
+                        listOfCharactersToIndexUpdate.add(indexLetter)
                         if (!rcloneDownloadFileToGdrive(torrentFile.url, targetFilePath)) {
                             failedUploads++
                         }
                         currentFileNumber++
-                        updateUploadStatus(torrentToBeDownloaded, filesFromTorrent, currentFileNumber, startTime)
+                        updateUploadStatus(remoteTorrent, filesFromTorrent, currentFileNumber, startTime)
                     }
+
                     wasDownloadSuccessful = failedUploads == 0
-                    delete(torrentToBeDownloaded)
-                    transferToBeDownloaded = transferService.get(transferToBeDownloaded)
-                    transferToBeDownloaded.ifPresent { transfer: Transfer? -> transferService.delete(transfer!!) }
-
+                    delete(remoteTorrent)
+                    transferService.delete(transferToBeDownloaded)
                     updateIndexForLetters(listOfCharactersToIndexUpdate.joinToString())
-
                 }
             } catch (exception: Exception) {
-                log.error(String.format("Couldn't download Torrent: %s", torrentToBeDownloaded), exception)
+                log.error(String.format("Couldn't download Transfer: %s", transferToBeDownloaded), exception)
             } finally {
                 isDownloadInProgress = false
             }
             if (!wasDownloadSuccessful) {
-                log.error("Couldn't download Torrent: {}", torrentToBeDownloaded)
+                log.error("Couldn't download Transfer: {}", transferToBeDownloaded)
             }
         } else {
             val optionalTransfer = transferService.getAll().stream()
@@ -432,6 +470,14 @@ class MultifileHosterService(
                 )
             }
         }
+    }
+
+    fun getTransferToBeDownloaded(): Transfer? {
+        val remainingTrafficInMB: Double = getRemainingTrafficInMB()
+        return transferService.getAll()
+                .filter { transfer -> TransferStatus.READY_TO_BE_DOWNLOADED == transfer.transferStatus }
+                .filter { transfer -> transfer.sizeInBytes == 0L || (transfer.sizeInBytes.toDouble() / 1024.0 / 1024.0) < remainingTrafficInMB }
+                .minByOrNull { it.updated }
     }
 
     private fun updateUploadStatus(
@@ -453,7 +499,7 @@ class MultifileHosterService(
             transfer.eta = getUploadDuration(listOfFiles, currentFileNumber, startTime)
             transferService.save(transfer)
         } else {
-            log.warn("couldnt update transfer: $torrentToBeDownloaded")
+            log.warn("couldn't update transfer: $torrentToBeDownloaded")
         }
         torrentToBeDownloaded.remoteStatusText = getUploadStatusString(
                 torrentToBeDownloaded, listOfFiles, currentFileNumber,

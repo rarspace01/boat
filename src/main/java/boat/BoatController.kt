@@ -287,7 +287,7 @@ $switchToSearch$switchToSearchList${switchToProgress.replace("..", "../boat")}""
                 )
             } else {
                 val uris = decodedUri.split(",".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
-                uris.map {
+                uris.forEach {
                     torrentsToBeDownloaded.add(
                         Torrent.of(
                             magnetUri = it,
@@ -296,7 +296,7 @@ $switchToSearch$switchToSearchList${switchToProgress.replace("..", "../boat")}""
                 }
             }
         }
-        torrentsToBeDownloaded.map {
+        torrentsToBeDownloaded.forEach {
             multifileHosterService.addTorrentToTransfer(it, remoteMediaId?.ifBlank { null })
         }
         multifileHosterService.addTransfersToDownloadQueue()

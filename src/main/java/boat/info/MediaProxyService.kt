@@ -100,6 +100,18 @@ class MediaProxyService(
         }
     }
 
+    fun findByRemoteMediaId(remoteMediaId: String?): MediaItem? {
+        if (remoteMediaId.isNullOrBlank()) return null
+        return cache.values.flatten().firstOrNull { it.id == remoteMediaId }
+//            if(remoteMediaId.contains("tvdb")){
+//                //theTVDBService.findById(remoteMediaId)
+//            } else if(remoteMediaId.contains("tmdb")) {
+//                //theMovieDataBaseService.findById(remoteMediaId)
+//            } else {
+//                logger.warn("couldn't find media item with remote media id: $remoteMediaId")
+//            }
+    }
+
     fun search(name: String?, year: Int): List<MediaItem> {
         if (name.isNullOrBlank()) return emptyList()
         val cacheKey = "search:$name:$year"
