@@ -637,6 +637,22 @@ class ContentRenamerTest {
         val dragonBallGt = File("~/Series-Shows/D/Dragonball GT/Season 1/Dragon Ball GT [1.21] A Secret Revealed.mp4")
         assertThat(contentRenamer.extractName(dragonBallGt)).isEqualTo("Dragon Ball GT")
         assertThat(contentRenamer.extractEpisode(dragonBallGt)).isEqualTo(21)
+        // site prefixes, German episodes, double dashed episodes and the show after the episode marker
+        assertThat(contentRenamer.extractName(File("~/Series-Shows/W/Www.Torrenting.Org.90.Day.Fiance.Before.The.90.Days/www.Torrenting.org       90 Day Fiance Before the 90 Days S03E06 iNTERNAL 1080p WEB x26.mkv")))
+            .isEqualTo("90 Day Fiance Before the 90 Days")
+        val captainFuture = File("~/Series-Shows/C/Captain Future.S01.German.1978.ANIME.FS.DVDRiP.XViD/Old/Captain.Future.Folge.13-19.DVD-Rip.Xvid.by.Frodo.TMF.avi")
+        assertThat(contentRenamer.extractName(captainFuture)).isEqualTo("Captain Future")
+        assertThat(contentRenamer.extractEpisode(captainFuture)).isNull()
+        val hak5 = File("~/Series-Shows/H/HAK 5 all Seasons (Youtube Channel Clone) 1080p/hak5--1718--free-virtualization-clusters-and-breadboards--hd720p30.h264.mp4")
+        assertThat(contentRenamer.extractName(hak5)).isEqualTo("hak5")
+        assertThat(contentRenamer.extractSeason(hak5)).isEqualTo(17)
+        assertThat(contentRenamer.extractEpisode(hak5)).isEqualTo(18)
+        assertThat(contentRenamer.extractName(File("~/Series-Shows/H/HAK 5 all Seasons (Youtube Channel Clone) 1080p/S18E11-HAK5-Open Source Distributed Decentralized Social Networks.mp4"))).isEqualTo("HAK5")
+        assertThat(contentRenamer.extractName(File("~/Series-Shows/E/Eden of the East/Eden of the East (Higashi no Eden) + Movies [BD-1080p]/[bonkai77].Eden.of.the.East.Episode.10.[BD.1080p.Dual-Audio.x265.HEVC.10bit].mkv"))).isEqualTo("Eden of the East")
+        // audio channels aren't episodes
+        val tacoma = File("~/Series-Shows/W/Www.Uindex.Org.-201904.Eac3.2.0/Tacoma FD-2019-S04 WEBRip EAC3 2 0 1080p x265-iVy.mkv")
+        assertThat(contentRenamer.extractName(tacoma)).isEqualTo("Tacoma FD")
+        assertThat(contentRenamer.extractEpisode(tacoma)).isNull()
         // the bracket wins over numbers in the episode's title
         val simpsons = File("~/Series-Shows/S/Simpsons/Simpsons Season 20- Complete/The Simpsons [20.19] Waverly Hills 9-0-2-1-D'oh.avi")
         assertThat(contentRenamer.extractSeason(simpsons)).isEqualTo(20)
