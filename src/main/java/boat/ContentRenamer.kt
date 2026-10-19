@@ -99,6 +99,9 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         val decimalNumberPattern = "(?<![0-9.])[0-9]\\.[0-9](?![0-9.])".toRegex()
         // audio channels after the codec, also with spaces like "EAC3 2 0" or "DDP 5 1"
         val audioChannelsPattern = "(?i)(?<=aac|ac3|eac3|ddp|dd|dts|opus|flac|mp3)[\\s._-]*[0-9][\\s._][0-9](?![0-9])".toRegex()
+        // channels after a resolution, source or codec tag like "1080p.5.1.BDrip" or "x264 DD+ 7.1"
+        val taggedAudioChannelsPattern = ("(?i)(?<=(?:[0-9]{3,4}p|bluray|bdrip|brrip|webrip|web-dl|webdl|hdtv|dvdrip|hdrip|remux|x264|x265|h264|h265|hevc|" +
+                "aac|ac3|eac3|ddp|dd|dts|dts-hd|truehd|atmos|opus|flac|mp3)\\+?[\\s._-]{1,3})[1-7][\\s._][01](?![0-9])").toRegex()
         val subtitleFlags = setOf("sdh", "forced", "cc")
         val trailingSeasonNumberPattern = "(?i)(?<=[a-z])(?:\\s+-)?(?:\\s+(?:series|season))?\\s+([0-9]{1,2})$".toRegex()
         val rangeSinglePattern = "^[0-9]-[0-9]$".toRegex()
@@ -213,15 +216,15 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         // movie name parsing
         val movieYearPattern = "^(?:19[0-9]{2}|20[0-2][0-9])$".toRegex()
         val movieTechnicalTagPattern = ("^(?:[0-9]{3,4}[pi]|[248]k|uhd|ultrahd|fhd|hdr(?:10)?(?:plus)?|dovi|10bit|8bit|" +
-                "(?:b[dr]|hd|dvd|vhs|web|fhd|tv|hdtv|sat|dvb)rip|bluray|blu-ray|bdremux|remux|dvd[59r]?|dvdscr|webdl|web-dl|hdtv|hdcam|screener|ntsc|" +
+                "(?:b[dr]|hd|dvd|vhs|web|fhd|tv|hdtv|sat|dvb)rip(?:[0-9]{3,4}[pi])?|bluray|blu-ray|bdremux|remux|dvd[59r]?|dvdscr|webdl|web-dl|hdtv|hdcam|screener|ntsc|" +
                 "x26[45]|h26[45]|hevc|avc|xvid|divx|av1|aac[0-9]*|e?ac3|dts(?:hd)?(?:ma)?|truehd|atmos|ddp[0-9]*|dd[0-9]+|flac|" +
                 "amzn|hmax|dsnp|atvp|hulu|itunes|" +
                 "mkv|mp4|avi|[0-9]+(?:[.,][0-9]+)?[mg]b|[0-9]{3,4}x[0-9]{3,4})$").toRegex()
         val movieLanguageOrEditionTagPattern = ("^(?:german|deutsch|ger|dl|eng|ita|fre|fra|vf|vff|vostfr|truefrench|spa|esp|castellano|latino|rus|ukr|kor|jap|jpn|hindi|chs|cht|" +
                 "multi|multisubs?|dual|dubbed|subbed|ensubbed|esubs?|omu|nlsubs?|hardsubs?|subs?|" +
-                "unrated|uncut|remastered|extended|internal|proper|repack|rerip|limited|criterion|imax|rm4k|theatrical|retail)$").toRegex()
+                "unrated|uncut|remastered|extended|internal|proper|repack|rerip|limited|criterion|imax|rm4k|theatrical|retail|dircut)$").toRegex()
         val trailingMovieTagPattern = ("(?i)\\s+(?:german|deutsch|ger|dl|eng|ita|multisubs?|dubbed|subbed|" +
-                "unrated|uncut|remastered|extended|internal|proper|repack|limited|criterion|imax|rm4k|theatrical|retail|" +
+                "unrated|uncut|remastered|extended|internal|proper|repack|limited|criterion|imax|rm4k|theatrical|retail|dircut|" +
                 "directors?'?s?[\\s-]+cut|(?:extended|theatrical|unrated)[\\s-]+(?:cut|edition|version)|uncut[\\s-]+version|" +
                 "(?:special|collectors?'?s?)[\\s-]+edition|(?:with|plus)[\\s-]+extras)$").toRegex()
         val movieSitePrefixPattern = "(?i)^www\\.\\S+?\\.(?:com|org|net|me|to|tv|re|io|cc|ws)\\s*-?\\s+".toRegex()
@@ -1337,7 +1340,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
     }
 
     private fun findRawEpisodeMatch(file: File): Pair<String, Int>? {
-        val fileName = decodeIfEncoded(file.name).replace(audioChannelsPattern, " ").replace(decimalNumberPattern, " ")
+        val fileName = decodeIfEncoded(file.name).replace(audioChannelsPattern, " ").replace(taggedAudioChannelsPattern, " ").replace(decimalNumberPattern, " ")
         val parentName = decodeIfEncoded(file.parentFile?.name ?: "")
         val grandParentName = decodeIfEncoded(file.parentFile?.parentFile?.name ?: "")
         val greatGrandParentName = decodeIfEncoded(file.parentFile?.parentFile?.parentFile?.name ?: "")
@@ -1615,11 +1618,15 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         val normalizedName = normalizeMovieTitle(name)
         fun isReleasedNear(item: MediaItem, years: Int) = item.year?.let { abs(it - year) <= years } == true
         fun hasSameTitle(item: MediaItem) = listOfNotNull(item.title, item.originalTitle).any { normalizeMovieTitle(it) == normalizedName }
-        return (yearResults + nameResults).firstOrNull { it.type == MediaType.Movie && isReleasedNear(it, 1) && hasSameTitle(it) }
-            ?: yearResults.firstOrNull { it.type == MediaType.Movie && isReleasedNear(it, 2) }
-            ?: nameResults.firstOrNull { it.type == MediaType.Movie && isReleasedNear(it, 2) }
-            // titles containing a year, e.g. "Blade Runner 2049"
-            ?: mediaProxyService.search("$name $year", MediaType.Movie).firstOrNull { it.title.contains(year.toString()) }
+        val results = (yearResults + nameResults).filter { it.type == MediaType.Movie }
+        // a different title is only trusted in the release year itself, "Harley Quinn" (2019) is not "Batman and Harley Quinn" (2017)
+        return results.firstOrNull { isReleasedNear(it, 1) && hasSameTitle(it) }
+            ?: results.firstOrNull { isReleasedNear(it, 2) && hasSameTitle(it) }
+            ?: yearResults.firstOrNull { it.type == MediaType.Movie && isReleasedNear(it, 1) }
+            // titles containing a year, e.g. "Blade Runner 2049", but not "Algérie 1988-2000" for "Dune" (2000)
+            ?: mediaProxyService.search("$name $year", MediaType.Movie).firstOrNull {
+                it.type == MediaType.Movie && listOfNotNull(it.title, it.originalTitle).any { title -> normalizeMovieTitle(title) == normalizeMovieTitle("$name $year") }
+            }
     }
 
     /**

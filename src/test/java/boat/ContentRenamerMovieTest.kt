@@ -95,6 +95,8 @@ class ContentRenamerMovieTest {
             "2001.A.Space.Odyssey.1968.REMASTERED.1080p.BluRay.x264.DTS-HD.MA.5.1-FGT" to Pair("2001 A Space Odyssey", 1968),
             "2012.2009.1080p.BluRay.x264" to Pair("2012", 2009),
             "10.Cloverfield.Lane.2016.4K.UltraHD.BluRay.2160p.x264.DTS-HD.MA.TrueHD.7.1.Atmos.ACC-7.1-POOP" to Pair("10 Cloverfield Lane", 2016),
+            "Amadeus.BDRip1080p" to Pair("Amadeus", null),
+            "Amadeus.DirCut.1984.720p.BluRay.x264" to Pair("Amadeus", 1984),
             "Alien.Romulus.2024.2160p.WEB-DL.DDP5.1.Atmos.DV.HDR.H.265-FLUX" to Pair("Alien Romulus", 2024),
             "12 Years a Slave (2013) 1080p x264 ENG-ITA BluRay - 12 Anni Schiavo" to Pair("12 Years a Slave", 2013),
             "Gold.Diggers.of.1935.(1935).95.min.Dick.Powell.H264" to Pair("Gold Diggers of 1935", 1935),
@@ -261,5 +263,38 @@ class ContentRenamerMovieTest {
         contentRenamer.processFilesFromDirectory(File(base, "Movies").absolutePath, null, isTestRun = false, basePath = base.absolutePath)
 
         assertThat(File(base, "Movies/M/Mulan Rise of a Warrior (2009) {tmdb-25707}.1080p.x264.mkv")).exists()
+    }
+
+    @Test
+    fun `should not take audio channels after a resolution for an episode`(@TempDir tempDir: Path) {
+        val base = tempDir.toFile()
+        assertThat(contentRenamer.extractEpisode(createFile(base, "Movies/A/Akira.Kurosawa.1988.1080p.5.1.BDrip.mp4"))).isNull()
+        assertThat(contentRenamer.extractEpisode(createFile(base, "Movies/A/Some.Movie.2010.x264.DD+ 7.1.mkv"))).isNull()
+        assertThat(contentRenamer.hasSeriesMarkers(createFile(base, "Movies/A/Akira.Kurosawa.1988.1080p.5.1.BDrip.mp4"))).isFalse()
+    }
+
+    @Test
+    fun `should not rename a movie to a different title released two years apart`(@TempDir tempDir: Path) {
+        val base = tempDir.toFile()
+        val harley = createFile(base, "Movies/H/Harley+Quinn+(2019)+.mkv")
+        every { mediaProxyService.search("Harley Quinn", 2019, MediaType.Movie) } returns emptyList()
+        every { mediaProxyService.search("Harley Quinn", MediaType.Movie) } returns listOf(MediaItem("Batman and Harley Quinn", "Batman and Harley Quinn", 2017, MediaType.Movie, "{tmdb-408648}"))
+
+        contentRenamer.processFilesFromDirectory(File(base, "Movies").absolutePath, null, isTestRun = false, basePath = base.absolutePath)
+
+        assertThat(harley).exists()
+    }
+
+    @Test
+    fun `should not take a title with a coincidental year for the movie`(@TempDir tempDir: Path) {
+        val base = tempDir.toFile()
+        val dune = createFile(base, "Movies/D/Dune.2000.Part.1.Bluray.1080p.DTS-HD.x264-Grym.mkv")
+        every { mediaProxyService.search("Dune", 2000, MediaType.Movie) } returns emptyList()
+        every { mediaProxyService.search("Dune", MediaType.Movie) } returns emptyList()
+        every { mediaProxyService.search("Dune 2000", MediaType.Movie) } returns listOf(MediaItem("Algérie 1988-2000 : Autopsie d'une tragédie", null, 2005, MediaType.Movie, "{tmdb-285832}"))
+
+        contentRenamer.processFilesFromDirectory(File(base, "Movies").absolutePath, null, isTestRun = false, basePath = base.absolutePath)
+
+        assertThat(dune).exists()
     }
 }
