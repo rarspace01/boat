@@ -24,6 +24,9 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         val standaloneEpisodePattern = "(?<=^|[\\s._-])(?<![0-9])([0-9]{3})(?![0-9])(?=[\\s._-]|$)".toRegex()
         val yearPattern = "\\b(19[0-9]{2}|20[0-2][0-9])\\b".toRegex()
         val bracketPattern = "\\[.*?]".toRegex()
+        val bracketedEpisodePattern = "(?i)\\[(?:S?[0-9]{1,2}[x.][0-9]{1,3}|S[0-9]{1,2}E[0-9]{1,3})]".toRegex()
+        // placeholders of BitComet like "_____padding_file_0_if you see this file, please update to BitComet 0.85 or above____"
+        val paddingFilePattern = "(?i)^_+padding_file_[0-9]+_".toRegex()
         val dvdPattern = "(?<=^|\\s)(?:dvd|disc|cd)\\s?([0-9]{1,2})".toRegex(RegexOption.IGNORE_CASE)
         val dvdDirectPattern = "(?<=^|\\s)(?:dvd|disc|cd|book|volume|vol)\\s?([0-9]{1,2})".toRegex(RegexOption.IGNORE_CASE)
         val bookPattern = "(?<=^|\\s)(?:book|volume|vol|chapter)\\s?([0-9]{1,2})".toRegex(RegexOption.IGNORE_CASE)
@@ -243,6 +246,12 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         var name = inputName
         // Normalize unicode and foreign characters, remove backslash escape characters
         name = name.replace("：", " ").replace("?", " ").replace("\\", "")
+
+        // the title ends at a bracketed episode like "House - [2x01] - Acceptance" or "Dragon Ball GT [1.21] A Secret Revealed"
+        val bracketedEpisode = bracketedEpisodePattern.find(name)
+        if (bracketedEpisode != null && bracketedEpisode.range.first > 0) {
+            name = name.substring(0, bracketedEpisode.range.first)
+        }
 
         // Remove bracketed release info like [UNCENSORED], [1080p], [5.1 MP3], [x265], [FINAL]
         name = name.replace(bracketPattern, " ").trim()
@@ -1001,6 +1010,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         val folderNames = generateSequence(file.parentFile) { it.parentFile }.map { decodeIfEncoded(it.name).lowercase() }.toList()
         return when {
             folderNames.any { it in discStructureRootNames } -> "disc structure"
+            paddingFilePattern.containsMatchIn(decodeIfEncoded(file.name)) -> "padding file"
             coursePattern.containsMatchIn(decodeIfEncoded(file.absolutePath)) -> "course"
             else -> null
         }

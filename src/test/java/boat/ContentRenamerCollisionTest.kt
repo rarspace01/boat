@@ -132,13 +132,14 @@ class ContentRenamerCollisionTest {
         val incoming = File(tempDir, "incoming/Series-Shows/B/Blackish").apply { mkdirs() }
         File(incoming, "Blackish.S04E06.HDTV.x264-SVA[ettv].mkv").writeText("ettv")
         File(incoming, "Blackish.S04E06.HDTV.x264-SVA[eztv].mkv").writeText("eztv")
+        File(incoming, "_____padding_file_0_if you see this file, please update to BitComet 0.85 or above____").writeText("")
         every { mediaProxyService.search(any(), any<MediaType>()) } answers { lookup(firstArg()) }
         every { mediaProxyService.search(any(), any<Int>(), any<MediaType>()) } answers { lookup(firstArg()) }
 
         val log = File(tempDir, "extraction.log")
         contentRenamer.processFilesFromDirectory(incoming.parentFile.parentFile.absolutePath, log, isTestRun = true, basePath = File(tempDir, "PFDB").absolutePath)
 
-        assertThat(log.readText()).contains("Not moved, target exists:")
-        assertThat(incoming.list()).hasSize(2)
+        assertThat(log.readText()).contains("Not moved, target exists:").contains("skipped, padding file")
+        assertThat(incoming.list()).hasSize(3)
     }
 }

@@ -628,6 +628,16 @@ class ContentRenamerTest {
         val angerManagement = File("~/Series-Shows/A/Anger.Management.(2011).2/Season 2/S02E36 - Charlie and the Grad Student.mp4")
         assertThat(contentRenamer.extractName(angerManagement)).isEqualTo("Anger Management")
 
+        // the title ends at a bracketed episode
+        val house = File("~/Series-Shows/H/House MD/House MD Season 2/House - [2x01] - Acceptance.mkv")
+        assertThat(contentRenamer.extractName(house)).isEqualTo("House")
+        assertThat(contentRenamer.extractSeason(house)).isEqualTo(2)
+        assertThat(contentRenamer.extractEpisode(house)).isEqualTo(1)
+        assertThat(contentRenamer.extractName(File("~/Series-Shows/S/Simpsons/Simpsons Season 19 - Complete/The Simpsons [19x02] The Homer Of Seville.avi.avi"))).isEqualTo("The Simpsons")
+        val dragonBallGt = File("~/Series-Shows/D/Dragonball GT/Season 1/Dragon Ball GT [1.21] A Secret Revealed.mp4")
+        assertThat(contentRenamer.extractName(dragonBallGt)).isEqualTo("Dragon Ball GT")
+        assertThat(contentRenamer.extractEpisode(dragonBallGt)).isEqualTo(21)
+
         // openings, endings and OVAs go to the extras without season and episode, their numbering would collide with each other
         val hunterNcop = File("~/Series-Shows/H/Hunter.X.Hunter.(1999).(/[Judas] Hunter x Hunter (1999) Openings & Endings/[Judas] Hunter x Hunter (1999) - NCOP 01.mkv")
         assertThat(contentRenamer.extractName(hunterNcop)).isEqualTo("Hunter x Hunter")
