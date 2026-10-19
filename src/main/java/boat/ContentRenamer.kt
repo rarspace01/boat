@@ -109,6 +109,19 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         // openings, endings and OVAs go to season 0, OP and ED only in upper case, they're words otherwise ("Ed, Edd n Eddy")
         val ovaMarkerPattern = "(?i)(?<![a-z])(?:NCOP|NCED|OVA|OAD)s?(?![a-z])".toRegex()
         val openingEndingMarkerPattern = "(?<![A-Za-z])(?:OP|ED)(?:[ ._]?[0-9]{1,2}(?:v[0-9])?)?(?![A-Za-z0-9])".toRegex()
+        // movies in a series folder, e.g. "Naruto/3.Naruto Movies/1 - Ninja Clash in the Land of Snow.mkv" or "Show/Movie (2005)/"
+        val movieFolderWordPattern = "(?i)(?<![a-z])(?:movies?|films?)(?![a-z])".toRegex()
+        // only "movie" in file names, "Film Versions" or "Short Film" are episodes
+        val movieFileWordPattern = "(?i)(?<![a-z])movie(?![a-z])".toRegex()
+        // packs with episodes and movies like "Eden of the East 1-11+Movie 1-2 Complete" or "AEON FLUX - TV Series and 2005 Movie"
+        val episodesAndMoviesPackPattern = "(?i)\\+|&|(?<![a-z])(?:and|complete|series|episodes)(?![a-z])".toRegex()
+        val pilotPattern = "(?i)(?<![a-z])pilot(?![a-z])".toRegex()
+        val movieNumberPattern = "(?i)(?<![a-z])(?:(?:the\\s+)?movie\\s*[0-9]{1,2}|the\\s+movie)(?![a-z0-9])|\\s-\\s*movie(?=\\s*(?:-|$))".toRegex()
+        // the movie's own title after its number, e.g. "Ranma ½ [1991] - Movie 01 - Big Trouble In Nekonron China",
+        // "Hokuto no Ken - Movie 2006 - The Legend of Raoh" or "Trigun Movie Badlands Rumble"
+        val movieSubtitlePattern = "(?i)^(.*?)(?<![a-z])movie(?:\\s*(?:[0-9]{1,2}|19[0-9]{2}|20[0-2][0-9]))?\\s*(?:-\\s*)?([a-z].+)$".toRegex()
+        val repeatedDashPattern = "\\s*-\\s*(?:-\\s*)+".toRegex()
+        val titleStopWords = setOf("the", "and", "of", "a", "an", "in", "on", "to", "der", "die", "das")
         // parts of a mini series like "The Shining - Part 1 Stephen King Mini-Series"
         val partInNamePattern = "(?i)(?:\\s+-)?\\s+Part\\s*[0-9]{1,2}(?=[^0-9a-z]|$)".toRegex()
         val yearEpisodeInNamePattern = "(?<=[\\s_.-])(?:19[0-9]{2}|20[0-2][0-9])[eExX][0-9]{1,3}(?:[xX][0-9]{1,3})?(?=[^a-zA-Z0-9]|$)".toRegex()
@@ -597,9 +610,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
                 break
             }
 
-            val containerName = lowerParent.replace(bracketPattern, " ").replace("_", " ").replace(".", " ").substringAfterLast(" - ")
-                .replace(whitespacePattern, " ").trim()
-            val isExtrasContainer = containerName.matches(extrasContainerPattern)
+            val isExtrasContainer = isExtrasContainer(parentName)
             if (isExtrasContainer) {
                 isBelowExtrasContainer = true
                 candidates.clear()
@@ -1037,6 +1048,50 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         return null
     }
 
+    private fun isExtrasContainer(folderName: String): Boolean {
+        val containerName = folderName.lowercase().replace(bracketPattern, " ").replace("_", " ").replace(".", " ").substringAfterLast(" - ")
+            .replace(whitespacePattern, " ").trim()
+        return containerName.matches(extrasContainerPattern)
+    }
+
+    /**
+     * Movies in a series folder go to the movies, detected by a movie in the file name or in one of the two folders
+     * above, e.g. "Naruto/3.Naruto Movies/1 - Ninja Clash in the Land of Snow.mkv" or "Aeon Flux/Movie (2005)/Aeon Flux.mp4".
+     * Packs of episodes and movies like "Eden of the East 1-11+Movie 1-2 Complete" don't make their episodes movies.
+     */
+    fun isMovieInSeriesFolder(file: File): Boolean {
+        val fileName = decodeIfEncoded(file.nameWithoutExtension)
+        if (isOpeningEndingOrOva(file) || pilotPattern.containsMatchIn(fileName) || isMovieExtra(file)) return false
+        if (seasonEpisodeMarkerPattern.containsMatchIn(fileName) || seasonXEpisodeMarkerPattern.containsMatchIn(fileName) ||
+            seasonInNamePattern.containsMatchIn(fileName)
+        ) return false
+        // files in a show of the library were put there on purpose, e.g. "The Office (US) {tvdb-73244}/Season 7/Threat Level Midnight The Movie.mkv"
+        if (remoteMediaIdPattern.containsMatchIn(decodeIfEncoded(file.absolutePath))) return false
+        val folders = generateSequence(file.parentFile) { it.parentFile }.takeWhile { !isLibraryGroupFolder(it) }.map { decodeIfEncoded(it.name) }.toList()
+        if (folders.any { isExtrasContainer(it) }) return false
+        return movieFileWordPattern.containsMatchIn(fileName) ||
+                folders.take(2).any { movieFolderWordPattern.containsMatchIn(it) && !episodesAndMoviesPackPattern.containsMatchIn(it) }
+    }
+
+    /**
+     * Title and year of a movie in a series folder without its numbering, "Hunter X Hunter - Movie 1 - Phantom Rouge"
+     * is searched as "Hunter X Hunter - Phantom Rouge", the year may come from its folder like "Movie (2005)".
+     */
+    fun extractMovieInSeriesNameAndYear(file: File): Pair<String, Int?> {
+        val fileName = decodeIfEncoded(file.nameWithoutExtension).replace(leadingTrackNumberPattern, "")
+        val (name, year) = parseMovieName(fileName)
+        val subtitleMatch = movieSubtitlePattern.find(fileName.replace(".", " ").replace("_", " "))
+        val fullName = if (subtitleMatch != null) {
+            // the year stands before the number, "Ranma ½ [1991] - Movie 01 - Big Trouble In Nekonron China" would end at it
+            val show = cleanName(subtitleMatch.groupValues[1])
+            "$show ${parseMovieName(subtitleMatch.groupValues[2]).first}"
+        } else name
+        val title = fullName.replace(movieNumberPattern, " - ").replace(repeatedDashPattern, " - ")
+            .replace(whitespacePattern, " ").trim { it == ' ' || it == '-' }
+        val folderYear = file.parentFile?.let { parseMovieName(decodeIfEncoded(it.name)) }?.second
+        return Pair(title, year ?: folderYear)
+    }
+
     /**
      * Position of an opening, ending or OVA marker like "NCOP 01", "- ED1" or "OVA 02", ignoring hashes like [ED8CC609].
      */
@@ -1332,7 +1387,9 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
                     // the folder wins over season/episode detection, titles like "Apollo 13" would be detected as episode,
                     // only explicit series markers move a file from the movies folder to the series
                     val isSeriesInMoviePath = isMoviePath && !isSeriesPath && hasSeriesMarkers(file)
+                    val isMovieInSeriesPath = isSeriesPath && !isMoviePath && isMovieInSeriesFolder(file)
                     val mediaIndicator = when {
+                        isMovieInSeriesPath -> MediaType.Movie
                         isSeriesPath || isSeriesInMoviePath -> MediaType.Series
                         isMoviePath -> MediaType.Movie
                         episode != null || season != null -> MediaType.Series
@@ -1340,7 +1397,9 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
                     }
 
                     // extract Movie or TV show name from full path
-                    val (extractedName, year) = if (mediaIndicator == MediaType.Movie) {
+                    val (extractedName, year) = if (isMovieInSeriesPath) {
+                        extractMovieInSeriesNameAndYear(file)
+                    } else if (mediaIndicator == MediaType.Movie) {
                         // a year from the future is part of a hash like [6D2027D6]
                         val currentYear = java.time.Year.now().value
                         extractMovieNameAndYear(file).let { (name, movieYear) -> Pair(name, movieYear ?: extractYear(fullName)?.takeIf { it <= currentYear }) }
@@ -1361,7 +1420,8 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
                     // already renamed files carry their remote media id, the one closest to the file wins
                     val remoteMediaId = remoteMediaIdPattern.findAll(fullName).lastOrNull()?.value
                     val mediaResult = remoteMediaId?.let { mediaProxyService.findByRemoteMediaId(it, extractedName, mediaIndicator) }
-                        ?: searchMediaForFile(extractedName, year, mediaIndicator, isSeriesPath || isSeriesInMoviePath)
+                        ?: if (isMovieInSeriesPath && year == null) searchMovieByTitle(extractedName)
+                        else searchMediaForFile(extractedName, year, mediaIndicator, (isSeriesPath && !isMovieInSeriesPath) || isSeriesInMoviePath)
 
                     if (mediaResult != null) {
                         val seasonAndEpisode = extractSeasonAndEpisode(file, mediaResult)
@@ -1379,7 +1439,12 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
                         // actual move
                         // Create the parent directories if they don't exist
                         val newFile = File(targetFile)
-                        if(!isTestRun && !file.toPath().equals(newFile.toPath())) {
+                        // editions of a movie in a series folder end up with the same name, e.g. the theatrical and open matte
+                        // version of "Batman - Mask of The Phantasm", the second one stays where it is
+                        val isOtherEditionOfMovie = isMovieInSeriesPath && newFile.exists() && !file.toPath().equals(newFile.toPath())
+                        if (!isTestRun && isOtherEditionOfMovie) {
+                            logWriter?.write("Not moved, target exists:\n'$file'\n'$newFile'\n")
+                        } else if(!isTestRun && !file.toPath().equals(newFile.toPath())) {
                             newFile.parentFile?.mkdirs()
                             // Then move and rename
                             try {
@@ -1441,6 +1506,25 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
             // titles containing a year, e.g. "Blade Runner 2049"
             ?: mediaProxyService.search("$name $year", MediaType.Movie).firstOrNull { it.title.contains(year.toString()) }
     }
+
+    /**
+     * Movie without a year, the first result only counts if it shares most words with the title, a series folder often
+     * carries more than the movie's name.
+     */
+    private fun searchMovieByTitle(name: String): MediaItem? {
+        val words = significantWords(name)
+        // a single word like "Shippuden" or "dar2" matches too many movies
+        if (words.size < 2) return null
+        return mediaProxyService.search(name, MediaType.Movie).firstOrNull { item ->
+            item.type == MediaType.Movie && listOfNotNull(item.title, item.originalTitle).any { title ->
+                val titleWords = significantWords(title)
+                words.count { it in titleWords } * 2 >= words.size
+            }
+        }
+    }
+
+    private fun significantWords(title: String) =
+        title.lowercase().split(nonAlphanumericPattern).filter { it.length >= 3 && it !in titleStopWords }.toSet()
 
     private fun normalizeMovieTitle(title: String) = MediaProxyService.normalizeTitle(title).removePrefix("the ").replace(" ", "")
 
