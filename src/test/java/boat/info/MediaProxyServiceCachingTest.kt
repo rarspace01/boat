@@ -236,4 +236,23 @@ class MediaProxyServiceCachingTest {
         verify(exactly = 0) { tvdb2.search(any()) }
         verify(exactly = 0) { tvdb2.search(any(), any()) }
     }
+
+    @Test
+    fun `clearCache should remove cached results in memory and on disk`(@TempDir tempDir: Path) {
+        val cacheFile = tempDir.resolve("clearCache").toString()
+        val service = MediaProxyService(tmdbService, tvdbService, cacheFile)
+        val name = "Predators"
+        every { tmdbService.search(name) } returns listOf(MediaItem(name, name, 2010, MediaType.Movie))
+        every { tvdbService.search(name) } returns emptyList()
+        service.search(name)
+        service.saveCache()
+        assertThat(File(cacheFile)).exists()
+
+        assertThat(service.clearCache()).isEqualTo(1)
+
+        assertThat(service.cache).isEmpty()
+        assertThat(File(cacheFile)).doesNotExist()
+        service.search(name)
+        verify(exactly = 2) { tmdbService.search(name) }
+    }
 }

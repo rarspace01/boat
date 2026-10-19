@@ -100,6 +100,23 @@ class MediaProxyService(
     }
 
     /**
+     * Removes all cached media items, in memory and on disk. Returns the number of removed cache entries.
+     */
+    fun clearCache(): Int {
+        synchronized(cacheLock) {
+            val removedEntries = cache.size
+            cache.clear()
+            listOf(File(cacheFileName), File("$cacheFileName.json")).filter { it.isFile }.forEach { file ->
+                if (!file.delete()) {
+                    logger.warn("Failed to delete media proxy cache file ${file.path}")
+                }
+            }
+            dirty = false
+            return removedEntries
+        }
+    }
+
+    /**
      * Results are cached as returned by the services and ranked when read, so ranking changes apply to cached searches.
      */
     private fun getCachedOrPut(cacheKey: String, compute: () -> List<MediaItem>): List<MediaItem> {

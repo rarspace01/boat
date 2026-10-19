@@ -365,6 +365,13 @@ $switchToSearchOld$switchToSearchList${switchToProgress.replace("..", "../boat")
         return "shutting down/restarting"
     }
 
+    @GetMapping("/boat/clearMediaCache")
+    fun clearMediaCache(): String {
+        logger.info("clear media cache request received")
+        val removedEntries = mediaProxyService.clearCache()
+        return "cleared media cache, removed $removedEntries entries"
+    }
+
     private fun isNotAlreadyDownloaded(mediaItem: MediaItem): Boolean {
         val existingFiles = cloudService.findExistingFiles(getSearchNameFrom(mediaItem))
         return existingFiles.isEmpty()
