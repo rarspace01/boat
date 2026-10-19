@@ -391,10 +391,10 @@ class ContentRenamerTest {
         val targetTbbt = contentRenamer.getTargetFile(File("The Big Bang Theory S02E08.mkv"), tbbtItem, "The Big Bang Theory", 2, 8)
         assertThat(targetTbbt).endsWith("/Series-Shows/B/The Big Bang Theory {tvdb-80379}/Season 2/The Big Bang Theory.S02E08.mkv")
 
-        // .hack//SIGN series
+        // .hack//SIGN series, without the leading dot of a hidden folder
         val hackSignItem = MediaItem(title = ".hack//SIGN", type = boat.info.MediaType.Series, id = "{tmdb-333800}")
         val targetHackSign = contentRenamer.getTargetFile(File("HS22.avi"), hackSignItem, "SIGN", 1, 22)
-        assertThat(targetHackSign).endsWith("/Series-Shows/H/.hack SIGN {tmdb-333800}/Season 1/SIGN.S01E22.avi")
+        assertThat(targetHackSign).endsWith("/Series-Shows/H/hack SIGN {tmdb-333800}/Season 1/SIGN.S01E22.avi")
 
         // Extra with season but no episode
         val extraItem = MediaItem(title = "24", type = boat.info.MediaType.Series, id = "{tvdb-1234}")
@@ -404,7 +404,7 @@ class ContentRenamerTest {
         // Extra with series media type but no season and no episode (keep original file name in series folder)
         val hackSignExtra = File("~/Series-Shows/#/.Hack Sign 1-28+Extras/[V-A]_hack_SIGN_-_Textless_Ending_[934E6984].mkv")
         val targetHackSignExtra = contentRenamer.getTargetFile(hackSignExtra, hackSignItem, "Hack Sign", null, null)
-        assertThat(targetHackSignExtra).endsWith("/Series-Shows/H/.hack SIGN {tmdb-333800}/[V-A]_hack_SIGN_-_Textless_Ending_[934E6984].mkv")
+        assertThat(targetHackSignExtra).endsWith("/Series-Shows/H/hack SIGN {tmdb-333800}/[V-A]_hack_SIGN_-_Textless_Ending_[934E6984].mkv")
     }
 
     @Test

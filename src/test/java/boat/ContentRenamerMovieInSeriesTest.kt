@@ -52,6 +52,13 @@ class ContentRenamerMovieInSeriesTest {
     }
 
     @Test
+    fun titlesDontMakeHiddenFiles() {
+        val hack = MediaItem(".hack//G.U. Trilogy", year = 2007, type = MediaType.Movie, id = "{tmdb-26595}")
+        assertThat(contentRenamer.getTargetFile(File("[GAX]dot_hack-G.U._Trilogy_-_Movie(ger.sub)(h264)[525944DF].mkv"), hack, "", null, null, "/PFDB"))
+            .isEqualTo("/PFDB/Movies/H/hack G.U. Trilogy (2007) {tmdb-26595}.h264.mkv")
+    }
+
+    @Test
     fun moveMoviesFromSeriesFoldersToTheMovies(@TempDir tempDir: File) {
         val show = File(tempDir, "Series-Shows/B/BATMAN The Animated Series (1992-1999) - COMPLETE Season 1-6 and 2 Movies")
         val movies = File(show, "Movies (1993-98)").apply { mkdirs() }

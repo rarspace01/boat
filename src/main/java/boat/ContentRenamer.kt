@@ -1727,7 +1727,9 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
                     ?.takeIf { it.groupValues[1].toInt() == episode && it.groupValues[2].toInt() == episode + 1 }
                     ?.let { "-E" + String.format("%02d", episode + 1) }
                 ?: ""
-            "/${extractedName}.S${seasonStr}E${episodeStr}$partSuffix$extraSuffix$languageSuffix"
+            // a title like "hak5" in "Hak5 {tvdb-79008}" counts as junk, the name must not start with a dot
+            val episodeTitle = extractedName.ifBlank { getSafeTitle(mediaResult) }
+            "/${episodeTitle}.S${seasonStr}E${episodeStr}$partSuffix$extraSuffix$languageSuffix"
         } else if (season != null || mediaResult.type == MediaType.Series) {
             "/${file.nameWithoutExtension}"
         } else {
@@ -1780,7 +1782,8 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
     }
 
     fun getSafeTitle(title: String): String {
-        return title.replace("//", " ").replace(invalidFileCharsPattern, "")
+        // a leading dot like in ".hack//G.U. Trilogy" would make a hidden file
+        return title.replace("//", " ").replace(invalidFileCharsPattern, "").trimStart('.', ' ')
     }
 
     private fun getMediaTypeFolderString(mediaResult: MediaItem): String = when (mediaResult.type) {

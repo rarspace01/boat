@@ -128,6 +128,27 @@ class ContentRenamerCollisionTest {
     }
 
     @Test
+    fun repeatedRunsKeepTheNames(@TempDir tempDir: File) {
+        // incoming files next to the library, a run visits the files it moved again
+        val library = File(tempDir, "PFDB")
+        val incoming = File(library, "Series-Shows/H/HAK 5 all Seasons (Youtube Channel Clone) 1080p").apply { mkdirs() }
+        File(incoming, "hak5--1718--free-virtualization-clusters-and-breadboards--hd720p30.h264.mp4").writeText("episode")
+        val hak5 = MediaItem("Hak5", year = 2005, type = MediaType.Series, id = "{tvdb-79008}")
+        every { mediaProxyService.search(any(), any<MediaType>()) } returns listOf(hak5)
+        every { mediaProxyService.search(any(), any<Int>(), any<MediaType>()) } returns listOf(hak5)
+        every { mediaProxyService.findByRemoteMediaId(any(), any(), any()) } returns hak5
+
+        fun files() = library.walk().filter { it.isFile }.map { it.relativeTo(library).path }.sorted().toList()
+        repeat(2) { contentRenamer.processFilesFromDirectory(File(library, "Series-Shows").absolutePath, isTestRun = false, basePath = library.absolutePath) }
+        val afterTwoRuns = files()
+        contentRenamer.processFilesFromDirectory(File(library, "Series-Shows").absolutePath, isTestRun = false, basePath = library.absolutePath)
+
+        // "hak5" counts as junk, the show's title is used instead of an empty one which made it a hidden file
+        assertThat(afterTwoRuns).containsExactly("Series-Shows/H/Hak5 {tvdb-79008}/Season 17/Hak5.S17E18.720p.h264.mp4")
+        assertThat(files()).isEqualTo(afterTwoRuns)
+    }
+
+    @Test
     fun testRunReportsCollisions(@TempDir tempDir: File) {
         val incoming = File(tempDir, "incoming/Series-Shows/B/Blackish").apply { mkdirs() }
         File(incoming, "Blackish.S04E06.HDTV.x264-SVA[ettv].mkv").writeText("ettv")
