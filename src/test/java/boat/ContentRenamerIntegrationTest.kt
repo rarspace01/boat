@@ -11,10 +11,9 @@ import java.io.File
 class ContentRenamerIntegrationTest {
     val homeDir: String? = System.getProperty("user.home")
 
-    // archives and disc images plus the non-media files the renamer skips, except downloads in progress and the fonts
-    // of styled subtitles
+    // archives and disc images plus the non-media files the renamer skips, qBittorrent's downloads only in the library
     private val deletableExtensions = setOf("rar", "7z", "zip", "mp3", "vob", "iso", "ifo", "bup") +
-            (ContentRenamer.nonMediaExtensions - setOf("!qb", "part", "ttf", "otf"))
+            (ContentRenamer.nonMediaExtensions - "!qb")
 
     @Disabled
     @Test
