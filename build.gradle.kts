@@ -117,6 +117,7 @@ tasks.classes {
 
 tasks.test {
     useJUnitPlatform()
+    jvmArgs("-XX:+EnableDynamicAgentLoading", "-Xshare:off")
     testLogging {
         events("standardOut", "started", "passed", "skipped", "failed")
         showStandardStreams = true
