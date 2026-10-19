@@ -1,15 +1,19 @@
 package boat.info
 
+import boat.utilities.HttpHelper
 import io.mockk.clearMocks
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import java.io.File
 import java.nio.file.Path
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 
 class MediaProxyServiceCachingTest {
 
@@ -254,5 +258,95 @@ class MediaProxyServiceCachingTest {
         assertThat(File(cacheFile)).doesNotExist()
         service.search(name)
         verify(exactly = 2) { tmdbService.search(name) }
+    }
+
+    @Test
+    fun `refreshCache should search the cached search strings again and update their results`(@TempDir tempDir: Path) {
+        val cacheFile = tempDir.resolve("refreshCache").toString()
+        val service = MediaProxyService(tmdbService, tvdbService, cacheFile)
+        val oldMovie = MediaItem("Predators", "Predators", 2010, MediaType.Movie)
+        val newMovie = MediaItem("Predators", "Predators", 2010, MediaType.Movie, "{tmdb-34851}")
+        val documentary = MediaItem("Predators", "Predators", 2025, MediaType.Movie, "{tmdb-1}")
+        val oldSeries = MediaItem("Dark", "Dark", 2017, MediaType.Series)
+        val newSeries = MediaItem("Dark", "Dark", 2017, MediaType.Series, "{tvdb-334824}")
+        val oldIdMovie = MediaItem("Inception", "Inception", 2010, MediaType.Movie, "{tmdb-27205}")
+        val newIdMovie = MediaItem("Inception", "Inception (updated)", 2010, MediaType.Movie, "{tmdb-27205}")
+        val kept = MediaItem("Doug", "Doug", 1991, MediaType.Series)
+        every { tmdbService.search("Predators") } returns listOf(oldMovie)
+        every { tvdbService.search("Predators") } returns emptyList()
+        every { tmdbService.search("Predators", 2025, MediaType.Movie) } returns emptyList()
+        every { tvdbService.search("Dark") } returns listOf(oldSeries)
+        every { tmdbService.search("Dark") } returns emptyList()
+        every { tmdbService.findById("27205", MediaType.Movie) } returns oldIdMovie
+        every { tmdbService.findById("27205", MediaType.Series) } returns null
+        every { tvdbService.search("Doug", 1991) } returns listOf(kept)
+        every { tmdbService.search("Doug", 1991) } returns emptyList()
+        service.search("Predators")
+        service.search("Predators", 2025, MediaType.Movie)
+        service.search("Dark", MediaType.Series)
+        service.findByRemoteMediaId("{tmdb-27205}")
+        service.search("Doug", 1991)
+        service.saveCache()
+        val cacheKeys = service.cache.keys.toSet()
+
+        every { tmdbService.search("Predators") } returns listOf(newMovie, documentary)
+        every { tmdbService.search("Predators", 2025, MediaType.Movie) } returns listOf(documentary)
+        every { tvdbService.search("Dark") } returns listOf(newSeries)
+        every { tmdbService.findById("27205", MediaType.Movie) } returns newIdMovie
+        // a failing api finds nothing, the cached results stay
+        every { tvdbService.search("Doug", 1991) } returns emptyList()
+
+        assertThat(service.refreshCache(parallelism = 3, entriesPerSecond = 100)).isEqualTo(4)
+        service.saveCache()
+
+        assertThat(service.cache.keys).isEqualTo(cacheKeys)
+        val reloaded = MediaProxyService(mockk(), mockk(), cacheFile)
+        assertThat(reloaded.search("Predators")).containsExactlyInAnyOrder(newMovie, documentary)
+        assertThat(reloaded.search("Predators", 2025, MediaType.Movie)).containsExactly(documentary)
+        assertThat(reloaded.search("Dark", MediaType.Series)).containsExactly(newSeries)
+        assertThat(reloaded.findByRemoteMediaId("{tmdb-27205}")).isEqualTo(newIdMovie)
+        assertThat(reloaded.search("Doug", 1991)).containsExactly(kept)
+        // the refresh looks up the remote id with the type of the cached item
+        verify(exactly = 2) { tmdbService.findById("27205", MediaType.Movie) }
+        verify(exactly = 1) { tmdbService.findById("27205", MediaType.Series) }
+    }
+
+    @Test
+    fun `refreshCache should refresh entries in parallel within the given limits`() {
+        val names = (1..6).map { "Movie $it" }
+        names.forEach { mediaProxyService.cache["search:$it"] = listOf(MediaItem(it, it, 2000, MediaType.Movie)) }
+        val runningSearches = AtomicInteger()
+        val maxRunningSearches = AtomicInteger()
+        every { tmdbService.search(any<String>()) } answers {
+            maxRunningSearches.accumulateAndGet(runningSearches.incrementAndGet(), ::maxOf)
+            Thread.sleep(200)
+            runningSearches.decrementAndGet()
+            listOf(MediaItem(firstArg(), firstArg(), 2001, MediaType.Movie))
+        }
+        every { tvdbService.search(any<String>()) } returns emptyList()
+
+        assertThat(mediaProxyService.refreshCache(parallelism = 3, entriesPerSecond = 1000)).isEqualTo(6)
+        assertThat(maxRunningSearches.get()).isEqualTo(3)
+        names.forEach { assertThat(mediaProxyService.cache["search:$it"]).containsExactly(MediaItem(it, it, 2001, MediaType.Movie)) }
+
+        // 6 entries at 20 per second start over at least 250ms, even if the searches return at once
+        every { tmdbService.search(any<String>()) } returns emptyList()
+        val start = System.nanoTime()
+        mediaProxyService.refreshCache(parallelism = 6, entriesPerSecond = 20)
+        assertThat(TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start)).isGreaterThanOrEqualTo(250)
+    }
+
+    /**
+     * Refreshes the local media proxy cache file of a boat installation (run from its working directory) against the
+     * live TMDB and TVDB apis.
+     */
+    @Disabled
+    @Test
+    fun refreshLocalMediaProxyCache() {
+        val httpHelper = HttpHelper()
+        val service = MediaProxyService(TheMovieDataBaseService(httpHelper), TheTVDBService(httpHelper))
+        println("refreshing ${service.cache.size} cache entries of ${File(service.cacheFileName).absolutePath}")
+        println("updated ${service.refreshCache()} cache entries")
+        service.saveCache()
     }
 }

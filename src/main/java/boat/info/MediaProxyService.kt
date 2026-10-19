@@ -8,6 +8,10 @@ import org.springframework.stereotype.Service
 import java.io.File
 import java.text.Normalizer
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicLong
 import kotlin.math.abs
 
 @Service
@@ -29,6 +33,15 @@ class MediaProxyService(
         private val ACRONYM_PATTERN = "(?<=(?:^|[^a-zA-Z0-9]))(?:[a-zA-Z][.*]){1,}[a-zA-Z](?:[.*](?=[^a-zA-Z0-9]|$)|(?=[^a-zA-Z0-9]|$))".toRegex()
         private val NON_ALPHANUMERIC_PATTERN = "[^a-z0-9]+".toRegex()
         private val TRAILING_YEAR_PATTERN = "^(.*\\S)\\s+\\(?((?:19|20)\\d{2})\\)?$".toRegex()
+        private const val SEARCH_KEY_PREFIX = "search:"
+        private const val REMOTE_ID_KEY_PREFIX = "id:"
+        private val YEAR_SEARCH_KEY_PATTERN = "^yearSearch:(.+):(\\d+):(\\w+)$".toRegex()
+        private val SEARCH_WITH_YEAR_KEY_PATTERN = "^search:(.+):(\\d+)$".toRegex()
+        private val SEARCH_WITH_TYPE_KEY_PATTERN = "^search:(.+):(\\w+)$".toRegex()
+        // TMDB allows about 50 requests per second and 20 connections per IP, TVDB publishes no limit. A cache entry
+        // takes up to two requests, so stay well below that.
+        const val REFRESH_PARALLELISM = 8
+        const val REFRESH_ENTRIES_PER_SECOND = 10
 
         /**
          * Lowercase title without accents and punctuation, words separated by a single space.
@@ -130,15 +143,78 @@ class MediaProxyService(
         return computed
     }
 
+    /**
+     * Searches the services again for every cached search string and remote media id, so the cache keeps its keys but
+     * gets current results. An entry keeps its results if the services find nothing for it anymore, so a transient API
+     * failure doesn't wipe the cache. The entries are refreshed by [parallelism] threads, starting at most
+     * [entriesPerSecond] entries per second to stay within the API rate limits. Returns the number of updated cache entries.
+     */
+    fun refreshCache(parallelism: Int = REFRESH_PARALLELISM, entriesPerSecond: Int = REFRESH_ENTRIES_PER_SECOND): Int {
+        val updatedEntries = AtomicInteger()
+        val startIntervalNanos = TimeUnit.SECONDS.toNanos(1) / entriesPerSecond
+        val nextStart = AtomicLong(System.nanoTime())
+        val executor = Executors.newFixedThreadPool(parallelism)
+        try {
+            cache.entries.toList().map { (cacheKey, cachedResults) ->
+                executor.submit {
+                    val waitNanos = nextStart.getAndAdd(startIntervalNanos) - System.nanoTime()
+                    if (waitNanos > 0) TimeUnit.NANOSECONDS.sleep(waitNanos)
+                    val refreshed = try {
+                        fetchForCacheKey(cacheKey, cachedResults)
+                    } catch (e: Exception) {
+                        logger.warn("Failed to refresh media proxy cache entry $cacheKey", e)
+                        null
+                    }
+                    if (!refreshed.isNullOrEmpty() && refreshed != cachedResults) {
+                        cache[cacheKey] = refreshed
+                        dirty = true
+                        updatedEntries.incrementAndGet()
+                    }
+                }
+            }.forEach { it.get() }
+        } finally {
+            executor.shutdownNow()
+        }
+        return updatedEntries.get()
+    }
+
+    private fun fetchForCacheKey(cacheKey: String, cachedResults: List<MediaItem>): List<MediaItem>? {
+        YEAR_SEARCH_KEY_PATTERN.matchEntire(cacheKey)?.let { match ->
+            val (name, year, type) = match.destructured
+            return if (isMediaType(type)) fetchByYear(name, year.toInt(), parseMediaType(type)) else null
+        }
+        if (cacheKey.startsWith(REMOTE_ID_KEY_PREFIX)) {
+            val cachedItem = cachedResults.firstOrNull()
+            return listOfNotNull(fetchByRemoteMediaId(cacheKey.removePrefix(REMOTE_ID_KEY_PREFIX), cachedItem?.title, cachedItem?.type))
+        }
+        if (!cacheKey.startsWith(SEARCH_KEY_PREFIX)) return null
+        SEARCH_WITH_YEAR_KEY_PATTERN.matchEntire(cacheKey)?.let { match ->
+            val (name, year) = match.destructured
+            return fetch(name, year.toInt())
+        }
+        SEARCH_WITH_TYPE_KEY_PATTERN.matchEntire(cacheKey)?.let { match ->
+            val (name, type) = match.destructured
+            if (isMediaType(type)) return fetch(name, parseMediaType(type))
+        }
+        return fetch(cacheKey.removePrefix(SEARCH_KEY_PREFIX))
+    }
+
+    // cache keys hold the media type as its name or "null"
+    private fun isMediaType(type: String) = type == "null" || parseMediaType(type) != null
+
+    private fun parseMediaType(type: String) = MediaType.entries.firstOrNull { it.name == type }
+
     fun search(name: String?): List<MediaItem> {
         if (name.isNullOrBlank()) return emptyList()
-        val cacheKey = "search:$name"
-        val results = getCachedOrPut(cacheKey) {
-            val tmdbResults = theMovieDataBaseService.search(name) ?: emptyList()
-            val tvdbResults = theTVDBService.search(name)
-            tmdbResults.plus(tvdbResults).distinctBy { it.title + it.year + it.type }
-        }
+        val cacheKey = "$SEARCH_KEY_PREFIX$name"
+        val results = getCachedOrPut(cacheKey) { fetch(name) }
         return rankResults(name, results)
+    }
+
+    private fun fetch(name: String): List<MediaItem> {
+        val tmdbResults = theMovieDataBaseService.search(name) ?: emptyList()
+        val tvdbResults = theTVDBService.search(name)
+        return tmdbResults.plus(tvdbResults).distinctBy { it.title + it.year + it.type }
     }
 
     /**
@@ -163,7 +239,14 @@ class MediaProxyService(
     fun findByRemoteMediaId(remoteMediaId: String?, nameHint: String? = null, mediaType: MediaType? = null): MediaItem? {
         if (remoteMediaId.isNullOrBlank()) return null
         cache.values.flatten().firstOrNull { it.id == remoteMediaId && (mediaType == null || it.type == mediaType) }?.let { return it }
+        val mediaItem = fetchByRemoteMediaId(remoteMediaId, nameHint, mediaType) ?: return null
+        // only cache hits, so a transient API failure doesn't stick
+        cache["$REMOTE_ID_KEY_PREFIX$remoteMediaId"] = listOf(mediaItem)
+        dirty = true
+        return mediaItem
+    }
 
+    private fun fetchByRemoteMediaId(remoteMediaId: String, nameHint: String?, mediaType: MediaType?): MediaItem? {
         val match = REMOTE_MEDIA_ID_PATTERN.find(remoteMediaId.trim())
         if (match == null) {
             logger.warn("couldn't parse remote media id: $remoteMediaId")
@@ -184,40 +267,38 @@ class MediaProxyService(
         }
         if (mediaItem == null) {
             logger.warn("couldn't find media item with remote media id: $remoteMediaId")
-            return null
         }
-        // only cache hits, so a transient API failure doesn't stick
-        cache["id:$remoteMediaId"] = listOf(mediaItem)
-        dirty = true
         return mediaItem
     }
 
     fun search(name: String?, year: Int): List<MediaItem> {
         if (name.isNullOrBlank()) return emptyList()
-        val cacheKey = "search:$name:$year"
-        val results = getCachedOrPut(cacheKey) {
-            val tmdbResults = theMovieDataBaseService.search(name, year) ?: emptyList()
-            val tvdbResults = theTVDBService.search(name, year)
-            tmdbResults.plus(tvdbResults).distinctBy { it.title + it.year + it.type }
-        }
+        val cacheKey = "$SEARCH_KEY_PREFIX$name:$year"
+        val results = getCachedOrPut(cacheKey) { fetch(name, year) }
         return rankResults(name, results, year)
+    }
+
+    private fun fetch(name: String, year: Int): List<MediaItem> {
+        val tmdbResults = theMovieDataBaseService.search(name, year) ?: emptyList()
+        val tvdbResults = theTVDBService.search(name, year)
+        return tmdbResults.plus(tvdbResults).distinctBy { it.title + it.year + it.type }
     }
 
     fun search(name: String?, type: MediaType?): List<MediaItem> {
         if (name.isNullOrBlank()) return emptyList()
-        val cacheKey = "search:$name:$type"
-        val results = getCachedOrPut(cacheKey) {
-            when (type) {
-                MediaType.Movie -> theMovieDataBaseService.search(name)?.filter { it.type == MediaType.Movie } ?: emptyList()
-                MediaType.Series -> {
-                    val tvdbResults = theTVDBService.search(name)
-                    val tmdbResults = theMovieDataBaseService.search(name)?.filter { it.type == MediaType.Series } ?: emptyList()
-                    tvdbResults.plus(tmdbResults).distinctBy { it.title + it.year + it.type }
-                }
-                else -> search(name)
-            }
-        }
+        val cacheKey = "$SEARCH_KEY_PREFIX$name:$type"
+        val results = getCachedOrPut(cacheKey) { fetch(name, type) }
         return rankResults(name, results)
+    }
+
+    private fun fetch(name: String, type: MediaType?): List<MediaItem> = when (type) {
+        MediaType.Movie -> theMovieDataBaseService.search(name)?.filter { it.type == MediaType.Movie } ?: emptyList()
+        MediaType.Series -> {
+            val tvdbResults = theTVDBService.search(name)
+            val tmdbResults = theMovieDataBaseService.search(name)?.filter { it.type == MediaType.Series } ?: emptyList()
+            tvdbResults.plus(tmdbResults).distinctBy { it.title + it.year + it.type }
+        }
+        else -> fetch(name)
     }
 
     fun search(name: String?, year: Int, type: MediaType?): List<MediaItem> {
@@ -225,22 +306,22 @@ class MediaProxyService(
         // typed TMDB searches filter by year, they don't share cache entries with the former search/multi results nor
         // with the former typed searches, which were cached after ranking and so missed titles like "Self/less"
         val cacheKey = "yearSearch:$name:$year:$type"
-        val results = getCachedOrPut(cacheKey) {
-            when (type) {
-                MediaType.Movie -> theMovieDataBaseService.search(name, year, MediaType.Movie) ?: emptyList()
-                MediaType.Series -> {
-                    val tvdbResults = theTVDBService.search(name, year)
-                    val tmdbResults = theMovieDataBaseService.search(name, year, MediaType.Series) ?: emptyList()
-                    tvdbResults.plus(tmdbResults).distinctBy { it.title + it.year + it.type }
-                }
-                else -> search(name, year)
-            }
-        }
+        val results = getCachedOrPut(cacheKey) { fetchByYear(name, year, type) }
         val ranked = rankResults(name, results, year)
         // TMDB also finds movies by alternative titles ("I Spit on Your Grave" is "Day of the Woman"), they come after the
         // ranked ones. Short names like "Dune" or "nde" match too many unrelated titles.
         val isDistinctiveName = name.count { it.isLetter() } >= 8
         return if (type == MediaType.Movie && isDistinctiveName) ranked + results.filter { it !in ranked } else ranked
+    }
+
+    private fun fetchByYear(name: String, year: Int, type: MediaType?): List<MediaItem> = when (type) {
+        MediaType.Movie -> theMovieDataBaseService.search(name, year, MediaType.Movie) ?: emptyList()
+        MediaType.Series -> {
+            val tvdbResults = theTVDBService.search(name, year)
+            val tmdbResults = theMovieDataBaseService.search(name, year, MediaType.Series) ?: emptyList()
+            tvdbResults.plus(tmdbResults).distinctBy { it.title + it.year + it.type }
+        }
+        else -> fetch(name, year)
     }
 
     internal fun rankResults(query: String, items: List<MediaItem>, year: Int? = null): List<MediaItem> {

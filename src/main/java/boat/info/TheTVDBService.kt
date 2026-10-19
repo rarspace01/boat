@@ -35,6 +35,8 @@ class TheTVDBService @Autowired constructor(private val httpHelper: HttpHelper) 
         }
     }
 
+    // the media proxy cache refresh searches in parallel, they share one login
+    @Synchronized
     private fun getToken(): String? {
         if (token == null) {
             token = login()
