@@ -106,7 +106,9 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         // season and episode glued to the title like "Shameless901.Are You There Shim"
         val gluedSeasonEpisodePattern = "^([^\\s\\[(]*?[a-zA-Z]{3})([1-9][0-9]?)([0-9]{2})(?=[\\s._-]|$)".toRegex()
         val yearSpecialPattern = "(?i)(?<=^|[^a-zA-Z0-9])(?:19[0-9]{2}|20[0-2][0-9])(?:e[0-9]{1,3})?x[0-9]{1,3}(?=[^a-zA-Z0-9]|$)".toRegex()
-        // openings, endings and OVAs go to season 0, OP and ED only in upper case, they're words otherwise ("Ed, Edd n Eddy")
+        // openings, endings and OVAs go to the extras of the show, OP and ED only in upper case, they're words otherwise ("Ed, Edd n Eddy")
+        // the folder of a show Plex lists as "Other" extras
+        const val otherExtrasFolder = "Other"
         val ovaMarkerPattern = "(?i)(?<![a-z])(?:NCOP|NCED|OVA|OAD)s?(?![a-z])".toRegex()
         val openingEndingMarkerPattern = "(?<![A-Za-z])(?:OP|ED)(?:[ ._]?[0-9]{1,2}(?:v[0-9])?)?(?![A-Za-z0-9])".toRegex()
         // movies in a series folder, e.g. "Naruto/3.Naruto Movies/1 - Ninja Clash in the Land of Snow.mkv" or "Show/Movie (2005)/"
@@ -1105,12 +1107,13 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
     }
 
     /**
-     * Openings, endings and OVAs are stored in season 0 without episode number, their numbering would collide otherwise.
+     * Openings, endings and OVAs are stored as "Other" extras of the show, Plex lists them there by file name. As specials
+     * they'd need the special's number of TVDB, their own numbering would collide otherwise ("NCOP 01" and "OVA 01").
      */
-    private fun isOpeningEndingOrOva(file: File) = specialMarkerIndex(decodeIfEncoded(file.nameWithoutExtension)) != null
+    fun isOpeningEndingOrOva(file: File) = specialMarkerIndex(decodeIfEncoded(file.nameWithoutExtension)) != null
 
     fun extractSeason(file: File): Int? {
-        if (isOpeningEndingOrOva(file)) return 0
+        if (isOpeningEndingOrOva(file)) return null
         val directSeason = extractDirectSeason(file)
         if (directSeason != null) return directSeason
 
@@ -1588,6 +1591,9 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         }
         val firstPart = base + "/" + getMediaTypeFolderString(mediaResult) +
                 "/" + StringUtil.deductFirstTorrentLetter(getSafeTitle(mediaResult)) + "/${getSafeTitle(mediaResult)}$idPart"
+        if (isOpeningEndingOrOva(file)) {
+            return "$firstPart/$otherExtrasFolder/${file.name}"
+        }
         val optionalSeasonFolder = if(season != null){
             "/Season $season"
         } else {
