@@ -28,6 +28,7 @@ class MediaProxyService(
         private val REMOTE_MEDIA_ID_PATTERN = "\\{?(tmdb|tvdb)-(\\d+)}?".toRegex(RegexOption.IGNORE_CASE)
         private val ACRONYM_PATTERN = "(?<=(?:^|[^a-zA-Z0-9]))(?:[a-zA-Z][.*]){1,}[a-zA-Z](?:[.*](?=[^a-zA-Z0-9]|$)|(?=[^a-zA-Z0-9]|$))".toRegex()
         private val NON_ALPHANUMERIC_PATTERN = "[^a-z0-9]+".toRegex()
+        private val TRAILING_YEAR_PATTERN = "^(.*\\S)\\s+\\(?((?:19|20)\\d{2})\\)?$".toRegex()
 
         /**
          * Lowercase title without accents and punctuation, words separated by a single space.
@@ -121,6 +122,20 @@ class MediaProxyService(
             tmdbResults.plus(tvdbResults).distinctBy { it.title + it.year + it.type }
         }
         return rankResults(name, results)
+    }
+
+    /**
+     * Searches user input like "Predators 2025". TMDB and TVDB treat a year in the query as part of the title, so a
+     * trailing year is also searched as release year of the name before it. The input as typed is still searched, for
+     * titles like "Blade Runner 2049".
+     */
+    fun searchWithTrailingYear(query: String?): List<MediaItem> {
+        if (query.isNullOrBlank()) return emptyList()
+        val match = TRAILING_YEAR_PATTERN.find(query.trim()) ?: return search(query)
+        val name = match.groupValues[1]
+        val year = match.groupValues[2].toInt()
+        val yearResults = search(name, year, MediaType.Movie) + search(name, year, MediaType.Series)
+        return (yearResults + search(query)).distinctBy { it.title + it.year + it.type }
     }
 
     /**

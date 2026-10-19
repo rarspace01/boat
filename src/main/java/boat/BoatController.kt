@@ -256,7 +256,7 @@ $switchToSearchOld$switchToSearchList${switchToProgress.replace("..", "../boat")
                 searchTorrents(null, null, null, torrentSearchString, mediaId, mediaType?.name)
             }
         } else if (!mediaSearchString.isNullOrBlank()) {
-            val mediaItems = mediaProxyService.search(mediaSearchString)
+            val mediaItems = mediaProxyService.searchWithTrailingYear(mediaSearchString)
             logger.info(
                 "Took: [{}]ms for media search [{}] found [{}]", System.currentTimeMillis() - startTime,
                 mediaSearchString, mediaItems.size

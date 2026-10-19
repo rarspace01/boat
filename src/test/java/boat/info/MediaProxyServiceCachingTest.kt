@@ -90,6 +90,44 @@ class MediaProxyServiceCachingTest {
     }
 
     @Test
+    fun `search with trailing year should find titles released in that year`() {
+        val documentary = MediaItem("Predators", "Predators", 2025, MediaType.Movie)
+        val movie = MediaItem("Predators", "Predators", 2010, MediaType.Movie)
+        every { tmdbService.search("Predators", 2025, MediaType.Movie) } returns listOf(documentary)
+        every { tmdbService.search("Predators", 2025, MediaType.Series) } returns emptyList()
+        every { tvdbService.search("Predators", 2025) } returns emptyList()
+        // the search apis take the year as part of the title
+        every { tmdbService.search("Predators 2025") } returns emptyList()
+        every { tvdbService.search("Predators 2025") } returns emptyList()
+        every { tmdbService.search("Predators (2025)") } returns emptyList()
+        every { tvdbService.search("Predators (2025)") } returns emptyList()
+
+        assertThat(mediaProxyService.searchWithTrailingYear("Predators 2025")).containsExactly(documentary)
+        assertThat(mediaProxyService.searchWithTrailingYear("Predators (2025)")).containsExactly(documentary)
+
+        every { tmdbService.search("Predators") } returns listOf(movie, documentary)
+        every { tvdbService.search("Predators") } returns emptyList()
+        assertThat(mediaProxyService.searchWithTrailingYear("Predators")).containsExactlyInAnyOrder(movie, documentary)
+    }
+
+    @Test
+    fun `search with trailing year should keep titles ending with a number`() {
+        val bladeRunner = MediaItem("Blade Runner 2049", "Blade Runner 2049", 2017, MediaType.Movie)
+        every { tmdbService.search("Blade Runner", 2049, MediaType.Movie) } returns emptyList()
+        every { tmdbService.search("Blade Runner", 2049, MediaType.Series) } returns emptyList()
+        every { tvdbService.search("Blade Runner", 2049) } returns emptyList()
+        every { tmdbService.search("Blade Runner 2049") } returns listOf(bladeRunner)
+        every { tvdbService.search("Blade Runner 2049") } returns emptyList()
+
+        assertThat(mediaProxyService.searchWithTrailingYear("Blade Runner 2049")).containsExactly(bladeRunner)
+
+        val movie2012 = MediaItem("2012", "2012", 2009, MediaType.Movie)
+        every { tmdbService.search("2012") } returns listOf(movie2012)
+        every { tvdbService.search("2012") } returns emptyList()
+        assertThat(mediaProxyService.searchWithTrailingYear("2012")).containsExactly(movie2012)
+    }
+
+    @Test
     fun `search should rank items by query relevance`() {
         val query = "hack roots"
         val sommerCamp = MediaItem("SommerCamp – Back to the Roots", "SommerCamp – Back to the Roots", 2020, MediaType.Series)
