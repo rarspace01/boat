@@ -6,3 +6,4 @@ out/
 /bin/
 /.settings/
 mediaProxyCache*
+tvdbToken
