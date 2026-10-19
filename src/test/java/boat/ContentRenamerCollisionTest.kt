@@ -81,6 +81,8 @@ class ContentRenamerCollisionTest {
         file("K/Kim Possible/Season 2/Kim Possible - S02 E06b - Adventures In Rufus-Sitting (1080p - AMZN Web-DL).mp4")
         file("L/Lost/Season 1/Lost.S01E20.mp4")
         file("L/Lost/Season 1/Lost S01E20X01 Lost The Journey.mp4")
+        file("L/Lost/Season 4/Lost.S04E13.mkv")
+        file("L/Lost/Season 4/Lost.S04E13E14 'There's No Place Like Home - Part 2'.mkv")
 
         every { mediaProxyService.search(any(), any<MediaType>()) } answers { lookup(firstArg()) }
         every { mediaProxyService.search(any(), any<Int>(), any<MediaType>()) } answers { lookup(firstArg()) }
@@ -119,6 +121,8 @@ class ContentRenamerCollisionTest {
         assertThat(movedFiles("{tvdb-78259}/Season 2/Kim Possible.S02E06b.1080p.mp4")).hasSize(1)
         assertThat(movedFiles("{tvdb-73739}/Season 1/Lost.S01E20.mp4")).hasSize(1)
         assertThat(movedFiles("{tvdb-73739}/Season 1/Lost S01E20X01 Lost The Journey.mp4")).hasSize(1)
+        assertThat(movedFiles("{tvdb-73739}/Season 4/Lost.S04E13.mkv")).hasSize(1)
+        assertThat(movedFiles("{tvdb-73739}/Season 4/Lost.S04E13-E14.mkv")).hasSize(1)
         // one release of the same episode is moved, the other one stays
         assertThat(movedFiles("{tmdb-61381}/Season 4/", ".S04E06.")).hasSize(1)
     }

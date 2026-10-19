@@ -80,6 +80,8 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         val explicitSeasonEpisodePattern = "(?i)(?<![a-z0-9])S([0-9]{1,2})[\\s._-]?E([0-9]{1,4})(?![0-9])".toRegex()
         // specials attached to an episode like "Lost S01E20X01 Lost The Journey"
         val episodeSpecialPattern = "(?i)(?<![a-z0-9])S[0-9]{1,2}[\\s._-]?E[0-9]{1,4}X[0-9]{1,3}(?![0-9])".toRegex()
+        // double episodes like "Lost.S04E13E14 'There's No Place Like Home - Part 2'", not "S04E05-1960s.Week"
+        val doubleEpisodePattern = "(?i)(?<![a-z0-9])S[0-9]{1,2}[\\s._-]?E([0-9]{1,4})(?:-?E|-)([0-9]{1,4})(?![0-9a-z])".toRegex()
         // segments of an episode like "Kim Possible - S02 E06b - Adventures In Rufus-Sitting"
         val episodePartPattern = "(?i)(?<![a-z0-9])S[0-9]{1,2}[\\s._-]?E[0-9]{1,4}([a-z])(?![a-z0-9])".toRegex()
         // daily shows like "Dr.Phil.Show.2013.10.01.Dangerous.and.Violent.Love" have no season and episode in the name
@@ -1671,7 +1673,11 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
             val extraSuffix = if (extraInfo.isNotEmpty()) ".$extraInfo" else ""
             // subtitles of several languages for the same episode
             val languageSuffix = if (file.extension.lowercase() in subtitleExtensions) extractSeriesSubtitleLanguage(file)?.let { ".$it" } ?: "" else ""
-            val partSuffix = episodePartPattern.find(decodeIfEncoded(file.nameWithoutExtension))?.groupValues?.get(1)?.lowercase() ?: ""
+            val partSuffix = episodePartPattern.find(decodeIfEncoded(file.nameWithoutExtension))?.groupValues?.get(1)?.lowercase()
+                ?: doubleEpisodePattern.find(decodeIfEncoded(file.nameWithoutExtension))
+                    ?.takeIf { it.groupValues[1].toInt() == episode && it.groupValues[2].toInt() == episode + 1 }
+                    ?.let { "-E" + String.format("%02d", episode + 1) }
+                ?: ""
             "/${extractedName}.S${seasonStr}E${episodeStr}$partSuffix$extraSuffix$languageSuffix"
         } else if (season != null || mediaResult.type == MediaType.Series) {
             "/${file.nameWithoutExtension}"
