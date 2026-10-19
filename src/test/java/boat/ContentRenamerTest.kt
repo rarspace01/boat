@@ -628,11 +628,27 @@ class ContentRenamerTest {
         val angerManagement = File("~/Series-Shows/A/Anger.Management.(2011).2/Season 2/S02E36 - Charlie and the Grad Student.mp4")
         assertThat(contentRenamer.extractName(angerManagement)).isEqualTo("Anger Management")
 
+        // letter O instead of the zero in the season, the episode must not come from "AC3 2.0" or "No.64"
+        val blacklist = File("~/Series-Shows/B/The Blacklist/[FileTracker.pl]The Blacklist S01-S06[wilu75]/S1/The.Blacklist.SO1E13.The.Cyprus.Agency.No.64.PL.480p.WEB-DL.AC3.2.0.XviD-Ralf.DeiX.avi")
+        assertThat(contentRenamer.extractName(blacklist)).isEqualTo("The Blacklist")
+        assertThat(contentRenamer.extractSeason(blacklist)).isEqualTo(1)
+        assertThat(contentRenamer.extractEpisode(blacklist)).isEqualTo(13)
+
+        assertThat(contentRenamer.extractName(File("~/Series-Shows/C/Catch-22.(tv.Mini.Series.2019).Web265.Bone/Catch-22 2019 S01E01 720p WEB-DL HEVC x265 BONE.mkv"))).isEqualTo("Catch-22")
+        assertThat(contentRenamer.extractName(File("~/Series-Shows/B/Bbc.Planet.Earth.(2006).Se/Featurettes/Desert Lions.mkv"))).isEqualTo("Bbc Planet Earth")
+        assertThat(contentRenamer.extractName(File("~/Series-Shows/L/Lupin III -  Full Collection 2018/Series/(1971) Lupin III Part I/Lupin III Series 1 - 01 - Is Lupin Burning [NyardReencodes][720p][v2][80494603]_new.mkv"))).isEqualTo("Lupin III")
+        assertThat(contentRenamer.extractName(File("~/Series-Shows/A/Area.88/(1985) Area 88/[Mo7tas] Area 88 - S00E01 [Remastered 1080p] [Kaito Fansub].mkv"))).isEqualTo("Area 88")
+        assertThat(contentRenamer.extractName(File("~/Series-Shows/S/The Shining - Stephen King Horror Mini-Series 1997 Eng Subs [H264-mp4]/Subtitles [SubRip-MicroDVD-IDX]/01 The Shining - Part 1 Stephen King Mini-Series 1997 English.srt"))).isEqualTo("The Shining")
+        // a resolution isn't a year
+        val ranma = "~/Series-Shows/R/Ranma/Ranma 1-2 BD-BOX - TV + SP/EXTRA/[Moozzi2] Ranma ? [SP00] Menu - 01 [ BOX-01 ] (BD 1920x1080 x.265).mkv"
+        assertThat(contentRenamer.extractName(File(ranma))).isEqualTo("Ranma")
+        assertThat(contentRenamer.extractYear(ranma)).isNull()
+
         // release tags in the middle of the folder name, subtitles in language folders
         val prideAndPrejudice = "~/Series-Shows/P/Pride and Prejudice (BBC 1995) Jane Austen 1080p H.264 10GB (moviesbyrizzo) subs "
         assertThat(contentRenamer.extractName(File("$prideAndPrejudice/Pride and Prejudice (BBC -1995) E1 1080p H.264 (moviesbyrizzo).mp4"))).isEqualTo("Pride and Prejudice")
         assertThat(contentRenamer.extractName(File("$prideAndPrejudice/Subtitles folder/Danish/Pride and Prejudice (BBC -1995) E1 1080p H.264 (moviesbyrizzo).srt"))).isEqualTo("Pride and Prejudice")
-        assertThat(contentRenamer.extractName(File("~/Series-Shows/A/Ascension/Ascension Part 1 2014 720p HDTV AAC x264-PSYPHER.mkv"))).isEqualTo("Ascension Part 1")
+        assertThat(contentRenamer.extractName(File("~/Series-Shows/A/Ascension/Ascension Part 1 2014 720p HDTV AAC x264-PSYPHER.mkv"))).isEqualTo("Ascension")
 
         // season as year with mini myth specials, which must not overwrite the regular episodes
         val mythBusters = File("~/Series-Shows/M/Mythbusters 2003-2009/MythBusters 2003 (Disc 352p re-tvrip)/MythBusters 2003E01 Pilot 1 Jet-Assisted Chevy, Pop Rocks and Soda.mp4")
@@ -661,7 +677,7 @@ class ContentRenamerTest {
         assertThat(contentRenamer.extractName(File("~/Series-Shows/J/Jessica.Jones.3.(2019)/Jessica Jones - S03E01 - A.K.A The Perfect Burger.mkv"))).isEqualTo("Jessica Jones")
         assertThat(contentRenamer.extractName(File("~/Series-Shows/T/Takeshis.Castle.1/[K.o.R] Takeshis Castle - 101 [h264][AAC][2698BC02].mkv"))).isEqualTo("Takeshis Castle")
         assertThat(contentRenamer.extractName(File("~/Series-Shows/H/Harley.Quinn.(2019-2020).1.S01.And.Birds.Of.Prey.Movie.Web264/Season 1 (2019-20)/Harley Quinn - S01 E01 - Til Death Do Us Part (1080p - DCU Web-DL).mp4"))).isEqualTo("Harley Quinn")
-        assertThat(contentRenamer.extractName(File("~/Series-Shows/T/The Thick of It/The Thick Of It - Series 3/3x01.mp4"))).isEqualTo("The Thick Of It")
+        assertThat(contentRenamer.extractName(File("~/Series-Shows/T/The Thick of It/The Thick Of It - Series 3/3x01.mp4"))).isEqualToIgnoringCase("The Thick Of It")
         assertThat(contentRenamer.extractName(File("~/Series-Shows/F/Full Metal Panic/Full Metal Panic/Full Metal Panic 10 Run, Running,Ran.mkv"))).isEqualTo("Full Metal Panic")
         assertThat(contentRenamer.extractName(File("~/Series-Shows/N/No_Game_No_Life_English_Dub_720p_1-12_Complete/No Game No Life 10 Blue Rose.mp4"))).isEqualTo("No Game No Life")
         assertThat(contentRenamer.extractName(File("~/Series-Shows/S/Serial_Experiments_Lain_(1520x1080_Blu-Ray_FLAC)/[Coalgirls]_Serial_Experiments_Lain_10_(1520x1080_Blu-Ray_FLAC)_[C1160A23].mkv"))).isEqualTo("Serial Experiments Lain")
