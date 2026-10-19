@@ -38,7 +38,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         val parenthesizedPrefixPattern = "^\\([a-zA-Z0-9.-]+\\)".toRegex()
         val groupPrefixPattern = "^([0-9a-f]{4,10}-)".toRegex(RegexOption.IGNORE_CASE)
         val unitPattern = "^[0-9]+-(?:lb|lb\\.|pound|foot|inch|mile|meter|gram|ton|year|day|hour|min|sec|part|way|ways).*".toRegex()
-        val parenthesizedTagsPattern = "(?i)\\((?:[^)]*\\b(?:[0-9]{3,4}p|bluray|blu-ray|dvd|bdrip|dvdrip|web-dl|webdl|webrip|h264|x264|h265|x265|hevc|xvid|divx|dual audio|multi audio|multi subs|proper|repack|sub|subs|dub|dubbed|ger[._ -]?sub|eng[._ -]?sub|moviesbyrizzo|bbc[._ -]?[0-9]{4}|[0-9]{4}\\s*-\\s*[0-9]{2,4}|open matte version|theatrical version|subbed|french|korean|german|japanese|spanish|[0-9a-f]{8})\\b[^)]*)\\)".toRegex()
+        val parenthesizedTagsPattern = "(?i)\\((?:[^)]*\\b(?:[0-9]{3,4}p|bluray|blu-ray|dvd|bdrip|dvdrip|web-dl|webdl|webrip|h264|x264|h265|x265|hevc|xvid|divx|dual audio|multi audio|multi subs|proper|repack|sub|subs|dub|dubbed|ger[._ -]?sub|eng[._ -]?sub|moviesbyrizzo|bbc[._ -]*[0-9]{4}|[0-9]{4}\\s*-\\s*[0-9]{2,4}|open matte version|theatrical version|subbed|french|korean|german|japanese|spanish|[0-9a-f]{8})\\b[^)]*)\\)".toRegex()
         val parenthesizedGroupPattern = "\\([^)]*\\)".toRegex()
         val parenthesizedEpisodeRangePattern = "\\([0-9]{1,3}-[0-9]{1,3}\\)".toRegex()
         val episodeRangePattern = "(?<=[a-zA-Z\\s_])[0-9]{1,3}-[0-9]{1,3}(?=[\\s_]*(?:\\+|$|\\b))".toRegex()
@@ -55,6 +55,9 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         val zeroPaddedMatchPattern = "(?:\\s|^)0([0-9]{1,3})(?:\\s|$)".toRegex()
         val acronymPattern = "(?<=(?:^|[^a-zA-Z0-9]))(?:[a-zA-Z]\\.){1,}[a-zA-Z](?:\\.(?=[^a-zA-Z0-9]|$)|(?=[^a-zA-Z0-9]|$))".toRegex()
         val extrasPlusPattern = Regex("\\s*\\+\\s*(?:extras|bonus|specials)\\b", RegexOption.IGNORE_CASE)
+        // release tags end the title, e.g. "Pride and Prejudice (BBC 1995) Jane Austen 1080p H.264 10GB"
+        val midNameTechnicalTagPattern = ("(?i)(?<=[\\s._-])(?:[0-9]{3,4}p|[hx][._ ]?26[45]|bluray|blu-ray|bdrip|brrip|dvdrip|" +
+                "dvd-?rip|web-?dl|webrip|hdtv|xvid|hevc)(?=[\\s._\\-\\])]|$)").toRegex()
         val trailingQualityTag = "(?i)\\s+(?:720p|1080p|1080i|2160p|480p|4k|uhd|fhd|hdtv|bluray|blu-ray|bdrip|dvdrip|dvd|web-dl|webdl|webrip|web|remux|proper|repack|rerip|x264|x265|h264|h265|hevc|xvid|dual audio|multi audio|multi subs|subbed|korean|french|german|japanese|spanish|english|director'?s cut|extended cut|uncensored|remastered|tv series|season|seasons|complete series|complete season|all seasons|mini-series|mini series|miniseries|remastered mini series)$".toRegex()
         val trailingYearPattern = "(?<=[a-zA-Z\\s])\\s+(?:19[0-9]{2}|20[0-2][0-9])(?:-[0-9]{2,4})?$".toRegex()
         val trailingEpisodeMarkerPattern = Regex("(?i)(?:\\s*-\\s*|\\s+)(?:Episode|Ep|E)\\.?$")
@@ -236,6 +239,12 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
 
         // Remove version markers like v2 in 01v2
         name = name.replace(versionPattern, "")
+
+        // release tags end the title, the season and episode detection works on what's left
+        val technicalTagMatch = midNameTechnicalTagPattern.find(name)
+        if (technicalTagMatch != null && technicalTagMatch.range.first > 0) {
+            name = name.substring(0, technicalTagMatch.range.first).trim()
+        }
 
         var truncated = false
         val seasonMatch = seasonPattern.find(name)
@@ -645,7 +654,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
             if (!parentShowName.isNullOrBlank()) {
                 // the file name of an extra describes the extra, e.g. "DVD Extras/Deep Space Nine Sketchbook.mkv"
                 if (isBelowExtrasContainer) {
-                    return parentShowName
+                    return showFromFileNameIfFolderAddsWords(cleanedFileName, parentShowName) ?: parentShowName
                 }
                 // "Full Metal Panic 10 Run, Running, Ran" in "Full Metal Panic", episodes below 10 are already cut as zero padded number
                 // or "01. Crest of the Stars" and "1-01 Gigantor (US) S01E01" with a leading track number
@@ -705,10 +714,23 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         }
 
         if (parentShowName != null && parentShowName.isNotBlank()) {
+            if (!isJunk(cleanedFileName)) {
+                showFromFileNameIfFolderAddsWords(cleanedFileName, parentShowName)?.let { return it }
+            }
             return parentShowName
         }
 
         return ""
+    }
+
+    /**
+     * The file name if the folder only adds words to it, e.g. "Pride and Prejudice" in "Pride and Prejudice Jane Austen".
+     * A single added word like "The Office US" is kept, it tells versions of a show apart.
+     */
+    private fun showFromFileNameIfFolderAddsWords(fileShowName: String, folderShowName: String): String? {
+        if (!fileShowName.contains(' ') || !folderShowName.startsWith(fileShowName, ignoreCase = true)) return null
+        val addedWords = folderShowName.substring(fileShowName.length).trim().split(whitespacePattern).filter { it.isNotBlank() }
+        return if (addedWords.size >= 2 && addedWords.none { word -> word.any { it.isDigit() } }) fileShowName else null
     }
 
     /**

@@ -628,6 +628,12 @@ class ContentRenamerTest {
         val angerManagement = File("~/Series-Shows/A/Anger.Management.(2011).2/Season 2/S02E36 - Charlie and the Grad Student.mp4")
         assertThat(contentRenamer.extractName(angerManagement)).isEqualTo("Anger Management")
 
+        // release tags in the middle of the folder name, subtitles in language folders
+        val prideAndPrejudice = "~/Series-Shows/P/Pride and Prejudice (BBC 1995) Jane Austen 1080p H.264 10GB (moviesbyrizzo) subs "
+        assertThat(contentRenamer.extractName(File("$prideAndPrejudice/Pride and Prejudice (BBC -1995) E1 1080p H.264 (moviesbyrizzo).mp4"))).isEqualTo("Pride and Prejudice")
+        assertThat(contentRenamer.extractName(File("$prideAndPrejudice/Subtitles folder/Danish/Pride and Prejudice (BBC -1995) E1 1080p H.264 (moviesbyrizzo).srt"))).isEqualTo("Pride and Prejudice")
+        assertThat(contentRenamer.extractName(File("~/Series-Shows/A/Ascension/Ascension Part 1 2014 720p HDTV AAC x264-PSYPHER.mkv"))).isEqualTo("Ascension Part 1")
+
         // season as year with mini myth specials, which must not overwrite the regular episodes
         val mythBusters = File("~/Series-Shows/M/Mythbusters 2003-2009/MythBusters 2003 (Disc 352p re-tvrip)/MythBusters 2003E01 Pilot 1 Jet-Assisted Chevy, Pop Rocks and Soda.mp4")
         assertThat(contentRenamer.extractName(mythBusters)).isEqualTo("Mythbusters")
