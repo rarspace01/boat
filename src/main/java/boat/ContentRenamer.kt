@@ -175,7 +175,12 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         val dashTrailingNumberPattern = "-([0-9]{1,3})\\.".toRegex()
         val zeroPadded3DigitsPattern = Regex("(?<=^|[^0-9])0[0-9]{2}(?=[^0-9]|$)")
 
-        val resolutionPattern = "(?i)(?<=^|[^a-zA-Z0-9])(2160p|1080p|1080i|720p|576p|576i|480p|480i|4k)(?=[^a-zA-Z0-9]|$)".toRegex()
+        // any height like 360p, 405p, 1080i or 1440p, also with a frame rate like "hd720p30"
+        val resolutionPattern = "(?i)(?<![a-z0-9])(?:hd)?([0-9]{3,4})([pi])(?:[0-9]{2})?(?![a-z0-9])".toRegex()
+        val kResolutionPattern = "(?i)(?<![a-z0-9])([248]k)(?![a-z0-9])".toRegex()
+        // width and height like 1920x1080 or 1280x960
+        val dimensionsPattern = "(?<![0-9])([0-9]{3,4})x([0-9]{3,4})(?![0-9])".toRegex()
+        private val resolutionHeights = 240..4320
         val codecPattern = "(?i)(?<=^|[^a-zA-Z0-9])(x265|x264|h265|h264|hevc|avc|xvid|divx|av1|vp9|h\\.264|h\\.265|x\\.264|x\\.265)(?=[^a-zA-Z0-9]|$)".toRegex()
         val movieExtraPattern = "(?i)(?<=^|[^a-zA-Z0-9])(?:sample|trailer|trailers|featurette|featurettes|extra|extras|bonus|behind[\\s_.-]?the[\\s_.-]?scenes|deleted[\\s_.-]scenes?|interviews?)(?=[^a-zA-Z0-9]|$)".toRegex()
         val moviePartPattern = "(?i)(?<=^|[\\s._\\-\\[(])(?:cd|disc|disk|part|pt)[\\s._\\-]?([0-9]{1,2})(?=$|[\\s._\\-\\])])".toRegex()
@@ -1645,10 +1650,11 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         var depth = 0
         while (current != null && depth < 4) {
             val name = decodeIfEncoded(current.name)
-            val match = resolutionPattern.find(name)
-            if (match != null) {
-                return match.groupValues[1].lowercase()
-            }
+            resolutionPattern.findAll(name).firstOrNull { it.groupValues[1].toInt() in resolutionHeights }
+                ?.let { return it.groupValues[1] + it.groupValues[2].lowercase() }
+            kResolutionPattern.find(name)?.let { return it.groupValues[1].lowercase() }
+            dimensionsPattern.findAll(name).firstOrNull { it.groupValues[2].toInt() in resolutionHeights && it.groupValues[1].toInt() > it.groupValues[2].toInt() }
+                ?.let { return it.groupValues[2] + "p" }
             current = current.parentFile
             depth++
         }

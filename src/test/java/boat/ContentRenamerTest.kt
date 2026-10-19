@@ -653,6 +653,18 @@ class ContentRenamerTest {
         val tacoma = File("~/Series-Shows/W/Www.Uindex.Org.-201904.Eac3.2.0/Tacoma FD-2019-S04 WEBRip EAC3 2 0 1080p x265-iVy.mkv")
         assertThat(contentRenamer.extractName(tacoma)).isEqualTo("Tacoma FD")
         assertThat(contentRenamer.extractEpisode(tacoma)).isNull()
+        // resolutions of any height, with a frame rate, as k or as width and height
+        fun resolution(name: String) = contentRenamer.extractResolution(File("~/Series-Shows/S/Show/$name"))
+        assertThat(resolution("Show.S01E01.1080p.mkv")).isEqualTo("1080p")
+        assertThat(resolution("Bewitched (2005 360p re-dvdrip).mp4")).isEqualTo("360p")
+        assertThat(resolution("T.G.British.Sewing.Bee-S04E00-468p.mp4")).isEqualTo("468p")
+        assertThat(resolution("hak5--1718--free-virtualization-clusters--hd720p30.h264.mp4")).isEqualTo("720p")
+        assertThat(resolution("Show.S01E01.1440p.mkv")).isEqualTo("1440p")
+        assertThat(resolution("Show.S01E01.1080i.ts")).isEqualTo("1080i")
+        assertThat(resolution("The Book of Boba Fett.S01E01.4k.hevc.mkv")).isEqualTo("4k")
+        assertThat(resolution("BACCANO! ED (BD 1920x1080 x264 AAC).mp4")).isEqualTo("1080p")
+        assertThat(resolution("Samurai X - The Movie [1280x960].mkv")).isEqualTo("960p")
+        assertThat(resolution("Show.S01E01.x264.mkv")).isNull()
         // the bracket wins over numbers in the episode's title
         val simpsons = File("~/Series-Shows/S/Simpsons/Simpsons Season 20- Complete/The Simpsons [20.19] Waverly Hills 9-0-2-1-D'oh.avi")
         assertThat(contentRenamer.extractSeason(simpsons)).isEqualTo(20)
