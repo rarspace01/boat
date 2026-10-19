@@ -95,8 +95,12 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         val yearExtractorRegex = "(?<=^|[^0-9])(19[0-9]{2}|20[0-2][0-9])(?=[^0-9]|$)".toRegex()
         val seasonFolderPattern = "(?i)^(?:uk|us|usa|ger|fra|fr|de|es|ita|it|jp|jpn|kr|kor|cn|chi|ru|rus|eng|en)?[\\s_.-]*(?:Season|Series|Specials|Dis[ck]|DVD|CD|Vol(?:ume)?)(?:[\\s_.-]*[0-9]{1,4}|\\b)".toRegex()
 
-        val yearEpisodePattern = "(?<=^|[^a-zA-Z0-9])(?:19[0-9]{2}|20[0-2][0-9])[eExX]([0-9]{1,3})(?=[^a-zA-Z0-9]|$)".toRegex(RegexOption.IGNORE_CASE)
-        val yearEpisodeDirectPattern = "(?<=^|[^a-zA-Z0-9])(19[0-9]{2}|20[0-2][0-9])[eExX][0-9]{1,3}(?=[^a-zA-Z0-9]|$)".toRegex(RegexOption.IGNORE_CASE)
+        val yearEpisodePattern = "(?<=^|[^a-zA-Z0-9])(?:19[0-9]{2}|20[0-2][0-9])[eE]([0-9]{1,3})(?=[^a-zA-Z0-9]|$)".toRegex(RegexOption.IGNORE_CASE)
+        // season and episode glued to the title like "Shameless901.Are You There Shim"
+        val gluedSeasonEpisodePattern = "^([^\\s\\[(]*?[a-zA-Z]{3})([1-9][0-9]?)([0-9]{2})(?=[\\s._-]|$)".toRegex()
+        val yearSpecialPattern = "(?i)(?<=^|[^a-zA-Z0-9])(?:19[0-9]{2}|20[0-2][0-9])(?:e[0-9]{1,3})?x[0-9]{1,3}(?=[^a-zA-Z0-9]|$)".toRegex()
+        val yearEpisodeInNamePattern = "(?<=[\\s_.-])(?:19[0-9]{2}|20[0-2][0-9])[eExX][0-9]{1,3}(?:[xX][0-9]{1,3})?(?=[^a-zA-Z0-9]|$)".toRegex()
+        val yearEpisodeDirectPattern = "(?<=^|[^a-zA-Z0-9])(19[0-9]{2}|20[0-2][0-9])[eExX][0-9]{1,3}(?:[xX][0-9]{1,3})?(?=[^a-zA-Z0-9]|$)".toRegex(RegexOption.IGNORE_CASE)
         val explicitEpisodeLookbehindPattern = "(?<=^|[^a-zA-Z0-9])(?:Episode|Ep\\.?|E)\\s*([0-9]{1,3})(?=[^a-zA-Z0-9]|$)".toRegex(RegexOption.IGNORE_CASE)
         val zeroPaddedSeasonEpisodePattern = "(?<=^|[^a-zA-Z0-9])(0[1-9][0-9]{2})(?=[^a-zA-Z0-9]|$)".toRegex()
         val fourDigitYearPattern = "\\b([1-2][0-9]{3})\\b".toRegex()
@@ -237,6 +241,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         val seasonMatch = seasonPattern.find(name)
         val seasonMatch2 = seasonPattern2.find(name)
         val seasonMatch3 = seasonInNamePattern.find(name)
+        val yearEpisodeMatch = yearEpisodeInNamePattern.find(name)
         val dayMatch = dayInNamePattern.find(name)
         val dvdMatch = dvdPattern.find(name)
         val bookMatch = bookPattern.find(name)
@@ -247,6 +252,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
             seasonMatch?.range?.first,
             seasonMatch2?.range?.first,
             seasonMatch3?.range?.first,
+            if (yearEpisodeMatch != null && yearEpisodeMatch.range.first > 0) yearEpisodeMatch.range.first else null,
             if (dayMatch != null && dayMatch.range.first > 0) dayMatch.range.first else null,
             dvdMatch?.range?.first,
             bookMatch?.range?.first,
@@ -519,7 +525,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
     fun extractName(file: File): String {
         val fileName = decodeIfEncoded(file.name)
         val rawBaseName = fileName.substringBeforeLast(".")
-        val cleanedFileName = cleanName(rawBaseName)
+        val cleanedFileName = cleanName(gluedSeasonEpisode(file)?.first ?: rawBaseName)
 
         val isNumericShowName = cleanedFileName.matches(pureNumberPattern) &&
                 !cleanedFileName.startsWith("0") &&
@@ -1070,6 +1076,10 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
             return Pair(match2.groupValues[2].toInt(), match2.groupValues[1].toInt())
         }
 
+        gluedSeasonEpisode(file)?.let { (_, season, episode) -> return Pair(episode, season) }
+        // specials of year seasons like "MythBusters 2008X01 Shark Week Special 2" have no regular episode number
+        if (yearSpecialPattern.containsMatchIn(fileName)) return null
+
         val rawEpisodeInfo = findRawEpisodeMatch(file) ?: return null
         val (rawStr, num) = rawEpisodeInfo
 
@@ -1088,6 +1098,17 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         }
 
         return Pair(num, null)
+    }
+
+    /**
+     * Show, season and episode of a file name like "Shameless901.Are You There Shim", only if a folder confirms the season.
+     */
+    private fun gluedSeasonEpisode(file: File): Triple<String, Int, Int>? {
+        val match = gluedSeasonEpisodePattern.find(decodeIfEncoded(file.nameWithoutExtension)) ?: return null
+        val season = match.groupValues[2].toInt()
+        val episode = match.groupValues[3].toInt()
+        if (episode == 0 || extractDirectSeason(file) != season) return null
+        return Triple(match.groupValues[1], season, episode)
     }
 
     private fun findRawEpisodeMatch(file: File): Pair<String, Int>? {

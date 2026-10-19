@@ -628,6 +628,27 @@ class ContentRenamerTest {
         val angerManagement = File("~/Series-Shows/A/Anger.Management.(2011).2/Season 2/S02E36 - Charlie and the Grad Student.mp4")
         assertThat(contentRenamer.extractName(angerManagement)).isEqualTo("Anger Management")
 
+        // season as year with mini myth specials, which must not overwrite the regular episodes
+        val mythBusters = File("~/Series-Shows/M/Mythbusters 2003-2009/MythBusters 2003 (Disc 352p re-tvrip)/MythBusters 2003E01 Pilot 1 Jet-Assisted Chevy, Pop Rocks and Soda.mp4")
+        assertThat(contentRenamer.extractName(mythBusters)).isEqualTo("Mythbusters")
+        assertThat(contentRenamer.extractSeason(mythBusters)).isEqualTo(2003)
+        assertThat(contentRenamer.extractEpisode(mythBusters)).isEqualTo(1)
+        val mythBustersMiniMyth = File("~/Series-Shows/M/Mythbusters 2003-2009/MythBusters 2004 (Disc 352p re-tvrip)/MythBusters 2004X01 Egg-uinox MiniMyth.mp4")
+        assertThat(contentRenamer.extractName(mythBustersMiniMyth)).isEqualTo("Mythbusters")
+        assertThat(contentRenamer.extractSeason(mythBustersMiniMyth)).isEqualTo(2004)
+        assertThat(contentRenamer.extractEpisode(mythBustersMiniMyth)).isNull()
+        val mythBustersEpisodeMiniMyth = File("~/Series-Shows/M/Mythbusters 2003-2009/MythBusters 2004 (Disc 352p re-tvrip)/MythBusters 2004E06X01 Breakstep Bridge Revisit MiniMyth.mp4")
+        assertThat(contentRenamer.extractSeason(mythBustersEpisodeMiniMyth)).isEqualTo(2004)
+        assertThat(contentRenamer.extractEpisode(mythBustersEpisodeMiniMyth)).isNull()
+        val mythBustersSpecial = File("~/Series-Shows/M/Mythbusters 2003-2009/MythBusters 2008 (Disc 352p re-tvrip)/MythBusters 2008X01 Shark Week Special 2.mp4")
+        assertThat(contentRenamer.extractEpisode(mythBustersSpecial)).isNull()
+
+        // season and episode glued to the title, confirmed by the season folder
+        val shameless = File("~/Series-Shows/S/Shameless.US.Season.S09.x265.405p-we/Shameless914 Found.mkv")
+        assertThat(contentRenamer.extractName(shameless)).isEqualTo("Shameless")
+        assertThat(contentRenamer.extractSeason(shameless)).isEqualTo(9)
+        assertThat(contentRenamer.extractEpisode(shameless)).isEqualTo(14)
+
         assertThat(contentRenamer.extractName(File("~/Series-Shows/L/Lost/Lost The Complete Series Season 1,2,3,4,5,6 + English Subs/Bonus Features/Season 1/Lost Revealed/Bloopers From The Set.mkv"))).isEqualTo("Lost")
         assertThat(contentRenamer.extractName(File("~/Series-Shows/T/Twin.Peaks.(1990)/Featurettes/Season 1/The Log Lady/The Log Lady 01.mkv"))).isEqualTo("Twin Peaks")
         assertThat(contentRenamer.extractName(File("~/Series-Shows/K/Key.And.Peele/Key.And.Peele.S01.COMPLETE.BluRay.x264.AAC.2.0-LeRalouf [UNCENSORED]/subtitles/english_SDH/Key.And.Peele.S01E01.Series.Premiere.BluRay.x264.AAC.2.0-LeRalouf.srt"))).isEqualTo("Key And Peele")
