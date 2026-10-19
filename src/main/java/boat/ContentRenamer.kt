@@ -71,9 +71,27 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
 
         // folders holding extras or subtitles, everything below them describes the extra and not the show,
         // e.g. "Bonus Features/Season 1/Lost Revealed", "Featurettes/Season 3/Menu Art", "subtitles/english"
-        val extrasContainerPattern = ("(?i)^(?:(?:season|series)\\s*[0-9]+\\s+)?(?:dvd\\s+|bd\\s+|bonus\\s+|special\\s+)?" +
-                "(?:extras|extra|featurettes|featurette|bonus|bonus features|special features|" +
-                "(?:english\\s+|eng\\s+)?(?:subtitles|subtitle|subs)(?:\\s+folder)?)$").toRegex()
+        val extrasFolderPattern = ("(?i)^(?:(?:season|series)\\s*[0-9]+\\s+)?(?:dvd\\s+|bd\\s+|bonus\\s+|special\\s+)?" +
+                "(?:extras|extra|featurettes|featurette|bonus|bonus features|special features)$").toRegex()
+        val subtitleFolderPattern = "(?i)^(?:english\\s+|eng\\s+)?(?:subtitles|subtitle|subs)(?:\\s+folder)?$".toRegex()
+        // the folder of a show Plex lists as featurettes
+        const val featurettesFolder = "Featurettes"
+        // S01E101 is episode 101, absolute numbering in a single season like Dragon Ball's
+        val explicitSeasonEpisodePattern = "(?i)(?<![a-z0-9])S([0-9]{1,2})[\\s._-]?E([0-9]{1,4})(?![0-9])".toRegex()
+        // specials attached to an episode like "Lost S01E20X01 Lost The Journey"
+        val episodeSpecialPattern = "(?i)(?<![a-z0-9])S[0-9]{1,2}[\\s._-]?E[0-9]{1,4}X[0-9]{1,3}(?![0-9])".toRegex()
+        // segments of an episode like "Kim Possible - S02 E06b - Adventures In Rufus-Sitting"
+        val episodePartPattern = "(?i)(?<![a-z0-9])S[0-9]{1,2}[\\s._-]?E[0-9]{1,4}([a-z])(?![a-z0-9])".toRegex()
+        // daily shows like "Dr.Phil.Show.2013.10.01.Dangerous.and.Violent.Love" have no season and episode in the name
+        val airDatePattern = "(?<![0-9])(?:19|20)[0-9]{2}[._\\s-](?:0[1-9]|1[0-2])[._\\s-](?:0[1-9]|[12][0-9]|3[01])(?![0-9])".toRegex()
+        // parts of a mini series like "The Hitchhikers Guide To The Galaxy - Part 1 Of 6"
+        val partOfPattern = "(?i)(?<![a-z])part\\s*([0-9]{1,2})\\s*of\\s*[0-9]{1,2}(?![0-9])".toRegex()
+        // "No Game No Life 12 Rule Number 10" or "Eden of the East - 01 - I've Found Myself a Prince", three digits like
+        // "Duckman 101 - I, Duckman" can be season and episode
+        val episodeAfterShowPattern = "^(?:\\[[^\\]]*][\\s._-]*)?[A-Za-z][^0-9]*?[\\s._-]+(?:-[\\s._-]+)?([0-9]{2})(?:[\\s._]+-)?[\\s._]+[A-Za-z]".toRegex()
+        // numbers like "Tokyo Magnitude 8.0" or audio channels like "AAC 5.1" aren't episodes
+        val decimalNumberPattern = "(?<![0-9.])[0-9]\\.[0-9](?![0-9.])".toRegex()
+        val subtitleFlags = setOf("sdh", "forced", "cc")
         val trailingSeasonNumberPattern = "(?i)(?<=[a-z])(?:\\s+-)?(?:\\s+(?:series|season))?\\s+([0-9]{1,2})$".toRegex()
         val rangeSinglePattern = "^[0-9]-[0-9]$".toRegex()
         val rangeLetterPattern = "^[a-z]-[a-z]$".toRegex()
@@ -151,6 +169,9 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         private val leadingReleaseGroupPattern = "^(?:$releaseGroupAlternatives)-(?=.)".toRegex(RegexOption.IGNORE_CASE)
         private val trailingReleaseGroupPattern = "(?<=.)-(?:$releaseGroupAlternatives)$".toRegex(RegexOption.IGNORE_CASE)
         // ISO 639-1 and 639-2/T codes, plus the 639-2/B variants commonly used for subtitles (e.g. ger instead of deu)
+        // English language names to their code, e.g. "danish" to "da"
+        private val languageNames = java.util.Locale.getISOLanguages().associateBy { java.util.Locale.of(it).getDisplayLanguage(java.util.Locale.ENGLISH).lowercase() }
+        val nonLetterPattern = "[^a-z]+".toRegex()
         private val languageCodes = java.util.Locale.getISOLanguages().flatMap { listOfNotNull(it, runCatching { java.util.Locale.of(it).isO3Language }.getOrNull()) }.toSet() +
                 setOf("alb", "arm", "baq", "bur", "chi", "cze", "dut", "fre", "geo", "ger", "gre", "ice", "mac", "mao", "may", "per", "rum", "slo", "tib", "wel")
         val invalidFileCharsPattern = Regex("[\\\\/:*?\"<>|]")
@@ -1050,10 +1071,40 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         return null
     }
 
-    private fun isExtrasContainer(folderName: String): Boolean {
-        val containerName = folderName.lowercase().replace(bracketPattern, " ").replace("_", " ").replace(".", " ").substringAfterLast(" - ")
+    private fun containerName(folderName: String) =
+        folderName.lowercase().replace(bracketPattern, " ").replace("_", " ").replace(".", " ").substringAfterLast(" - ")
             .replace(whitespacePattern, " ").trim()
-        return containerName.matches(extrasContainerPattern)
+
+    private fun isExtrasFolder(folderName: String) = containerName(folderName).matches(extrasFolderPattern)
+
+    private fun isExtrasContainer(folderName: String) = containerName(folderName).let { it.matches(extrasFolderPattern) || it.matches(subtitleFolderPattern) }
+
+    /**
+     * Name of an extra in the featurettes of its show, with the folders below the outermost extras folder so extras of
+     * different folders don't collide, e.g. "Season 2 - The Log Lady - The Log Lady 01.mkv" for
+     * "Twin.Peaks.(1990)/Featurettes/Season 2/The Log Lady/The Log Lady 01.mkv". Null if the file isn't an extra.
+     */
+    fun extraNameInFeaturettes(file: File): String? {
+        val folders = generateSequence(file.parentFile) { it.parentFile }.takeWhile { !isLibraryGroupFolder(it) }.toList()
+        val outermostExtrasFolder = folders.indexOfLast { isExtrasFolder(decodeIfEncoded(it.name)) }
+        // extras named after their folder like "Season 03 Extras - Inside The X-Files.avi"
+        val fileName = decodeIfEncoded(file.nameWithoutExtension)
+        if (outermostExtrasFolder < 0 && fileName.contains(" - ") && isExtrasFolder(fileName.substringBefore(" - "))) return decodeIfEncoded(file.name)
+        if (outermostExtrasFolder < 0) return null
+        val subFolders = folders.take(outermostExtrasFolder).reversed().map { decodeIfEncoded(it.name) }
+        return (subFolders + decodeIfEncoded(file.name)).joinToString(" - ")
+    }
+
+    /**
+     * Language of a subtitle from its name or folder, e.g. "en" for "2_English.srt", "da" for "Danish/Show E1.srt" or
+     * "en.sdh" for "english_SDH/Show.S01E01.srt".
+     */
+    fun extractSeriesSubtitleLanguage(file: File): String? {
+        extractSubtitleLanguage(file)?.let { return it }
+        val tokens = (listOf(file.nameWithoutExtension) + listOfNotNull(file.parentFile?.name))
+            .flatMap { decodeIfEncoded(it).lowercase().split(nonLetterPattern) }.filter { it.isNotBlank() }
+        val language = tokens.firstNotNullOfOrNull { languageNames[it] } ?: return null
+        return (listOf(language) + subtitleFlags.filter { it in tokens }).joinToString(".")
     }
 
     /**
@@ -1113,7 +1164,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
     fun isOpeningEndingOrOva(file: File) = specialMarkerIndex(decodeIfEncoded(file.nameWithoutExtension)) != null
 
     fun extractSeason(file: File): Int? {
-        if (isOpeningEndingOrOva(file)) return null
+        if (isOpeningEndingOrOva(file) || airDatePattern.containsMatchIn(decodeIfEncoded(file.name))) return null
         val directSeason = extractDirectSeason(file)
         if (directSeason != null) return directSeason
 
@@ -1196,7 +1247,11 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
 
         gluedSeasonEpisode(file)?.let { (_, season, episode) -> return Pair(episode, season) }
         // specials of year seasons like "MythBusters 2008X01 Shark Week Special 2" have no regular episode number
-        if (yearSpecialPattern.containsMatchIn(fileName)) return null
+        if (yearSpecialPattern.containsMatchIn(fileName) || episodeSpecialPattern.containsMatchIn(fileName) || airDatePattern.containsMatchIn(fileName)) return null
+        explicitSeasonEpisodePattern.find(fileName)?.let { return Pair(it.groupValues[2].toInt(), it.groupValues[1].toInt()) }
+        partOfPattern.find(fileName)?.let { return Pair(it.groupValues[1].toInt(), null) }
+        // the number after the show, not the one in the episode's title like "No Game No Life 12 Rule Number 10"
+        episodeAfterShowPattern.find(decodeIfEncoded(file.nameWithoutExtension))?.let { return Pair(it.groupValues[1].toInt(), null) }
 
         val rawEpisodeInfo = findRawEpisodeMatch(file) ?: return null
         val (rawStr, num) = rawEpisodeInfo
@@ -1230,7 +1285,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
     }
 
     private fun findRawEpisodeMatch(file: File): Pair<String, Int>? {
-        val fileName = decodeIfEncoded(file.name)
+        val fileName = decodeIfEncoded(file.name).replace(decimalNumberPattern, " ")
         val parentName = decodeIfEncoded(file.parentFile?.name ?: "")
         val grandParentName = decodeIfEncoded(file.parentFile?.parentFile?.name ?: "")
         val greatGrandParentName = decodeIfEncoded(file.parentFile?.parentFile?.parentFile?.name ?: "")
@@ -1357,7 +1412,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
     fun processFilesFromDirectory(path: String, logFile: File? = null, isTestRun: Boolean = true, basePath: String? = null) {
         val writer = logFile?.let { BufferedWriter(FileWriter(it, true)) }
         try {
-            processFilesFromDirectoryInternal(path, writer, isTestRun, basePath)
+            processFilesFromDirectoryInternal(path, writer, isTestRun, basePath, HashSet())
         } finally {
             writer?.flush()
             writer?.close()
@@ -1365,7 +1420,12 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         }
     }
 
-    private fun processFilesFromDirectoryInternal(path: String, logWriter: BufferedWriter?, isTestRun: Boolean, basePath: String?) {
+    /**
+     * [assignedTargets] are the targets of this run, a test run reports the files which would collide as well.
+     */
+    private fun processFilesFromDirectoryInternal(
+        path: String, logWriter: BufferedWriter?, isTestRun: Boolean, basePath: String?, assignedTargets: MutableSet<String>
+    ) {
         val files = File(path).listFiles()
         files?.let { fileList ->
             for (file in fileList) {
@@ -1442,16 +1502,18 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
                         // actual move
                         // Create the parent directories if they don't exist
                         val newFile = File(targetFile)
-                        // editions of a movie in a series folder end up with the same name, e.g. the theatrical and open matte
-                        // version of "Batman - Mask of The Phantasm", the second one stays where it is
-                        val isOtherEditionOfMovie = isMovieInSeriesPath && newFile.exists() && !file.toPath().equals(newFile.toPath())
-                        if (!isTestRun && isOtherEditionOfMovie) {
+                        val isSameFile = file.toPath().equals(newFile.toPath())
+                        if (isSameFile) assignedTargets.add(newFile.absolutePath)
+                        // nothing is ever overwritten, neither a file of the library nor one moved before in this run, e.g.
+                        // two editions of a movie, two releases of an episode or the same episode number from two notations
+                        val isTargetTaken = !isSameFile && (newFile.exists() || !assignedTargets.add(newFile.absolutePath))
+                        if (isTargetTaken) {
                             logWriter?.write("Not moved, target exists:\n'$file'\n'$newFile'\n")
-                        } else if(!isTestRun && !file.toPath().equals(newFile.toPath())) {
+                        } else if(!isTestRun && !isSameFile) {
                             newFile.parentFile?.mkdirs()
                             // Then move and rename
                             try {
-                                file.toPath().moveTo(newFile.toPath(), overwrite = true)
+                                file.toPath().moveTo(newFile.toPath(), overwrite = false)
                                 logWriter?.write("Moved:\n'$file'\n'$newFile'\n")
                             } catch (e:Exception) {
                                 println("Error moving file: $e")
@@ -1463,7 +1525,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
                     println(logLine)
                     logWriter?.write(logLine + "\n")
                 } else {
-                    processFilesFromDirectoryInternal(file.absolutePath, logWriter, isTestRun, basePath)
+                    processFilesFromDirectoryInternal(file.absolutePath, logWriter, isTestRun, basePath, assignedTargets)
                 }
             }
         }
@@ -1594,6 +1656,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         if (isOpeningEndingOrOva(file)) {
             return "$firstPart/$otherExtrasFolder/${file.name}"
         }
+        extraNameInFeaturettes(file)?.let { return "$firstPart/$featurettesFolder/$it" }
         val optionalSeasonFolder = if(season != null){
             "/Season $season"
         } else {
@@ -1606,7 +1669,10 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
             val codec = extractCodec(file)
             val extraInfo = listOfNotNull(resolution, codec).joinToString(".")
             val extraSuffix = if (extraInfo.isNotEmpty()) ".$extraInfo" else ""
-            "/${extractedName}.S${seasonStr}E${episodeStr}$extraSuffix"
+            // subtitles of several languages for the same episode
+            val languageSuffix = if (file.extension.lowercase() in subtitleExtensions) extractSeriesSubtitleLanguage(file)?.let { ".$it" } ?: "" else ""
+            val partSuffix = episodePartPattern.find(decodeIfEncoded(file.nameWithoutExtension))?.groupValues?.get(1)?.lowercase() ?: ""
+            "/${extractedName}.S${seasonStr}E${episodeStr}$partSuffix$extraSuffix$languageSuffix"
         } else if (season != null || mediaResult.type == MediaType.Series) {
             "/${file.nameWithoutExtension}"
         } else {
