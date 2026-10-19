@@ -24,7 +24,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         val standaloneEpisodePattern = "(?<=^|[\\s._-])(?<![0-9])([0-9]{3})(?![0-9])(?=[\\s._-]|$)".toRegex()
         val yearPattern = "\\b(19[0-9]{2}|20[0-2][0-9])\\b".toRegex()
         val bracketPattern = "\\[.*?]".toRegex()
-        val bracketedEpisodePattern = "(?i)\\[(?:S?[0-9]{1,2}[x.][0-9]{1,3}|S[0-9]{1,2}E[0-9]{1,3})]".toRegex()
+        val bracketedEpisodePattern = "(?i)\\[(?:S?([0-9]{1,2})[x.]([0-9]{1,3})|S([0-9]{1,2})E([0-9]{1,3}))]".toRegex()
         // placeholders of BitComet like "_____padding_file_0_if you see this file, please update to BitComet 0.85 or above____"
         val paddingFilePattern = "(?i)^_+padding_file_[0-9]+_".toRegex()
         val dvdPattern = "(?<=^|\\s)(?:dvd|disc|cd)\\s?([0-9]{1,2})".toRegex(RegexOption.IGNORE_CASE)
@@ -1200,7 +1200,14 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         return null
     }
 
+    private fun bracketedSeasonEpisode(fileName: String): Pair<Int, Int>? {
+        val match = bracketedEpisodePattern.find(fileName) ?: return null
+        val (season, episode) = match.groupValues.drop(1).filter { it.isNotEmpty() }.map { it.toInt() }
+        return Pair(season, episode)
+    }
+
     fun extractDirectSeason(file: File): Int? {
+        bracketedSeasonEpisode(decodeIfEncoded(file.name))?.let { return it.first }
         // Check seasonPattern2 (e.g. [2x01]) first across file and parents
         var current: File? = file
         var depth = 0
@@ -1261,6 +1268,8 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         // specials of year seasons like "MythBusters 2008X01 Shark Week Special 2" have no regular episode number
         if (yearSpecialPattern.containsMatchIn(fileName) || episodeSpecialPattern.containsMatchIn(fileName) || airDatePattern.containsMatchIn(fileName)) return null
         explicitSeasonEpisodePattern.find(fileName)?.let { return Pair(it.groupValues[2].toInt(), it.groupValues[1].toInt()) }
+        // a bracketed episode wins over numbers in the title like "The Simpsons [20.19] Waverly Hills 9-0-2-1-D'oh"
+        bracketedSeasonEpisode(fileName)?.let { (season, episode) -> return Pair(episode, season) }
         partOfPattern.find(fileName)?.let { return Pair(it.groupValues[1].toInt(), null) }
         // the number after the show, not the one in the episode's title like "No Game No Life 12 Rule Number 10"
         episodeAfterShowPattern.find(decodeIfEncoded(file.nameWithoutExtension))?.let { return Pair(it.groupValues[1].toInt(), null) }
