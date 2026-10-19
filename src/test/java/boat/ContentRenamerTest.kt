@@ -628,6 +628,26 @@ class ContentRenamerTest {
         val angerManagement = File("~/Series-Shows/A/Anger.Management.(2011).2/Season 2/S02E36 - Charlie and the Grad Student.mp4")
         assertThat(contentRenamer.extractName(angerManagement)).isEqualTo("Anger Management")
 
+        // openings, endings and OVAs go to season 0 without episode, their numbering would collide with each other
+        val hunterNcop = File("~/Series-Shows/H/Hunter.X.Hunter.(1999).(/[Judas] Hunter x Hunter (1999) Openings & Endings/[Judas] Hunter x Hunter (1999) - NCOP 01.mkv")
+        assertThat(contentRenamer.extractName(hunterNcop)).isEqualTo("Hunter x Hunter")
+        assertThat(contentRenamer.extractSeason(hunterNcop)).isEqualTo(0)
+        assertThat(contentRenamer.extractEpisode(hunterNcop)).isNull()
+        val dragonBallOpening = File("~/Series-Shows/D/Dragon Ball Kai (Z)/Dragon.Ball.KAI.-.OP1v2.1080p.BluRay.x264.DHD.mkv")
+        assertThat(contentRenamer.extractName(dragonBallOpening)).isEqualTo("Dragon Ball KAI")
+        assertThat(contentRenamer.extractSeason(dragonBallOpening)).isEqualTo(0)
+        assertThat(contentRenamer.extractEpisode(dragonBallOpening)).isNull()
+        assertThat(contentRenamer.extractName(File("~/Series-Shows/B/BACCANO!  1-16 [Dual Audio ](BD 1080p 1920x1080 x264 AAC)/BACCANO! ?ED (BD 1920x1080 x264 AAC).mp4"))).isEqualTo("BACCANO")
+        val onePunchManOva = File("~/Series-Shows/O/One Punch Man/One Punch Man S1+OVA [BD 1080p Hi10 FLAC]/One Punch Man OVA 01 1080p.mkv")
+        assertThat(contentRenamer.extractName(onePunchManOva)).isEqualTo("One Punch Man")
+        assertThat(contentRenamer.extractSeason(onePunchManOva)).isEqualTo(0)
+        assertThat(contentRenamer.extractEpisode(onePunchManOva)).isNull()
+        assertThat(contentRenamer.extractSeason(File("~/Series-Shows/O/One-Punch Man {tvdb-293088}/Season 1/[Judas] One Punch Man - S01OVA03.mkv"))).isEqualTo(0)
+        // the regular episodes next to them, OP and ED are words in other titles
+        assertThat(contentRenamer.extractEpisode(File("~/Series-Shows/O/One Punch Man/One Punch Man S1+OVA [BD 1080p Hi10 FLAC]/One Punch Man 01 1080p.mkv"))).isEqualTo(1)
+        assertThat(contentRenamer.extractSeason(File("~/Series-Shows/E/Ed Edd n Eddy/ED.EDD.N.EDDY.S01E02.mkv"))).isEqualTo(1)
+        assertThat(contentRenamer.extractEpisode(File("~/Series-Shows/T/Takeshis.Castle.2/[K.o.R] Takeshis Castle - 202 [h264][AAC][ED8CC609].mkv"))).isNotNull()
+
         // letter O instead of the zero in the season, the episode must not come from "AC3 2.0" or "No.64"
         val blacklist = File("~/Series-Shows/B/The Blacklist/[FileTracker.pl]The Blacklist S01-S06[wilu75]/S1/The.Blacklist.SO1E13.The.Cyprus.Agency.No.64.PL.480p.WEB-DL.AC3.2.0.XviD-Ralf.DeiX.avi")
         assertThat(contentRenamer.extractName(blacklist)).isEqualTo("The Blacklist")

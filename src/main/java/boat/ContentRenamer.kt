@@ -106,6 +106,9 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         // season and episode glued to the title like "Shameless901.Are You There Shim"
         val gluedSeasonEpisodePattern = "^([^\\s\\[(]*?[a-zA-Z]{3})([1-9][0-9]?)([0-9]{2})(?=[\\s._-]|$)".toRegex()
         val yearSpecialPattern = "(?i)(?<=^|[^a-zA-Z0-9])(?:19[0-9]{2}|20[0-2][0-9])(?:e[0-9]{1,3})?x[0-9]{1,3}(?=[^a-zA-Z0-9]|$)".toRegex()
+        // openings, endings and OVAs go to season 0, OP and ED only in upper case, they're words otherwise ("Ed, Edd n Eddy")
+        val ovaMarkerPattern = "(?i)(?<![a-z])(?:NCOP|NCED|OVA|OAD)s?(?![a-z])".toRegex()
+        val openingEndingMarkerPattern = "(?<![A-Za-z])(?:OP|ED)(?:[ ._]?[0-9]{1,2}(?:v[0-9])?)?(?![A-Za-z0-9])".toRegex()
         // parts of a mini series like "The Shining - Part 1 Stephen King Mini-Series"
         val partInNamePattern = "(?i)(?:\\s+-)?\\s+Part\\s*[0-9]{1,2}(?=[^0-9a-z]|$)".toRegex()
         val yearEpisodeInNamePattern = "(?<=[\\s_.-])(?:19[0-9]{2}|20[0-2][0-9])[eExX][0-9]{1,3}(?:[xX][0-9]{1,3})?(?=[^a-zA-Z0-9]|$)".toRegex()
@@ -258,6 +261,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         val seasonMatch3 = seasonInNamePattern.find(name)
         val yearEpisodeMatch = yearEpisodeInNamePattern.find(name)
         val partMatch = partInNamePattern.find(name)
+        val specialMarkerIndex = specialMarkerIndex(name, casingReference = inputName)
         val dayMatch = dayInNamePattern.find(name)
         val dvdMatch = dvdPattern.find(name)
         val bookMatch = bookPattern.find(name)
@@ -270,6 +274,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
             seasonMatch3?.range?.first,
             if (yearEpisodeMatch != null && yearEpisodeMatch.range.first > 0) yearEpisodeMatch.range.first else null,
             if (partMatch != null && partMatch.range.first > 0) partMatch.range.first else null,
+            specialMarkerIndex?.takeIf { it > 0 },
             if (dayMatch != null && dayMatch.range.first > 0) dayMatch.range.first else null,
             dvdMatch?.range?.first,
             bookMatch?.range?.first,
@@ -1032,7 +1037,25 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         return null
     }
 
+    /**
+     * Position of an opening, ending or OVA marker like "NCOP 01", "- ED1" or "OVA 02", ignoring hashes like [ED8CC609].
+     */
+    private fun specialMarkerIndex(name: String, casingReference: String = name): Int? {
+        val nameWithoutBrackets = name.replace(bracketPattern) { " ".repeat(it.value.length) }
+        val ovaMatch = ovaMarkerPattern.find(nameWithoutBrackets)
+        // an all upper case name like "ED.EDD.N.EDDY" has no distinguishable OP or ED markers
+        val hasLowerCase = casingReference.replace(bracketPattern, " ").any { it.isLowerCase() }
+        val openingEndingMatch = if (hasLowerCase) openingEndingMarkerPattern.find(nameWithoutBrackets) else null
+        return listOfNotNull(ovaMatch?.range?.first, openingEndingMatch?.range?.first).minOrNull()
+    }
+
+    /**
+     * Openings, endings and OVAs are stored in season 0 without episode number, their numbering would collide otherwise.
+     */
+    private fun isOpeningEndingOrOva(file: File) = specialMarkerIndex(decodeIfEncoded(file.nameWithoutExtension)) != null
+
     fun extractSeason(file: File): Int? {
+        if (isOpeningEndingOrOva(file)) return 0
         val directSeason = extractDirectSeason(file)
         if (directSeason != null) return directSeason
 
@@ -1098,6 +1121,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
      * Episode number plus the season implied by its notation (1x05, 0105 or a disambiguated 305), if any.
      */
     private fun extractEpisodeAndImpliedSeason(file: File, mediaItem: MediaItem?): Pair<Int, Int?>? {
+        if (isOpeningEndingOrOva(file)) return null
         val fileName = decodeIfEncoded(file.name)
         val parentName = decodeIfEncoded(file.parentFile?.name ?: "")
         val grandParentName = decodeIfEncoded(file.parentFile?.parentFile?.name ?: "")
