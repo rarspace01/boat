@@ -11,6 +11,11 @@ import java.io.File
 class ContentRenamerIntegrationTest {
     val homeDir: String? = System.getProperty("user.home")
 
+    // archives and disc images plus the non-media files the renamer skips, except downloads in progress and the fonts
+    // of styled subtitles
+    private val deletableExtensions = setOf("rar", "7z", "zip", "mp3", "vob", "iso", "ifo", "bup") +
+            (ContentRenamer.nonMediaExtensions - setOf("!qb", "part", "ttf", "otf"))
+
     @Disabled
     @Test
     fun manualFullRun() {
@@ -58,8 +63,7 @@ class ContentRenamerIntegrationTest {
                     listFiles.forEach { processFile(it) }
                 }
             } else {
-                val fileExt = file.name.lowercase().replace(file.nameWithoutExtension.lowercase(), "")
-                if (fileExt == ".rar" || fileExt == ".7z" || fileExt == ".zip" || fileExt == ".mp3" || fileExt == ".vob" || fileExt == ".iso" || fileExt == ".ifo" || fileExt == ".bup") {
+                if (file.extension.lowercase() in deletableExtensions) {
                     println("DEL: ${file.absolutePath}")
                     file.delete()
                 }
