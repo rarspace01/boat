@@ -1290,8 +1290,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
                     }
 
                     val skipReason = getSkipReason(file)
-                        ?: if (isMoviePath && isInExtrasFolder(file)) "extras" else null
-                        ?: if (mediaIndicator == MediaType.Movie && !isMovieFile(file)) "no movie file" else null
+                        ?: if (isMoviePath && isInExtrasFolder(file)) "extras" else if (mediaIndicator == MediaType.Movie && !isMovieFile(file)) "no movie file" else null
                     if (skipReason != null) {
                         val logLine = "F:'$fullName'→'$extractedName'→'null' (Y: $year, S: $season, E: $episode)  skipped, $skipReason"
                         println(logLine)
