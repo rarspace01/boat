@@ -63,7 +63,9 @@ class ContentRenamerIntegrationTest {
                     listFiles.forEach { processFile(it) }
                 }
             } else {
-                if (file.extension.lowercase() in deletableExtensions) {
+                // unfinished downloads moved into a show of the library aren't downloading anymore
+                val isStaleDownload = file.extension.lowercase() == "!qb" && ContentRenamer.remoteMediaIdPattern.containsMatchIn(file.absolutePath)
+                if (file.extension.lowercase() in deletableExtensions || isStaleDownload) {
                     println("DEL: ${file.absolutePath}")
                     file.delete()
                 }
