@@ -8,6 +8,10 @@ import org.springframework.stereotype.Service
 import java.io.File
 import java.text.Normalizer
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicLong
 import kotlin.math.abs
 
 @Service
@@ -34,6 +38,10 @@ class MediaProxyService(
         private val YEAR_SEARCH_KEY_PATTERN = "^yearSearch:(.+):(\\d+):(\\w+)$".toRegex()
         private val SEARCH_WITH_YEAR_KEY_PATTERN = "^search:(.+):(\\d+)$".toRegex()
         private val SEARCH_WITH_TYPE_KEY_PATTERN = "^search:(.+):(\\w+)$".toRegex()
+        // TMDB allows about 50 requests per second and 20 connections per IP, TVDB publishes no limit. A cache entry
+        // takes up to two requests, so stay well below that.
+        const val REFRESH_PARALLELISM = 8
+        const val REFRESH_ENTRIES_PER_SECOND = 10
 
         /**
          * Lowercase title without accents and punctuation, words separated by a single space.
@@ -138,24 +146,36 @@ class MediaProxyService(
     /**
      * Searches the services again for every cached search string and remote media id, so the cache keeps its keys but
      * gets current results. An entry keeps its results if the services find nothing for it anymore, so a transient API
-     * failure doesn't wipe the cache. Returns the number of updated cache entries.
+     * failure doesn't wipe the cache. The entries are refreshed by [parallelism] threads, starting at most
+     * [entriesPerSecond] entries per second to stay within the API rate limits. Returns the number of updated cache entries.
      */
-    fun refreshCache(): Int {
-        var updatedEntries = 0
-        cache.forEach { (cacheKey, cachedResults) ->
-            val refreshed = try {
-                fetchForCacheKey(cacheKey, cachedResults)
-            } catch (e: Exception) {
-                logger.warn("Failed to refresh media proxy cache entry $cacheKey", e)
-                null
-            }
-            if (!refreshed.isNullOrEmpty() && refreshed != cachedResults) {
-                cache[cacheKey] = refreshed
-                dirty = true
-                updatedEntries++
-            }
+    fun refreshCache(parallelism: Int = REFRESH_PARALLELISM, entriesPerSecond: Int = REFRESH_ENTRIES_PER_SECOND): Int {
+        val updatedEntries = AtomicInteger()
+        val startIntervalNanos = TimeUnit.SECONDS.toNanos(1) / entriesPerSecond
+        val nextStart = AtomicLong(System.nanoTime())
+        val executor = Executors.newFixedThreadPool(parallelism)
+        try {
+            cache.entries.toList().map { (cacheKey, cachedResults) ->
+                executor.submit {
+                    val waitNanos = nextStart.getAndAdd(startIntervalNanos) - System.nanoTime()
+                    if (waitNanos > 0) TimeUnit.NANOSECONDS.sleep(waitNanos)
+                    val refreshed = try {
+                        fetchForCacheKey(cacheKey, cachedResults)
+                    } catch (e: Exception) {
+                        logger.warn("Failed to refresh media proxy cache entry $cacheKey", e)
+                        null
+                    }
+                    if (!refreshed.isNullOrEmpty() && refreshed != cachedResults) {
+                        cache[cacheKey] = refreshed
+                        dirty = true
+                        updatedEntries.incrementAndGet()
+                    }
+                }
+            }.forEach { it.get() }
+        } finally {
+            executor.shutdownNow()
         }
-        return updatedEntries
+        return updatedEntries.get()
     }
 
     private fun fetchForCacheKey(cacheKey: String, cachedResults: List<MediaItem>): List<MediaItem>? {

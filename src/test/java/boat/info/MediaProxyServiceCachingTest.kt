@@ -12,6 +12,8 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import java.io.File
 import java.nio.file.Path
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 
 class MediaProxyServiceCachingTest {
 
@@ -294,7 +296,7 @@ class MediaProxyServiceCachingTest {
         // a failing api finds nothing, the cached results stay
         every { tvdbService.search("Doug", 1991) } returns emptyList()
 
-        assertThat(service.refreshCache()).isEqualTo(4)
+        assertThat(service.refreshCache(parallelism = 3, entriesPerSecond = 100)).isEqualTo(4)
         service.saveCache()
 
         assertThat(service.cache.keys).isEqualTo(cacheKeys)
@@ -307,6 +309,31 @@ class MediaProxyServiceCachingTest {
         // the refresh looks up the remote id with the type of the cached item
         verify(exactly = 2) { tmdbService.findById("27205", MediaType.Movie) }
         verify(exactly = 1) { tmdbService.findById("27205", MediaType.Series) }
+    }
+
+    @Test
+    fun `refreshCache should refresh entries in parallel within the given limits`() {
+        val names = (1..6).map { "Movie $it" }
+        names.forEach { mediaProxyService.cache["search:$it"] = listOf(MediaItem(it, it, 2000, MediaType.Movie)) }
+        val runningSearches = AtomicInteger()
+        val maxRunningSearches = AtomicInteger()
+        every { tmdbService.search(any<String>()) } answers {
+            maxRunningSearches.accumulateAndGet(runningSearches.incrementAndGet(), ::maxOf)
+            Thread.sleep(200)
+            runningSearches.decrementAndGet()
+            listOf(MediaItem(firstArg(), firstArg(), 2001, MediaType.Movie))
+        }
+        every { tvdbService.search(any<String>()) } returns emptyList()
+
+        assertThat(mediaProxyService.refreshCache(parallelism = 3, entriesPerSecond = 1000)).isEqualTo(6)
+        assertThat(maxRunningSearches.get()).isEqualTo(3)
+        names.forEach { assertThat(mediaProxyService.cache["search:$it"]).containsExactly(MediaItem(it, it, 2001, MediaType.Movie)) }
+
+        // 6 entries at 20 per second start over at least 250ms, even if the searches return at once
+        every { tmdbService.search(any<String>()) } returns emptyList()
+        val start = System.nanoTime()
+        mediaProxyService.refreshCache(parallelism = 6, entriesPerSecond = 20)
+        assertThat(TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start)).isGreaterThanOrEqualTo(250)
     }
 
     /**
