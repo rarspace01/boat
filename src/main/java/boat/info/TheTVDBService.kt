@@ -3,45 +3,21 @@ package boat.info
 import boat.torrent.TorrentHelper.urlEncode
 import boat.utilities.HttpHelper
 import boat.utilities.PropertiesHelper
-import com.google.gson.Gson
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
-import java.io.File
-import java.time.Clock
-import java.time.Duration
-import java.util.Base64
 import java.util.Locale
 import java.util.function.Consumer
 
 @Service
-class TheTVDBService(
-    private val httpHelper: HttpHelper,
-    private val tokenFileName: String = TOKEN_FILE_NAME,
-    private val apiKeyProvider: () -> String? = { PropertiesHelper.getProperty("TVDB_APIKEY") },
-    private val clock: Clock = Clock.systemUTC()
-) {
-    @Autowired
-    constructor(httpHelper: HttpHelper) : this(httpHelper, TOKEN_FILE_NAME)
-
-    companion object {
-        const val TOKEN_FILE_NAME = "tvdbToken"
-        // TVDB tokens are valid for a month, the JWT tells the exact expiry
-        private val DEFAULT_TOKEN_TTL: Duration = Duration.ofDays(30)
-        // log in again a bit before the token expires, so a request doesn't run into the expiry
-        private val TOKEN_EXPIRY_MARGIN: Duration = Duration.ofDays(1)
-    }
-
-    private data class Token(val token: String, val expiresAt: Long)
-
+class TheTVDBService @Autowired constructor(private val httpHelper: HttpHelper) {
     private val baseUrl = "https://api4.thetvdb.com/v4"
-    private val gson = Gson()
-    private var token: Token? = null
+    private var token: String? = null
 
-    private fun login(): Token? {
-        val apiKey = apiKeyProvider()
+    private fun login(): String? {
+        val apiKey = PropertiesHelper.getProperty("TVDB_APIKEY")
         if (apiKey.isNullOrBlank()) {
             println("TVDB_APIKEY not found")
             return null
@@ -52,52 +28,20 @@ class TheTVDBService(
             val jsonRoot = JsonParser.parseString(response)
             val data = jsonRoot.asJsonObject["data"]
             val tokenElement = data.asJsonObject["token"]
-            val jwt = tokenElement.asString
-            Token(jwt, readExpiry(jwt) ?: clock.instant().plus(DEFAULT_TOKEN_TTL).epochSecond)
+            tokenElement.asString
         } catch (e: Exception) {
             println("Failed to login to TVDB: ${e.message}")
             null
         }
     }
 
-    /**
-     * Reads the expiry (epoch seconds) from the `exp` claim of the JWT payload.
-     */
-    private fun readExpiry(jwt: String): Long? = runCatching {
-        val payload = String(Base64.getUrlDecoder().decode(jwt.split(".")[1]))
-        JsonParser.parseString(payload).asJsonObject["exp"]?.asLong
-    }.getOrNull()
-
-    private fun isValid(token: Token?): Boolean =
-        token != null && clock.instant().plus(TOKEN_EXPIRY_MARGIN).epochSecond < token.expiresAt
-
-    private fun loadToken(): Token? = runCatching {
-        val file = File(tokenFileName)
-        if (file.isFile) gson.fromJson(file.readText(), Token::class.java) else null
-    }.getOrNull()?.takeIf { !it.token.isNullOrBlank() }
-
-    private fun saveToken(token: Token) {
-        try {
-            val file = File(tokenFileName)
-            file.parentFile?.mkdirs()
-            file.writeText(gson.toJson(token))
-            file.setReadable(false, false)
-            file.setReadable(true, true)
-        } catch (e: Exception) {
-            println("Failed to save TVDB token to $tokenFileName: ${e.message}")
-        }
-    }
-
-    /**
-     * The token is kept in memory and in [tokenFileName], so restarts reuse it until it expires.
-     * The media proxy cache refresh searches in parallel, they share one login.
-     */
+    // the media proxy cache refresh searches in parallel, they share one login
     @Synchronized
     private fun getToken(): String? {
-        if (!isValid(token)) {
-            token = loadToken()?.takeIf { isValid(it) } ?: login()?.also { saveToken(it) }
+        if (token == null) {
+            token = login()
         }
-        return token?.token
+        return token
     }
 
     fun search(name: String?): List<MediaItem> {
