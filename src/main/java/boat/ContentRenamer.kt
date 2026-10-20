@@ -227,6 +227,13 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
                 "unrated|uncut|remastered|extended|internal|proper|repack|limited|criterion|imax|rm4k|theatrical|retail|dircut|" +
                 "directors?'?s?[\\s-]+cut|(?:extended|theatrical|unrated)[\\s-]+(?:cut|edition|version)|uncut[\\s-]+version|" +
                 "(?:special|collectors?'?s?)[\\s-]+edition|(?:with|plus)[\\s-]+extras)$").toRegex()
+        // torrent hash and "title=" of magnet-like names, or the "Eto." (Russian "this is") of kinozal releases
+        val movieHashPrefixPattern = "(?i)^(?:[0-9a-f]{32,40}\\s*(?:title=)?|eto[\\s.]+(?=\\S))".toRegex()
+        // "Blade.3.Trinity.20041080p" glues the year to the resolution
+        val yearGluedToResolutionPattern = "(?i)(?<=[^0-9])((?:19[0-9]{2}|20[0-2][0-9]))(?=(?:2160|1080|720|576|480)[pi])".toRegex()
+        private const val minTitleSimilarity = 0.88
+        private const val maxTrimmedWords = 4
+        val akaPattern = "(?i)\\s+(?:a\\.?k\\.?a\\.?|aka)\\s+".toRegex()
         val movieSitePrefixPattern = "(?i)^www\\.\\S+?\\.(?:com|org|net|me|to|tv|re|io|cc|ws)\\s*-?\\s+".toRegex()
         val leadingBracketGroupsPattern = "^(?:\\s*\\[[^\\]]*])+".toRegex()
         // list numbering of collections like "01. The Big Boss" or "a. Bruce", not titles like "12.Angry.Men"
@@ -877,6 +884,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
     fun parseMovieName(rawName: String): Pair<String, Int?> {
         // "!" separates like "Werner - Beinhart!1990"
         var name = rawName.replace("：", " ").replace("?", " ").replace("!", "! ")
+        name = name.replace(movieHashPrefixPattern, "").replace(yearGluedToResolutionPattern, "$1 ")
         name = name.replace(remoteMediaIdPattern, " ")
         name = name.replace(movieSitePrefixPattern, "")
         name = name.replace(leadingBracketGroupsPattern, "").trim()
@@ -1579,6 +1587,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
                     logWriter?.write(logLine + "\n")
                 } else {
                     processFilesFromDirectoryInternal(file.absolutePath, logWriter, isTestRun, basePath, assignedTargets)
+                    println("Processed directory: $file")
                 }
             }
         }
@@ -1613,8 +1622,14 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
      * name (Air 2015 vs. Air 2023), then the file is better left alone.
      */
     private fun searchMovie(name: String, year: Int): MediaItem? {
-        val yearResults = mediaProxyService.search(name, year, MediaType.Movie)
-        val nameResults = mediaProxyService.search(name, MediaType.Movie)
+        return searchMovieExact(name, year) ?: searchMovieByShortenedTitle(name, year)
+    }
+
+    private fun searchMovieExact(name: String, year: Int): MediaItem? {
+        // "Aqua-Man" is "Aquaman" as well
+        val queries = if (name.contains('-')) listOf(name, name.replace("-", ""), name.replace("-", " ")).distinct() else listOf(name)
+        val yearResults = queries.flatMap { mediaProxyService.search(it, year, MediaType.Movie) }
+        val nameResults = queries.flatMap { mediaProxyService.search(it, MediaType.Movie) }
         val normalizedName = normalizeMovieTitle(name)
         fun isReleasedNear(item: MediaItem, years: Int) = item.year?.let { abs(it - year) <= years } == true
         fun hasSameTitle(item: MediaItem) = listOfNotNull(item.title, item.originalTitle).any { normalizeMovieTitle(it) == normalizedName }
@@ -1627,6 +1642,59 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
             ?: mediaProxyService.search("$name $year", MediaType.Movie).firstOrNull {
                 it.type == MediaType.Movie && listOfNotNull(it.title, it.originalTitle).any { title -> normalizeMovieTitle(title) == normalizeMovieTitle("$name $year") }
             }
+    }
+
+    /**
+     * Names with more than the title ("Annie Hall Woody Allen", "Tron - Sci-Fi", "Leon aka The Professional") or a typo
+     * ("Carribean") find nothing. Shorter queries do, but only an exact title or a very similar one released in the year
+     * of the file counts, "Akira" (1988) is not "Akira Kurosawa" (1988).
+     */
+    private fun searchMovieByShortenedTitle(name: String, year: Int): MediaItem? {
+        val normalizedName = normalizeMovieTitle(name)
+        for (query in shortenedMovieQueries(name)) {
+            val normalizedQuery = normalizeMovieTitle(query)
+            val results = (mediaProxyService.search(query, year, MediaType.Movie) + mediaProxyService.search(query, MediaType.Movie))
+                .filter { it.type == MediaType.Movie && it.year?.let { releaseYear -> abs(releaseYear - year) <= 1 } == true }
+            val match = results.firstOrNull { item ->
+                listOfNotNull(item.title, item.originalTitle).any { title ->
+                    val normalizedTitle = normalizeMovieTitle(title)
+                    normalizedTitle == normalizedQuery || normalizedTitle == normalizedName ||
+                            (normalizedName.length >= 8 && similarity(normalizedTitle, normalizedName) >= minTitleSimilarity)
+                }
+            }
+            if (match != null) return match
+        }
+        return null
+    }
+
+    /**
+     * The parts of an "X aka Y" name, the part in front of a dash and the name without its last words, as long as two
+     * words remain, e.g. "Annie Hall Woody Allen" to "Annie Hall Woody" and "Annie Hall".
+     */
+    private fun shortenedMovieQueries(name: String): List<String> {
+        val queries = linkedSetOf<String>()
+        queries.addAll(name.split(akaPattern).filter { it.isNotBlank() })
+        name.substringBefore(" - ").takeIf { it != name }?.let { queries.add(it.trim()) }
+        queries.addAll(name.split(akaPattern).first().substringBefore(" - ").trim().let { base ->
+            val words = base.split(' ')
+            (words.size - 1 downTo maxOf(2, words.size - maxTrimmedWords)).map { words.take(it).joinToString(" ") }
+        })
+        queries.remove(name)
+        return queries.filter { it.isNotBlank() }
+    }
+
+    private fun similarity(a: String, b: String): Double {
+        if (a == b) return 1.0
+        val previous = IntArray(b.length + 1) { it }
+        val current = IntArray(b.length + 1)
+        for (i in 1..a.length) {
+            current[0] = i
+            for (j in 1..b.length) {
+                current[j] = minOf(previous[j] + 1, current[j - 1] + 1, previous[j - 1] + if (a[i - 1] == b[j - 1]) 0 else 1)
+            }
+            current.copyInto(previous)
+        }
+        return 1.0 - previous[b.length].toDouble() / maxOf(a.length, b.length)
     }
 
     /**

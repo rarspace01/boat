@@ -121,6 +121,10 @@ class ContentRenamerMovieTest {
             "Werner.-.Beinhart!1990.WEB-DL.1080p" to Pair("Werner - Beinhart", 1990),
             "Winter.Soldier.with.Extras.1972.Documentary.Vietnam.War.DVDRip.480p" to Pair("Winter Soldier", 1972),
             "Wonder.Woman.1984.2020.HMAX.IMAX.2160p.HDR.WEB-DL" to Pair("Wonder Woman 1984", 2020),
+            "Blade.3.Trinity.20041080p.BluRay.x264" to Pair("Blade 3 Trinity", 2004),
+            "3B54A22536685B87ED1697B20160C4DEBC191C3F?title=[limetorrents.cc]Battle.Of.The.Sexes..2017..[1080p].[YTS.AG]" to Pair("Battle Of The Sexes", 2017),
+            "Eto.Spinal.Tap.1984.x264.BDRip-kinozal.tv" to Pair("Spinal Tap", 1984),
+            "rep-hotelartemis.2018.1080p.bluray.x264" to Pair("hotelartemis", 2018),
         )
         expected.forEach { (rawName, titleAndYear) ->
             assertThat(contentRenamer.parseMovieName(rawName)).describedAs(rawName).isEqualTo(titleAndYear)
@@ -296,5 +300,57 @@ class ContentRenamerMovieTest {
         contentRenamer.processFilesFromDirectory(File(base, "Movies").absolutePath, null, isTestRun = false, basePath = base.absolutePath)
 
         assertThat(dune).exists()
+    }
+
+    @Test
+    fun `should find movies named with more than the title`(@TempDir tempDir: Path) {
+        val base = tempDir.toFile()
+        createFile(base, "Movies/A/Annie.Hall.Woody.Allen.1977.DVDRip.xvid.avi")
+        createFile(base, "Movies/L/Leon.aka.The.Professional.Directors.Cut.1994.BluRay.mkv")
+        every { mediaProxyService.search("Annie Hall", 1977, MediaType.Movie) } returns listOf(MediaItem("Annie Hall", "Annie Hall", 1977, MediaType.Movie, "{tmdb-703}"))
+        every { mediaProxyService.search("The Professional", 1994, MediaType.Movie) } returns listOf(MediaItem("Léon: The Professional", "Léon", 1994, MediaType.Movie, "{tmdb-101}"))
+        every { mediaProxyService.search("Leon", 1994, MediaType.Movie) } returns listOf(MediaItem("Léon: The Professional", "Léon", 1994, MediaType.Movie, "{tmdb-101}"))
+
+        contentRenamer.processFilesFromDirectory(File(base, "Movies").absolutePath, null, isTestRun = false, basePath = base.absolutePath)
+
+        assertThat(File(base, "Movies/A").list()).anyMatch { it.contains("{tmdb-703}") }
+        assertThat(File(base, "Movies/L").list()).anyMatch { it.contains("{tmdb-101}") }
+    }
+
+    @Test
+    fun `should find movies with a typo in the title`(@TempDir tempDir: Path) {
+        val base = tempDir.toFile()
+        createFile(base, "Movies/P/Pirates Of The Carribean.At.Worlds.End.2007.720p.BRRip.H264.mp4")
+        every { mediaProxyService.search("Pirates Of The Carribean At Worlds", 2007, MediaType.Movie) } returns listOf(
+            MediaItem("Pirates of the Caribbean: At World's End", "Pirates of the Caribbean: At World's End", 2007, MediaType.Movie, "{tmdb-285}")
+        )
+
+        contentRenamer.processFilesFromDirectory(File(base, "Movies").absolutePath, null, isTestRun = false, basePath = base.absolutePath)
+
+        assertThat(File(base, "Movies/P").list()).anyMatch { it.contains("{tmdb-285}") }
+    }
+
+    @Test
+    fun `should not shorten a title to a namesake`(@TempDir tempDir: Path) {
+        val base = tempDir.toFile()
+        val kurosawa = createFile(base, "Movies/A/Akira.Kurosawa.1988.1080p.5.1.BDrip.mp4")
+        every { mediaProxyService.search("Akira", 1988, MediaType.Movie) } returns listOf(MediaItem("Akira", "AKIRA", 1988, MediaType.Movie, "{tmdb-149}"))
+
+        contentRenamer.processFilesFromDirectory(File(base, "Movies").absolutePath, null, isTestRun = false, basePath = base.absolutePath)
+
+        assertThat(kurosawa).exists()
+    }
+
+    @Test
+    fun `should prefer the movie of the year over a namesake with a hyphen`(@TempDir tempDir: Path) {
+        val base = tempDir.toFile()
+        createFile(base, "Movies/A/Aqua-Man (2018) IMAX 720p BDRip.mkv")
+        every { mediaProxyService.search("Aqua-Man", 2018, MediaType.Movie) } returns emptyList()
+        every { mediaProxyService.search("Aqua-Man", MediaType.Movie) } returns listOf(MediaItem("Aqua Man", "变信人", 2020, MediaType.Movie, "{tmdb-800152}"))
+        every { mediaProxyService.search("AquaMan", 2018, MediaType.Movie) } returns listOf(MediaItem("Aquaman", "Aquaman", 2018, MediaType.Movie, "{tmdb-297802}"))
+
+        contentRenamer.processFilesFromDirectory(File(base, "Movies").absolutePath, null, isTestRun = false, basePath = base.absolutePath)
+
+        assertThat(File(base, "Movies/A").list()).anyMatch { it.contains("{tmdb-297802}") }
     }
 }
