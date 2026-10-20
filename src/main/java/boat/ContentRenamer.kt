@@ -234,6 +234,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         val yearGluedToResolutionPattern = "(?i)(?<=[^0-9])((?:19[0-9]{2}|20[0-2][0-9]))(?=(?:2160|1080|720|576|480)[pi])".toRegex()
         private const val minTitleSimilarity = 0.88
         private const val maxTrimmedWords = 4
+        private val romanNumerals = listOf("i", "ii", "iii", "iv", "v", "vi", "vii", "viii", "ix", "x").withIndex().associate { it.value to (it.index + 1).toString() }
         private val titleNumberPattern = "[0-9]+|[ivx]+".toRegex()
         // "Predator 1 BD", "The Hangover Part I" or "Letters From Iwo Jima KLAXXON", noise behind a title found without a year
         val trailingMovieNoisePattern = "(?:(?i:\\s+part)?(?i:\\s+(?:1|i))|(?i:\\s+(?:bd|hdmux|dvdmux))|\\s+[A-Z]{6,})$".toRegex()
@@ -1740,7 +1741,9 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
      * "The Hangover Part II".
      */
     private fun isSimilarTitle(title: String, name: String): Boolean {
+        // "Episode I" is "Episode 1"
         fun numbers(text: String) = MediaProxyService.normalizeTitle(text).split(' ').filter { it.matches(titleNumberPattern) }
+            .map { romanNumerals[it] ?: it }
         val normalizedName = normalizeMovieTitle(name)
         return normalizedName.length >= 8 && numbers(title) == numbers(name) && similarity(normalizeMovieTitle(title), normalizedName) >= minTitleSimilarity
     }
