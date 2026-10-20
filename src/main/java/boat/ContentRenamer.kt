@@ -152,6 +152,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         // "Hokuto no Ken - Movie 2006 - The Legend of Raoh" or "Trigun Movie Badlands Rumble"
         val movieSubtitlePattern = "(?i)^(.*?)(?<![a-z])movie(?:\\s*(?:[0-9]{1,2}|19[0-9]{2}|20[0-2][0-9]))?\\s*(?:-\\s*)?([a-z].+)$".toRegex()
         val repeatedDashPattern = "\\s*-\\s*(?:-\\s*)+".toRegex()
+        private val titleConnectors = setOf("the", "and", "of", "a", "an", "in", "on", "to", "or", "at", "for", "with", "vs", "de", "la", "le", "el", "der", "die", "das")
         val titleStopWords = setOf("the", "and", "of", "a", "an", "in", "on", "to", "der", "die", "das")
         // "Captain.Future.Folge.13-19" or "Eden.of.the.East.Episode.10" before the dots become spaces
         val episodeWordPattern = "(?i)(?<=[\\s._-])(?:Folge|Episode)(?=[\\s._-]*[0-9])".toRegex()
@@ -1556,9 +1557,12 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
 
                     val idString = mediaResult?.id ?: ""
                     val isSkippedMovieFile = mediaResult?.type == MediaType.Movie && !isMovieFile(file)
+                    val isUnsureMovie = mediaResult?.type == MediaType.Movie && listOfNotNull(mediaResult.title, mediaResult.originalTitle).none {
+                        normalizeMovieTitle(it) == normalizeMovieTitle(extractedName)
+                    }
                     val logLine =
                         "F:'$fullName'→'$extractedName'→'$mediaResult' (Y: $year, S: $season, E: $episode) $idString" +
-                                if (isSkippedMovieFile) " skipped, no movie file" else ""
+                                if (isSkippedMovieFile) " skipped, no movie file" else if (isUnsureMovie) " unsure, title differs" else ""
                     mediaResult?.takeUnless { isSkippedMovieFile }?.let {
                         val targetFile = getTargetFile(file, mediaResult, extractedName, season, episode, basePath)
                         // actual move
@@ -1596,6 +1600,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
     private fun searchMediaForFile(extractedName: String, year: Int?, mediaIndicator: MediaType?, isSeriesPath: Boolean): MediaItem? {
         if (extractedName.isBlank()) return null
         if (mediaIndicator == MediaType.Movie && year != null) return searchMovie(extractedName, year)
+        if (mediaIndicator == MediaType.Movie) return searchMovieWithoutYear(extractedName)
         val primaryResult = if (year != null) {
             val res = mediaProxyService.search(extractedName, year, mediaIndicator).firstOrNull()
             res ?: mediaProxyService.search(extractedName, mediaIndicator).firstOrNull()
@@ -1636,7 +1641,8 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         val results = (yearResults + nameResults).filter { it.type == MediaType.Movie }
         // a different title is only trusted in the release year itself, "Harley Quinn" (2019) is not "Batman and Harley Quinn" (2017)
         return results.firstOrNull { isReleasedNear(it, 1) && hasSameTitle(it) }
-            ?: results.firstOrNull { isReleasedNear(it, 2) && hasSameTitle(it) }
+            // the original title of "Shocking Dark" is "Terminator 2", it is not the Terminator 2 of 1991
+            ?: results.firstOrNull { isReleasedNear(it, 2) && normalizeMovieTitle(it.title) == normalizedName }
             ?: yearResults.firstOrNull { it.type == MediaType.Movie && isReleasedNear(it, 1) }
             // titles containing a year, e.g. "Blade Runner 2049", but not "Algérie 1988-2000" for "Dune" (2000)
             ?: mediaProxyService.search("$name $year", MediaType.Movie).firstOrNull {
@@ -1677,7 +1683,10 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         name.substringBefore(" - ").takeIf { it != name }?.let { queries.add(it.trim()) }
         queries.addAll(name.split(akaPattern).first().substringBefore(" - ").trim().let { base ->
             val words = base.split(' ')
-            (words.size - 1 downTo maxOf(2, words.size - maxTrimmedWords)).map { words.take(it).joinToString(" ") }
+            // never inside a phrase like "To Live or Die on Everest"
+            (words.size - 1 downTo maxOf(2, words.size - maxTrimmedWords))
+                .filter { words[it].lowercase() !in titleConnectors && words[it - 1].lowercase() !in titleConnectors }
+                .map { words.take(it).joinToString(" ") }
         })
         queries.remove(name)
         return queries.filter { it.isNotBlank() }
@@ -1695,6 +1704,22 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
             current.copyInto(previous)
         }
         return 1.0 - previous[b.length].toDouble() / maxOf(a.length, b.length)
+    }
+
+    /**
+     * Without a year only the title tells movies apart. The same title wins, otherwise a result that contains all words of
+     * a name of at least two words ("Final Fantasy XV - Kingsglaive"). Namesakes without a release date come last,
+     * "Smiley" is not "Rickey Smiley: Fool-ish" and "Elephant Man" is the one of 1980.
+     */
+    private fun searchMovieWithoutYear(name: String): MediaItem? {
+        val results = mediaProxyService.search(name, MediaType.Movie).filter { it.type == MediaType.Movie }.sortedBy { it.year == null }
+        val normalizedName = normalizeMovieTitle(name)
+        fun titles(item: MediaItem) = listOfNotNull(item.title, item.originalTitle)
+        val words = MediaProxyService.normalizeTitle(name).split(' ').filter { it.isNotBlank() }.toSet()
+        return results.firstOrNull { item -> titles(item).any { normalizeMovieTitle(it) == normalizedName } }
+            ?: results.firstOrNull { item ->
+                words.size >= 2 && titles(item).any { title -> MediaProxyService.normalizeTitle(title).split(' ').toSet().containsAll(words) }
+            }
     }
 
     /**
