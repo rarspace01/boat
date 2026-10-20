@@ -42,6 +42,8 @@ internal class StringUtilTest {
     fun shouldMapUmlautsAndSpecialCharacters() {
         assertThat(deductFirstTorrentLetter("Ärger")).isEqualTo("A")
         assertThat(deductFirstTorrentLetter("Ödland")).isEqualTo("O")
+        assertThat(deductFirstTorrentLetter("Über den Wolken")).isEqualTo("U")
+        assertThat(deductFirstTorrentLetter("über")).isEqualTo("U")
         assertThat(deductFirstTorrentLetter("\"Quoted\"")).isEqualTo("Q")
         assertThat(deductFirstTorrentLetter("#hashtag")).isEqualTo("?")
     }

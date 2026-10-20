@@ -10,7 +10,7 @@ class StringUtil {
             var preparedTorrentName = preparedTorrentName
             preparedTorrentName = preparedTorrentName.replace("[äÄ]".toRegex(), "A")
             preparedTorrentName = preparedTorrentName.replace("[öÖ]".toRegex(), "O")
-            preparedTorrentName = preparedTorrentName.replace("[üÜ]".toRegex(), "Ü")
+            preparedTorrentName = preparedTorrentName.replace("[üÜ]".toRegex(), "U")
 
             // take only name infront of year
             val split = preparedTorrentName.split("[1-2][0-9]{3}".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
