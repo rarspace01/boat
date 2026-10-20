@@ -438,4 +438,16 @@ class ContentRenamerMovieTest {
         assertThat(contentRenamer.parseMovieName(contentRenamer.decodeIfEncoded("Bram.Stoker&#039;s.Dracula.(1992).mkv"))).isEqualTo(Pair("Bram Stoker's Dracula", 1992))
         assertThat(contentRenamer.parseMovieName("Requiem.For.A.Dream.HDMux.1080p.x264")).isEqualTo(Pair("Requiem For A Dream", null))
     }
+
+    @Test
+    fun `should match a misspelled title with a roman numeral for the arabic one`(@TempDir tempDir: Path) {
+        val base = tempDir.toFile()
+        createFile(base, "Movies/S/Star.Wars.Episode.1.The.Fantom.Menace.1999.4K.UltraHD.BluRay.2160p.x264.mkv")
+        every { mediaProxyService.search("Star Wars Episode", 1999, MediaType.Movie) } returns
+                listOf(MediaItem("Star Wars: Episode I - The Phantom Menace", "Star Wars: Episode I - The Phantom Menace", 1999, MediaType.Movie, "{tmdb-1893}"))
+
+        contentRenamer.processFilesFromDirectory(File(base, "Movies").absolutePath, null, isTestRun = false, basePath = base.absolutePath)
+
+        assertThat(File(base, "Movies/S").list()).anyMatch { it.contains("{tmdb-1893}") }
+    }
 }
