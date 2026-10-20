@@ -336,4 +336,97 @@ internal class TorrentHelperTest {
         torrent.magnetUri = "magnet:?xt=urn:btih:10e93389d579ba4538c68b8d297268a81620fae2"
         Assertions.assertEquals("10e93389d579ba4538c68b8d297268a81620fae2", TorrentHelper.resolveDownloadName(torrent))
     }
+
+    @Test
+    fun shouldExtractTorrentSizeInMB() {
+        Assertions.assertEquals(1536.0, TorrentHelper.extractTorrentSizeFromString("1.5 GB"))
+        Assertions.assertEquals(1536.0, TorrentHelper.extractTorrentSizeFromString("1.5 GiB"))
+        Assertions.assertEquals(700.0, TorrentHelper.extractTorrentSizeFromString("700 MB"))
+        Assertions.assertEquals(700.0, TorrentHelper.extractTorrentSizeFromString("700.9 MiB"))
+        Assertions.assertEquals(2048.0, TorrentHelper.extractTorrentSizeFromString("<b>2</b> GB"))
+        Assertions.assertEquals(1536.0, TorrentHelper.extractTorrentSizeFromString(Torrent("Test").apply { size = "1.5 GiB" }))
+    }
+
+    @Test
+    fun shouldExtractZeroTorrentSizeFromUnparsableString() {
+        Assertions.assertEquals(0.0, TorrentHelper.extractTorrentSizeFromString(""))
+        Assertions.assertEquals(0.0, TorrentHelper.extractTorrentSizeFromString("unknown"))
+        Assertions.assertEquals(0.0, TorrentHelper.extractTorrentSizeFromString("big GB"))
+    }
+
+    @Test
+    fun shouldFormatByteCountHumanReadable() {
+        assertThat(TorrentHelper.humanReadableByteCountBinary(0)).isEqualTo("0 B")
+        assertThat(TorrentHelper.humanReadableByteCountBinary(1023)).isEqualTo("1023 B")
+        assertThat(TorrentHelper.humanReadableByteCountBinary(-1)).isEqualTo("-1 B")
+        // the decimal separator depends on the default locale
+        assertThat(TorrentHelper.humanReadableByteCountBinary(1024)).matches("1[.,]00 KiB")
+        assertThat(TorrentHelper.humanReadableByteCountBinary(1536)).matches("1[.,]50 KiB")
+        assertThat(TorrentHelper.humanReadableByteCountBinary(-1024)).matches("-1[.,]00 KiB")
+        assertThat(TorrentHelper.humanReadableByteCountBinary(1024L * 1024)).matches("1[.,]00 MiB")
+        assertThat(TorrentHelper.humanReadableByteCountBinary(1024L * 1024 * 1024)).matches("1[.,]00 GiB")
+        assertThat(TorrentHelper.humanReadableByteCountBinary(Long.MAX_VALUE)).matches("8[.,]00 EiB")
+        assertThat(TorrentHelper.humanReadableByteCountBinary(Long.MIN_VALUE)).matches("-8[.,]00 EiB")
+    }
+
+    @Test
+    fun shouldFormatDuration() {
+        assertThat(TorrentHelper.formatDuration(java.time.Duration.ZERO)).isEqualTo("D: 0hrs 0min 0sec")
+        assertThat(TorrentHelper.formatDuration(java.time.Duration.ofSeconds(3725))).isEqualTo("D: 1hrs 2min 5sec")
+        assertThat(TorrentHelper.formatDuration(java.time.Duration.ofDays(2).plusHours(3).plusMinutes(4).plusSeconds(5)))
+            .isEqualTo("D: 2days 3hrs 4min 5sec")
+    }
+
+    @Test
+    fun shouldBlocklistBadQualityAndExplicitTorrents() {
+        Assertions.assertTrue(TorrentHelper.isBlocklisted(Torrent("Test").apply { name = "Movie.2020.HDCAM.x264" }))
+        Assertions.assertTrue(TorrentHelper.isBlocklisted(Torrent("Test").apply { name = "Movie.2020.TS.x264" }))
+        Assertions.assertTrue(TorrentHelper.isBlocklisted(Torrent("Test").apply { name = "Movie 2020 TELESYNC" }))
+        Assertions.assertTrue(TorrentHelper.isBlocklisted(Torrent("Test").apply { name = "Some XXX title" }))
+    }
+
+    @Test
+    fun shouldNotBlocklistGoodTorrentsContainingBadQualityLetters() {
+        Assertions.assertFalse(TorrentHelper.isBlocklisted(Torrent("Test").apply { name = "Movie.2020.1080p.BluRay.x264" }))
+        Assertions.assertFalse(TorrentHelper.isBlocklisted(Torrent("Test").apply { name = "Scam.2020.1080p.WEB" }))
+        Assertions.assertFalse(TorrentHelper.isBlocklisted(Torrent("Test").apply { name = "Cats.2019.1080p.WEB" }))
+    }
+
+    @Test
+    fun shouldValidateTorrents() {
+        val validTorrent = Torrent("Test").apply {
+            name = "Movie.2020.1080p.BluRay"
+            sizeInMB = 1000.0
+            magnetUri = "magnet:?xt=urn:btih:abc"
+        }
+        Assertions.assertTrue(TorrentHelper.isValidTorrent(validTorrent))
+        Assertions.assertFalse(TorrentHelper.isValidTorrent(validTorrent.copy(sizeInMB = 0.0)))
+        Assertions.assertFalse(TorrentHelper.isValidTorrent(validTorrent.copy(magnetUri = " ")))
+        Assertions.assertFalse(TorrentHelper.isValidTorrent(validTorrent.copy(name = "Movie.2020.HDCAM")))
+    }
+
+    @Test
+    fun shouldBuildMagnetUriFromHash() {
+        Assertions.assertEquals(
+            "magnet:?xt=urn:btih:abc&dn=My+Movie+%281999%29&tr=http://tracker.opentrackr.org:1337/announce",
+            TorrentHelper.buildMagnetUriFromHash("abc", "My Movie (1999)")
+        )
+    }
+
+    @Test
+    fun shouldDetermineTypeOfMediaFromFiles() {
+        Assertions.assertEquals(TorrentType.TRANSFER, TorrentHelper.determineTypeOfMedia(emptyList<TorrentFile>()))
+        Assertions.assertEquals(
+            TorrentType.SERIES_SHOWS,
+            TorrentHelper.determineTypeOfMedia(listOf(TorrentFile(name = "Show.S01E01.mkv"), TorrentFile(name = "Show.S01E02.mkv"), TorrentFile(name = "info.nfo")))
+        )
+        Assertions.assertEquals(
+            TorrentType.MOVIES,
+            TorrentHelper.determineTypeOfMedia(listOf(TorrentFile(name = "Movie.2020.1080p.mkv"), TorrentFile(name = "sample.txt")))
+        )
+        Assertions.assertEquals(
+            TorrentType.TRANSFER,
+            TorrentHelper.determineTypeOfMedia(listOf(TorrentFile(name = "Book.pdf"), TorrentFile(name = "Cover.jpg")))
+        )
+    }
 }

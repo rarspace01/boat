@@ -392,9 +392,6 @@ class MultifileHosterService(
                     listOfCharactersToIndexUpdate.add(indexLetter)
                     wasDownloadSuccessful = rcloneDownloadFileToDestination(fileToDownload.url, targetFilePath)
                     updateUploadStatus(remoteTorrent, listOf(fileToDownload), 1, null)
-                    delete(remoteTorrent)
-                    transferService.delete(transferToBeDownloaded)
-                    updateIndexForLetters(listOfCharactersToIndexUpdate.joinToString())
                 } else {
                     log.info("MFD - {}", transferToBeDownloaded)
                     var currentFileNumber = 0
@@ -431,10 +428,17 @@ class MultifileHosterService(
                     }
 
                     wasDownloadSuccessful = failedUploads == 0
+                }
+                if (wasDownloadSuccessful) {
                     delete(remoteTorrent)
                     transferService.delete(transferToBeDownloaded)
-                    updateIndexForLetters(listOfCharactersToIndexUpdate.joinToString())
+                } else {
+                    // keep the files on the multifilehoster and retry the download later
+                    transferToBeDownloaded.transferStatus = TransferStatus.READY_TO_BE_DOWNLOADED
+                    transferToBeDownloaded.feedbackMessage = "download to drive failed"
+                    transferService.save(transferToBeDownloaded)
                 }
+                updateIndexForLetters(listOfCharactersToIndexUpdate.joinToString())
             } catch (exception: Exception) {
                 log.error(String.format("Couldn't download Transfer: %s", transferToBeDownloaded), exception)
             } finally {
@@ -590,7 +594,7 @@ class MultifileHosterService(
         return foundMatch?.replace("\\s".toRegex(), ".") ?: ""
     }
 
-    private fun rcloneDownloadFileToDestination(fileURLFromTorrent: String?, destinationPath: String): Boolean {
+    internal fun rcloneDownloadFileToDestination(fileURLFromTorrent: String?, destinationPath: String): Boolean {
         log.info("D>[{}]", destinationPath)
         val builder = ProcessBuilder()
         val commandToRun = String.format("rclone --no-check-certificate copyurl '%s' '%s'", fileURLFromTorrent, destinationPath.replace("'".toRegex(), ""))

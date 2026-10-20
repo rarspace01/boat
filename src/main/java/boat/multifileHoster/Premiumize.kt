@@ -234,46 +234,49 @@ class Premiumize(httpHelper: HttpHelper) : HttpUser(httpHelper), MultifileHoster
             val rootNode = jsonMapper.readTree(pageContent)
             val localNodes = rootNode.path("transfers")
             for (localNode in localNodes) {
-                val tempTorrent = Torrent(getName())
-                tempTorrent.name = localNode["name"].asString()
-                tempTorrent.folder_id = localNode["folder_id"].asString()
-                tempTorrent.file_id = localNode["file_id"].asString()
-                tempTorrent.remoteId = localNode["id"].asString()
-                tempTorrent.remoteStatusText = localNode["status"].asString()
-                tempTorrent.remoteTransferStatus = TorrentMapper.mapRemoteStatus(tempTorrent.remoteStatusText)
-                val src = localNode["src"].asString()
-                if (src.contains("btih")) {
-                    tempTorrent.magnetUri = src
+                try {
+                    val tempTorrent = Torrent(getName())
+                    tempTorrent.name = localNode["name"].asString()
+                    tempTorrent.folder_id = localNode["folder_id"].asString()
+                    tempTorrent.file_id = localNode["file_id"].asString()
+                    tempTorrent.remoteId = localNode["id"].asString()
+                    tempTorrent.remoteStatusText = localNode["status"].asString()
+                    tempTorrent.remoteTransferStatus = TorrentMapper.mapRemoteStatus(tempTorrent.remoteStatusText)
+                    val src = localNode["src"].asString()
+                    if (src.contains("btih")) {
+                        tempTorrent.magnetUri = src
+                    }
+                    val messages = localNode["message"].asString().split(",").toTypedArray()
+                    if (messages.size == 3) {
+                        val extractDurationFromString = extractDurationFromString(messages[2])
+                        tempTorrent.eta = extractDurationFromString
+                    }
+                    tempTorrent.remoteProgress = localNode["progress"].toString()
+                    tempTorrent.remoteProgressInPercent = localNode["progress"].asDouble()
+                    remoteTorrentList.add(tempTorrent)
+                } catch (e: Exception) {
+                    // a single malformed transfer must not hide all other transfers
+                    log.error("couldn't parse transfer: {}", localNode, e)
                 }
-                val messages = localNode["message"].asString().split(",").toTypedArray()
-                if (messages.size == 3) {
-                    val extractDurationFromString = extractDurationFromString(messages[2])
-                    tempTorrent.eta = extractDurationFromString
-                }
-                tempTorrent.remoteProgress = localNode["progress"].toString()
-                tempTorrent.remoteProgressInPercent = localNode["progress"].asDouble()
-                remoteTorrentList.add(tempTorrent)
             }
-        } catch (e: IOException) {
-            e.printStackTrace()
+        } catch (e: Exception) {
+            log.error("couldn't parse transfers: {}", pageContent, e)
         }
         return remoteTorrentList
     }
 
+    /**
+     * Parses the ETA of a transfer message like "2 days left", "1 hour left" or "about 3 mins left", unknown -> zero.
+     */
     private fun extractDurationFromString(durationString: String): Duration {
-        if (durationString.contains("unknown")) return Duration.ZERO
-        val valueOfDuration = durationString
-            .replace("days", "", true)
-            .replace("hours", "", true)
-            .replace("mins", "", true)
-            .replace("seconds", "", true)
-            .replace("left", "", true)
-            .trim()
-        if (durationString.contains("days")) return Duration.ofDays(valueOfDuration.toLong())
-        if (durationString.contains("hours")) return Duration.ofHours(valueOfDuration.toLong())
-        if (durationString.contains("mins")) return Duration.ofMinutes(valueOfDuration.toLong())
-        if (durationString.contains("seconds")) return Duration.ofSeconds(valueOfDuration.toLong())
-        return Duration.ZERO
+        val match = durationPattern.find(durationString) ?: return Duration.ZERO
+        val value = match.groupValues[1].toLong()
+        return when (match.groupValues[2].lowercase()) {
+            "day" -> Duration.ofDays(value)
+            "hour" -> Duration.ofHours(value)
+            "min" -> Duration.ofMinutes(value)
+            else -> Duration.ofSeconds(value)
+        }
     }
 
     override fun delete(remoteTorrent: Torrent) {
@@ -294,7 +297,7 @@ class Premiumize(httpHelper: HttpHelper) : HttpUser(httpHelper), MultifileHoster
                 enrichCacheStatusForGivenTorrents(
                     torrents.subList(
                         i,
-                        (i + maximumQueryCacheSize).coerceAtMost(torrents.size - 1)
+                        (i + maximumQueryCacheSize).coerceAtMost(torrents.size)
                     )
                 )
             }
@@ -341,5 +344,6 @@ class Premiumize(httpHelper: HttpHelper) : HttpUser(httpHelper), MultifileHoster
 
     companion object {
         private val log = LoggerFactory.getLogger(Premiumize::class.java)
+        private val durationPattern = Regex("(\\d+)\\s*(day|hour|min|sec)", RegexOption.IGNORE_CASE)
     }
 }

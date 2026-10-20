@@ -17,6 +17,8 @@ import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
 import io.mockk.slot
+import io.mockk.spyk
+import io.mockk.verify
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeEach
@@ -39,15 +41,18 @@ internal class MultifileHosterServiceTest {
     fun beforeEach() {
         every { httpHelper.getPage(match { it.contains("account/info") }) } returns "{\"limit_used\": 0.1}"
         every { httpHelper.getPage(match { it.contains("premiumize.me/account?") }) } returns "<html><body></body></html>"
-        multifileHosterService = MultifileHosterService(
-            httpHelper,
-            transferService,
-            cloudService,
-            cacheManager,
-            cloudFileService,
-            mediaProxyService,
-            contentRenamer
+        multifileHosterService = spyk(
+            MultifileHosterService(
+                httpHelper,
+                transferService,
+                cloudService,
+                cacheManager,
+                cloudFileService,
+                mediaProxyService,
+                contentRenamer
+            )
         )
+        every { multifileHosterService.rcloneDownloadFileToDestination(any(), any()) } returns true
     }
 
     @Test
@@ -377,5 +382,68 @@ internal class MultifileHosterServiceTest {
         multifileHosterService.checkForDownloadableTorrentsAndDownloadTheFirst()
 
         io.mockk.verify { transferService.delete(transfer) }
+    }
+
+    @Test
+    fun shouldKeepTransferAndRemoteTorrentWhenSingleFileDownloadFails() {
+        val transfer = Transfer(
+            name = "Inception.2010.1080p.mkv",
+            transferStatus = TransferStatus.READY_TO_BE_DOWNLOADED,
+            remoteId = "remote-123",
+            source = "Premiumize"
+        )
+        every { transferService.getAll() } returns listOf(transfer)
+        every { cloudService.buildDestinationPath(any(), any()) } returns Pair("I", "/destination/Movies/I/")
+        every { httpHelper.getPage(match { it.contains("folder/list") }) } returns
+                "{\"status\":\"success\",\"content\":[{\"id\":\"f1\",\"name\":\"Inception.mkv\",\"type\":\"file\",\"size\":1000,\"link\":\"http://premiumize.me/dl/inception.mkv\"}]}"
+        every { multifileHosterService.rcloneDownloadFileToDestination(any(), any()) } returns false
+
+        multifileHosterService.checkForDownloadableTorrentsAndDownloadTheFirst()
+
+        verify(exactly = 0) { transferService.delete(any()) }
+        verify(exactly = 0) { httpHelper.getPage(match { it.contains("transfer/delete") }) }
+        assertThat(transfer.transferStatus).isEqualTo(TransferStatus.READY_TO_BE_DOWNLOADED)
+    }
+
+    @Test
+    fun shouldKeepTransferAndRemoteTorrentWhenOneFileOfMultiFileDownloadFails() {
+        val transfer = Transfer(
+            name = "Breaking.Bad.S01",
+            transferStatus = TransferStatus.READY_TO_BE_DOWNLOADED,
+            remoteId = "remote-456",
+            source = "Premiumize"
+        )
+        every { transferService.getAll() } returns listOf(transfer)
+        every { cloudService.buildDestinationPath(any(), any()) } returns Pair("B", "/destination/Series-Shows/B/Breaking.Bad/")
+        every { httpHelper.getPage(match { it.contains("folder/list") }) } returns "{\"status\":\"success\",\"content\":[" +
+                "{\"id\":\"f1\",\"name\":\"Breaking.Bad.S01E01.mkv\",\"type\":\"file\",\"size\":1000,\"link\":\"http://premiumize.me/dl/bb01.mkv\"}," +
+                "{\"id\":\"f2\",\"name\":\"Breaking.Bad.S01E02.mkv\",\"type\":\"file\",\"size\":1000,\"link\":\"http://premiumize.me/dl/bb02.mkv\"}" +
+                "]}"
+        every { multifileHosterService.rcloneDownloadFileToDestination("http://premiumize.me/dl/bb02.mkv", any()) } returns false
+
+        multifileHosterService.checkForDownloadableTorrentsAndDownloadTheFirst()
+
+        verify(exactly = 0) { transferService.delete(any()) }
+        verify(exactly = 0) { httpHelper.getPage(match { it.contains("transfer/delete") }) }
+        assertThat(transfer.transferStatus).isEqualTo(TransferStatus.READY_TO_BE_DOWNLOADED)
+    }
+
+    @Test
+    fun shouldDeleteTransferAndRemoteTorrentAfterSuccessfulDownload() {
+        val transfer = Transfer(
+            name = "Inception.2010.1080p.mkv",
+            transferStatus = TransferStatus.READY_TO_BE_DOWNLOADED,
+            remoteId = "remote-123",
+            source = "Premiumize"
+        )
+        every { transferService.getAll() } returns listOf(transfer)
+        every { cloudService.buildDestinationPath(any(), any()) } returns Pair("I", "/destination/Movies/I/")
+        every { httpHelper.getPage(match { it.contains("folder/list") }) } returns
+                "{\"status\":\"success\",\"content\":[{\"id\":\"f1\",\"name\":\"Inception.mkv\",\"type\":\"file\",\"size\":1000,\"link\":\"http://premiumize.me/dl/inception.mkv\"}]}"
+
+        multifileHosterService.checkForDownloadableTorrentsAndDownloadTheFirst()
+
+        verify { transferService.delete(transfer) }
+        verify { httpHelper.getPage(match { it.contains("transfer/delete") && it.contains("remote-123") }) }
     }
 }
