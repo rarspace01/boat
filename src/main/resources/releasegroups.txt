@@ -52,3 +52,6 @@ VETO
 x0r
 YIFY
 YTS
+rep
+besthd
+watcher
