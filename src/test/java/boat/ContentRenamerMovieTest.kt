@@ -353,4 +353,44 @@ class ContentRenamerMovieTest {
 
         assertThat(File(base, "Movies/A").list()).anyMatch { it.contains("{tmdb-297802}") }
     }
+
+    @Test
+    fun `should not shorten a title inside a phrase`(@TempDir tempDir: Path) {
+        val base = tempDir.toFile()
+        val everest = createFile(base, "Movies/T/To.Live.or.Die.on.Everest.2020.DOCU.HDTV.x264.mkv")
+        every { mediaProxyService.search("To Live", 2020, MediaType.Movie) } returns listOf(MediaItem("To Live", "زیستن", 2020, MediaType.Movie, "{tmdb-1411848}"))
+
+        contentRenamer.processFilesFromDirectory(File(base, "Movies").absolutePath, null, isTestRun = false, basePath = base.absolutePath)
+
+        assertThat(everest).exists()
+    }
+
+    @Test
+    fun `should not take the original title of another movie for a namesake released two years apart`(@TempDir tempDir: Path) {
+        val base = tempDir.toFile()
+        val terminator = createFile(base, "Movies/T/Terminator.2.1991.Judgment.Day.mp4")
+        every { mediaProxyService.search("Terminator 2", 1991, MediaType.Movie) } returns listOf(MediaItem("Shocking Dark", "Terminator 2", 1989, MediaType.Movie, "{tmdb-1}"))
+
+        contentRenamer.processFilesFromDirectory(File(base, "Movies").absolutePath, null, isTestRun = false, basePath = base.absolutePath)
+
+        assertThat(terminator).exists()
+    }
+
+    @Test
+    fun `should not take the first result for a movie without year`(@TempDir tempDir: Path) {
+        val base = tempDir.toFile()
+        val smiley = createFile(base, "Movies/S/Smiley.mp4")
+        val elephant = createFile(base, "Movies/E/Elephant Man.avi")
+        every { mediaProxyService.search("Smiley", MediaType.Movie) } returns listOf(MediaItem("Rickey Smiley: Fool-ish", null, 2025, MediaType.Movie, "{tmdb-2}"))
+        every { mediaProxyService.search("Elephant Man", MediaType.Movie) } returns listOf(
+            MediaItem("Elephant Man", "Elephant Man", null, MediaType.Movie, "{tmdb-1520516}"),
+            MediaItem("The Elephant Man", "The Elephant Man", 1980, MediaType.Movie, "{tmdb-1955}")
+        )
+
+        contentRenamer.processFilesFromDirectory(File(base, "Movies").absolutePath, null, isTestRun = false, basePath = base.absolutePath)
+
+        assertThat(smiley).exists()
+        assertThat(elephant).doesNotExist()
+        assertThat(File(base, "Movies/E").list()).anyMatch { it.contains("{tmdb-1955}") }
+    }
 }
