@@ -51,7 +51,7 @@ class MediaProxyService(
                 matchResult.value.replace("*", "").replace(".", "")
             }
             // strip accents, so Amelie matches Amélie
-            return Normalizer.normalize(withoutAcronymDelimiters.replace("¢", "c"), Normalizer.Form.NFD)
+            return Normalizer.normalize(withoutAcronymDelimiters.replace("¢", "c").replace("²", "2").replace("³", "3"), Normalizer.Form.NFD)
                 .replace(DIACRITICS_PATTERN, "")
                 .lowercase()
                 .replace(NON_ALPHANUMERIC_PATTERN, " ")

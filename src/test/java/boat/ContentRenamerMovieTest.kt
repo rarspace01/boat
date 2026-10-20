@@ -393,4 +393,49 @@ class ContentRenamerMovieTest {
         assertThat(elephant).doesNotExist()
         assertThat(File(base, "Movies/E").list()).anyMatch { it.contains("{tmdb-1955}") }
     }
+
+    @Test
+    fun `should find movies with misspelled or differently written names`(@TempDir tempDir: Path) {
+        val base = tempDir.toFile()
+        createFile(base, "Movies/G/Gold.Finger.1964.1080p.Bluray.x264.mkv")
+        createFile(base, "Movies/S/Stephen.Kings.IT.1990.DVDRip.mp4")
+        createFile(base, "Movies/R/Road.to.Predition.(2002).[1080p].mp4")
+        every { mediaProxyService.search("Goldfinger", 1964, MediaType.Movie) } returns listOf(MediaItem("Goldfinger", "Goldfinger", 1964, MediaType.Movie, "{tmdb-658}"))
+        every { mediaProxyService.search("Stephen King's IT", 1990, MediaType.Movie) } returns listOf(MediaItem("Stephen King's It", "Stephen King's It", 1990, MediaType.Movie, "{tmdb-1}"))
+        every { mediaProxyService.search("Road to", 2002, MediaType.Movie) } returns listOf(MediaItem("Road to Perdition", "Road to Perdition", 2002, MediaType.Movie, "{tmdb-4147}"))
+
+        contentRenamer.processFilesFromDirectory(File(base, "Movies").absolutePath, null, isTestRun = false, basePath = base.absolutePath)
+
+        assertThat(File(base, "Movies/G").list()).anyMatch { it.contains("{tmdb-658}") }
+        assertThat(File(base, "Movies/S").list()).anyMatch { it.contains("{tmdb-1}") }
+        assertThat(File(base, "Movies/R").list()).anyMatch { it.contains("{tmdb-4147}") }
+    }
+
+    @Test
+    fun `should find movies without year behind noise and with superscript titles`(@TempDir tempDir: Path) {
+        val base = tempDir.toFile()
+        createFile(base, "Movies/T/The.Hangover.Part.I.1080p.mkv")
+        createFile(base, "Movies/L/Letters From Iwo Jima KLAXXON.avi")
+        createFile(base, "Movies/A/The.Accountant.2.1080p.WebRip.mkv")
+        every { mediaProxyService.search("The Hangover", MediaType.Movie) } returns listOf(MediaItem("The Hangover", "The Hangover", 2009, MediaType.Movie, "{tmdb-18785}"))
+        every { mediaProxyService.search("Letters From Iwo Jima", MediaType.Movie) } returns listOf(MediaItem("Letters from Iwo Jima", "硫黄島からの手紙", 2006, MediaType.Movie, "{tmdb-1251}"))
+        every { mediaProxyService.search("The Accountant 2", MediaType.Movie) } returns listOf(MediaItem("The Accountant²", "The Accountant²", 2025, MediaType.Movie, "{tmdb-870028}"))
+
+        contentRenamer.processFilesFromDirectory(File(base, "Movies").absolutePath, null, isTestRun = false, basePath = base.absolutePath)
+
+        assertThat(File(base, "Movies/H").list()).anyMatch { it.contains("{tmdb-18785}") }
+        assertThat(File(base, "Movies/L").list()).anyMatch { it.contains("{tmdb-1251}") }
+        assertThat(File(base, "Movies/A").list()).anyMatch { it.contains("{tmdb-870028}") }
+    }
+
+    @Test
+    fun `should skip Plex extras behind a dash and decode html entities`(@TempDir tempDir: Path) {
+        val base = tempDir.toFile()
+        val audition = createFile(base, "Movies/U/Uncut.Gems/Andrea Linsky Audition Tape-other.mkv")
+        assertThat(audition).exists()
+        contentRenamer.processFilesFromDirectory(File(base, "Movies").absolutePath, null, isTestRun = false, basePath = base.absolutePath)
+        assertThat(audition).exists()
+        assertThat(contentRenamer.parseMovieName(contentRenamer.decodeIfEncoded("Bram.Stoker&#039;s.Dracula.(1992).mkv"))).isEqualTo(Pair("Bram Stoker's Dracula", 1992))
+        assertThat(contentRenamer.parseMovieName("Requiem.For.A.Dream.HDMux.1080p.x264")).isEqualTo(Pair("Requiem For A Dream", null))
+    }
 }

@@ -217,7 +217,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         // movie name parsing
         val movieYearPattern = "^(?:19[0-9]{2}|20[0-2][0-9])$".toRegex()
         val movieTechnicalTagPattern = ("^(?:[0-9]{3,4}[pi]|[248]k|uhd|ultrahd|fhd|hdr(?:10)?(?:plus)?|dovi|10bit|8bit|" +
-                "(?:b[dr]|hd|dvd|vhs|web|fhd|tv|hdtv|sat|dvb)rip(?:[0-9]{3,4}[pi])?|bluray|blu-ray|bdremux|remux|dvd[59r]?|dvdscr|webdl|web-dl|hdtv|hdcam|screener|ntsc|" +
+                "(?:b[dr]|hd|dvd|vhs|web|fhd|tv|hdtv|sat|dvb)rip(?:[0-9]{3,4}[pi])?|(?:hd|dvd|bd)mux|bluray|blu-ray|bdremux|remux|dvd[59r]?|dvdscr|webdl|web-dl|hdtv|hdcam|screener|ntsc|" +
                 "x26[45]|h26[45]|hevc|avc|xvid|divx|av1|aac[0-9]*|e?ac3|dts(?:hd)?(?:ma)?|truehd|atmos|ddp[0-9]*|dd[0-9]+|flac|" +
                 "amzn|hmax|dsnp|atvp|hulu|itunes|" +
                 "mkv|mp4|avi|[0-9]+(?:[.,][0-9]+)?[mg]b|[0-9]{3,4}x[0-9]{3,4})$").toRegex()
@@ -234,6 +234,11 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         val yearGluedToResolutionPattern = "(?i)(?<=[^0-9])((?:19[0-9]{2}|20[0-2][0-9]))(?=(?:2160|1080|720|576|480)[pi])".toRegex()
         private const val minTitleSimilarity = 0.88
         private const val maxTrimmedWords = 4
+        private val titleNumberPattern = "[0-9]+|[ivx]+".toRegex()
+        // "Predator 1 BD", "The Hangover Part I" or "Letters From Iwo Jima KLAXXON", noise behind a title found without a year
+        val trailingMovieNoisePattern = "(?:(?i:\\s+part)?(?i:\\s+(?:1|i))|(?i:\\s+(?:bd|hdmux|dvdmux))|\\s+[A-Z]{6,})$".toRegex()
+        // Plex names extras behind a dash, "Uncut.Gems/Audition Tape-other.mkv"
+        val plexExtraSuffixPattern = "(?i)-(?:behindthescenes|deleted|featurette|interview|scene|short|trailer|other)$".toRegex()
         val akaPattern = "(?i)\\s+(?:a\\.?k\\.?a\\.?|aka)\\s+".toRegex()
         val movieSitePrefixPattern = "(?i)^www\\.\\S+?\\.(?:com|org|net|me|to|tv|re|io|cc|ws)\\s*-?\\s+".toRegex()
         val leadingBracketGroupsPattern = "^(?:\\s*\\[[^\\]]*])+".toRegex()
@@ -1536,7 +1541,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
                     }
 
                     val skipReason = getSkipReason(file)
-                        ?: if (isMoviePath && isInExtrasFolder(file)) "extras" else if (mediaIndicator == MediaType.Movie && !isMovieFile(file)) "no movie file" else null
+                        ?: if (isMoviePath && (isInExtrasFolder(file) || plexExtraSuffixPattern.containsMatchIn(file.nameWithoutExtension))) "extras" else if (mediaIndicator == MediaType.Movie && !isMovieFile(file)) "no movie file" else null
                     if (skipReason != null) {
                         val logLine = "F:'$fullName'→'$extractedName'→'null' (Y: $year, S: $season, E: $episode)  skipped, $skipReason"
                         logWriter?.write(logLine + "\n")
@@ -1657,20 +1662,45 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
      */
     private fun searchMovieByShortenedTitle(name: String, year: Int): MediaItem? {
         val normalizedName = normalizeMovieTitle(name)
+        fun releasedNear(query: String) = (mediaProxyService.search(query, year, MediaType.Movie) + mediaProxyService.search(query, MediaType.Movie))
+            .filter { it.type == MediaType.Movie && it.year?.let { releaseYear -> abs(releaseYear - year) <= 1 } == true }
+        fun isSimilar(title: String) = normalizeMovieTitle(title) == normalizedName || isSimilarTitle(title, name)
         for (query in shortenedMovieQueries(name)) {
             val normalizedQuery = normalizeMovieTitle(query)
-            val results = (mediaProxyService.search(query, year, MediaType.Movie) + mediaProxyService.search(query, MediaType.Movie))
-                .filter { it.type == MediaType.Movie && it.year?.let { releaseYear -> abs(releaseYear - year) <= 1 } == true }
-            val match = results.firstOrNull { item ->
-                listOfNotNull(item.title, item.originalTitle).any { title ->
-                    val normalizedTitle = normalizeMovieTitle(title)
-                    normalizedTitle == normalizedQuery || normalizedTitle == normalizedName ||
-                            (normalizedName.length >= 8 && similarity(normalizedTitle, normalizedName) >= minTitleSimilarity)
-                }
+            val match = releasedNear(query).firstOrNull { item ->
+                listOfNotNull(item.title, item.originalTitle).any { normalizeMovieTitle(it) == normalizedQuery || isSimilar(it) }
             }
             if (match != null) return match
         }
+        // misspelled or differently written names ("Gold Finger", "Stephen Kings IT", "Pirates Of The Carribean") find
+        // nothing as a whole, only the title itself counts
+        for (query in spellingVariants(name)) {
+            val match = releasedNear(query).firstOrNull { item -> listOfNotNull(item.title, item.originalTitle).any { isSimilar(it) } }
+            if (match != null) return match
+        }
         return null
+    }
+
+    /**
+     * Possessives without the apostrophe ("Kings" to "King's"), words written apart ("Gold Finger") and the beginning of
+     * a name, which a misspelling further back doesn't affect.
+     */
+    private fun spellingVariants(name: String): List<String> {
+        val words = name.split(' ').filter { it.isNotBlank() }
+        val variants = linkedSetOf<String>()
+        val possessives = words.indices.filter { words[it].length >= 4 && words[it].endsWith('s', ignoreCase = true) }
+        possessives.forEach { index -> variants.add(words.mapIndexed { i, word -> if (i == index) word.dropLast(1) + "'s" else word }.joinToString(" ")) }
+        if (possessives.size > 1) variants.add(words.mapIndexed { i, word -> if (i in possessives) word.dropLast(1) + "'s" else word }.joinToString(" "))
+        if (words.size in 2..6) {
+            (0 until words.size - 1).forEach { index ->
+                variants.add((words.take(index) + (words[index] + words[index + 1].lowercase()) + words.drop(index + 2)).joinToString(" "))
+            }
+        }
+        (words.size - 1 downTo 1).forEach { count ->
+            words.take(count).joinToString(" ").takeIf { query -> query.count { it.isLetter() } >= 4 }?.let { variants.add(it) }
+        }
+        variants.remove(name)
+        return variants.toList()
     }
 
     /**
@@ -1694,16 +1724,25 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
 
     private fun similarity(a: String, b: String): Double {
         if (a == b) return 1.0
-        val previous = IntArray(b.length + 1) { it }
-        val current = IntArray(b.length + 1)
+        // swapped neighbours like "Legde" count as one edit
+        val distance = Array(a.length + 1) { i -> IntArray(b.length + 1) { j -> if (i == 0) j else if (j == 0) i else 0 } }
         for (i in 1..a.length) {
-            current[0] = i
             for (j in 1..b.length) {
-                current[j] = minOf(previous[j] + 1, current[j - 1] + 1, previous[j - 1] + if (a[i - 1] == b[j - 1]) 0 else 1)
+                distance[i][j] = minOf(distance[i - 1][j] + 1, distance[i][j - 1] + 1, distance[i - 1][j - 1] + if (a[i - 1] == b[j - 1]) 0 else 1)
+                if (i > 1 && j > 1 && a[i - 1] == b[j - 2] && a[i - 2] == b[j - 1]) distance[i][j] = minOf(distance[i][j], distance[i - 2][j - 2] + 1)
             }
-            current.copyInto(previous)
         }
-        return 1.0 - previous[b.length].toDouble() / maxOf(a.length, b.length)
+        return 1.0 - distance[a.length][b.length].toDouble() / maxOf(a.length, b.length)
+    }
+
+    /**
+     * Similar names of at least eight characters, but never another number or sequel: "The Hangover Part I" is not
+     * "The Hangover Part II".
+     */
+    private fun isSimilarTitle(title: String, name: String): Boolean {
+        fun numbers(text: String) = MediaProxyService.normalizeTitle(text).split(' ').filter { it.matches(titleNumberPattern) }
+        val normalizedName = normalizeMovieTitle(name)
+        return normalizedName.length >= 8 && numbers(title) == numbers(name) && similarity(normalizeMovieTitle(title), normalizedName) >= minTitleSimilarity
     }
 
     /**
@@ -1712,13 +1751,23 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
      * "Smiley" is not "Rickey Smiley: Fool-ish" and "Elephant Man" is the one of 1980.
      */
     private fun searchMovieWithoutYear(name: String): MediaItem? {
+        return searchMovieWithoutYearExact(name) ?: generateSequence(name) { it.replace(trailingMovieNoisePattern, "").trim() }
+            .zipWithNext().takeWhile { (before, after) -> before != after && after.isNotBlank() }.take(2)
+            .firstNotNullOfOrNull { (_, withoutNoise) -> searchMovieWithoutYearExact(withoutNoise, onlySameTitle = true) }
+    }
+
+    private fun searchMovieWithoutYearExact(name: String, onlySameTitle: Boolean = false): MediaItem? {
         val results = mediaProxyService.search(name, MediaType.Movie).filter { it.type == MediaType.Movie }.sortedBy { it.year == null }
         val normalizedName = normalizeMovieTitle(name)
         fun titles(item: MediaItem) = listOfNotNull(item.title, item.originalTitle)
         val words = MediaProxyService.normalizeTitle(name).split(' ').filter { it.isNotBlank() }.toSet()
         return results.firstOrNull { item -> titles(item).any { normalizeMovieTitle(it) == normalizedName } }
             ?: results.firstOrNull { item ->
-                words.size >= 2 && titles(item).any { title -> MediaProxyService.normalizeTitle(title).split(' ').toSet().containsAll(words) }
+                !onlySameTitle && words.size >= 2 && titles(item).any { title -> MediaProxyService.normalizeTitle(title).split(' ').toSet().containsAll(words) }
+            }
+            // "Grosse Point Blank" is "Grosse Pointe Blank"
+            ?: results.firstOrNull { item ->
+                titles(item).any { isSimilarTitle(it, name) }
             }
     }
 
@@ -1904,6 +1953,6 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
             name
         }
         // a letter O instead of the zero, e.g. "The.Blacklist.SO1E01"
-        return decodedName.replace(letterOSeasonPattern, "S0")
+        return decodedName.replace(letterOSeasonPattern, "S0").replace("&#039;", "'").replace("&amp;", "&")
     }
 }
