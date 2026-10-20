@@ -429,4 +429,22 @@ internal class TorrentHelperTest {
             TorrentHelper.determineTypeOfMedia(listOf(TorrentFile(name = "Book.pdf"), TorrentFile(name = "Cover.jpg")))
         )
     }
+
+    @Test
+    fun shouldDetermineTypeOfMediaFromFileName() {
+        Assertions.assertEquals(TorrentType.MOVIES, TorrentHelper.determineTypeOfMedia("Movie.2020.1080p.mkv"))
+        Assertions.assertEquals(TorrentType.MOVIES, TorrentHelper.determineTypeOfMedia("movie 2020 1080p mp4"))
+        Assertions.assertEquals(TorrentType.MOVIES, TorrentHelper.determineTypeOfMedia("Movie.2020.TS"))
+        Assertions.assertEquals(TorrentType.SERIES_SHOWS, TorrentHelper.determineTypeOfMedia("Show.S01E01.720p.MKV"))
+        Assertions.assertEquals(TorrentType.SERIES_SHOWS, TorrentHelper.determineTypeOfMedia("Show Season 1 Episode 1.avi"))
+        Assertions.assertEquals(TorrentType.TRANSFER, TorrentHelper.determineTypeOfMedia("Book.pdf"))
+    }
+
+    @Test
+    fun shouldNotDetermineNamesEndingLikeAnExtensionAsMedia() {
+        Assertions.assertEquals(TorrentType.TRANSFER, TorrentHelper.determineTypeOfMedia("Cats"))
+        Assertions.assertEquals(TorrentType.TRANSFER, TorrentHelper.determineTypeOfMedia("Looney Tunes Shorts"))
+        Assertions.assertEquals(TorrentType.TRANSFER, TorrentHelper.determineTypeOfMedia("Remov"))
+        Assertions.assertEquals(TorrentType.TRANSFER, TorrentHelper.determineTypeOfMedia("Notes.txt"))
+    }
 }
