@@ -11,6 +11,7 @@ import boat.model.TransferStatus
 import boat.services.TransferService
 import boat.torrent.Torrent
 import boat.torrent.TorrentFile
+import boat.torrent.TorrentType
 import boat.utilities.HttpHelper
 import io.mockk.Runs
 import io.mockk.every
@@ -445,5 +446,34 @@ internal class MultifileHosterServiceTest {
 
         verify { transferService.delete(transfer) }
         verify { httpHelper.getPage(match { it.contains("transfer/delete") && it.contains("remote-123") }) }
+    }
+
+    @Test
+    fun shouldUpdateIndexOfEachGivenLetter() {
+        // When
+        multifileHosterService.updateIndexForLetters(setOf("A", "0-9", "?", ""))
+        // Then
+        val refreshedLetters = mutableListOf<String>()
+        verify { cloudService.buildDestinationPathWithTypeOfMediaWithoutSubFolders(capture(refreshedLetters), any()) }
+        assertThat(refreshedLetters.distinct()).containsExactlyInAnyOrder("A", "0-9", "?")
+        verify(exactly = 3 * TorrentType.entries.size) { cloudFileService.getFilesInPath(any()) }
+    }
+
+    @Test
+    fun shouldUpdateIndexOfLetterAfterSuccessfulDownload() {
+        val transfer = Transfer(
+            name = "Inception.2010.1080p.mkv",
+            transferStatus = TransferStatus.READY_TO_BE_DOWNLOADED,
+            remoteId = "remote-123",
+            source = "Premiumize"
+        )
+        every { transferService.getAll() } returns listOf(transfer)
+        every { cloudService.buildDestinationPath(any(), any()) } returns Pair("I", "/destination/Movies/I/")
+        every { httpHelper.getPage(match { it.contains("folder/list") }) } returns
+                "{\"status\":\"success\",\"content\":[{\"id\":\"f1\",\"name\":\"Inception.mkv\",\"type\":\"file\",\"size\":1000,\"link\":\"http://premiumize.me/dl/inception.mkv\"}]}"
+
+        multifileHosterService.checkForDownloadableTorrentsAndDownloadTheFirst()
+
+        verify { multifileHosterService.updateIndexForLetters(setOf("I")) }
     }
 }

@@ -438,7 +438,7 @@ class MultifileHosterService(
                     transferToBeDownloaded.feedbackMessage = "download to drive failed"
                     transferService.save(transferToBeDownloaded)
                 }
-                updateIndexForLetters(listOfCharactersToIndexUpdate.joinToString())
+                updateIndexForLetters(listOfCharactersToIndexUpdate)
             } catch (exception: Exception) {
                 log.error(String.format("Couldn't download Transfer: %s", transferToBeDownloaded), exception)
             } finally {
@@ -700,10 +700,13 @@ class MultifileHosterService(
         }
     }
 
-    fun updateIndexForLetters(searchChars: String) {
-        log.info("refreshCloudFileServiceCache for letters: $searchChars")
+    /**
+     * Refreshes the files cache of the given index letters, e.g. "A" or "0-9" as given by [StringUtil.deductFirstTorrentLetter].
+     */
+    fun updateIndexForLetters(indexLetters: Collection<String>) {
+        log.info("refreshCloudFileServiceCache for letters: $indexLetters")
         val filesCache = cacheManager.getCache("filesCache")
-        searchChars.split("").filter { it.isNotBlank() }.forEach { searchChar: String ->
+        indexLetters.filter { it.isNotBlank() }.distinct().forEach { searchChar: String ->
             TorrentType.entries
                     .forEach { torrentType: TorrentType ->
                         val destinationPath = cloudService
@@ -711,7 +714,7 @@ class MultifileHosterService(
                         filesCache?.evictIfPresent(destinationPath)
                         cloudFileService.getFilesInPath(destinationPath)
                     }
-            log.info("Cache refresh done for: $searchChars")
+            log.info("Cache refresh done for: $searchChar")
         }
     }
 
