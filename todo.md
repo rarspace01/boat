@@ -31,7 +31,7 @@ Findings from a code review of `src/main/java/boat`. Check items off as they get
 ## Security
 
 - [ ] (deliberately open, see notes) `/boat/shutdown` is `permitAll`.
-- [ ] No users in the database → every endpoint is open; `hasUsers` is only evaluated at startup. Only a startup warning was added; making this fail closed needs a decision on how to bootstrap the first user.
+- [x] No users in the database → every endpoint was open. Removed: all endpoints except `/` and `/boat/shutdown` always need a login; the README explains how to insert the first user.
 - [x] XSS: torrent names (`Torrent.toHtml`), transfers (`Transfer.toString`), media titles, existing file names, `localSearchString` and the queued items were written into HTML unescaped. Fixed with `HtmlUtils.htmlEscape` / URL encoding.
 - [x] CSRF disabled with HTTP Basic auth, and state-changing endpoints accept GET (`/boat/download`). Fixed with `CrossSiteRequestFilter`: requests the browser marks `Sec-Fetch-Site: cross-site`/`same-site` are rejected (clients without the header, e.g. curl, still work).
 - [x] Shell injection: rclone commands were built via `bash -c` with interpolated URLs/paths. All rclone calls (`RcloneUploader`, `CloudFileService`, `ProcessUtil`) now pass an argument list.
