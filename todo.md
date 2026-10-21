@@ -32,7 +32,7 @@ Findings from a code review of `src/main/java/boat`. Check items off as they get
 
 - [ ] (deliberately open, see notes) `/boat/shutdown` is `permitAll`.
 - [ ] No users in the database → every endpoint is open; `hasUsers` is only evaluated at startup.
-- [ ] XSS: torrent names (`Torrent.toHtml`), media titles, existing file names and `localSearchString` are written into HTML unescaped.
+- [x] XSS: torrent names (`Torrent.toHtml`), transfers (`Transfer.toString`), media titles, existing file names, `localSearchString` and the queued items were written into HTML unescaped. Fixed with `HtmlUtils.htmlEscape` / URL encoding.
 - [ ] CSRF disabled with HTTP Basic auth, and state-changing endpoints accept GET (`/boat/download`).
 - [x] Shell injection: rclone commands were built via `bash -c` with interpolated URLs/paths. All rclone calls (`RcloneUploader`, `CloudFileService`, `ProcessUtil`) now pass an argument list.
 - [ ] TLS verification disabled everywhere (`HttpHelper` trust-all, rclone `--no-check-certificate`), including calls carrying API keys.
