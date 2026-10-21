@@ -5,6 +5,8 @@ import boat.info.CloudFileService
 import boat.info.CloudService
 import boat.info.MediaItem
 import boat.info.QueueService
+import boat.model.Transfer
+import boat.model.TransferStatus
 import boat.multifileHoster.MultifileHosterService
 import boat.services.ConfigurationService
 import boat.services.TransferService
@@ -19,14 +21,19 @@ import boat.utilities.PropertiesHelper
 import org.apache.commons.validator.routines.UrlValidator
 import org.apache.logging.log4j.util.Strings
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.http.HttpHeaders
+import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
+import org.springframework.http.ResponseEntity
 import org.springframework.web.HttpMediaTypeNotAcceptableException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseBody
 import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.util.HtmlUtils
 import java.lang.management.ManagementFactory
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
@@ -68,6 +75,19 @@ class BoatController @Autowired constructor(
         private fun parseMediaType(mediaType: String?): boat.info.MediaType? {
             return boat.info.MediaType.entries.firstOrNull { it.name.equals(mediaType, ignoreCase = true) }
         }
+
+        /**
+         * Restart and delete buttons of a transfer on the debug page, not while it is uploading to the drive.
+         */
+        internal fun transferControls(transfer: Transfer): String {
+            if (transfer.transferStatus == TransferStatus.UPLOADING_TO_DRIVE) return ""
+            val id = HtmlUtils.htmlEscape(transfer.id)
+            return """ <form method="post" action="./transferRestart" class="transfer-control">""" +
+                    """<input type="hidden" name="id" value="$id"><button type="submit" title="restart">↻</button></form>""" +
+                    """<form method="post" action="./transferDelete" class="transfer-control" """ +
+                    """onsubmit="return confirm('Delete this transfer and its files on the multifilehoster?')">""" +
+                    """<input type="hidden" name="id" value="$id"><button type="submit" title="delete">🗑</button></form>"""
+        }
     }
 
     private val switchToProgress = "<a href=\"./debug\">Show Progress</a> "
@@ -82,6 +102,7 @@ class BoatController @Autowired constructor(
 <style>
     body { font-size: 1.5em; overflow-wrap: break-word; word-wrap: break-word; }
     input[type="text"], textarea { font-size: 1em; width: 95%; box-sizing: border-box; }
+    form.transfer-control { display: inline; margin-left: 4px; }
     @media (min-width: 800px) {
         body { font-size: 1em; }
         input[type="text"], textarea { width: auto; }
@@ -329,13 +350,15 @@ $switchToSearchOld$switchToSearchList${switchToProgress.replace("..", "../boat")
     }
 
     @GetMapping("/boat/debug")
-    fun debugInfo(): String {
+    fun debugInfo(@RequestParam(value = "message", required = false) message: String?): String {
         multifileHosterService.refreshTorrents()
         val remoteTorrents: List<Torrent> = multifileHosterService.activeTorrents
         val runtimeBean = ManagementFactory.getRuntimeMXBean()
         val startTime = runtimeBean.startTime
         val startDate = Date(startTime)
-        return htmlHeader + ("v:" + PropertiesHelper.version + " started: " + startDate
+        val transfers = transferService.getAll()
+        return htmlHeader + (message?.takeIf { it.isNotBlank() }?.let { "<b>" + HtmlUtils.htmlEscape(it) + "</b><br/>" } ?: "") +
+                ("v:" + PropertiesHelper.version + " started: " + startDate
                 + "<br/>MODE: " + configurationService.getServiceMode()
                 + "<br/>cloud token: " + (if (cloudService.isCloudTokenValid) "✅" else "❌")
                 + "<br/>search Cache: " + (if (cloudFileService.isCacheFilled) "✅" else "❌")
@@ -346,13 +369,32 @@ $switchToSearchOld$switchToSearchList${switchToProgress.replace("..", "../boat")
                 + "<br/>TrafficLeft: " + humanReadableByteCountBinary(multifileHosterService.getRemainingTrafficInMB().toLong() * 1024 * 1024)
                 + String.format(
             "<br/>Transfers [%d]: %s",
-            transferService.getAll().size,
-            transferService.getAll()
+            transfers.size,
+            transfers.joinToString(separator = ", ", prefix = "[", postfix = "]") { it.toString() + transferControls(it) }
         ) + String.format("<br/><!-- D [%d]: %s -->", remoteTorrents.size, remoteTorrents) + String.format(
             "<br/>Queue [%d]: %s",
             queueService.getQueue().size,
             queueService.getQueue()
         )) + htmlFooter
+    }
+
+    @PostMapping("/boat/transferDelete")
+    fun deleteTransfer(@RequestParam(value = "id") transferId: String): ResponseEntity<Void> {
+        logger.info("delete transfer request received: {}", transferId)
+        return redirectToDebug(multifileHosterService.deleteTransfer(transferId))
+    }
+
+    @PostMapping("/boat/transferRestart")
+    fun restartTransfer(@RequestParam(value = "id") transferId: String): ResponseEntity<Void> {
+        logger.info("restart transfer request received: {}", transferId)
+        return redirectToDebug(multifileHosterService.restartTransfer(transferId))
+    }
+
+    // 303, so reloading the debug page doesn't send the form again
+    private fun redirectToDebug(message: String): ResponseEntity<Void> {
+        return ResponseEntity.status(HttpStatus.SEE_OTHER)
+            .header(HttpHeaders.LOCATION, "./debug?message=" + urlEncode(message))
+            .build()
     }
 
     @GetMapping("/boat/shutdown")

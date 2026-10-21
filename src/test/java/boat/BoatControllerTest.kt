@@ -11,7 +11,12 @@ import boat.torrent.TorrentSearchEngineService
 import boat.utilities.HttpHelper
 import boat.info.MediaItem
 import boat.info.MediaType
+import boat.model.Transfer
+import boat.model.TransferStatus
+import io.mockk.every
 import io.mockk.mockk
+import org.springframework.http.HttpHeaders
+import org.springframework.http.HttpStatus
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 
@@ -52,5 +57,41 @@ internal class BoatControllerTest {
         assertThat(BoatController.parseSearchListEntry("1917")?.let { it.title to it.year }).isEqualTo("1917" to null)
         assertThat(BoatController.parseSearchListEntry("Inception")?.let { it.title to it.year }).isEqualTo("Inception" to null)
         assertThat(BoatController.parseSearchListEntry("   ")).isNull()
+    }
+
+    @Test
+    fun shouldShowRestartAndDeleteControlsForTransfer() {
+        val transfer = Transfer(id = "id-1", name = "Inception", transferStatus = TransferStatus.UPLOAD_TO_DRIVE_FAILED)
+
+        val controls = BoatController.transferControls(transfer)
+
+        assertThat(controls).contains("action=\"./transferRestart\"", "action=\"./transferDelete\"", "value=\"id-1\"", "method=\"post\"")
+    }
+
+    @Test
+    fun shouldNotShowControlsWhileUploadingToDrive() {
+        val transfer = Transfer(id = "id-1", name = "Inception", transferStatus = TransferStatus.UPLOADING_TO_DRIVE)
+
+        assertThat(BoatController.transferControls(transfer)).isEmpty()
+    }
+
+    @Test
+    fun shouldRedirectToDebugPageWithMessageAfterDelete() {
+        every { multifileHosterService.deleteTransfer("id-1") } returns "deleted Inception & co"
+
+        val response = boatController.deleteTransfer("id-1")
+
+        assertThat(response.statusCode).isEqualTo(HttpStatus.SEE_OTHER)
+        assertThat(response.headers.getFirst(HttpHeaders.LOCATION)).isEqualTo("./debug?message=deleted+Inception+%26+co")
+    }
+
+    @Test
+    fun shouldRedirectToDebugPageWithMessageAfterRestart() {
+        every { multifileHosterService.restartTransfer("id-1") } returns "restarted Inception"
+
+        val response = boatController.restartTransfer("id-1")
+
+        assertThat(response.statusCode).isEqualTo(HttpStatus.SEE_OTHER)
+        assertThat(response.headers.getFirst(HttpHeaders.LOCATION)).isEqualTo("./debug?message=restarted+Inception")
     }
 }

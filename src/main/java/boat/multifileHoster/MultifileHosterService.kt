@@ -213,6 +213,55 @@ class MultifileHosterService(
         }
     }
 
+    /**
+     * Deletes a transfer and its torrent at the multifilehoster. Returns a message for the user.
+     */
+    fun deleteTransfer(transferId: String): String {
+        val transfer = transferService.getAll().firstOrNull { it.id == transferId } ?: return "transfer not found"
+        if (transfer.transferStatus == TransferStatus.UPLOADING_TO_DRIVE) {
+            return "${transfer.name} is uploading to the drive, try again when it's done"
+        }
+        findRemoteTorrent(transfer)?.let { delete(it) }
+        transferService.delete(transfer)
+        return "deleted ${transfer.name}"
+    }
+
+    /**
+     * Restarts a transfer: if the multifilehoster still has the files ready, they are uploaded to the drive again,
+     * otherwise the torrent is removed at the multifilehoster and added again. Returns a message for the user.
+     */
+    fun restartTransfer(transferId: String): String {
+        val transfer = transferService.getAll().firstOrNull { it.id == transferId } ?: return "transfer not found"
+        if (transfer.transferStatus == TransferStatus.UPLOADING_TO_DRIVE) {
+            return "${transfer.name} is uploading to the drive, try again when it's done"
+        }
+        val remoteTorrent = findRemoteTorrent(transfer)
+        transfer.failedUploadsToDrive = 0
+        transfer.progressInPercentage = 0.0
+        transfer.eta = Duration.ZERO
+        val message = if (remoteTorrent?.remoteTransferStatus == TransferStatus.READY_TO_BE_DOWNLOADED) {
+            transfer.transferStatus = TransferStatus.READY_TO_BE_DOWNLOADED
+            "restarted ${transfer.name}, uploading to the drive again"
+        } else {
+            remoteTorrent?.let { delete(it) }
+            transfer.remoteId = null
+            transfer.transferStatus = TransferStatus.ADDED
+            "restarted ${transfer.name}, adding to ${transfer.source} again"
+        }
+        transfer.feedbackMessage = message
+        transferService.save(transfer)
+        return message
+    }
+
+    private fun findRemoteTorrent(transfer: Transfer): Torrent? {
+        val hoster = multifileHosterList.firstOrNull { it.getName() == transfer.source } ?: return null
+        val infoHash = Torrent.of(transfer.uri).infoHash
+        return hoster.getRemoteTorrents().firstOrNull { remoteTorrent ->
+            (!transfer.remoteId.isNullOrEmpty() && remoteTorrent.remoteId == transfer.remoteId) ||
+                    (infoHash != null && remoteTorrent.infoHash == infoHash)
+        }
+    }
+
     fun getActiveMultifileHosters(): List<MultifileHoster> {
         return multifileHosterList
     }

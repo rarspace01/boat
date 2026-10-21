@@ -573,4 +573,92 @@ internal class MultifileHosterServiceTest {
 
         assertThat(transfer.transferStatus).isEqualTo(TransferStatus.UPLOAD_TO_DRIVE_FAILED)
     }
+
+    private val readyTransferList = "{\"status\":\"success\",\"transfers\":[{\"id\":\"remote-123\",\"name\":\"Inception.2010.1080p.mkv\",\"status\":\"finished\"," +
+            "\"folder_id\":\"folder-1\",\"file_id\":null,\"src\":\"magnet:?xt=urn:btih:10e93389d579ba4538c68b8d297268a81620fae2\",\"message\":\"\",\"progress\":1}]}"
+
+    private fun failedTransfer(remoteId: String? = "remote-123") = Transfer(
+        name = "Inception.2010.1080p.mkv",
+        transferStatus = TransferStatus.UPLOAD_TO_DRIVE_FAILED,
+        remoteId = remoteId,
+        uri = "magnet:?xt=urn:btih:10e93389d579ba4538c68b8d297268a81620fae2",
+        source = "Premiumize",
+        failedUploadsToDrive = 3
+    )
+
+    @Test
+    fun shouldDeleteTransferAndItsRemoteTorrent() {
+        val transfer = failedTransfer()
+        every { transferService.getAll() } returns listOf(transfer)
+        every { httpHelper.getPage(match { it.contains("transfer/list") }) } returns readyTransferList
+
+        val message = multifileHosterService.deleteTransfer(transfer.id)
+
+        assertThat(message).contains("deleted")
+        verify { transferService.delete(transfer) }
+        verify { httpHelper.getPage(match { it.contains("transfer/delete") && it.contains("remote-123") }) }
+    }
+
+    @Test
+    fun shouldFindRemoteTorrentByInfoHashWithoutRemoteId() {
+        val transfer = failedTransfer(remoteId = null)
+        every { transferService.getAll() } returns listOf(transfer)
+        every { httpHelper.getPage(match { it.contains("transfer/list") }) } returns readyTransferList
+
+        multifileHosterService.deleteTransfer(transfer.id)
+
+        verify { httpHelper.getPage(match { it.contains("transfer/delete") && it.contains("remote-123") }) }
+    }
+
+    @Test
+    fun shouldNotDeleteOrRestartTransferUploadingToDrive() {
+        val transfer = failedTransfer().apply { transferStatus = TransferStatus.UPLOADING_TO_DRIVE }
+        every { transferService.getAll() } returns listOf(transfer)
+        every { httpHelper.getPage(match { it.contains("transfer/list") }) } returns readyTransferList
+
+        assertThat(multifileHosterService.deleteTransfer(transfer.id)).contains("uploading")
+        assertThat(multifileHosterService.restartTransfer(transfer.id)).contains("uploading")
+
+        verify(exactly = 0) { transferService.delete(any()) }
+        verify(exactly = 0) { httpHelper.getPage(match { it.contains("transfer/delete") }) }
+        assertThat(transfer.transferStatus).isEqualTo(TransferStatus.UPLOADING_TO_DRIVE)
+    }
+
+    @Test
+    fun shouldReportUnknownTransfer() {
+        every { transferService.getAll() } returns emptyList()
+
+        assertThat(multifileHosterService.deleteTransfer("unknown")).isEqualTo("transfer not found")
+        assertThat(multifileHosterService.restartTransfer("unknown")).isEqualTo("transfer not found")
+    }
+
+    @Test
+    fun shouldRestartUploadToDriveIfFilesAreReadyAtHoster() {
+        val transfer = failedTransfer()
+        every { transferService.getAll() } returns listOf(transfer)
+        every { httpHelper.getPage(match { it.contains("transfer/list") }) } returns readyTransferList
+
+        multifileHosterService.restartTransfer(transfer.id)
+
+        assertThat(transfer.transferStatus).isEqualTo(TransferStatus.READY_TO_BE_DOWNLOADED)
+        assertThat(transfer.failedUploadsToDrive).isEqualTo(0)
+        assertThat(transfer.remoteId).isEqualTo("remote-123")
+        verify(exactly = 0) { httpHelper.getPage(match { it.contains("transfer/delete") }) }
+        verify { transferService.save(transfer) }
+    }
+
+    @Test
+    fun shouldAddTransferAgainIfHosterHasNoReadyFiles() {
+        val transfer = failedTransfer().apply { transferStatus = TransferStatus.ERROR }
+        every { transferService.getAll() } returns listOf(transfer)
+        every { httpHelper.getPage(match { it.contains("transfer/list") }) } returns readyTransferList.replace("finished", "error")
+
+        multifileHosterService.restartTransfer(transfer.id)
+
+        assertThat(transfer.transferStatus).isEqualTo(TransferStatus.ADDED)
+        assertThat(transfer.remoteId).isNull()
+        assertThat(transfer.failedUploadsToDrive).isEqualTo(0)
+        verify { httpHelper.getPage(match { it.contains("transfer/delete") && it.contains("remote-123") }) }
+        verify { transferService.save(transfer) }
+    }
 }
