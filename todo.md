@@ -25,7 +25,7 @@ Findings from a code review of `src/main/java/boat`. Check items off as they get
 - [x] **Version check**: no longer exits during an active upload, survives a GitHub rate-limit response, and matches `1.2.10` vs `1.2.1` on version boundaries.
 - [x] **Name matching fallback** (`updateTransferStatus`) searched all transfers; it now skips transfers that were already matched.
 - [x] **Transfer cleanup** deleted transfers waiting in `ADDED` after a day; they now get 7 days.
-- [ ] **`QueueService`**: streams not closed; fails silently when `/tmp/boat` doesn't exist; keyed by title only (same title, different year collide); missing year stored as `"null"`.
+- [x] **`QueueService`**: streams are closed, the directory is created and errors are logged, entries are keyed by title and year, a missing year is no longer stored as `"null"`.
 - [x] **`PropertiesHelper.getProperty(name, default)`** ignored `default` when the file or key was missing.
 
 ## Security
