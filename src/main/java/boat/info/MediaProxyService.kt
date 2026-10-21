@@ -4,6 +4,8 @@ import boat.utilities.LoggerDelegate
 import com.google.gson.GsonBuilder
 import com.google.gson.reflect.TypeToken
 import org.springframework.beans.factory.annotation.Autowired
+import jakarta.annotation.PreDestroy
+import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
 import java.io.File
 import java.text.Normalizer
@@ -40,6 +42,10 @@ class MediaProxyService(
         private val SEARCH_WITH_TYPE_KEY_PATTERN = "^search:(.+):(\\w+)$".toRegex()
         // TMDB allows about 50 requests per second and 20 connections per IP, TVDB publishes no limit. A cache entry
         // takes up to two requests, so stay well below that.
+        const val MAX_CACHE_ENTRIES = 20_000
+        private val NOT_FOUND_CACHE_NANOS = TimeUnit.MINUTES.toNanos(10)
+        private const val SAVE_INTERVAL_MINUTES = 10L
+        private const val REFRESH_INTERVAL_DAYS = 7L
         const val REFRESH_PARALLELISM = 8
         const val REFRESH_ENTRIES_PER_SECOND = 10
 
@@ -63,6 +69,9 @@ class MediaProxyService(
     private val gson = GsonBuilder().setPrettyPrinting().create()
     private val cacheLock = Any()
     internal val cache = ConcurrentHashMap<String, List<MediaItem>>()
+    internal var maxCacheEntries = MAX_CACHE_ENTRIES
+    // searches without a result, remembered for a short time only (nanoTime of the search)
+    private val notFoundCache = ConcurrentHashMap<String, Long>()
     @Volatile
     private var dirty = false
 
@@ -124,6 +133,7 @@ class MediaProxyService(
                     logger.warn("Failed to delete media proxy cache file ${file.path}")
                 }
             }
+            notFoundCache.clear()
             dirty = false
             return removedEntries
         }
@@ -137,10 +147,44 @@ class MediaProxyService(
         if (cached != null) {
             return cached
         }
+        val notFoundAt = notFoundCache[cacheKey]
+        if (notFoundAt != null && System.nanoTime() - notFoundAt < NOT_FOUND_CACHE_NANOS) {
+            return emptyList()
+        }
         val computed = compute()
-        cache[cacheKey] = computed
-        dirty = true
+        if (computed.isEmpty()) {
+            // might be a failing API, so it's only remembered for a while and not stored on disk
+            if (notFoundCache.size >= maxCacheEntries) notFoundCache.clear()
+            notFoundCache[cacheKey] = System.nanoTime()
+        } else {
+            putInCache(cacheKey, computed)
+        }
         return computed
+    }
+
+    private fun putInCache(cacheKey: String, results: List<MediaItem>) {
+        cache[cacheKey] = results
+        dirty = true
+        val excess = cache.size - maxCacheEntries
+        if (excess > 0) {
+            cache.keys.filter { it != cacheKey }.take(excess).forEach { cache.remove(it) }
+        }
+    }
+
+    /** Writes the cache to disk if it changed, so a restart doesn't lose what was looked up. */
+    @Scheduled(fixedDelay = SAVE_INTERVAL_MINUTES, initialDelay = SAVE_INTERVAL_MINUTES, timeUnit = TimeUnit.MINUTES)
+    @PreDestroy
+    fun saveCacheIfChanged() {
+        saveCache()
+    }
+
+    /** Media data changes slowly, so the cached entries are only updated once a week. */
+    @Scheduled(fixedDelay = REFRESH_INTERVAL_DAYS, initialDelay = 1, timeUnit = TimeUnit.DAYS)
+    fun refreshCacheRegularly() {
+        logger.info("refreshing the media proxy cache of ${cache.size} entries")
+        val updated = refreshCache()
+        logger.info("updated $updated media proxy cache entries")
+        saveCache()
     }
 
     /**
@@ -166,8 +210,7 @@ class MediaProxyService(
                         null
                     }
                     if (!refreshed.isNullOrEmpty() && refreshed != cachedResults) {
-                        cache[cacheKey] = refreshed
-                        dirty = true
+                        putInCache(cacheKey, refreshed)
                         updatedEntries.incrementAndGet()
                     }
                 }
@@ -241,8 +284,7 @@ class MediaProxyService(
         cache.values.flatten().firstOrNull { it.id == remoteMediaId && (mediaType == null || it.type == mediaType) }?.let { return it }
         val mediaItem = fetchByRemoteMediaId(remoteMediaId, nameHint, mediaType) ?: return null
         // only cache hits, so a transient API failure doesn't stick
-        cache["$REMOTE_ID_KEY_PREFIX$remoteMediaId"] = listOf(mediaItem)
-        dirty = true
+        putInCache("$REMOTE_ID_KEY_PREFIX$remoteMediaId", listOf(mediaItem))
         return mediaItem
     }
 

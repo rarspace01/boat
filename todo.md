@@ -47,7 +47,7 @@ Findings from a code review of `src/main/java/boat`. Check items off as they get
 - [x] `getRemainingTrafficInMB()` is cached for 30 seconds. Still open: avoid `transferService.getAll()` once per uploaded file (`updateUploadStatus`).
 - [ ] ~~`rcloneDownloadFileToDestination` creates two executors per file~~ (fixed by `RcloneUploader`); `TorrentInfoService` creates a pool with one thread per torrent per search. Use shared bounded executors.
 - [ ] Replace `HttpHelper` with `java.net.http.HttpClient`: normal TLS, read error bodies, close streams (`downloadFileToPath` leaks), drop the ignored `params` argument.
-- [ ] `MediaProxyService`: empty results cached permanently, cache unbounded, `saveCache` only called from `ContentRenamer`, `refreshCache` never called.
+- [x] `MediaProxyService`: empty results are no longer cached permanently (remembered 10 minutes in memory, never saved), the cache is capped at 20,000 entries, it is saved every 10 minutes and on shutdown, and `refreshCache` runs once a week.
 - [x] Fail fast on missing `MONGO_URI` and `RCLONEDIR` (`StartupConfigurationCheck`), warnings for missing API keys; `/tmp/boat/queue.list` and `/tmp/htpasswd` are configurable (`QUEUE_FILE`, `HTPASSWD_FILE`). The `~/pfdb/PFDB` fallback is gone from `MultifileHosterService` (`ContentRenamer` still defaults to it when called without a base path).
 - [x] Removed the bean name dump and the redundant annotations in `Application`. Still open: use the logger instead of `println`/`printStackTrace` elsewhere.
 - [x] `ContentRenamer.getTargetFile` uses `file.extension` (a name like `mkv.mkv` lost its extension).

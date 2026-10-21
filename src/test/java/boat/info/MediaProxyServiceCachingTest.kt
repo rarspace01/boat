@@ -267,6 +267,7 @@ class MediaProxyServiceCachingTest {
         val oldMovie = MediaItem("Predators", "Predators", 2010, MediaType.Movie)
         val newMovie = MediaItem("Predators", "Predators", 2010, MediaType.Movie, "{tmdb-34851}")
         val documentary = MediaItem("Predators", "Predators", 2025, MediaType.Movie, "{tmdb-1}")
+        val oldDocumentary = MediaItem("Predators", "Predators", 2025, MediaType.Movie)
         val oldSeries = MediaItem("Dark", "Dark", 2017, MediaType.Series)
         val newSeries = MediaItem("Dark", "Dark", 2017, MediaType.Series, "{tvdb-334824}")
         val oldIdMovie = MediaItem("Inception", "Inception", 2010, MediaType.Movie, "{tmdb-27205}")
@@ -274,7 +275,7 @@ class MediaProxyServiceCachingTest {
         val kept = MediaItem("Doug", "Doug", 1991, MediaType.Series)
         every { tmdbService.search("Predators") } returns listOf(oldMovie)
         every { tvdbService.search("Predators") } returns emptyList()
-        every { tmdbService.search("Predators", 2025, MediaType.Movie) } returns emptyList()
+        every { tmdbService.search("Predators", 2025, MediaType.Movie) } returns listOf(oldDocumentary)
         every { tvdbService.search("Dark") } returns listOf(oldSeries)
         every { tmdbService.search("Dark") } returns emptyList()
         every { tmdbService.findById("27205", MediaType.Movie) } returns oldIdMovie
@@ -348,5 +349,45 @@ class MediaProxyServiceCachingTest {
         println("refreshing ${service.cache.size} cache entries of ${File(service.cacheFileName).absolutePath}")
         println("updated ${service.refreshCache()} cache entries")
         service.saveCache()
+    }
+
+    @Test
+    fun `searches without result should not be cached or saved`(@TempDir tempDir: Path) {
+        val cacheFile = tempDir.resolve("emptyResults").toString()
+        val service = MediaProxyService(tmdbService, tvdbService, cacheFile)
+        every { tmdbService.search("Nothing") } returns emptyList()
+        every { tvdbService.search("Nothing") } returns emptyList()
+
+        assertThat(service.search("Nothing")).isEmpty()
+        service.saveCache(force = true)
+
+        assertThat(service.cache).isEmpty()
+        assertThat(MediaProxyService(tmdbService, tvdbService, cacheFile).cache).isEmpty()
+    }
+
+    @Test
+    fun `searches without result should only be remembered for a short time`() {
+        val service = MediaProxyService(tmdbService, tvdbService, "unusedCacheFile")
+        every { tmdbService.search("Nothing") } returns emptyList()
+        every { tvdbService.search("Nothing") } returns emptyList()
+
+        service.search("Nothing")
+        service.search("Nothing")
+
+        verify(exactly = 1) { tmdbService.search("Nothing") }
+    }
+
+    @Test
+    fun `cache should not grow beyond the maximum`() {
+        val service = MediaProxyService(tmdbService, tvdbService, "unusedCacheFile")
+        service.maxCacheEntries = 5
+        (1..20).forEach { index ->
+            every { tmdbService.search("Movie $index") } returns listOf(MediaItem("Movie $index", year = 2000, type = MediaType.Movie))
+            every { tvdbService.search("Movie $index") } returns emptyList()
+            service.search("Movie $index")
+        }
+
+        assertThat(service.cache).hasSize(5)
+        assertThat(service.cache.keys).contains("search:Movie 20")
     }
 }
