@@ -17,6 +17,11 @@ plugins {
 }
 
 repositories {
+    // mirror first, Gradle doesn't fall back to the next repository on errors like HTTP 429 (see settings.gradle)
+    maven {
+        name = "googleMavenCentralMirror"
+        url = uri("https://maven-central.storage-download.googleapis.com/maven2/")
+    }
     mavenCentral()
 }
 
