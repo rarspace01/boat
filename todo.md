@@ -35,8 +35,8 @@ Findings from a code review of `src/main/java/boat`. Check items off as they get
 - [x] XSS: torrent names (`Torrent.toHtml`), transfers (`Transfer.toString`), media titles, existing file names, `localSearchString` and the queued items were written into HTML unescaped. Fixed with `HtmlUtils.htmlEscape` / URL encoding.
 - [x] CSRF disabled with HTTP Basic auth, and state-changing endpoints accept GET (`/boat/download`). Fixed with `CrossSiteRequestFilter`: requests the browser marks `Sec-Fetch-Site: cross-site`/`same-site` are rejected (clients without the header, e.g. curl, still work).
 - [x] Shell injection: rclone commands were built via `bash -c` with interpolated URLs/paths. All rclone calls (`RcloneUploader`, `CloudFileService`, `ProcessUtil`) now pass an argument list.
-- [ ] TLS verification disabled everywhere (`HttpHelper` trust-all, rclone `--no-check-certificate`), including calls carrying API keys.
-- [ ] API keys in query strings end up in logs (`Premiumize`, `Alldebrid`, `HttpHelper` stack traces).
+- [x] TLS verification was disabled everywhere. Fixed: verified by default; only torrent search sites fall back to unverified TLS (never hosters, TMDB/TVDB, GitHub or urls with an api key). rclone verifies unless `RCLONE_NO_CHECK_CERTIFICATE=true`.
+- [x] API keys in logs: `HttpHelper` no longer logs stack traces with the url and redacts `apikey`/`api_key`/`token`/`password` values; the Premiumize/Alldebrid log lines that printed urls are redacted too. Keys still travel in query strings (the hoster APIs require it).
 - [x] `CachedAuthenticationProvider` kept the plaintext `user:password` as cache key. Fixed: keyed HMAC as key. Revoked or changed passwords stay valid for up to 10 minutes on purpose (users change 1-2 times a year).
 - [ ] SSRF: `searchList` fetches arbitrary URLs server side.
 - [ ] `runBoat.sh` / `Dockerfile` run the latest release jar without checksum/signature verification.

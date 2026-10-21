@@ -23,7 +23,7 @@ class Alldebrid(httpHelper: HttpHelper) : HttpUser(httpHelper), MultifileHoster 
         val urlEncodedBrackets = TorrentHelper.urlEncode("[]")
         val collected = "&magnets" + urlEncodedBrackets + "=" + TorrentHelper.urlEncode(toBeAddedTorrent.magnetUri)
         val checkUrl = String.format(requestUrl, collected)
-        log.info("Add Magnet URL: {}", checkUrl)
+        log.info("Add Magnet URL: {}", HttpHelper.redactSecrets(checkUrl))
         val pageContent = httpHelper.getPage(checkUrl)
         val jsonRoot = JsonParser.parseString(pageContent)
         val status = jsonRoot.asJsonObject["status"]
@@ -138,7 +138,7 @@ class Alldebrid(httpHelper: HttpHelper) : HttpUser(httpHelper), MultifileHoster 
         val pageContent = httpHelper.getPage(checkUrl)
         val jsonRoot = JsonParser.parseString(pageContent)
         if (jsonRoot == null || !jsonRoot.isJsonObject) {
-            log.error("couldn't retrieve cache for:$checkUrl")
+            log.error("couldn't retrieve cache for:${HttpHelper.redactSecrets(checkUrl)}")
         } else {
             val response = jsonRoot.asJsonObject["data"].asJsonObject["magnets"]
             val responseArray = response.asJsonArray

@@ -13,12 +13,11 @@ import java.io.OutputStreamWriter
 import java.net.URI
 import java.net.URLConnection
 import java.nio.channels.Channels
-import java.security.KeyManagementException
-import java.security.NoSuchAlgorithmException
 import java.security.cert.X509Certificate
 import java.util.concurrent.TimeUnit
 import javax.net.ssl.HttpsURLConnection
 import javax.net.ssl.SSLContext
+import javax.net.ssl.SSLException
 import javax.net.ssl.TrustManager
 import javax.net.ssl.X509TrustManager
 
@@ -35,13 +34,29 @@ class HttpHelper {
     }
 
     fun getPage(url: String, params: List<String>?, cookies: String?, body:String? = null, timeout: Int, headers: Map<String, String>? = null): String {
-        val returnString: String
+        return try {
+            fetchPage(url, cookies, body, timeout, headers, trustAllCertificates = false)
+        } catch (exception: SSLException) {
+            if (mayFallBackToUnverifiedTls(url)) {
+                log.warn("TLS verification failed for [{}], retrying without verification: {}", hostOf(url), redactSecrets(exception.message))
+                runCatching { fetchPage(url, cookies, body, timeout, headers, trustAllCertificates = true) }
+                    .onFailure { log.error("HttpHelper [{}]: {}", hostOf(url), redactSecrets(it.message)) }
+                    .getOrDefault("")
+            } else {
+                log.error("TLS verification failed for [{}]: {}", hostOf(url), redactSecrets(exception.message))
+                ""
+            }
+        } catch (exception: Exception) {
+            // no stack trace, the message of connection errors contains the url with its api key
+            log.error("HttpHelper [{}]: {} {}", hostOf(url), exception.javaClass.simpleName, redactSecrets(exception.message))
+            ""
+        }
+    }
+
+    private fun fetchPage(url: String, cookies: String?, body: String?, timeout: Int, headers: Map<String, String>?, trustAllCertificates: Boolean): String {
         val buildString = StringBuilder()
-        val connection: URLConnection
-        try {
-            val sc = SSLContext.getInstance("SSL")
-            sc.init(null, trustAllCerts, null)
-            connection = URI.create(url).toURL().openConnection()
+        run {
+            val connection = URI.create(url).toURL().openConnection()
             body?.let {
                 if (connection is HttpsURLConnection) {
                     connection.requestMethod = "POST"
@@ -49,8 +64,8 @@ class HttpHelper {
                 connection.doOutput = true
                 connection.doInput = true
             }
-            if (connection is HttpsURLConnection) {
-                connection.sslSocketFactory = sc.socketFactory
+            if (trustAllCertificates && connection is HttpsURLConnection) {
+                connection.sslSocketFactory = trustAllSocketFactory
             }
             connection.setRequestProperty("User-Agent", USER_AGENT_BROWSER)
             connection.setRequestProperty("Accept-Charset", charset)
@@ -102,60 +117,43 @@ class HttpHelper {
                     buildString.append(line).append(System.getProperty("line.separator"))
                 }
             }
-        } catch (exception: Exception) {
-            log.error("HttpHelper", exception)
         }
-        returnString = buildString.toString()
-        return returnString
+        return buildString.toString()
     }
 
     fun getRawPage(url: String, params: List<String?>?, cookies: String?, timeout: Int): ByteArray? {
-        val connection: URLConnection
-        try {
-            val sc = SSLContext.getInstance("SSL")
-            sc.init(null, trustAllCerts, null)
-            connection = URI.create(url).toURL().openConnection()
-            if (connection is HttpsURLConnection) {
-                connection.sslSocketFactory = sc.socketFactory
+        return try {
+            fetchRawPage(url, cookies, timeout, trustAllCertificates = false)
+        } catch (exception: SSLException) {
+            if (mayFallBackToUnverifiedTls(url)) {
+                log.warn("TLS verification failed for [{}], retrying without verification: {}", hostOf(url), redactSecrets(exception.message))
+                runCatching { fetchRawPage(url, cookies, timeout, trustAllCertificates = true) }.getOrNull()
+            } else {
+                log.error("TLS verification failed for [{}]: {}", hostOf(url), redactSecrets(exception.message))
+                null
             }
-            connection.setRequestProperty(
-                "User-Agent",
-                USER_AGENT_BROWSER
-            )
-            connection.setRequestProperty("Accept-Charset", charset)
-            connection.setRequestProperty(
-                "Accept",
-                "text/html,application/xhtml+xml,application/xml,application/json;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9"
-            )
-            connection.connectTimeout = timeout
-            connection.readTimeout = timeout
-            if (cookies != null) {
-                connection.setRequestProperty("Cookie", cookies)
-            }
-            val response = connection.getInputStream()
-
-//            for (Map.Entry<String, List<String>> header : connection.getHeaderFields().entrySet()) {
-//                System.out.println(header.getKey() + "=" + header.getValue());
-//            }
-            val contentType = connection.getHeaderField("Content-Type")
-            var charset: String? = null
-            if (contentType != null) {
-                for (param in contentType.replace(" ", "").split(";".toRegex()).toTypedArray()) {
-                    if (param.startsWith("charset=")) {
-                        charset = param.split("=".toRegex(), 2).toTypedArray()[1]
-                        break
-                    }
-                }
-            }
-            if (charset == null) {
-                charset = "UTF-8"
-            }
-            return IOUtils.toByteArray(response)
         } catch (_: IOException) {
-        } catch (_: NoSuchAlgorithmException) {
-        } catch (_: KeyManagementException) {
+            null
         }
-        return null
+    }
+
+    private fun fetchRawPage(url: String, cookies: String?, timeout: Int, trustAllCertificates: Boolean): ByteArray {
+        val connection = URI.create(url).toURL().openConnection()
+        if (trustAllCertificates && connection is HttpsURLConnection) {
+            connection.sslSocketFactory = trustAllSocketFactory
+        }
+        connection.setRequestProperty("User-Agent", USER_AGENT_BROWSER)
+        connection.setRequestProperty("Accept-Charset", charset)
+        connection.setRequestProperty(
+            "Accept",
+            "text/html,application/xhtml+xml,application/xml,application/json;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9"
+        )
+        connection.connectTimeout = timeout
+        connection.readTimeout = timeout
+        if (cookies != null) {
+            connection.setRequestProperty("Cookie", cookies)
+        }
+        return IOUtils.toByteArray(connection.getInputStream())
     }
 
     fun getPage(url: String): String {
@@ -185,6 +183,33 @@ class HttpHelper {
     companion object {
         private const val charset = "UTF-8" // Or in Java 7 and later, use the constant: java.nio.charset.StandardCharsets.UTF_8.name()
         private val log = LoggerFactory.getLogger(HttpHelper::class.java)
+
+        // Calls to these hosts carry API keys or deliver the data we act on, they are never made without verification.
+        private val VERIFIED_HOST_SUFFIXES = listOf(
+            "premiumize.me", "alldebrid.com", "themoviedb.org", "thetvdb.com", "github.com", "githubusercontent.com"
+        )
+
+        private val secretPattern = Regex("(api_?key|token|password|passwd)=[^&\\s\"']+", RegexOption.IGNORE_CASE)
+
+        /** Hides the values of api keys and similar parameters, e.g. before an url ends up in a log. */
+        fun redactSecrets(text: String?): String? = text?.replace(secretPattern) { it.groupValues[1] + "=***" }
+
+        private fun hostOf(url: String): String = runCatching { URI.create(url).host }.getOrNull() ?: "unknown"
+
+        /**
+         * Torrent sites often have broken certificates, so for them a failed verification falls back to an
+         * unverified connection. Hosters, metadata providers, GitHub and every url with an api key never do.
+         */
+        internal fun mayFallBackToUnverifiedTls(url: String): Boolean {
+            val host = hostOf(url).lowercase()
+            if (VERIFIED_HOST_SUFFIXES.any { host == it || host.endsWith(".$it") }) return false
+            return !url.contains("apikey=", ignoreCase = true) && !url.contains("api_key=", ignoreCase = true)
+        }
+
+        private val trustAllSocketFactory by lazy {
+            SSLContext.getInstance("TLS").apply { init(null, trustAllCerts, null) }.socketFactory
+        }
+
         private val trustAllCerts = arrayOf<TrustManager>(
             object : X509TrustManager {
                 override fun getAcceptedIssuers(): Array<X509Certificate> {

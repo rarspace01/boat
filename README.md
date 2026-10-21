@@ -60,6 +60,13 @@ Changing the password works the same way, update the `password` field with a new
 minutes, so a changed or removed user is locked out after that at the latest (restart boat to apply it right away). Users with a `{bcrypt}` password are also written to `/tmp/htpasswd` every minute, for a
 reverse proxy in front of boat.
 
+## TLS
+
+Certificates are verified for all connections. Only torrent search sites with a broken certificate are retried
+without verification, calls to the multifilehosters, TMDB, TVDB, GitHub and every url with an api key never are.
+rclone verifies certificates as well, set `RCLONE_NO_CHECK_CERTIFICATE=true` in `boat.cfg` (or as environment
+variable) to pass `--no-check-certificate`, e.g. for a webdav remote with a self-signed certificate.
+
 tested with:
 
 ```

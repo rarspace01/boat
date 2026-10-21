@@ -18,4 +18,9 @@ class RcloneUploaderTest {
         assertThat(RcloneUploader.isErrorLine("2026/10/21 07:08:55 INFO  : MY_ERROR_MOVIE.mkv: Copied (new)")).isFalse()
         assertThat(RcloneUploader.isErrorLine("2026/10/21 07:08:55 INFO  : Hard ERROR: Part 2.mkv: Copied (new)")).isFalse()
     }
+
+    @Test
+    fun shouldVerifyCertificatesByDefault() {
+        assertThat(RcloneUploader.certificateArguments()).isEmpty()
+    }
 }

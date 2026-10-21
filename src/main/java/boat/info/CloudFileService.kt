@@ -2,6 +2,7 @@ package boat.info
 
 import boat.utilities.LoggerDelegate
 import boat.utilities.PropertiesHelper
+import boat.utilities.RcloneUploader
 import com.google.gson.JsonElement
 import com.google.gson.JsonParser
 import org.springframework.cache.annotation.Cacheable
@@ -19,7 +20,7 @@ class CloudFileService {
 
         /** The arguments are passed to rclone directly instead of through a shell, so paths can't break out of the command. */
         internal fun buildLsjsonCommand(destinationPath: String): List<String> =
-            listOf("rclone", "--no-check-certificate", "lsjson") +
+            listOf("rclone") + RcloneUploader.certificateArguments() + "lsjson" +
                     (if (destinationPath.contains("/transfer/")) emptyList() else listOf("--recursive")) +
                     destinationPath
     }
@@ -28,7 +29,7 @@ class CloudFileService {
     fun getFreeSpaceInMegaBytes():Double {
         val basePath = PropertiesHelper.getProperty(CloudService.RCLONE_DIR)
         // no shell, so the path can't break out of the command
-        val command = listOf("rclone", "--no-check-certificate", "about", basePath.toString(), "--json")
+        val command = listOf("rclone") + RcloneUploader.certificateArguments() + listOf("about", basePath.toString(), "--json")
         logger.info(command.joinToString(" "))
         val builder = ProcessBuilder()
         builder.command(command)
