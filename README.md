@@ -67,6 +67,12 @@ without verification, calls to the multifilehosters, TMDB, TVDB, GitHub and ever
 rclone verifies certificates as well, set `RCLONE_NO_CHECK_CERTIFICATE=true` in `boat.cfg` (or as environment
 variable) to pass `--no-check-certificate`, e.g. for a webdav remote with a self-signed certificate.
 
+## Search list urls
+
+The search list accepts a url instead of titles. Only http(s) urls to public addresses are fetched (also after
+redirects), at most 1 MB. Set `ALLOW_PRIVATE_URLS=true` in `boat.cfg` (or as environment variable) to allow
+addresses in the local network.
+
 tested with:
 
 ```
