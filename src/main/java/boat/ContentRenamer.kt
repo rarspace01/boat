@@ -1887,7 +1887,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         } else {
             ""
         }
-        val fileExtension = file.name.replace(file.nameWithoutExtension, "")
+        val fileExtension = file.extension.takeIf { it.isNotEmpty() }?.let { ".$it" } ?: ""
         return firstPart + optionalSeasonFolder+optionalFileNaming+fileExtension
     }
 

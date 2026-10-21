@@ -344,6 +344,8 @@ internal class TorrentHelperTest {
         Assertions.assertEquals(700.0, TorrentHelper.extractTorrentSizeFromString("700 MB"))
         Assertions.assertEquals(700.0, TorrentHelper.extractTorrentSizeFromString("700.9 MiB"))
         Assertions.assertEquals(2048.0, TorrentHelper.extractTorrentSizeFromString("<b>2</b> GB"))
+        Assertions.assertEquals(1024.0 * 1024.0, TorrentHelper.extractTorrentSizeFromString("1 TB"))
+        Assertions.assertEquals(1.5 * 1024.0 * 1024.0, TorrentHelper.extractTorrentSizeFromString("1.5 TiB"))
         Assertions.assertEquals(1536.0, TorrentHelper.extractTorrentSizeFromString(Torrent("Test").apply { size = "1.5 GiB" }))
     }
 

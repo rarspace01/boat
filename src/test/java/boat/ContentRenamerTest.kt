@@ -314,6 +314,19 @@ class ContentRenamerTest {
     }
 
     @Test
+    fun shouldKeepOnlyTheExtensionOfFileNamesThatRepeatTheExtension() {
+        val httpHelper = HttpHelper()
+        val contentRenamer = ContentRenamer(
+            MediaProxyService(TheMovieDataBaseService(httpHelper), TheTVDBService(httpHelper))
+        )
+        val seriesItem = MediaItem(title = "The Mandalorian", type = boat.info.MediaType.Series, id = "12345")
+
+        val target = contentRenamer.getTargetFile(File("mkv.mkv"), seriesItem, "The Mandalorian", 1, 1)
+
+        assertThat(target).endsWith("The Mandalorian.S01E01.mkv")
+    }
+
+    @Test
     fun testGetTargetFile() {
         val httpHelper = HttpHelper()
         val contentRenamer = ContentRenamer(
