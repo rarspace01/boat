@@ -506,4 +506,159 @@ internal class MultifileHosterServiceTest {
         assertThat(otherTransfer.transferStatus).isEqualTo(TransferStatus.DOWNLOADING_TO_MULTIHOSTER)
         verify { transferService.delete(transfer) }
     }
+
+    @Test
+    fun shouldCountFailedUploadsToDriveAndRetry() {
+        val transfer = Transfer(
+            name = "Inception.2010.1080p.mkv",
+            transferStatus = TransferStatus.READY_TO_BE_DOWNLOADED,
+            remoteId = "remote-123",
+            source = "Premiumize"
+        )
+        every { transferService.getAll() } returns listOf(transfer)
+        every { cloudService.buildDestinationPath(any(), any()) } returns Pair("I", "/destination/Movies/I/")
+        every { httpHelper.getPage(match { it.contains("folder/list") }) } returns
+                "{\"status\":\"success\",\"content\":[{\"id\":\"f1\",\"name\":\"Inception.mkv\",\"type\":\"file\",\"size\":1000,\"link\":\"http://premiumize.me/dl/inception.mkv\"}]}"
+        every { rcloneUploader.copyUrl(any(), any()) } returns false
+
+        multifileHosterService.checkForDownloadableTorrentsAndDownloadTheFirst()
+        assertThat(transfer.failedUploadsToDrive).isEqualTo(1)
+        assertThat(transfer.transferStatus).isEqualTo(TransferStatus.READY_TO_BE_DOWNLOADED)
+
+        multifileHosterService.checkForDownloadableTorrentsAndDownloadTheFirst()
+        assertThat(transfer.failedUploadsToDrive).isEqualTo(2)
+        assertThat(transfer.transferStatus).isEqualTo(TransferStatus.READY_TO_BE_DOWNLOADED)
+    }
+
+    @Test
+    fun shouldGiveUpAfterMaximumRetriesAndKeepFilesOnHoster() {
+        val transfer = Transfer(
+            name = "Inception.2010.1080p.mkv",
+            transferStatus = TransferStatus.READY_TO_BE_DOWNLOADED,
+            remoteId = "remote-123",
+            source = "Premiumize",
+            failedUploadsToDrive = MultifileHosterService.MAX_UPLOAD_TO_DRIVE_RETRIES
+        )
+        every { transferService.getAll() } returns listOf(transfer)
+        every { cloudService.buildDestinationPath(any(), any()) } returns Pair("I", "/destination/Movies/I/")
+        every { httpHelper.getPage(match { it.contains("folder/list") }) } returns
+                "{\"status\":\"success\",\"content\":[{\"id\":\"f1\",\"name\":\"Inception.mkv\",\"type\":\"file\",\"size\":1000,\"link\":\"http://premiumize.me/dl/inception.mkv\"}]}"
+        every { rcloneUploader.copyUrl(any(), any()) } returns false
+
+        multifileHosterService.checkForDownloadableTorrentsAndDownloadTheFirst()
+
+        assertThat(transfer.transferStatus).isEqualTo(TransferStatus.UPLOAD_TO_DRIVE_FAILED)
+        verify(exactly = 0) { transferService.delete(any()) }
+        verify(exactly = 0) { httpHelper.getPage(match { it.contains("transfer/delete") }) }
+
+        // a failed transfer is not picked again
+        assertThat(multifileHosterService.getTransferToBeDownloaded()).isNull()
+    }
+
+    @Test
+    fun shouldNotResetFailedTransferToReadyFromHosterStatus() {
+        val transfer = Transfer(
+            name = "Inception.2010.1080p.mkv",
+            transferStatus = TransferStatus.UPLOAD_TO_DRIVE_FAILED,
+            remoteId = "remote-123",
+            uri = "magnet:?xt=urn:btih:10e93389d579ba4538c68b8d297268a81620fae2",
+            source = "Premiumize"
+        )
+        every { transferService.getAll() } returns listOf(transfer)
+        every { httpHelper.getPage(match { it.contains("transfer/list") }) } returns
+                "{\"status\":\"success\",\"transfers\":[{\"id\":\"remote-123\",\"name\":\"Inception.2010.1080p.mkv\",\"status\":\"finished\"," +
+                "\"folder_id\":\"folder-1\",\"file_id\":null,\"src\":\"magnet:?xt=urn:btih:10e93389d579ba4538c68b8d297268a81620fae2\",\"message\":\"\",\"progress\":1}]}"
+
+        multifileHosterService.updateTransferStatus()
+
+        assertThat(transfer.transferStatus).isEqualTo(TransferStatus.UPLOAD_TO_DRIVE_FAILED)
+    }
+
+    private val readyTransferList = "{\"status\":\"success\",\"transfers\":[{\"id\":\"remote-123\",\"name\":\"Inception.2010.1080p.mkv\",\"status\":\"finished\"," +
+            "\"folder_id\":\"folder-1\",\"file_id\":null,\"src\":\"magnet:?xt=urn:btih:10e93389d579ba4538c68b8d297268a81620fae2\",\"message\":\"\",\"progress\":1}]}"
+
+    private fun failedTransfer(remoteId: String? = "remote-123") = Transfer(
+        name = "Inception.2010.1080p.mkv",
+        transferStatus = TransferStatus.UPLOAD_TO_DRIVE_FAILED,
+        remoteId = remoteId,
+        uri = "magnet:?xt=urn:btih:10e93389d579ba4538c68b8d297268a81620fae2",
+        source = "Premiumize",
+        failedUploadsToDrive = 3
+    )
+
+    @Test
+    fun shouldDeleteTransferAndItsRemoteTorrent() {
+        val transfer = failedTransfer()
+        every { transferService.getAll() } returns listOf(transfer)
+        every { httpHelper.getPage(match { it.contains("transfer/list") }) } returns readyTransferList
+
+        val message = multifileHosterService.deleteTransfer(transfer.id)
+
+        assertThat(message).contains("deleted")
+        verify { transferService.delete(transfer) }
+        verify { httpHelper.getPage(match { it.contains("transfer/delete") && it.contains("remote-123") }) }
+    }
+
+    @Test
+    fun shouldFindRemoteTorrentByInfoHashWithoutRemoteId() {
+        val transfer = failedTransfer(remoteId = null)
+        every { transferService.getAll() } returns listOf(transfer)
+        every { httpHelper.getPage(match { it.contains("transfer/list") }) } returns readyTransferList
+
+        multifileHosterService.deleteTransfer(transfer.id)
+
+        verify { httpHelper.getPage(match { it.contains("transfer/delete") && it.contains("remote-123") }) }
+    }
+
+    @Test
+    fun shouldNotDeleteOrRestartTransferUploadingToDrive() {
+        val transfer = failedTransfer().apply { transferStatus = TransferStatus.UPLOADING_TO_DRIVE }
+        every { transferService.getAll() } returns listOf(transfer)
+        every { httpHelper.getPage(match { it.contains("transfer/list") }) } returns readyTransferList
+
+        assertThat(multifileHosterService.deleteTransfer(transfer.id)).contains("uploading")
+        assertThat(multifileHosterService.restartTransfer(transfer.id)).contains("uploading")
+
+        verify(exactly = 0) { transferService.delete(any()) }
+        verify(exactly = 0) { httpHelper.getPage(match { it.contains("transfer/delete") }) }
+        assertThat(transfer.transferStatus).isEqualTo(TransferStatus.UPLOADING_TO_DRIVE)
+    }
+
+    @Test
+    fun shouldReportUnknownTransfer() {
+        every { transferService.getAll() } returns emptyList()
+
+        assertThat(multifileHosterService.deleteTransfer("unknown")).isEqualTo("transfer not found")
+        assertThat(multifileHosterService.restartTransfer("unknown")).isEqualTo("transfer not found")
+    }
+
+    @Test
+    fun shouldRestartUploadToDriveIfFilesAreReadyAtHoster() {
+        val transfer = failedTransfer()
+        every { transferService.getAll() } returns listOf(transfer)
+        every { httpHelper.getPage(match { it.contains("transfer/list") }) } returns readyTransferList
+
+        multifileHosterService.restartTransfer(transfer.id)
+
+        assertThat(transfer.transferStatus).isEqualTo(TransferStatus.READY_TO_BE_DOWNLOADED)
+        assertThat(transfer.failedUploadsToDrive).isEqualTo(0)
+        assertThat(transfer.remoteId).isEqualTo("remote-123")
+        verify(exactly = 0) { httpHelper.getPage(match { it.contains("transfer/delete") }) }
+        verify { transferService.save(transfer) }
+    }
+
+    @Test
+    fun shouldAddTransferAgainIfHosterHasNoReadyFiles() {
+        val transfer = failedTransfer().apply { transferStatus = TransferStatus.ERROR }
+        every { transferService.getAll() } returns listOf(transfer)
+        every { httpHelper.getPage(match { it.contains("transfer/list") }) } returns readyTransferList.replace("finished", "error")
+
+        multifileHosterService.restartTransfer(transfer.id)
+
+        assertThat(transfer.transferStatus).isEqualTo(TransferStatus.ADDED)
+        assertThat(transfer.remoteId).isNull()
+        assertThat(transfer.failedUploadsToDrive).isEqualTo(0)
+        verify { httpHelper.getPage(match { it.contains("transfer/delete") && it.contains("remote-123") }) }
+        verify { transferService.save(transfer) }
+    }
 }

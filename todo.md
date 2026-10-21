@@ -9,7 +9,9 @@ Findings from a code review of `src/main/java/boat`. Check items off as they get
 ## Bugs
 
 - [x] **Failed uploads still delete the torrent and transfer** (`MultifileHosterService.checkForDownloadableTorrentsAndDownloadTheFirst`): `delete(remoteTorrent)` and `transferService.delete(...)` run even when rclone failed. Fixed: only deleted after all files are uploaded, otherwise the transfer goes back to ready and is retried after the other waiting transfers.
-- [ ] A transfer whose hoster returns no files, or whose upload keeps failing, is retried forever; consider a retry limit.
+- [x] A transfer whose upload to the drive keeps failing is retried forever. Fixed: at most `MAX_UPLOAD_TO_DRIVE_RETRIES` (2) retries, then `UPLOAD_TO_DRIVE_FAILED` and the files stay on the hoster.
+- [ ] A transfer whose hoster returns no files is still retried every 30s (costs no traffic).
+- [ ] rclone `copyurl` retries 3 times on its own (`--retries` default), each one downloads again; consider `--retries 1`.
 - [x] **Concurrent downloads / shared state races**: scheduled jobs are `@Async` with `fixedRate`, so runs overlap. `isDownloadInProgress` is a plain check-then-set `Boolean`; `localStatusStorage` is a `HashMap` and `activeTorrents` is mutated from several threads. Fixed in `MultifileHosterService` (`AtomicBoolean`, `ConcurrentHashMap`, `activeTorrents` replaced as a whole).
 - [ ] `TorrentMetaService` still has its own copy of the unsynchronized `localStatusStorage`/`activeTorrents` code.
 - [x] **Parallel search races** (`TorrentSearchEngineService`): `combineResults` and `tempActiveSearchEngines` are `ArrayList`s filled from `parallelStream()`; `activeSearchEngines` is cleared/refilled while being read; `ForkJoinPool(0)` throws when no engine is active.

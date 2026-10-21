@@ -213,6 +213,55 @@ class MultifileHosterService(
         }
     }
 
+    /**
+     * Deletes a transfer and its torrent at the multifilehoster. Returns a message for the user.
+     */
+    fun deleteTransfer(transferId: String): String {
+        val transfer = transferService.getAll().firstOrNull { it.id == transferId } ?: return "transfer not found"
+        if (transfer.transferStatus == TransferStatus.UPLOADING_TO_DRIVE) {
+            return "${transfer.name} is uploading to the drive, try again when it's done"
+        }
+        findRemoteTorrent(transfer)?.let { delete(it) }
+        transferService.delete(transfer)
+        return "deleted ${transfer.name}"
+    }
+
+    /**
+     * Restarts a transfer: if the multifilehoster still has the files ready, they are uploaded to the drive again,
+     * otherwise the torrent is removed at the multifilehoster and added again. Returns a message for the user.
+     */
+    fun restartTransfer(transferId: String): String {
+        val transfer = transferService.getAll().firstOrNull { it.id == transferId } ?: return "transfer not found"
+        if (transfer.transferStatus == TransferStatus.UPLOADING_TO_DRIVE) {
+            return "${transfer.name} is uploading to the drive, try again when it's done"
+        }
+        val remoteTorrent = findRemoteTorrent(transfer)
+        transfer.failedUploadsToDrive = 0
+        transfer.progressInPercentage = 0.0
+        transfer.eta = Duration.ZERO
+        val message = if (remoteTorrent?.remoteTransferStatus == TransferStatus.READY_TO_BE_DOWNLOADED) {
+            transfer.transferStatus = TransferStatus.READY_TO_BE_DOWNLOADED
+            "restarted ${transfer.name}, uploading to the drive again"
+        } else {
+            remoteTorrent?.let { delete(it) }
+            transfer.remoteId = null
+            transfer.transferStatus = TransferStatus.ADDED
+            "restarted ${transfer.name}, adding to ${transfer.source} again"
+        }
+        transfer.feedbackMessage = message
+        transferService.save(transfer)
+        return message
+    }
+
+    private fun findRemoteTorrent(transfer: Transfer): Torrent? {
+        val hoster = multifileHosterList.firstOrNull { it.getName() == transfer.source } ?: return null
+        val infoHash = Torrent.of(transfer.uri).infoHash
+        return hoster.getRemoteTorrents().firstOrNull { remoteTorrent ->
+            (!transfer.remoteId.isNullOrEmpty() && remoteTorrent.remoteId == transfer.remoteId) ||
+                    (infoHash != null && remoteTorrent.infoHash == infoHash)
+        }
+    }
+
     fun getActiveMultifileHosters(): List<MultifileHoster> {
         return multifileHosterList
     }
@@ -224,7 +273,8 @@ class MultifileHosterService(
     fun updateTransferStatus() {
         val transfers = transferService.getAll()
                 .filter { transfer -> multifileHosterListForDownloads.any { multifileHoster -> multifileHoster.getName() == transfer.source } }
-                .filter { transfer -> transfer.transferStatus != TransferStatus.UPLOADING_TO_DRIVE && transfer.transferStatus != TransferStatus.UPLOADED }
+                // the multifilehoster still reports these as ready, which would start the download again
+                .filter { transfer -> transfer.transferStatus !in listOf(TransferStatus.UPLOADING_TO_DRIVE, TransferStatus.UPLOADED, TransferStatus.UPLOAD_TO_DRIVE_FAILED) }
         val matchedTransfers = mutableListOf<Transfer>()
         val matchedTorrents = mutableListOf<Torrent>()
         val torrentsForDownload = remoteTorrents
@@ -447,7 +497,7 @@ class MultifileHosterService(
             }
             if (!wasDownloadSuccessful) {
                 log.error("Couldn't download Transfer: {}", transferToBeDownloaded)
-                resetTransferForRetry(transferToBeDownloaded)
+                handleFailedUploadToDrive(transferToBeDownloaded)
             }
         } else {
             val optionalTransfer = transferService.getAll().stream()
@@ -462,15 +512,23 @@ class MultifileHosterService(
     }
 
     /**
-     * Sets a transfer whose upload to the drive failed back to ready, so it is downloaded again after the other
-     * waiting transfers (they are picked by their last update).
+     * Every download from the multifilehoster costs traffic, so a transfer whose upload to the drive failed is only
+     * retried [MAX_UPLOAD_TO_DRIVE_RETRIES] times, after the other waiting transfers (they are picked by their last
+     * update). After that it is marked as failed and its files stay on the multifilehoster.
      */
-    private fun resetTransferForRetry(transfer: Transfer) {
+    private fun handleFailedUploadToDrive(transfer: Transfer) {
         val currentTransfer = transferService.getAll().firstOrNull { it.id == transfer.id } ?: transfer
-        currentTransfer.transferStatus = TransferStatus.READY_TO_BE_DOWNLOADED
+        currentTransfer.failedUploadsToDrive++
         currentTransfer.progressInPercentage = 0.0
         currentTransfer.eta = Duration.ZERO
-        currentTransfer.feedbackMessage = "upload to drive failed, will be retried"
+        if (currentTransfer.failedUploadsToDrive > MAX_UPLOAD_TO_DRIVE_RETRIES) {
+            currentTransfer.transferStatus = TransferStatus.UPLOAD_TO_DRIVE_FAILED
+            currentTransfer.feedbackMessage = "upload to drive failed ${currentTransfer.failedUploadsToDrive} times, files kept on the multifilehoster"
+            log.error("giving up on transfer after {} failed uploads to drive: {}", currentTransfer.failedUploadsToDrive, currentTransfer)
+        } else {
+            currentTransfer.transferStatus = TransferStatus.READY_TO_BE_DOWNLOADED
+            currentTransfer.feedbackMessage = "upload to drive failed, retry ${currentTransfer.failedUploadsToDrive}/$MAX_UPLOAD_TO_DRIVE_RETRIES"
+        }
         transferService.save(currentTransfer)
     }
 
@@ -695,5 +753,6 @@ class MultifileHosterService(
 
     companion object {
         private val log by LoggerDelegate()
+        const val MAX_UPLOAD_TO_DRIVE_RETRIES = 2
     }
 }
