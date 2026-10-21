@@ -31,19 +31,19 @@ Findings from a code review of `src/main/java/boat`. Check items off as they get
 ## Security
 
 - [ ] (deliberately open, see notes) `/boat/shutdown` is `permitAll`.
-- [ ] No users in the database → every endpoint is open; `hasUsers` is only evaluated at startup.
+- [ ] No users in the database → every endpoint is open; `hasUsers` is only evaluated at startup. Only a startup warning was added; making this fail closed needs a decision on how to bootstrap the first user.
 - [x] XSS: torrent names (`Torrent.toHtml`), transfers (`Transfer.toString`), media titles, existing file names, `localSearchString` and the queued items were written into HTML unescaped. Fixed with `HtmlUtils.htmlEscape` / URL encoding.
-- [ ] CSRF disabled with HTTP Basic auth, and state-changing endpoints accept GET (`/boat/download`).
+- [x] CSRF disabled with HTTP Basic auth, and state-changing endpoints accept GET (`/boat/download`). Fixed with `CrossSiteRequestFilter`: requests the browser marks `Sec-Fetch-Site: cross-site`/`same-site` are rejected (clients without the header, e.g. curl, still work).
 - [x] Shell injection: rclone commands were built via `bash -c` with interpolated URLs/paths. All rclone calls (`RcloneUploader`, `CloudFileService`, `ProcessUtil`) now pass an argument list.
 - [ ] TLS verification disabled everywhere (`HttpHelper` trust-all, rclone `--no-check-certificate`), including calls carrying API keys.
 - [ ] API keys in query strings end up in logs (`Premiumize`, `Alldebrid`, `HttpHelper` stack traces).
-- [ ] `CachedAuthenticationProvider` keys the cache with the plaintext `user:password`; revoked passwords stay valid for up to 10 minutes.
+- [x] `CachedAuthenticationProvider` kept the plaintext `user:password` as cache key and accepted revoked passwords for 10 minutes. Fixed: keyed HMAC as key, hits are checked against the current stored password hash.
 - [ ] SSRF: `searchList` fetches arbitrary URLs server side.
 - [ ] `runBoat.sh` / `Dockerfile` run the latest release jar without checksum/signature verification.
 
 ## Improvements
 
-- [ ] Split `ContentRenamer` (~2000 lines) and `MultifileHosterService`; remove duplicates (`getUploadDuration`/`getUploadStatusString`, the twice-copied name matching block, `remoteTorrents`/`remoteTorrentsForDownload`), the unused `getTorrentToBeDownloaded`, the unused `authCache` bean and commented-out code.
+- [ ] Split `ContentRenamer` (~2000 lines) and `MultifileHosterService`; remove duplicates (`getUploadDuration`/`getUploadStatusString`, the twice-copied name matching block, `remoteTorrents`/`remoteTorrentsForDownload`), the unused `getTorrentToBeDownloaded`, and commented-out code.
 - [ ] Cache `getRemainingTrafficInMB()` (2 HTTP calls, called very often); avoid `transferService.getAll()` once per uploaded file.
 - [ ] ~~`rcloneDownloadFileToDestination` creates two executors per file~~ (fixed by `RcloneUploader`); `TorrentInfoService` creates a pool with one thread per torrent per search. Use shared bounded executors.
 - [ ] Replace `HttpHelper` with `java.net.http.HttpClient`: normal TLS, read error bodies, close streams (`downloadFileToPath` leaks), drop the ignored `params` argument.

@@ -2,6 +2,8 @@ package boat
 
 import boat.repositories.UserRepository
 import boat.security.CachedAuthenticationProvider
+import boat.security.CrossSiteRequestFilter
+import boat.utilities.LoggerDelegate
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.http.HttpMethod
@@ -12,25 +14,34 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
 import org.springframework.security.config.http.SessionCreationPolicy
 import org.springframework.security.web.SecurityFilterChain
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter
 import org.springframework.security.web.firewall.HttpFirewall
 import org.springframework.security.web.firewall.StrictHttpFirewall
-import java.util.concurrent.ConcurrentHashMap
 
 @Configuration
 @EnableWebSecurity
 class SecurityConfiguration(private val userRepository: UserRepository, private val cachedAuthenticationProvider: CachedAuthenticationProvider) {
 
+    companion object {
+        private val logger by LoggerDelegate()
+    }
+
     @Bean
     @Throws(Exception::class)
     fun securityFilterChain(http: HttpSecurity, authManager: AuthenticationManager): SecurityFilterChain {
         val hasUsers = userRepository.count() > 0
+        if (!hasUsers) {
+            logger.warn("No users in the database, all endpoints are open! Users are only checked at startup.")
+        }
 
         http
             .cors { it.disable() }
             .sessionManagement { session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             }
+            // no tokens, see CrossSiteRequestFilter
             .csrf { csrf -> csrf.disable() }
+            .addFilterBefore(CrossSiteRequestFilter(), UsernamePasswordAuthenticationFilter::class.java)
             .authenticationManager(authManager)
             .authorizeHttpRequests { authorize ->
                 if (hasUsers) {
@@ -61,11 +72,6 @@ class SecurityConfiguration(private val userRepository: UserRepository, private 
             )
         )
         return firewall
-    }
-
-    @Bean
-    fun authCache(): ConcurrentHashMap<String, Boolean> {
-        return ConcurrentHashMap()
     }
 
     @Bean
