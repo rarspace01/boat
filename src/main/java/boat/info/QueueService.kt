@@ -1,6 +1,7 @@
 package boat.info
 
 import boat.utilities.LoggerDelegate
+import boat.utilities.PropertiesHelper
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import org.springframework.beans.factory.annotation.Autowired
@@ -13,7 +14,7 @@ import java.util.function.Consumer
 class QueueService internal constructor(private val queueFile: File) {
 
     @Autowired
-    constructor() : this(File(DEFAULT_QUEUE_FILE))
+    constructor() : this(File(PropertiesHelper.getProperty("QUEUE_FILE", DEFAULT_QUEUE_FILE)!!))
 
     private val properties: Properties = initQueue()
 

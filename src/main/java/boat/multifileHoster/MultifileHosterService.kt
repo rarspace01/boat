@@ -441,7 +441,7 @@ class MultifileHosterService(
                     return
                 }
 
-                val basePath = PropertiesHelper.getProperty(CloudService.RCLONE_DIR) ?: (System.getProperty("user.home") + "/pfdb/PFDB")
+                val basePath = PropertiesHelper.requireProperty(CloudService.RCLONE_DIR)
                 val listOfCharactersToIndexUpdate = mutableSetOf<String>()
 
                 if (isSingleFileDownload(filesFromTorrent)) {

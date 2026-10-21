@@ -48,7 +48,7 @@ Findings from a code review of `src/main/java/boat`. Check items off as they get
 - [ ] ~~`rcloneDownloadFileToDestination` creates two executors per file~~ (fixed by `RcloneUploader`); `TorrentInfoService` creates a pool with one thread per torrent per search. Use shared bounded executors.
 - [ ] Replace `HttpHelper` with `java.net.http.HttpClient`: normal TLS, read error bodies, close streams (`downloadFileToPath` leaks), drop the ignored `params` argument.
 - [ ] `MediaProxyService`: empty results cached permanently, cache unbounded, `saveCache` only called from `ContentRenamer`, `refreshCache` never called.
-- [ ] Fail fast on missing `MONGO_URI`, `RCLONE_DIR` and API keys (currently `MongoClients.create("")`, `"null/..."` paths); make `/tmp/boat`, `/tmp/htpasswd`, `~/pfdb/PFDB` configurable.
+- [x] Fail fast on missing `MONGO_URI` and `RCLONEDIR` (`StartupConfigurationCheck`), warnings for missing API keys; `/tmp/boat/queue.list` and `/tmp/htpasswd` are configurable (`QUEUE_FILE`, `HTPASSWD_FILE`). The `~/pfdb/PFDB` fallback is gone from `MultifileHosterService` (`ContentRenamer` still defaults to it when called without a base path).
 - [x] Removed the bean name dump and the redundant annotations in `Application`. Still open: use the logger instead of `println`/`printStackTrace` elsewhere.
 - [x] `ContentRenamer.getTargetFile` uses `file.extension` (a name like `mkv.mkv` lost its extension).
 - [x] `TorrentHelper.extractTorrentSizeFromString` supports TB/TiB; the two copies of it were merged.
