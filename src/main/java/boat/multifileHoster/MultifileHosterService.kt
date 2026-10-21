@@ -420,8 +420,9 @@ class MultifileHosterService(
 
                 val filesFromTorrent = getFilesFromTorrent(remoteTorrent)
                 if (filesFromTorrent.isEmpty()) {
-                    // might be a temporary hoster failure, the transfer stays ready to be downloaded
+                    // might be a temporary hoster failure, so it is retried like a failed upload, but not forever
                     log.warn("No files found to download for transfer: {}", transferToBeDownloaded)
+                    handleFailedUploadToDrive(transferToBeDownloaded, "no files found at the multifilehoster")
                     return
                 }
 
@@ -518,18 +519,18 @@ class MultifileHosterService(
      * retried [MAX_UPLOAD_TO_DRIVE_RETRIES] times, after the other waiting transfers (they are picked by their last
      * update). After that it is marked as failed and its files stay on the multifilehoster.
      */
-    private fun handleFailedUploadToDrive(transfer: Transfer) {
+    private fun handleFailedUploadToDrive(transfer: Transfer, reason: String = "upload to drive failed") {
         val currentTransfer = transferService.getAll().firstOrNull { it.id == transfer.id } ?: transfer
         currentTransfer.failedUploadsToDrive++
         currentTransfer.progressInPercentage = 0.0
         currentTransfer.eta = Duration.ZERO
         if (currentTransfer.failedUploadsToDrive > MAX_UPLOAD_TO_DRIVE_RETRIES) {
             currentTransfer.transferStatus = TransferStatus.UPLOAD_TO_DRIVE_FAILED
-            currentTransfer.feedbackMessage = "upload to drive failed ${currentTransfer.failedUploadsToDrive} times, files kept on the multifilehoster"
+            currentTransfer.feedbackMessage = "$reason ${currentTransfer.failedUploadsToDrive} times, files kept on the multifilehoster"
             log.error("giving up on transfer after {} failed uploads to drive: {}", currentTransfer.failedUploadsToDrive, currentTransfer)
         } else {
             currentTransfer.transferStatus = TransferStatus.READY_TO_BE_DOWNLOADED
-            currentTransfer.feedbackMessage = "upload to drive failed, retry ${currentTransfer.failedUploadsToDrive}/$MAX_UPLOAD_TO_DRIVE_RETRIES"
+            currentTransfer.feedbackMessage = "$reason, retry ${currentTransfer.failedUploadsToDrive}/$MAX_UPLOAD_TO_DRIVE_RETRIES"
         }
         transferService.save(currentTransfer)
     }

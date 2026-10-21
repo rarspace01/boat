@@ -508,6 +508,27 @@ internal class MultifileHosterServiceTest {
     }
 
     @Test
+    fun shouldGiveUpWhenTheHosterKeepsReturningNoFiles() {
+        val transfer = Transfer(
+            name = "Inception.2010.1080p.mkv",
+            transferStatus = TransferStatus.READY_TO_BE_DOWNLOADED,
+            remoteId = "remote-123",
+            source = "Premiumize"
+        )
+        every { transferService.getAll() } returns listOf(transfer)
+        every { httpHelper.getPage(match { it.contains("folder/list") }) } returns "{\"status\":\"success\",\"content\":[]}"
+
+        repeat(MultifileHosterService.MAX_UPLOAD_TO_DRIVE_RETRIES + 1) {
+            multifileHosterService.checkForDownloadableTorrentsAndDownloadTheFirst()
+        }
+
+        assertThat(transfer.transferStatus).isEqualTo(TransferStatus.UPLOAD_TO_DRIVE_FAILED)
+        assertThat(transfer.feedbackMessage).contains("no files found")
+        verify(exactly = 0) { rcloneUploader.copyUrl(any(), any()) }
+        verify(exactly = 0) { transferService.delete(any()) }
+    }
+
+    @Test
     fun shouldCountFailedUploadsToDriveAndRetry() {
         val transfer = Transfer(
             name = "Inception.2010.1080p.mkv",
