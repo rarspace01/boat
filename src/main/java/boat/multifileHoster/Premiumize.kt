@@ -287,7 +287,7 @@ class Premiumize(httpHelper: HttpHelper) : HttpUser(httpHelper), MultifileHoster
                 "&apikey=" + PropertiesHelper.getProperty("PREMIUMIZE_APIKEY")
         val page = httpHelper.getPage(removeTorrenntUrl)
         if (!page.contains("success")) {
-            log.error("Deleting failed: {}", removeTorrenntUrl)
+            log.error("Deleting failed: {}", HttpHelper.redactSecrets(removeTorrenntUrl))
         }
     }
 
@@ -321,7 +321,7 @@ class Premiumize(httpHelper: HttpHelper) : HttpUser(httpHelper), MultifileHoster
         }
         val jsonRoot = JsonParser.parseString(pageContent)
         if (jsonRoot == null || !jsonRoot.isJsonObject) {
-            log.error("couldn't retrieve cache for:$checkUrl")
+            log.error("couldn't retrieve cache for:${HttpHelper.redactSecrets(checkUrl)}")
             log.error(pageContent)
         } else {
             val response = jsonRoot.asJsonObject["response"]
@@ -339,7 +339,7 @@ class Premiumize(httpHelper: HttpHelper) : HttpUser(httpHelper), MultifileHoster
                     )
                 }
             } else {
-                log.error("couldn't retrieve cache for:$checkUrl")
+                log.error("couldn't retrieve cache for:${HttpHelper.redactSecrets(checkUrl)}")
                 log.error(pageContent)
             }
         }

@@ -10,12 +10,12 @@ internal class CloudFileServiceCommandTest {
         val path = "remote:Movies/A/'; rm -rf ~; echo '/"
 
         assertThat(CloudFileService.buildLsjsonCommand(path))
-            .containsExactly("rclone", "--no-check-certificate", "lsjson", "--recursive", path)
+            .containsExactly("rclone", "lsjson", "--recursive", path)
     }
 
     @Test
     fun shouldListTransferFolderNonRecursive() {
         assertThat(CloudFileService.buildLsjsonCommand("remote:/transfer/"))
-            .containsExactly("rclone", "--no-check-certificate", "lsjson", "remote:/transfer/")
+            .containsExactly("rclone", "lsjson", "remote:/transfer/")
     }
 }
