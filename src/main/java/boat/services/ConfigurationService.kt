@@ -1,11 +1,14 @@
 package boat.services
 
 import boat.model.Mode
+import boat.utilities.LoggerDelegate
 import boat.utilities.PropertiesHelper
 import org.springframework.stereotype.Service
 
 @Service
 class ConfigurationService {
+
+    private val logger by LoggerDelegate()
 
     private final var serviceMode:Mode = Mode.BOTH
 
@@ -14,7 +17,7 @@ class ConfigurationService {
             try {
                 serviceMode = Mode.valueOf(PropertiesHelper.getProperty("MODE") ?: "BOTH")
             } catch (_:Exception) {
-                println("Mode setting not valid, default is BOTH")
+                logger.warn("Mode setting not valid, default is BOTH")
             }
     }
 

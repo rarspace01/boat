@@ -3,6 +3,7 @@ package boat
 import boat.info.MediaItem
 import boat.info.MediaProxyService
 import boat.info.MediaType
+import boat.utilities.LoggerDelegate
 import boat.utilities.StringUtil
 import org.springframework.stereotype.Service
 import java.io.BufferedWriter
@@ -15,6 +16,8 @@ import kotlin.math.abs
 
 @Service
 class ContentRenamer(val mediaProxyService: MediaProxyService) {
+
+    private val logger by LoggerDelegate()
 
     companion object {
         val seasonPattern = "(?<=^|[^a-zA-Z])(?:S([0-9]{1,2})(?:[x._\\-\\s]?(?:E|EP)[0-9]{1,3})?|(?<![0-9])([0-9]{1,2})[x._\\-\\s]?(?:E|EP)[0-9]{1,3}(?=[^a-zA-Z0-9]|$))".toRegex(RegexOption.IGNORE_CASE)
@@ -1597,7 +1600,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
                                 file.toPath().moveTo(newFile.toPath(), overwrite = false)
                                 logWriter?.write("Moved:\n'$file'\n'$newFile'\n")
                             } catch (e:Exception) {
-                                println("Error moving file: $e")
+                                logger.error("Error moving file [{}]: {}", file, e.message)
                                 logWriter?.write("Failed to move:\n'$file'\n'$newFile'\n")
                             }
 
@@ -1606,7 +1609,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
                     logWriter?.write(logLine + "\n")
                 } else {
                     processFilesFromDirectoryInternal(file.absolutePath, logWriter, isTestRun, basePath, assignedTargets, skipFilesWithRemoteId)
-                    println("Processed directory: $file")
+                    logger.debug("Processed directory: {}", file)
                 }
             }
         }

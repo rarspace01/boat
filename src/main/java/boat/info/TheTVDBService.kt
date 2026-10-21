@@ -2,6 +2,7 @@ package boat.info
 
 import boat.torrent.TorrentHelper.urlEncode
 import boat.utilities.HttpHelper
+import boat.utilities.LoggerDelegate
 import boat.utilities.PropertiesHelper
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
@@ -13,13 +14,14 @@ import java.util.function.Consumer
 
 @Service
 class TheTVDBService @Autowired constructor(private val httpHelper: HttpHelper) {
+    private val logger by LoggerDelegate()
     private val baseUrl = "https://api4.thetvdb.com/v4"
     private var token: String? = null
 
     private fun login(): String? {
         val apiKey = PropertiesHelper.getProperty("TVDB_APIKEY")
         if (apiKey.isNullOrBlank()) {
-            println("TVDB_APIKEY not found")
+            logger.warn("TVDB_APIKEY not found")
             return null
         }
         val body = "{\"apikey\": \"$apiKey\"}"
@@ -30,7 +32,7 @@ class TheTVDBService @Autowired constructor(private val httpHelper: HttpHelper) 
             val tokenElement = data.asJsonObject["token"]
             tokenElement.asString
         } catch (e: Exception) {
-            println("Failed to login to TVDB: ${e.message}")
+            logger.warn("Failed to login to TVDB: {}", e.message)
             null
         }
     }
@@ -103,7 +105,7 @@ class TheTVDBService @Autowired constructor(private val httpHelper: HttpHelper) 
                 parseMediaObject(jsonMedia.asJsonObject)?.let { mediaItems.add(it) }
             })
         } catch (e: Exception) {
-            println("Error parsing TVDB response: ${e.message}")
+            logger.warn("Error parsing TVDB response: {}", e.message)
         }
         return mediaItems
     }
@@ -143,7 +145,7 @@ class TheTVDBService @Autowired constructor(private val httpHelper: HttpHelper) 
             }
             parseMediaObject(mapped)
         } catch (e: Exception) {
-            println("Error parsing TVDB series response: ${e.message}")
+            logger.warn("Error parsing TVDB series response: {}", e.message)
             null
         }
     }

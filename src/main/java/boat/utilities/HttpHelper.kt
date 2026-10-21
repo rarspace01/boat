@@ -97,9 +97,6 @@ class HttpHelper {
 
             val response = connection.getInputStream()
 
-//            for (Map.Entry<String, List<String>> header : connection.getHeaderFields().entrySet()) {
-//                System.out.println(header.getKey() + "=" + header.getValue());
-//            }
             val contentType = connection.getHeaderField("Content-Type")
             var charset: String? = null
             if (contentType != null) {
