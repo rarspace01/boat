@@ -38,8 +38,8 @@ Findings from a code review of `src/main/java/boat`. Check items off as they get
 - [x] TLS verification was disabled everywhere. Fixed: verified by default; only torrent search sites fall back to unverified TLS (never hosters, TMDB/TVDB, GitHub or urls with an api key). rclone verifies unless `RCLONE_NO_CHECK_CERTIFICATE=true`.
 - [x] API keys in logs: `HttpHelper` no longer logs stack traces with the url and redacts `apikey`/`api_key`/`token`/`password` values; the Premiumize/Alldebrid log lines that printed urls are redacted too. Keys still travel in query strings (the hoster APIs require it).
 - [x] `CachedAuthenticationProvider` kept the plaintext `user:password` as cache key. Fixed: keyed HMAC as key. Revoked or changed passwords stay valid for up to 10 minutes on purpose (users change 1-2 times a year).
-- [ ] SSRF: `searchList` fetches arbitrary URLs server side.
-- [ ] `runBoat.sh` / `Dockerfile` run the latest release jar without checksum/signature verification.
+- [x] SSRF: `searchList` fetched arbitrary urls server side. Fixed: `HttpHelper.getPublicPage` only fetches http(s) urls to public addresses, checks every redirect hop, reads at most 1 MB. `ALLOW_PRIVATE_URLS=true` allows local addresses. (A DNS rebinding race between check and connect remains, the endpoint needs a login.)
+- [x] `runBoat.sh` / `Dockerfile` ran the latest release jar without verification. Fixed: the release workflow publishes `boat.jar.sha256`, both verify it before using the jar (`runBoat.sh` keeps the old jar on a mismatch). This protects against corrupted or tampered downloads, not against a compromised GitHub release; signing/attestation would be the next step.
 
 ## Improvements
 

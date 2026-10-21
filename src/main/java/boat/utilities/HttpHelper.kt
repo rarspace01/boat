@@ -10,6 +10,8 @@ import java.io.FileOutputStream
 import java.io.IOException
 import java.io.InputStreamReader
 import java.io.OutputStreamWriter
+import java.net.HttpURLConnection
+import java.net.InetAddress
 import java.net.URI
 import java.net.URLConnection
 import java.nio.channels.Channels
@@ -156,6 +158,47 @@ class HttpHelper {
         return IOUtils.toByteArray(connection.getInputStream())
     }
 
+    /**
+     * Fetches a page from a url given by a user. Only http(s) urls to public addresses are fetched, redirects are
+     * followed by hand so every hop is checked, and at most [maxBytes] are read. Returns null if the url is not
+     * allowed or the page can't be read. Set `ALLOW_PRIVATE_URLS=true` to also allow addresses in the local network.
+     */
+    fun getPublicPage(url: String, maxBytes: Int = 1024 * 1024, timeout: Int = 10 * 1000): String? {
+        val allowPrivate = PropertiesHelper.getProperty("ALLOW_PRIVATE_URLS") == "true"
+        var currentUrl = url
+        repeat(MAX_REDIRECTS + 1) {
+            if (!isAllowedPublicUrl(currentUrl, allowPrivate)) {
+                log.warn("refusing to fetch [{}]", hostOf(currentUrl))
+                return null
+            }
+            try {
+                val connection = URI.create(currentUrl).toURL().openConnection() as HttpURLConnection
+                connection.instanceFollowRedirects = false
+                connection.connectTimeout = timeout
+                connection.readTimeout = timeout
+                connection.setRequestProperty("User-Agent", USER_AGENT_BROWSER)
+                val status = connection.responseCode
+                if (status in 300..399) {
+                    val location = connection.getHeaderField("Location") ?: return null
+                    currentUrl = URI.create(currentUrl).resolve(location).toString()
+                    return@repeat
+                }
+                if (status !in 200..299) return null
+                val bytes = connection.inputStream.use { it.readNBytes(maxBytes + 1) }
+                if (bytes.size > maxBytes) {
+                    log.warn("[{}] is larger than {} bytes, not reading it", hostOf(currentUrl), maxBytes)
+                    return null
+                }
+                return String(bytes, Charsets.UTF_8)
+            } catch (exception: Exception) {
+                log.error("HttpHelper [{}]: {} {}", hostOf(currentUrl), exception.javaClass.simpleName, redactSecrets(exception.message))
+                return null
+            }
+        }
+        log.warn("too many redirects for [{}]", hostOf(url))
+        return null
+    }
+
     fun getPage(url: String): String {
         return getPage(url, null, null, null, 30 * 1000)
     }
@@ -193,6 +236,31 @@ class HttpHelper {
 
         /** Hides the values of api keys and similar parameters, e.g. before an url ends up in a log. */
         fun redactSecrets(text: String?): String? = text?.replace(secretPattern) { it.groupValues[1] + "=***" }
+
+        private const val MAX_REDIRECTS = 3
+
+        /** http(s) url whose host only resolves to public addresses (unless [allowPrivate]). */
+        internal fun isAllowedPublicUrl(url: String, allowPrivate: Boolean = false): Boolean {
+            val uri = runCatching { URI.create(url) }.getOrNull() ?: return false
+            if (uri.scheme?.lowercase() !in listOf("http", "https") || uri.host.isNullOrBlank()) return false
+            if (allowPrivate) return true
+            val addresses = runCatching { InetAddress.getAllByName(uri.host) }.getOrNull() ?: return false
+            return addresses.isNotEmpty() && addresses.all { isPublicAddress(it) }
+        }
+
+        internal fun isPublicAddress(address: InetAddress): Boolean {
+            if (address.isAnyLocalAddress || address.isLoopbackAddress || address.isLinkLocalAddress ||
+                address.isSiteLocalAddress || address.isMulticastAddress
+            ) return false
+            val bytes = address.address
+            return when (bytes.size) {
+                // 100.64.0.0/10 (carrier grade NAT), 0.0.0.0/8
+                4 -> !((bytes[0].toInt() and 0xff) == 100 && (bytes[1].toInt() and 0xc0) == 64) && bytes[0].toInt() != 0
+                // fc00::/7 (unique local)
+                16 -> (bytes[0].toInt() and 0xfe) != 0xfc
+                else -> false
+            }
+        }
 
         private fun hostOf(url: String): String = runCatching { URI.create(url).host }.getOrNull() ?: "unknown"
 

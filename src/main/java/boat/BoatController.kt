@@ -211,7 +211,8 @@ $switchToSearch${switchToProgress}""" + htmlFooter
         if (luckySearchList.isNullOrEmpty()) return htmlHeader + "Error: nothing to search" + htmlFooter
         val urlValidator = UrlValidator(arrayOf("http", "https"))
         val pageWithEntries: String = if (urlValidator.isValid(luckySearchList)) {
-            httpHelper.getPage(luckySearchList)
+            // the url is given by the user, so only public addresses are fetched
+            httpHelper.getPublicPage(luckySearchList) ?: return htmlHeader + "Error: could not read the remote url" + htmlFooter
         } else {
             luckySearchList
         }

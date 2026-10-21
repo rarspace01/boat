@@ -102,11 +102,16 @@ jobs:
         with:
           name: jvmArtifacts-${{ github.sha }}
 
+      - name: Create checksum
+        run: sha256sum boat.jar > boat.jar.sha256
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ needs.buildFatJarForJVM.outputs.tag-version }}
-          files: boat.jar
+          files: |
+            boat.jar
+            boat.jar.sha256
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
