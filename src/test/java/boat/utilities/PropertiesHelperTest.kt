@@ -24,4 +24,10 @@ internal class PropertiesHelperTest {
         assertThat(property).isNotNull
         assertThat(property).isNotEmpty
     }
+
+    @Test
+    fun missingPropertyFallsBackToDefault() {
+        assertThat(PropertiesHelper.getProperty("BOAT_SURELY_NOT_SET_PROPERTY", "fallback")).isEqualTo("fallback")
+        assertThat(PropertiesHelper.getProperty("BOAT_SURELY_NOT_SET_PROPERTY")).isNull()
+    }
 }

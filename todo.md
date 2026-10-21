@@ -11,22 +11,22 @@ Findings from a code review of `src/main/java/boat`. Check items off as they get
 - [x] **Failed uploads still delete the torrent and transfer** (`MultifileHosterService.checkForDownloadableTorrentsAndDownloadTheFirst`): `delete(remoteTorrent)` and `transferService.delete(...)` run even when rclone failed. Fixed: only deleted after all files are uploaded, otherwise the transfer goes back to ready and is retried after the other waiting transfers.
 - [x] A transfer whose upload to the drive keeps failing is retried forever. Fixed: at most `MAX_UPLOAD_TO_DRIVE_RETRIES` (2) retries, then `UPLOAD_TO_DRIVE_FAILED` and the files stay on the hoster.
 - [ ] A transfer whose hoster returns no files is still retried every 30s (costs no traffic).
-- [ ] rclone `copyurl` retries 3 times on its own (`--retries` default), each one downloads again; consider `--retries 1`.
+- [x] rclone `copyurl` retried 3 times on its own, each one downloading again. Fixed: `--retries 1`.
 - [x] **Concurrent downloads / shared state races**: scheduled jobs are `@Async` with `fixedRate`, so runs overlap. `isDownloadInProgress` is a plain check-then-set `Boolean`; `localStatusStorage` is a `HashMap` and `activeTorrents` is mutated from several threads. Fixed in `MultifileHosterService` (`AtomicBoolean`, `ConcurrentHashMap`, `activeTorrents` replaced as a whole).
 - [ ] `TorrentMetaService` still has its own copy of the unsynchronized `localStatusStorage`/`activeTorrents` code.
 - [x] **Parallel search races** (`TorrentSearchEngineService`): `combineResults` and `tempActiveSearchEngines` are `ArrayList`s filled from `parallelStream()`; `activeSearchEngines` is cleared/refilled while being read; `ForkJoinPool(0)` throws when no engine is active.
 - [x] **Empty `torrentId`** (`Torrent.remoteIdOrHash`): `requireNonNullElseGet` never falls back since `remoteId` is non-null, so URL transfers get `torrentId == ""` and `uri.contains("")` matches the first transfer (`updateUploadStatus`). `equals` is overridden without `hashCode`.
 - [x] **`StringUtil.deductFirstTorrentLetter`**: `Ü` is mapped to `Ü` instead of `U` (ends up as `?`); titles starting with a year ("2001: A Space Odyssey") give an empty letter → `Movies//...`.
-- [ ] **`CloudService.isCloudTokenValid`** is a `val` evaluated once at startup; an expired or late-ready token is never re-checked.
-- [ ] **`CloudFileService.getFilesInPath`** caches empty results of failed rclone calls for 12h (`@Cacheable`), causing duplicate downloads; `waitFor(5s)` before reading output always costs 5s on large listings.
+- [x] **`CloudService.isCloudTokenValid`** was a `val` evaluated once at startup. Fixed: evaluated on each access.
+- [x] **`CloudFileService.getFilesInPath`** cached empty results for 12h; fixed with `unless = "#result.isEmpty()"`. Still open: `waitFor(5s)` before reading output always costs 5s on large listings.
 - [x] **Premiumize**: `enrichCacheStateOfTorrents` sublist end `size - 1` skips the last torrent when >100 results; `catch (IOException)` never catches Jackson 3 (unchecked) exceptions; a null JSON field NPEs the whole transfer list. Fixed in #545 for the cache check and the transfer list.
 - [ ] **Premiumize** folder listing (`getFilesFromTorrent`, `extractTorrentFilesFromJSONFolder`) still only catches `IOException`, so Jackson 3 errors and null fields propagate.
 - [x] **`updateIndexForLetters(joinToString())`**: joins with `", "` and splits per character, so `","` is treated as a folder letter.
-- [ ] **Version check** (`DownloadMonitor.checkForUpdatedVersionAndShutdownIfUpdateAvailable`): exits during an active upload (transfer stuck in `UPLOADING_TO_DRIVE`); throws on a GitHub rate-limit response; `contains` treats `1.2.10` as `1.2.1`.
+- [x] **Version check**: no longer exits during an active upload, survives a GitHub rate-limit response, and matches `1.2.10` vs `1.2.1` on version boundaries.
 - [ ] **Name matching fallback** (`updateTransferStatus`) searches all transfers instead of unmatched ones, can overwrite an already matched transfer.
 - [ ] **Transfer cleanup** deletes any transfer not updated for a day, including ones still waiting in `ADDED` for traffic.
 - [ ] **`QueueService`**: streams not closed; fails silently when `/tmp/boat` doesn't exist; keyed by title only (same title, different year collide); missing year stored as `"null"`.
-- [ ] **`PropertiesHelper.getProperty(name, default)`** ignores `default` when the file or key is missing.
+- [x] **`PropertiesHelper.getProperty(name, default)`** ignored `default` when the file or key was missing.
 
 ## Security
 

@@ -12,7 +12,7 @@ import java.io.IOException
 class RcloneUploader {
     fun copyUrl(url: String, destinationPath: String): Boolean {
         log.info("D>[{}]", destinationPath)
-        val command = listOf("rclone", "--no-check-certificate", "copyurl", url, destinationPath.replace("'", ""))
+        val command = listOf("rclone", "--no-check-certificate", "--retries", "1", "copyurl", url, destinationPath.replace("'", ""))
         log.info(command.joinToString(" "))
         val exitCode = try {
             val process = ProcessBuilder(command)
