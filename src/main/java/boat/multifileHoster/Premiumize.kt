@@ -15,7 +15,6 @@ import org.jsoup.nodes.Element
 import org.slf4j.LoggerFactory
 import tools.jackson.databind.JsonNode
 import tools.jackson.databind.json.JsonMapper
-import java.io.IOException
 import java.time.Duration
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.function.Consumer
@@ -171,8 +170,10 @@ class Premiumize(httpHelper: HttpHelper) : HttpUser(httpHelper), MultifileHoster
                     extractTorrentFilesFromJSONFolder(returnList, jsonFile, "")
                 }
             }
-        } catch (e: IOException) {
-            e.printStackTrace()
+        } catch (e: Exception) {
+            // a partial listing would upload some files and then delete the rest from the hoster
+            log.error("could not read the files of [{}]: {}", torrent.name, e.message)
+            return emptyList()
         }
         val filteredList: List<TorrentFile> = if (isSingleFileTorrent(torrent)) {
             returnList.filter { torrentFile -> torrentFile.id.equals(torrent.file_id) }
@@ -195,23 +196,25 @@ class Premiumize(httpHelper: HttpHelper) : HttpUser(httpHelper), MultifileHoster
                     "&apikey=" + PropertiesHelper.getProperty("PREMIUMIZE_APIKEY")
         )
         val folderName = prefix + jsonFolder["name"].asString() + "/"
-        val rootNode: JsonNode
-        try {
-            rootNode = jsonMapper.readTree(responseFiles)
-            val localNodes = rootNode.path("content")
-            val fileList = localNodes.findParents("type")
-            for (jsonFile in fileList) {
-                if (jsonFile["type"].asString() == "file") {
-                    extractTorrentFileFromJSON(returnList, jsonFile, folderName)
-                } else if (jsonFile["type"].asString() == "folder") {
-                    extractTorrentFilesFromJSONFolder(returnList, jsonFile, folderName)
-                } else {
-                    log.error("file extraction error, type: {} - file: {}", jsonFile["type"].asString(), jsonFile)
-                }
+        // errors propagate to getFilesFromTorrent, which then returns no files at all
+        val rootNode = jsonMapper.readTree(responseFiles)
+        val localNodes = rootNode.path("content")
+        val fileList = localNodes.findParents("type")
+        for (jsonFile in fileList) {
+            if (jsonFile["type"].asString() == "file") {
+                extractTorrentFileFromJSON(returnList, jsonFile, folderName)
+            } else if (jsonFile["type"].asString() == "folder") {
+                extractTorrentFilesFromJSONFolder(returnList, jsonFile, folderName)
+            } else {
+                log.error("file extraction error, type: {} - file: {}", jsonFile["type"].asString(), jsonFile)
             }
-        } catch (e: IOException) {
-            e.printStackTrace()
         }
+    }
+
+    private fun requiredText(node: JsonNode, field: String): String {
+        val value = node.path(field)
+        require(!value.isMissingNode && !value.isNull) { "missing field [$field] in $node" }
+        return value.asString()
     }
 
     private fun extractTorrentFileFromJSON(
@@ -220,10 +223,10 @@ class Premiumize(httpHelper: HttpHelper) : HttpUser(httpHelper), MultifileHoster
         prefix: String
     ) {
         val tf = TorrentFile(
-            name = prefix + jsonFile["name"].asString(),
-            id = jsonFile["id"].asString(),
-            filesize = jsonFile["size"].asLong(),
-            url = jsonFile["link"].asString(),
+            name = prefix + requiredText(jsonFile, "name"),
+            id = requiredText(jsonFile, "id"),
+            filesize = jsonFile.path("size").asLong(),
+            url = requiredText(jsonFile, "link"),
         )
         returnList.add(tf)
     }

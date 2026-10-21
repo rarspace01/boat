@@ -123,4 +123,37 @@ internal class PremiumizeParsingTest {
         // Then
         assertThat(remoteTorrents).isEmpty()
     }
+
+    @Test
+    fun shouldListFilesOfFolderAndSubfolder() {
+        every { httpHelper.getPage(match { it.contains("id=root") }) } returns
+                """{"content":[{"type":"folder","id":"sub","name":"Sub"},{"type":"file","id":"1","name":"a.mkv","size":10,"link":"http://a"}]}"""
+        every { httpHelper.getPage(match { it.contains("id=sub") }) } returns
+                """{"content":[{"type":"file","id":"2","name":"b.mkv","size":20,"link":"http://b"}]}"""
+
+        val files = premiumize.getFilesFromTorrent(Torrent("Test").apply { folder_id = "root" })
+
+        assertThat(files.map { it.name }).containsExactlyInAnyOrder("a.mkv", "Sub/b.mkv")
+    }
+
+    @Test
+    fun shouldReturnNoFilesInsteadOfAPartialListIfASubfolderFails() {
+        every { httpHelper.getPage(match { it.contains("id=root") }) } returns
+                """{"content":[{"type":"file","id":"1","name":"a.mkv","size":10,"link":"http://a"},{"type":"folder","id":"sub","name":"Sub"}]}"""
+        every { httpHelper.getPage(match { it.contains("id=sub") }) } returns "not json"
+
+        val files = premiumize.getFilesFromTorrent(Torrent("Test").apply { folder_id = "root" })
+
+        assertThat(files).isEmpty()
+    }
+
+    @Test
+    fun shouldReturnNoFilesIfAFileHasNoLink() {
+        every { httpHelper.getPage(match { it.contains("id=root") }) } returns
+                """{"content":[{"type":"file","id":"1","name":"a.mkv","size":10}]}"""
+
+        val files = premiumize.getFilesFromTorrent(Torrent("Test").apply { folder_id = "root" })
+
+        assertThat(files).isEmpty()
+    }
 }

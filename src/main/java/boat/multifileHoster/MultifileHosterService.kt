@@ -284,6 +284,7 @@ class MultifileHosterService(
         if (listOfUnmatchedTorrents.isNotEmpty() && listOfUnmatchedTransfers.isNotEmpty()) {
             listOfUnmatchedTorrents.forEach { torrent ->
                 transfers.find { transfer ->
+                    matchedTransfers.none { it.id == transfer.id } &&
                     transferMatchedTorrentByName(transfer, torrent, 0)
                 }?.also { transfer ->
                     transfer.transferStatus = torrent.remoteTransferStatus
@@ -305,6 +306,7 @@ class MultifileHosterService(
             if (listOfUnmatchedTorrents.isNotEmpty() && listOfUnmatchedTransfers.isNotEmpty()) {
                 listOfUnmatchedTorrents.forEach { torrent ->
                     transfers.find { transfer ->
+                        matchedTransfers.none { it.id == transfer.id } &&
                         transferMatchedTorrentByName(transfer, torrent, 2)
                     }?.also { transfer ->
                         transfer.transferStatus = torrent.remoteTransferStatus
