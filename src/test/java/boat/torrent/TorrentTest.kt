@@ -38,6 +38,36 @@ internal class TorrentTest {
     }
 
     @Test
+    fun shouldNeverHaveAnEmptyTorrentId() {
+        // an empty id is contained in every uri and would match any transfer
+        val torrent = Torrent("Test")
+        Assertions.assertTrue(torrent.torrentId.isNotEmpty())
+        Assertions.assertNull(torrent.infoHash)
+    }
+
+    @Test
+    fun shouldUseUriAsTorrentIdWithoutInfoHash() {
+        val torrent = Torrent.of("https://example.com/movie.mkv")
+        Assertions.assertEquals("https://example.com/movie.mkv", torrent.torrentId)
+        Assertions.assertNull(torrent.infoHash)
+    }
+
+    @Test
+    fun shouldPreferRemoteIdOverUriWithoutInfoHash() {
+        val torrent = Torrent.of("https://example.com/movie.mkv")
+        torrent.remoteId = "remote-1"
+        Assertions.assertEquals("remote-1", torrent.torrentId)
+    }
+
+    @Test
+    fun shouldHaveSameHashCodeForEqualTorrents() {
+        val torrent1 = Torrent("S1", name = "one", magnetUri = "magnet:?xt=urn:btih:ABC")
+        val torrent2 = Torrent("S2", name = "two", magnetUri = "magnet:?xt=urn:btih:abc")
+        Assertions.assertEquals(torrent1, torrent2)
+        Assertions.assertEquals(torrent1.hashCode(), torrent2.hashCode())
+    }
+
+    @Test
     fun shouldSortTorrent() {
         // Given
         val torrent1 = Torrent("Test1")

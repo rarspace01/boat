@@ -13,6 +13,7 @@ import boat.torrent.Torrent
 import boat.torrent.TorrentFile
 import boat.torrent.TorrentType
 import boat.utilities.HttpHelper
+import boat.utilities.RcloneUploader
 import io.mockk.Runs
 import io.mockk.every
 import io.mockk.just
@@ -36,6 +37,7 @@ internal class MultifileHosterServiceTest {
     private val cloudFileService: CloudFileService = mockk(relaxed = true)
     private val mediaProxyService: MediaProxyService = mockk(relaxed = true)
     private val contentRenamer: ContentRenamer = mockk(relaxed = true)
+    private val rcloneUploader: RcloneUploader = mockk()
     lateinit var multifileHosterService: MultifileHosterService
 
     @BeforeEach
@@ -50,10 +52,11 @@ internal class MultifileHosterServiceTest {
                 cacheManager,
                 cloudFileService,
                 mediaProxyService,
-                contentRenamer
+                contentRenamer,
+                rcloneUploader
             )
         )
-        every { multifileHosterService.rcloneDownloadFileToDestination(any(), any()) } returns true
+        every { rcloneUploader.copyUrl(any(), any()) } returns true
     }
 
     @Test
@@ -397,7 +400,7 @@ internal class MultifileHosterServiceTest {
         every { cloudService.buildDestinationPath(any(), any()) } returns Pair("I", "/destination/Movies/I/")
         every { httpHelper.getPage(match { it.contains("folder/list") }) } returns
                 "{\"status\":\"success\",\"content\":[{\"id\":\"f1\",\"name\":\"Inception.mkv\",\"type\":\"file\",\"size\":1000,\"link\":\"http://premiumize.me/dl/inception.mkv\"}]}"
-        every { multifileHosterService.rcloneDownloadFileToDestination(any(), any()) } returns false
+        every { rcloneUploader.copyUrl(any(), any()) } returns false
 
         multifileHosterService.checkForDownloadableTorrentsAndDownloadTheFirst()
 
@@ -420,7 +423,7 @@ internal class MultifileHosterServiceTest {
                 "{\"id\":\"f1\",\"name\":\"Breaking.Bad.S01E01.mkv\",\"type\":\"file\",\"size\":1000,\"link\":\"http://premiumize.me/dl/bb01.mkv\"}," +
                 "{\"id\":\"f2\",\"name\":\"Breaking.Bad.S01E02.mkv\",\"type\":\"file\",\"size\":1000,\"link\":\"http://premiumize.me/dl/bb02.mkv\"}" +
                 "]}"
-        every { multifileHosterService.rcloneDownloadFileToDestination("http://premiumize.me/dl/bb02.mkv", any()) } returns false
+        every { rcloneUploader.copyUrl("http://premiumize.me/dl/bb02.mkv", any()) } returns false
 
         multifileHosterService.checkForDownloadableTorrentsAndDownloadTheFirst()
 
@@ -475,5 +478,32 @@ internal class MultifileHosterServiceTest {
         multifileHosterService.checkForDownloadableTorrentsAndDownloadTheFirst()
 
         verify { multifileHosterService.updateIndexForLetters(setOf("I")) }
+    }
+
+    @Test
+    fun shouldOnlyUpdateUploadStatusOfDownloadedTransfer() {
+        // a direct download url has no info hash, it must not match other transfers
+        val otherTransfer = Transfer(
+            name = "Other",
+            uri = "magnet:?xt=urn:btih:10e93389d579ba4538c68b8d297268a81620fae2",
+            transferStatus = TransferStatus.DOWNLOADING_TO_MULTIHOSTER,
+            source = "Premiumize"
+        )
+        val transfer = Transfer(
+            name = "movie.mkv",
+            uri = "https://example.com/movie.mkv",
+            transferStatus = TransferStatus.READY_TO_BE_DOWNLOADED,
+            transferType = boat.model.TransferType.URL,
+            source = "Premiumize"
+        )
+        every { transferService.getAll() } returns listOf(otherTransfer, transfer)
+        every { cloudService.buildDestinationPath(any(), any()) } returns Pair("M", "/destination/transfer/M/")
+        every { httpHelper.getPage(match { it.contains("folder/list") }) } returns
+                "{\"status\":\"success\",\"content\":[{\"id\":\"f1\",\"name\":\"movie.mkv\",\"type\":\"file\",\"size\":1000,\"link\":\"http://premiumize.me/dl/movie.mkv\"}]}"
+
+        multifileHosterService.checkForDownloadableTorrentsAndDownloadTheFirst()
+
+        assertThat(otherTransfer.transferStatus).isEqualTo(TransferStatus.DOWNLOADING_TO_MULTIHOSTER)
+        verify { transferService.delete(transfer) }
     }
 }

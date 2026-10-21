@@ -1,3 +1,14 @@
+// Gradle doesn't fall back to the next repository when one fails with an error like HTTP 429 (only on 404), so the
+// Google mirror of Maven Central comes first; plugins only published to the plugin portal are found there.
+pluginManagement {
+    repositories {
+        maven {
+            name = "googleMavenCentralMirror"
+            url = uri("https://maven-central.storage-download.googleapis.com/maven2/")
+        }
+        gradlePluginPortal()
+    }
+}
 plugins {
     id "com.gradle.develocity" version "4.6.0"
 }

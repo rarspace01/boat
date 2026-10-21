@@ -6,6 +6,7 @@ import boat.utilities.HttpHelper
 import boat.utilities.LoggerDelegate
 import org.springframework.stereotype.Service
 import java.time.Instant
+import java.util.concurrent.Callable
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.ForkJoinPool
 import java.util.concurrent.TimeUnit
@@ -40,18 +41,16 @@ class TorrentSearchEngineService(
         Uindex(httpHelper),
         YTS(httpHelper),
     )
-    private val activeSearchEngines: MutableList<TorrentSearchEngine> = allSearchEngines.toMutableList()
+    // replaced as a whole, so searches running at the same time keep a consistent list
+    @Volatile
+    private var activeSearchEngines: List<TorrentSearchEngine> = allSearchEngines
 
     fun refreshTorrentSearchEngines() {
-        val tempActiveSearchEngines: MutableList<TorrentSearchEngine> = ArrayList()
-        allSearchEngines.parallelStream().forEach { torrentSearchEngine: TorrentSearchEngine ->
-            val torrents = torrentSearchEngine.searchTorrents("blue")
-            if (torrents.isNotEmpty()) {
-                tempActiveSearchEngines.add(torrentSearchEngine)
+        activeSearchEngines = allSearchEngines.parallelStream()
+            .filter { torrentSearchEngine: TorrentSearchEngine ->
+                runCatching { torrentSearchEngine.searchTorrents("blue").isNotEmpty() }.getOrDefault(false)
             }
-        }
-        activeSearchEngines.clear()
-        activeSearchEngines.addAll(tempActiveSearchEngines)
+            .collect(Collectors.toList())
     }
 
     fun getActiveSearchEngines(): List<TorrentSearchEngine> {
@@ -59,50 +58,50 @@ class TorrentSearchEngineService(
     }
 
     val inActiveSearchEngines: List<TorrentSearchEngine>
-        get() = allSearchEngines.stream()
-            .filter { torrentSearchEngine: TorrentSearchEngine -> !activeSearchEngines.contains(torrentSearchEngine) }
-            .collect(Collectors.toList())
+        get() {
+            val currentActiveSearchEngines = activeSearchEngines
+            return allSearchEngines.filter { torrentSearchEngine: TorrentSearchEngine -> !currentActiveSearchEngines.contains(torrentSearchEngine) }
+        }
 
     fun searchTorrents(searchString: String): List<Torrent> {
-        val combineResults: MutableList<Torrent> = ArrayList()
-        val activeSearchEngines: List<TorrentSearchEngine> = ArrayList(
-            getActiveSearchEngines()
-        )
-        // a ForkJoinPool needs a parallelism > 0, e.g. all search engines were unreachable on the last refresh
+        val activeSearchEngines: List<TorrentSearchEngine> = getActiveSearchEngines()
         if (activeSearchEngines.isEmpty()) {
             logger.warn("no active search engines for [{}]", searchString)
             return emptyList()
         }
-        val parallelism = activeSearchEngines.size
-        var forkJoinPool: ForkJoinPool? = null
+        var combineResults: List<Torrent> = emptyList()
+        val forkJoinPool = ForkJoinPool(activeSearchEngines.size)
         try {
-            forkJoinPool = ForkJoinPool(parallelism)
-            forkJoinPool.submit(
-                Runnable {
+            combineResults = forkJoinPool.submit(
+                Callable {
                     activeSearchEngines.parallelStream()
-                        .forEach { torrentSearchEngine: TorrentSearchEngine ->
+                        .map { torrentSearchEngine: TorrentSearchEngine ->
                             val start = Instant.now()
-                            combineResults.addAll(torrentSearchEngine.searchTorrents(searchString))
+                            // one failing search engine doesn't drop the results of the others
+                            val torrents = runCatching { torrentSearchEngine.searchTorrents(searchString) }
+                                .onFailure { logger.error("{} failed for [{}]", torrentSearchEngine, searchString, it) }
+                                .getOrDefault(emptyList())
                             logger.info(
                                 "{} took {}ms", torrentSearchEngine,
                                 Instant.now().toEpochMilli() - start.toEpochMilli()
                             )
+                            torrents
                         }
+                        .collect(Collectors.toList())
+                        .flatten()
                 }
             ).get()
         } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
             logger.error("Parallel search execution failed", e)
         } catch (e: ExecutionException) {
             logger.error("Parallel search execution failed", e)
         } finally {
-            if (forkJoinPool != null) {
-                forkJoinPool.shutdown()
-                val awaitTermination = forkJoinPool.awaitTermination(30, TimeUnit.SECONDS)
-                if (!awaitTermination) {
-                    forkJoinPool.shutdownNow()
-                    logger.error("searchTorrents() terminated after timeout")
-                }
-                forkJoinPool = null
+            forkJoinPool.shutdown()
+            val awaitTermination = forkJoinPool.awaitTermination(30, TimeUnit.SECONDS)
+            if (!awaitTermination) {
+                forkJoinPool.shutdownNow()
+                logger.error("searchTorrents() terminated after timeout")
             }
         }
 
