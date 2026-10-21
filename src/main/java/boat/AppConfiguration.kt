@@ -1,5 +1,6 @@
 package boat
 
+import boat.utilities.LoggerDelegate
 import boat.utilities.PropertiesHelper.requireProperty
 import com.mongodb.client.MongoClient
 import com.mongodb.client.MongoClients
@@ -15,6 +16,8 @@ import kotlin.math.max
 
 @Configuration
 class AppConfiguration : SchedulingConfigurer {
+    private val logger by LoggerDelegate()
+
     @Bean
     fun mongoClient(): MongoClient {
         return MongoClients.create(requireProperty("MONGO_URI"))
@@ -32,7 +35,7 @@ class AppConfiguration : SchedulingConfigurer {
     @Bean(destroyMethod = "shutdown")
     fun taskExecutor(): ScheduledExecutorService {
         val scheduledPoolSize = max(Runtime.getRuntime().availableProcessors(), 2)
-        println("scheduledPoolSize:$scheduledPoolSize")
+        logger.info("scheduledPoolSize:$scheduledPoolSize")
         return Executors.newScheduledThreadPool(scheduledPoolSize)
     }
 }

@@ -22,6 +22,7 @@ class TorrentSearchEngineService(
 
     companion object {
         private val logger by LoggerDelegate()
+        const val DUMMY_SEEDERS_OF_CACHED_TORRENT = 1
     }
 
     private val allSearchEngines: List<TorrentSearchEngine> = listOf<TorrentSearchEngine>(
@@ -104,21 +105,25 @@ class TorrentSearchEngineService(
                 logger.error("searchTorrents() terminated after timeout")
             }
         }
-
-        // logger.info("RemoteSearch took {}ms", Instant.now().toEpochMilli() - startRemoteSearch.toEpochMilli());
-        // final Instant afterRemoteSearch = Instant.now();
         val returnResults: List<Torrent> = ArrayList(cleanDuplicates(combineResults))
-        // logger.info("Cleanup took {}ms", Instant.now().toEpochMilli() - afterRemoteSearch.toEpochMilli());
-        // final Instant afterCleanup = Instant.now();
         val cacheStateOfTorrents = mutableListOf<Torrent>()
         cacheStateOfTorrents.addAll(multifileHosterService.getCachedStateOfTorrents(returnResults))
 
-        // final Instant preRefresh = Instant.now();
-        torrentInfoService.refreshTorrentStats(cacheStateOfTorrents)
-        // logger.info("refreshTorrentStats took {}ms", Instant.now().toEpochMilli() - preRefresh.toEpochMilli());
+        return rateResults(cacheStateOfTorrents, searchString)
+    }
 
-        // logger.info("Cache info took {}ms", Instant.now().toEpochMilli() - afterCleanup.toEpochMilli());
-        return cacheStateOfTorrents.filter { torrent: Torrent -> torrent.seeder > 0 }
+    /**
+     * Asks the trackers for the seeders of the torrents which are not cached at a multifilehoster (cached ones
+     * download from the hoster, so their stats don't matter), then drops the dead ones, rates and sorts the rest.
+     */
+    internal fun rateResults(torrents: MutableList<Torrent>, searchString: String): List<Torrent> {
+        torrentInfoService.refreshTorrentStats(torrents)
+        // a cached torrent is downloadable whatever the search engine says about its seeders (often nothing or 0)
+        torrents.filter { it.cached.isNotEmpty() && it.seeder <= 0 }.forEach {
+            it.seeder = DUMMY_SEEDERS_OF_CACHED_TORRENT
+            it.leecher = maxOf(it.leecher, 0)
+        }
+        return torrents.filter { torrent: Torrent -> torrent.seeder > 0 }
             .map { torrent: Torrent -> TorrentHelper.evaluateRating(torrent, searchString) }
             .sortedWith(TorrentComparator)
     }

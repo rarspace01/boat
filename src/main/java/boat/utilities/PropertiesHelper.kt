@@ -5,6 +5,8 @@ import java.io.FileInputStream
 import java.util.*
 
 object PropertiesHelper {
+    private val logger by LoggerDelegate()
+
     const val PROPERTIY_FILE: String = "boat.cfg"
     const val PROPERTIY_FILE_DEFAULT: String = "boat.default.cfg"
     const val VERSION_FILE: String = "version.properties"
@@ -14,7 +16,7 @@ object PropertiesHelper {
             PropertiesHelper::class.java.classLoader.getResourceAsStream(VERSION_FILE)?.use { inputStream ->
                 Properties().apply { load(inputStream) }.getProperty("version")
             } ?: "version-missing"
-        }.onFailure { println("Exception: $it") }.getOrNull()
+        }.onFailure { logger.warn("could not read {}: {}", VERSION_FILE, it.message) }.getOrNull()
 
     fun getProperty(propname: String, default: String? = null): String? {
         System.getenv(propname)?.let { return it }
@@ -26,7 +28,7 @@ object PropertiesHelper {
                 }
             }.getOrNull()
         }
-        if (value == null) println("'$propname' Notfound, using :'$default'")
+        if (value == null) logger.debug("'{}' not found, using '{}'", propname, default)
         return value ?: default
     }
 

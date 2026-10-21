@@ -11,6 +11,10 @@ import java.io.IOException
 import java.io.InputStreamReader
 import java.io.OutputStreamWriter
 import java.net.HttpURLConnection
+import java.net.http.HttpClient
+import java.net.http.HttpRequest
+import java.net.http.HttpResponse
+import java.time.Duration
 import java.net.InetAddress
 import java.net.URI
 import java.net.URLConnection
@@ -97,9 +101,6 @@ class HttpHelper {
 
             val response = connection.getInputStream()
 
-//            for (Map.Entry<String, List<String>> header : connection.getHeaderFields().entrySet()) {
-//                System.out.println(header.getKey() + "=" + header.getValue());
-//            }
             val contentType = connection.getHeaderField("Content-Type")
             var charset: String? = null
             if (contentType != null) {
@@ -199,6 +200,29 @@ class HttpHelper {
         return null
     }
 
+    class BinaryResponse(val status: Int, val body: ByteArray)
+
+    /**
+     * Fetches a url without decoding the answer, for binary content like tracker answers. Certificates are verified.
+     * Unlike the page methods this doesn't hide failures: connection problems and timeouts are thrown as
+     * [IOException], other status codes than 200 are returned.
+     */
+    @Throws(IOException::class)
+    fun getBinary(url: String, timeout: Int = 10 * 1000): BinaryResponse {
+        val request = HttpRequest.newBuilder(URI.create(url))
+            .timeout(Duration.ofMillis(timeout.toLong()))
+            .header("User-Agent", USER_AGENT_BROWSER)
+            .GET()
+            .build()
+        return try {
+            val response = httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray())
+            BinaryResponse(response.statusCode(), response.body())
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
+            throw IOException("interrupted", e)
+        }
+    }
+
     fun getPage(url: String): String {
         return getPage(url, null, null, null, 30 * 1000)
     }
@@ -238,6 +262,10 @@ class HttpHelper {
         fun redactSecrets(text: String?): String? = text?.replace(secretPattern) { it.groupValues[1] + "=***" }
 
         private const val MAX_REDIRECTS = 3
+        private val httpClient: HttpClient by lazy {
+            HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).connectTimeout(Duration.ofSeconds(10))
+                .followRedirects(HttpClient.Redirect.NORMAL).build()
+        }
 
         /** http(s) url whose host only resolves to public addresses (unless [allowPrivate]). */
         internal fun isAllowedPublicUrl(url: String, allowPrivate: Boolean = false): Boolean {

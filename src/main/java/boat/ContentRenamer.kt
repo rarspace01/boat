@@ -3,6 +3,7 @@ package boat
 import boat.info.MediaItem
 import boat.info.MediaProxyService
 import boat.info.MediaType
+import boat.utilities.LoggerDelegate
 import boat.utilities.StringUtil
 import org.springframework.stereotype.Service
 import java.io.BufferedWriter
@@ -15,6 +16,8 @@ import kotlin.math.abs
 
 @Service
 class ContentRenamer(val mediaProxyService: MediaProxyService) {
+
+    private val logger by LoggerDelegate()
 
     companion object {
         val seasonPattern = "(?<=^|[^a-zA-Z])(?:S([0-9]{1,2})(?:[x._\\-\\s]?(?:E|EP)[0-9]{1,3})?|(?<![0-9])([0-9]{1,2})[x._\\-\\s]?(?:E|EP)[0-9]{1,3}(?=[^a-zA-Z0-9]|$))".toRegex(RegexOption.IGNORE_CASE)
@@ -1478,11 +1481,11 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
 
     /**
      * Renames and moves the media files below [path] into the library at [basePath] (default ~/pfdb/PFDB).
-     * With [skipFilesWithRemoteId] files that already carry a remote media id like `{tmdb-123}` are left alone, so
-     * no lookups are made for the files that were renamed before.
+     * With [skipFilesWithRemoteId] (the default) files that already carry a remote media id like `{tmdb-123}` are left
+     * alone, so no lookups are made for the files that were renamed before. Turn it off to check them again.
      */
     fun processFilesFromDirectory(
-        path: String, logFile: File? = null, isTestRun: Boolean = true, basePath: String? = null, skipFilesWithRemoteId: Boolean = false
+        path: String, logFile: File? = null, isTestRun: Boolean = true, basePath: String? = null, skipFilesWithRemoteId: Boolean = true
     ) {
         val writer = logFile?.let { BufferedWriter(FileWriter(it, true)) }
         try {
@@ -1597,7 +1600,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
                                 file.toPath().moveTo(newFile.toPath(), overwrite = false)
                                 logWriter?.write("Moved:\n'$file'\n'$newFile'\n")
                             } catch (e:Exception) {
-                                println("Error moving file: $e")
+                                logger.error("Error moving file [{}]: {}", file, e.message)
                                 logWriter?.write("Failed to move:\n'$file'\n'$newFile'\n")
                             }
 
@@ -1606,7 +1609,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
                     logWriter?.write(logLine + "\n")
                 } else {
                     processFilesFromDirectoryInternal(file.absolutePath, logWriter, isTestRun, basePath, assignedTargets, skipFilesWithRemoteId)
-                    println("Processed directory: $file")
+                    logger.debug("Processed directory: {}", file)
                 }
             }
         }

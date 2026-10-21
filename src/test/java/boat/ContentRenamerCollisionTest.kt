@@ -91,7 +91,7 @@ class ContentRenamerCollisionTest {
         fun contents() = tempDir.walk().filter { it.isFile && it.extension != "log" }.map { it.readText() }.sorted().toList()
         val contentsBefore = contents()
 
-        contentRenamer.processFilesFromDirectory(incoming.absolutePath, isTestRun = false, basePath = library.absolutePath)
+        contentRenamer.processFilesFromDirectory(incoming.absolutePath, isTestRun = false, basePath = library.absolutePath, skipFilesWithRemoteId = false)
 
         // nothing got lost, every file is still there once, moved or not
         assertThat(contents()).isEqualTo(contentsBefore)
@@ -139,9 +139,9 @@ class ContentRenamerCollisionTest {
         every { mediaProxyService.findByRemoteMediaId(any(), any(), any()) } returns hak5
 
         fun files() = library.walk().filter { it.isFile }.map { it.relativeTo(library).path }.sorted().toList()
-        repeat(2) { contentRenamer.processFilesFromDirectory(File(library, "Series-Shows").absolutePath, isTestRun = false, basePath = library.absolutePath) }
+        repeat(2) { contentRenamer.processFilesFromDirectory(File(library, "Series-Shows").absolutePath, isTestRun = false, basePath = library.absolutePath, skipFilesWithRemoteId = false) }
         val afterTwoRuns = files()
-        contentRenamer.processFilesFromDirectory(File(library, "Series-Shows").absolutePath, isTestRun = false, basePath = library.absolutePath)
+        contentRenamer.processFilesFromDirectory(File(library, "Series-Shows").absolutePath, isTestRun = false, basePath = library.absolutePath, skipFilesWithRemoteId = false)
 
         // "hak5" counts as junk, the show's title is used instead of an empty one which made it a hidden file
         assertThat(afterTwoRuns).containsExactly("Series-Shows/H/Hak5 {tvdb-79008}/Season 17/Hak5.S17E18.720p.h264.mp4")

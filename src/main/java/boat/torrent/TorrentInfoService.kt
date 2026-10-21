@@ -4,9 +4,13 @@ import boat.utilities.HttpHelper
 import org.apache.commons.codec.binary.Hex
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
-import java.util.concurrent.ForkJoinPool
+import jakarta.annotation.PreDestroy
+import java.io.IOException
+import java.util.concurrent.Callable
+import java.util.concurrent.ExecutionException
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
-import java.util.regex.Pattern
 
 @Service
 class TorrentInfoService(httpHelper: HttpHelper) :
@@ -14,77 +18,113 @@ class TorrentInfoService(httpHelper: HttpHelper) :
 
     private val trackerUrl = TorrentService(httpHelper).trackerUrls.first()
 
-    companion object {
-        private val log = LoggerFactory.getLogger(this::class.java)
+    // shared and bounded, a search with many results doesn't open one thread per torrent
+    internal val executor: ExecutorService = Executors.newFixedThreadPool(MAX_PARALLEL_TRACKER_REQUESTS) { runnable ->
+        Thread(runnable, "tracker-stats").apply { isDaemon = true }
     }
 
+    companion object {
+        private val log = LoggerFactory.getLogger(this::class.java)
+        const val MAX_PARALLEL_TRACKER_REQUESTS = 8
+        private const val REFRESH_TIMEOUT_SECONDS = 30L
+        private const val REQUEST_TIMEOUT_MILLIS = 10 * 1000
+
+        /**
+         * Trackers refuse the request somewhere above 100 hashes (url longer than about 6000 characters), this stays
+         * well below that.
+         */
+        const val BATCH_SIZE = 40
+        private val HASH_PATTERN = Regex("^[a-fA-F0-9]{40}$")
+    }
+
+    class TrackerStats(val seeders: Int, val leechers: Int)
+
+    /**
+     * Asks the tracker for the seeders and leechers of the torrents which are not cached at a multifilehoster (cached
+     * ones download from the hoster, so their stats don't matter). Many hashes go into one scrape request, which is
+     * much faster than a request per torrent. The batches are asked in parallel by a few threads shared by all searches.
+     */
     fun refreshTorrentStats(torrentList: MutableList<Torrent>) {
         val startOfRefresh = System.currentTimeMillis()
-        val nonCachedTorrents = torrentList.filter { torrent -> torrent.cached.size == 0 }
-        val parallelism: Int = 1.coerceAtLeast(nonCachedTorrents.size)
-        val forkJoinPool = ForkJoinPool(parallelism)
+        val torrentsByHash = torrentList.filter { torrent -> torrent.cached.size == 0 }.groupByHash()
         try {
-            forkJoinPool.submit {
-                nonCachedTorrents.parallelStream()
-                    .forEach { torrent ->
-                        refreshSeedAndLeecherFromTracker(trackerUrl, listOf(torrent))
-                    }
-            }.get()
-        } catch (e: Exception) {
-            log.error("Parallel refresh execution failed", e)
-        } finally {
-            forkJoinPool.shutdown()
-            val awaitTermination = forkJoinPool.awaitTermination(30, TimeUnit.SECONDS)
-            if (!awaitTermination) {
-                forkJoinPool.shutdownNow()
-                log.error("refreshTorrentStats() terminated after timeout")
+            val tasks = torrentsByHash.keys.chunked(BATCH_SIZE).map { hashes ->
+                Callable { applyStats(scrape(trackerUrl, hashes), torrentsByHash) }
             }
+            // tasks which didn't finish in time are cancelled
+            executor.invokeAll(tasks, REFRESH_TIMEOUT_SECONDS, TimeUnit.SECONDS).forEach { future ->
+                if (future.isCancelled) return@forEach
+                try {
+                    future.get()
+                } catch (e: ExecutionException) {
+                    log.error("Refresh of a batch of torrents failed", e.cause)
+                }
+            }
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
+            log.error("refreshTorrentStats() interrupted")
         }
-        log.info("Refresh took {}ms", System.currentTimeMillis() - startOfRefresh)
+        log.info("Refresh of {} torrents took {}ms", torrentsByHash.size, System.currentTimeMillis() - startOfRefresh)
+    }
+
+    @PreDestroy
+    fun shutdown() {
+        executor.shutdownNow()
     }
 
     fun refreshSeedAndLeecherFromTracker(trackerUrl: String, torrentList: List<Torrent>) {
-        val joinedHashes = torrentList
-            .map { torrent -> torrent.torrentId }
-            .filter { torrentHash -> torrentHash.isNotEmpty() && torrentHash.matches(Regex("^[a-fA-F0-9]{40}$")) }
-            .map { torrentHash: String? -> TorrentHelper.urlEncode(Hex.decodeHex(torrentHash)) }
-            .joinToString("&info_hash=")
-        val queryUrl =
-            "${trackerUrl.replace("announce", "scrape")}?info_hash=$joinedHashes"
-        // log.info("$queryUrl")
-        val page = httpHelper.getPage(queryUrl, 10*1000)
-//        val splittedHashs = page
-//                .replace("d5:files","")
-//        .replace("d20:","")
-//            .replace(Regex("d8:completei[0-9]+"),"")
-//            .replace(Regex("e10:downloadedi[0-9]+"),"")
-//            .replace(Regex("e10:incompletei[0-9]+e"),"")
-//            .replace("eee","")
-//            .split("e20:")
-        val seederPattern = Pattern.compile("8:completei([0-9]+)e")
-        val leecherPattern = Pattern.compile("10:incompletei([0-9]+)e")
-        val seederMatcher = seederPattern.matcher(page)
-        val leecherMatcher = leecherPattern.matcher(page)
-        var seeder: Int
-        val seederList = mutableListOf<Int>()
-        val leecherList = mutableListOf<Int>()
-        var leecher: Int
-        while (seederMatcher.find()) {
-            seeder = seederMatcher.group(1).toInt()
-            seederList.add(seeder)
+        val torrentsByHash = torrentList.groupByHash()
+        torrentsByHash.keys.chunked(BATCH_SIZE).forEach { hashes ->
+            applyStats(scrape(trackerUrl, hashes), torrentsByHash)
         }
-        while (leecherMatcher.find()) {
-            leecher = leecherMatcher.group(1).toInt()
-            leecherList.add(leecher)
-        }
-        if (seederList.size == leecherList.size) {
-            for (i in 0 until seederList.size) {
-                if (seederList[i] > -1) {
-                    torrentList[i].seeder = seederList[i]
-                    torrentList[i].leecher = leecherList[i]
-                    torrentList[i].statsVerified = true
-                }
+    }
+
+    private fun List<Torrent>.groupByHash(): Map<String, List<Torrent>> =
+        filter { torrent -> torrent.torrentId.matches(HASH_PATTERN) }.groupBy { torrent -> torrent.torrentId.lowercase() }
+
+    private fun applyStats(stats: Map<String, TrackerStats>, torrentsByHash: Map<String, List<Torrent>>) {
+        stats.forEach { (hash, trackerStats) ->
+            torrentsByHash[hash]?.forEach { torrent ->
+                torrent.seeder = trackerStats.seeders
+                torrent.leecher = trackerStats.leechers
+                torrent.statsVerified = true
             }
         }
+    }
+
+    /**
+     * The stats of the [hashes] (lowercase hex) the tracker knows. The answer lists the hashes sorted and only the
+     * known ones, so the stats are matched by hash. A tracker refuses requests with too many hashes (url too long),
+     * then the hashes are asked for in two halves, down to single requests. If the tracker can't be reached at all
+     * nothing is retried.
+     */
+    internal fun scrape(trackerUrl: String, hashes: List<String>): Map<String, TrackerStats> {
+        val queryUrl = trackerUrl.replace("announce", "scrape") + "?info_hash=" +
+                hashes.joinToString("&info_hash=") { hash -> TorrentHelper.urlEncode(Hex.decodeHex(hash)) }
+        val response = try {
+            httpHelper.getBinary(queryUrl, REQUEST_TIMEOUT_MILLIS)
+        } catch (e: IOException) {
+            log.warn("tracker {} not reachable: {}", trackerUrl, e.message)
+            return emptyMap()
+        }
+        val answer = if (response.status in 200..299) Bencode.decode(response.body) as? Map<*, *> else null
+        if (answer == null && hashes.size > 1) {
+            val halves = hashes.chunked((hashes.size + 1) / 2)
+            return halves.fold(emptyMap()) { stats, half -> stats + scrape(trackerUrl, half) }
+        }
+        return parseScrapeAnswer(answer)
+    }
+
+    private fun parseScrapeAnswer(answer: Map<*, *>?): Map<String, TrackerStats> {
+        val files = answer?.get("files") as? Map<*, *> ?: return emptyMap()
+        val stats = mutableMapOf<String, TrackerStats>()
+        files.forEach { (key, value) ->
+            val entry = value as? Map<*, *> ?: return@forEach
+            val seeders = (entry["complete"] as? Long)?.toInt() ?: return@forEach
+            val leechers = (entry["incomplete"] as? Long)?.toInt() ?: return@forEach
+            val hash = (key as? String)?.takeIf { it.length == 20 }?.map { "%02x".format(it.code) }?.joinToString("") ?: return@forEach
+            stats[hash] = TrackerStats(seeders, leechers)
+        }
+        return stats
     }
 }

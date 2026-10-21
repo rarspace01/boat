@@ -69,13 +69,13 @@ class ContentRenamerMovieTest {
     }
 
     @Test
-    fun `should skip files with a remote media id without any lookup if asked to`(@TempDir tempDir: Path) {
+    fun `should skip files with a remote media id without any lookup by default`(@TempDir tempDir: Path) {
         val base = tempDir.toFile()
         val renamed = createFile(base, "Movies/I/Inception (2010) {tmdb-27205}.1080p.x264.mkv")
         val log = File(base, "rename.log")
 
         contentRenamer.processFilesFromDirectory(
-            File(base, "Movies").absolutePath, log, isTestRun = false, basePath = base.absolutePath, skipFilesWithRemoteId = true
+            File(base, "Movies").absolutePath, log, isTestRun = false, basePath = base.absolutePath
         )
 
         verify(exactly = 0) { mediaProxyService.findByRemoteMediaId(any(), any(), any()) }

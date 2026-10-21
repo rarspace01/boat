@@ -449,4 +449,12 @@ internal class TorrentHelperTest {
         Assertions.assertEquals(TorrentType.TRANSFER, TorrentHelper.determineTypeOfMedia("Remov"))
         Assertions.assertEquals(TorrentType.TRANSFER, TorrentHelper.determineTypeOfMedia("Notes.txt"))
     }
+
+    @Test
+    fun shouldPercentEncodeHashBytesWithoutPlusForSpace() {
+        val bytes = byteArrayOf(0x41, 0x20, 0x00, 0xff.toByte(), 0x7e, 0x2b, 0x2d, 0x30)
+
+        Assertions.assertEquals("A%20%00%FF~%2B-0", TorrentHelper.urlEncode(bytes))
+        Assertions.assertEquals("", TorrentHelper.urlEncode(ByteArray(0)))
+    }
 }
