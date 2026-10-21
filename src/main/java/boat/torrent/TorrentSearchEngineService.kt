@@ -68,6 +68,11 @@ class TorrentSearchEngineService(
         val activeSearchEngines: List<TorrentSearchEngine> = ArrayList(
             getActiveSearchEngines()
         )
+        // a ForkJoinPool needs a parallelism > 0, e.g. all search engines were unreachable on the last refresh
+        if (activeSearchEngines.isEmpty()) {
+            logger.warn("no active search engines for [{}]", searchString)
+            return emptyList()
+        }
         val parallelism = activeSearchEngines.size
         var forkJoinPool: ForkJoinPool? = null
         try {

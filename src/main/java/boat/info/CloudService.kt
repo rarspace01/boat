@@ -60,11 +60,12 @@ class CloudService internal constructor(
     fun findExistingFiles(searchName: String): List<String> {
         if (!cloudFileService.isCacheFilled) return emptyList()
         val start = Instant.now()
-        val strings = searchName.split(Regex("\\s")).dropLastWhile { it.isEmpty() }
+        // whole words only, otherwise short titles like "It" or "Up" match nearly every file and an empty search all
+        val wordPatterns = searchName.split(Regex("\\s")).filter { it.isNotEmpty() }
+            .map { Regex("(?iu)(?<![\\p{L}\\p{N}])" + Regex.escape(it) + "(?![\\p{L}\\p{N}])") }
+        if (wordPatterns.isEmpty()) return emptyList()
         return getAllFiles().filter { fileString: String ->
-            strings.all {
-                fileString.lowercase().contains(it.lowercase())
-            }
+            wordPatterns.all { it.containsMatchIn(fileString) }
         }.also {
             logger.info("Find files took: ${Duration.between(start, Instant.now())}")
         }.map { fileString: String -> fileString.replace(PropertiesHelper.getProperty(RCLONE_DIR) ?: "", "") }
