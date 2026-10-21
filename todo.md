@@ -10,10 +10,10 @@ Findings from a code review of `src/main/java/boat`. Check items off as they get
 
 - [x] **Failed uploads still delete the torrent and transfer** (`MultifileHosterService.checkForDownloadableTorrentsAndDownloadTheFirst`): `delete(remoteTorrent)` and `transferService.delete(...)` run even when rclone failed. Fixed: only deleted after all files are uploaded, otherwise the transfer goes back to ready and is retried after the other waiting transfers.
 - [x] A transfer whose upload to the drive keeps failing is retried forever. Fixed: at most `MAX_UPLOAD_TO_DRIVE_RETRIES` (2) retries, then `UPLOAD_TO_DRIVE_FAILED` and the files stay on the hoster.
-- [ ] A transfer whose hoster returns no files is still retried every 30s (costs no traffic).
+- [x] A transfer whose hoster returns no files was retried every 30s forever. Fixed: counts like a failed upload, so it stops after `MAX_UPLOAD_TO_DRIVE_RETRIES` retries.
 - [x] rclone `copyurl` retried 3 times on its own, each one downloading again. Fixed: `--retries 1`.
 - [x] **Concurrent downloads / shared state races**: scheduled jobs are `@Async` with `fixedRate`, so runs overlap. `isDownloadInProgress` is a plain check-then-set `Boolean`; `localStatusStorage` is a `HashMap` and `activeTorrents` is mutated from several threads. Fixed in `MultifileHosterService` (`AtomicBoolean`, `ConcurrentHashMap`, `activeTorrents` replaced as a whole).
-- [ ] `TorrentMetaService` still has its own copy of the unsynchronized `localStatusStorage`/`activeTorrents` code.
+- [x] `TorrentMetaService` was unused; removed together with its test.
 - [x] **Parallel search races** (`TorrentSearchEngineService`): `combineResults` and `tempActiveSearchEngines` are `ArrayList`s filled from `parallelStream()`; `activeSearchEngines` is cleared/refilled while being read; `ForkJoinPool(0)` throws when no engine is active.
 - [x] **Empty `torrentId`** (`Torrent.remoteIdOrHash`): `requireNonNullElseGet` never falls back since `remoteId` is non-null, so URL transfers get `torrentId == ""` and `uri.contains("")` matches the first transfer (`updateUploadStatus`). `equals` is overridden without `hashCode`.
 - [x] **`StringUtil.deductFirstTorrentLetter`**: `Ü` is mapped to `Ü` instead of `U` (ends up as `?`); titles starting with a year ("2001: A Space Odyssey") give an empty letter → `Movies//...`.
@@ -43,7 +43,7 @@ Findings from a code review of `src/main/java/boat`. Check items off as they get
 
 ## Improvements
 
-- [ ] Split `ContentRenamer` (~2000 lines) and `MultifileHosterService`; remove duplicates (`getUploadDuration`/`getUploadStatusString`, the twice-copied name matching block, `remoteTorrents`/`remoteTorrentsForDownload`, `refreshTorrents`/`getTorrentsToDownload`, copy in `TorrentMetaService`), the unused `getTorrentToBeDownloaded`, the unused `authCache` bean and commented-out code.
+- [ ] Split `ContentRenamer` (~2000 lines) and `MultifileHosterService`; remove duplicates (`getUploadDuration`/`getUploadStatusString`, the twice-copied name matching block, `remoteTorrents`/`remoteTorrentsForDownload`), the unused `getTorrentToBeDownloaded`, the unused `authCache` bean and commented-out code.
 - [ ] Cache `getRemainingTrafficInMB()` (2 HTTP calls, called very often); avoid `transferService.getAll()` once per uploaded file.
 - [ ] ~~`rcloneDownloadFileToDestination` creates two executors per file~~ (fixed by `RcloneUploader`); `TorrentInfoService` creates a pool with one thread per torrent per search. Use shared bounded executors.
 - [ ] Replace `HttpHelper` with `java.net.http.HttpClient`: normal TLS, read error bodies, close streams (`downloadFileToPath` leaks), drop the ignored `params` argument.
