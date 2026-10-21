@@ -16,15 +16,22 @@ class CloudFileService {
 
     companion object {
         private val logger by LoggerDelegate()
+
+        /** The arguments are passed to rclone directly instead of through a shell, so paths can't break out of the command. */
+        internal fun buildLsjsonCommand(destinationPath: String): List<String> =
+            listOf("rclone", "--no-check-certificate", "lsjson") +
+                    (if (destinationPath.contains("/transfer/")) emptyList() else listOf("--recursive")) +
+                    destinationPath
     }
 
     @Cacheable("getFreeSpaceInMegaBytes")
     fun getFreeSpaceInMegaBytes():Double {
         val basePath = PropertiesHelper.getProperty(CloudService.RCLONE_DIR)
-        val commandToRun = "rclone --no-check-certificate about '$basePath' --json"
-        logger.info(commandToRun)
+        // no shell, so the path can't break out of the command
+        val command = listOf("rclone", "--no-check-certificate", "about", basePath.toString(), "--json")
+        logger.info(command.joinToString(" "))
         val builder = ProcessBuilder()
-        builder.command("bash", "-c", commandToRun)
+        builder.command(command)
         builder.directory(File(System.getProperty("user.home")))
         var output = ""
         var error = ""
@@ -61,10 +68,9 @@ class CloudFileService {
         val startCounter = System.currentTimeMillis()
         logger.info("Search in [$destinationPath]")
         val builder = ProcessBuilder()
-        val optionalIfNonTransfer = if(destinationPath.contains("/transfer/")) "" else "--recursive "
-        val commandToRun = "rclone --no-check-certificate lsjson $optionalIfNonTransfer'$destinationPath'"
-        logger.info(commandToRun)
-        builder.command("bash", "-c", commandToRun)
+        val command = buildLsjsonCommand(destinationPath)
+        logger.info(command.joinToString(" "))
+        builder.command(command)
         builder.directory(File(System.getProperty("user.home")))
         var output = ""
         var error = ""

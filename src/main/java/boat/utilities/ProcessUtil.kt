@@ -5,7 +5,7 @@ import java.io.File
 object ProcessUtil {
     val isRcloneInstalled: Boolean
         get() = runCatching {
-            ProcessBuilder("bash", "-c", "rclone version")
+            ProcessBuilder("rclone", "version")
                 .directory(File(System.getProperty("user.home")))
                 .start()
                 .inputStream.bufferedReader().use { it.readText() }
