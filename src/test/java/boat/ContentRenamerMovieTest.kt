@@ -69,6 +69,22 @@ class ContentRenamerMovieTest {
     }
 
     @Test
+    fun `should skip files with a remote media id without any lookup if asked to`(@TempDir tempDir: Path) {
+        val base = tempDir.toFile()
+        val renamed = createFile(base, "Movies/I/Inception (2010) {tmdb-27205}.1080p.x264.mkv")
+        val log = File(base, "rename.log")
+
+        contentRenamer.processFilesFromDirectory(
+            File(base, "Movies").absolutePath, log, isTestRun = false, basePath = base.absolutePath, skipFilesWithRemoteId = true
+        )
+
+        verify(exactly = 0) { mediaProxyService.findByRemoteMediaId(any(), any(), any()) }
+        verify(exactly = 0) { mediaProxyService.search(any(), any<Int>(), any()) }
+        assertThat(renamed).exists()
+        assertThat(log.readText()).contains("skipped, already has {tmdb-27205}")
+    }
+
+    @Test
     fun `should only rename video and subtitle files of movies`(@TempDir tempDir: Path) {
         val base = tempDir.toFile()
         val folder = "Movies/I/Inception.2010.1080p.BluRay.x264-SPARKS"

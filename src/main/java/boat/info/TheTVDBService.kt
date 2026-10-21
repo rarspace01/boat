@@ -35,6 +35,11 @@ class TheTVDBService @Autowired constructor(private val httpHelper: HttpHelper) 
         }
     }
 
+    @Synchronized
+    private fun resetToken() {
+        token = null
+    }
+
     // the media proxy cache refresh searches in parallel, they share one login
     @Synchronized
     private fun getToken(): String? {
@@ -44,9 +49,14 @@ class TheTVDBService @Autowired constructor(private val httpHelper: HttpHelper) 
         return token
     }
 
-    fun search(name: String?): List<MediaItem> {
+    /**
+     * Null if TVDB gave no usable answer (login or search failed), which is something else than no results. Without
+     * an api key TVDB is not used, that is no failure.
+     */
+    fun search(name: String?): List<MediaItem>? {
         return name?.let {
-            val jwtToken = getToken() ?: return emptyList()
+            if (PropertiesHelper.getProperty("TVDB_APIKEY").isNullOrBlank()) return emptyList()
+            val jwtToken = getToken() ?: return null
             val headers = mapOf("Authorization" to "Bearer $jwtToken")
             val queries = mutableListOf(name)
             if (name.matches("^[a-zA-Z]{2,6}$".toRegex())) {
@@ -63,15 +73,18 @@ class TheTVDBService @Autowired constructor(private val httpHelper: HttpHelper) 
             for (q in queries.distinct()) {
                 val url = "$baseUrl/search?q=${urlEncode(q)}&type=series"
                 val items = parseResponsePage(httpHelper.getPage(url, null, headers))
-                if (items != null) {
-                    results.addAll(items)
+                if (items == null) {
+                    // the token might have expired, login again next time
+                    resetToken()
+                    return null
                 }
+                results.addAll(items)
             }
             results.distinctBy { (it.id ?: "") + it.title + it.year }
         } ?: emptyList()
     }
 
-    fun search(name: String?, year: Int): List<MediaItem> {
+    fun search(name: String?, year: Int): List<MediaItem>? {
         return search(name)
     }
 

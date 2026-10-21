@@ -24,7 +24,7 @@ class MediaProxyServiceRemoteIdTest {
     @Test
     fun `findByRemoteMediaId should use cached search results first`() {
         val cached = MediaItem("Inception", "Inception", 2010, MediaType.Movie, "{tmdb-27205}")
-        mediaProxyService.cache["search:Inception"] = listOf(cached)
+        mediaProxyService.cache["search:Inception"] = MediaProxyService.CacheEntry(System.currentTimeMillis(), listOf(cached))
 
         assertThat(mediaProxyService.findByRemoteMediaId("{tmdb-27205}")).isEqualTo(cached)
         verify(exactly = 0) { tmdbService.findById(any(), any()) }
