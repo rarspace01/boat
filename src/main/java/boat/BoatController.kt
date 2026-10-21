@@ -212,6 +212,7 @@ $switchToSearch${switchToProgress}""" + htmlFooter
             if (Strings.isNotEmpty(pageWithEntries)) {
                 val titles = pageWithEntries.split("\n".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
                 val listOfMediaItems = titles.mapNotNull { parseSearchListEntry(it) }
+                    .map { entry -> matchSearchListEntry(entry) }
                     .filter { mediaItem: MediaItem -> isNotAlreadyDownloaded(mediaItem) }
                 queueService.addAll(listOfMediaItems)
                 queueService.saveQueue()
@@ -412,6 +413,15 @@ $switchToSearchOld$switchToSearchList${switchToProgress.replace("..", "../boat")
         logger.info("clear media cache request received")
         val removedEntries = mediaProxyService.clearCache()
         return "cleared media cache, removed $removedEntries entries"
+    }
+
+    /** Replaces the parsed entry by its match from the media proxy, so the queue holds type and id already. */
+    private fun matchSearchListEntry(entry: MediaItem): MediaItem {
+        val match = runCatching { mediaProxyService.findBestMatch(entry.title, entry.year) }
+            .onFailure { logger.warn("no media match for [{}]: {}", entry.title, it.message) }
+            .getOrNull() ?: return entry
+        return match.copy(originalTitle = match.originalTitle ?: entry.originalTitle, year = match.year ?: entry.year)
+            .also { it.seasonCount = match.seasonCount }
     }
 
     private fun isNotAlreadyDownloaded(mediaItem: MediaItem): Boolean {

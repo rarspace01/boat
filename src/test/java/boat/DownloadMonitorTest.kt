@@ -112,6 +112,23 @@ internal class DownloadMonitorTest {
     }
 
     @Test
+    fun shouldUseAlreadyMatchedQueueItemWithoutSearchingTheMediaProxy() {
+        val queueItem = MediaItem(title = "Avatar", year = 2009, type = MediaType.Movie, id = "{tmdb-19995}")
+        val torrent = Torrent("Avatar 2009 1080p")
+
+        every { queueService.getQueue() } returns listOf(queueItem)
+        every { cloudService.findExistingFiles("Avatar") } returns emptyList()
+        every { cloudService.findExistingFiles("{tmdb-19995}") } returns emptyList()
+        every { torrentSearchEngineService.searchTorrents("Avatar 2009") } returns listOf(torrent)
+
+        downloadMonitor.checkForQueueEntries()
+
+        verify(exactly = 0) { mediaProxyService.search(any<String>(), any<Int>()) }
+        verify(exactly = 1) { multifileHosterService.addTorrentToTransfer(torrent, "{tmdb-19995}", MediaType.Movie) }
+        verify(exactly = 1) { queueService.remove(queueItem) }
+    }
+
+    @Test
     fun shouldFallbackWhenMediaProxyReturnsNoResults() {
         val queueItem = MediaItem(title = "Custom Show!", year = 2021, id = "{custom-id}")
         val torrent = Torrent("Custom Show 2021")
