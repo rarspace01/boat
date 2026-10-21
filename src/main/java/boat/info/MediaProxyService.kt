@@ -271,6 +271,11 @@ class MediaProxyService(
         return mediaItem
     }
 
+    /** Best match for a title with an optional year; the year might be part of the title (e.g. "Space 1999"). */
+    fun findBestMatch(title: String, year: Int?): MediaItem? =
+        if (year != null) search(title, year).firstOrNull() ?: search("$title $year").firstOrNull()
+        else search(title).firstOrNull()
+
     fun search(name: String?, year: Int): List<MediaItem> {
         if (name.isNullOrBlank()) return emptyList()
         val cacheKey = "$SEARCH_KEY_PREFIX$name:$year"

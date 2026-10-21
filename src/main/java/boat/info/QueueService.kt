@@ -1,5 +1,7 @@
 package boat.info
 
+import com.google.gson.JsonObject
+import com.google.gson.JsonParser
 import org.springframework.stereotype.Service
 import java.io.FileInputStream
 import java.io.FileNotFoundException
@@ -31,11 +33,11 @@ class QueueService {
     }
 
     fun add(mediaItem: MediaItem) {
-        properties.setProperty(mediaItem.title, mediaItem.year.toString())
+        properties.setProperty(mediaItem.title, serialize(mediaItem))
     }
 
     fun addAndSave(mediaItem: MediaItem) {
-        properties.setProperty(mediaItem.title, mediaItem.year.toString())
+        add(mediaItem)
         saveQueue()
     }
 
@@ -46,12 +48,29 @@ class QueueService {
     fun getQueue(): List<MediaItem> {
         return properties
             .entries
-            .map { mutableEntry ->
-                MediaItem(
-                    title = mutableEntry.key.toString(),
-                    year = mutableEntry.value.toString().toIntOrNull()
-                )
-            }
+            .map { mutableEntry -> deserialize(mutableEntry.key.toString(), mutableEntry.value.toString()) }
+    }
+
+    /** Entries are stored as JSON with the matched media data; older queue files only hold the year. */
+    private fun serialize(mediaItem: MediaItem): String = JsonObject().apply {
+        mediaItem.year?.let { addProperty("year", it) }
+        mediaItem.type?.let { addProperty("type", it.name) }
+        mediaItem.id?.let { addProperty("id", it) }
+        mediaItem.originalTitle?.let { addProperty("originalTitle", it) }
+    }.toString()
+
+    private fun deserialize(title: String, value: String): MediaItem {
+        if (!value.startsWith("{")) return MediaItem(title = title, year = value.toIntOrNull())
+        return runCatching {
+            val json = JsonParser.parseString(value).asJsonObject
+            MediaItem(
+                title = title,
+                originalTitle = json["originalTitle"]?.asString,
+                year = json["year"]?.asInt,
+                type = json["type"]?.asString?.let { name -> MediaType.entries.firstOrNull { it.name == name } },
+                id = json["id"]?.asString
+            )
+        }.getOrElse { MediaItem(title = title) }
     }
 
     fun saveQueue() {

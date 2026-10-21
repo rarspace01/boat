@@ -148,7 +148,10 @@ class DownloadMonitor(
         if (numberOfTorrentsReadyToDownload == 0 && numberOfActiveRemoteTorrents < MAX_QUEUE_DOWNLOADS_LIMIT && multifileHosterService.getRemainingTrafficInMB() > MIN_GB_FOR_QUEUE * 1024) {
             queueService.getQueue().stream().findFirst().ifPresent { mediaItem: MediaItem ->
                 logger.info("picked {}", mediaItem)
-                val matchedMediaItem = if (mediaItem.year != null) {
+                // items from the search list are already matched, older queue entries are matched now
+                val matchedMediaItem = if (isMatched(mediaItem)) {
+                    mediaItem
+                } else if (mediaItem.year != null) {
                     // the year might be part of the title (e.g. "Space 1999"), so fall back to the full name
                     mediaProxyService.search(mediaItem.title, mediaItem.year).firstOrNull()
                         ?: mediaProxyService.search("${mediaItem.title} ${mediaItem.year}").firstOrNull()
@@ -209,6 +212,9 @@ class DownloadMonitor(
         /** True if [githubVersion] is the local version, ignoring that `1.2.1` is a prefix of `1.2.10`. */
         internal fun isVersionUpToDate(localVersion: String?, githubVersion: String): Boolean =
             localVersion != null && Regex("(?<![0-9.])" + Regex.escape(githubVersion) + "(?![0-9.])").containsMatchIn(localVersion)
+
+        private fun isMatched(mediaItem: MediaItem) =
+            !mediaItem.id.isNullOrBlank() && mediaItem.type != null && mediaItem.type != MediaType.Other
 
         const val MIN_GB_FOR_QUEUE = 150
         const val MAX_QUEUE_DOWNLOADS_LIMIT = 20
