@@ -1,7 +1,6 @@
 package boat.torrent
 
 import boat.info.MediaItem
-import org.apache.commons.codec.net.URLCodec
 import org.apache.logging.log4j.util.Strings
 import java.io.UnsupportedEncodingException
 import java.net.URLDecoder
@@ -234,8 +233,22 @@ object TorrentHelper {
         }
     }
 
-    fun urlEncode(string: ByteArray?): String {
-        return String(URLCodec().encode(string))
+    /**
+     * Percent-encodes bytes (e.g. an info hash) for a query string. Everything except letters, digits and `-_.~` is
+     * encoded as %XX. Not URLCodec, it turns a space byte into "+", which trackers don't decode, so about 7% of the
+     * info hashes (the ones containing the byte 0x20) were asked for under a wrong hash.
+     */
+    fun urlEncode(bytes: ByteArray?): String {
+        val encoded = StringBuilder()
+        bytes?.forEach { byte ->
+            val char = (byte.toInt() and 0xff).toChar()
+            if (char in 'a'..'z' || char in 'A'..'Z' || char in '0'..'9' || char in "-_.~") {
+                encoded.append(char)
+            } else {
+                encoded.append('%').append("%02X".format(byte.toInt() and 0xff))
+            }
+        }
+        return encoded.toString()
     }
 
     fun buildMagnetUriFromHash(hash: String?, torrentName: String): String {
