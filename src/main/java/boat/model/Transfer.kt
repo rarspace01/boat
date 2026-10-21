@@ -23,6 +23,7 @@ data class Transfer(
     var sizeInBytes: Long = 0,
     var feedbackMessage: String? = null,
     var eta: Duration = Duration.ZERO,
+    var failedUploadsToDrive: Int = 0,
     var updated: Instant = Instant.now(),
 ) {
     override fun toString(): String {

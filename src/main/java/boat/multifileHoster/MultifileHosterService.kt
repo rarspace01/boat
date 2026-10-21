@@ -224,7 +224,8 @@ class MultifileHosterService(
     fun updateTransferStatus() {
         val transfers = transferService.getAll()
                 .filter { transfer -> multifileHosterListForDownloads.any { multifileHoster -> multifileHoster.getName() == transfer.source } }
-                .filter { transfer -> transfer.transferStatus != TransferStatus.UPLOADING_TO_DRIVE && transfer.transferStatus != TransferStatus.UPLOADED }
+                // the multifilehoster still reports these as ready, which would start the download again
+                .filter { transfer -> transfer.transferStatus !in listOf(TransferStatus.UPLOADING_TO_DRIVE, TransferStatus.UPLOADED, TransferStatus.UPLOAD_TO_DRIVE_FAILED) }
         val matchedTransfers = mutableListOf<Transfer>()
         val matchedTorrents = mutableListOf<Torrent>()
         val torrentsForDownload = remoteTorrents
@@ -447,7 +448,7 @@ class MultifileHosterService(
             }
             if (!wasDownloadSuccessful) {
                 log.error("Couldn't download Transfer: {}", transferToBeDownloaded)
-                resetTransferForRetry(transferToBeDownloaded)
+                handleFailedUploadToDrive(transferToBeDownloaded)
             }
         } else {
             val optionalTransfer = transferService.getAll().stream()
@@ -462,15 +463,23 @@ class MultifileHosterService(
     }
 
     /**
-     * Sets a transfer whose upload to the drive failed back to ready, so it is downloaded again after the other
-     * waiting transfers (they are picked by their last update).
+     * Every download from the multifilehoster costs traffic, so a transfer whose upload to the drive failed is only
+     * retried [MAX_UPLOAD_TO_DRIVE_RETRIES] times, after the other waiting transfers (they are picked by their last
+     * update). After that it is marked as failed and its files stay on the multifilehoster.
      */
-    private fun resetTransferForRetry(transfer: Transfer) {
+    private fun handleFailedUploadToDrive(transfer: Transfer) {
         val currentTransfer = transferService.getAll().firstOrNull { it.id == transfer.id } ?: transfer
-        currentTransfer.transferStatus = TransferStatus.READY_TO_BE_DOWNLOADED
+        currentTransfer.failedUploadsToDrive++
         currentTransfer.progressInPercentage = 0.0
         currentTransfer.eta = Duration.ZERO
-        currentTransfer.feedbackMessage = "upload to drive failed, will be retried"
+        if (currentTransfer.failedUploadsToDrive > MAX_UPLOAD_TO_DRIVE_RETRIES) {
+            currentTransfer.transferStatus = TransferStatus.UPLOAD_TO_DRIVE_FAILED
+            currentTransfer.feedbackMessage = "upload to drive failed ${currentTransfer.failedUploadsToDrive} times, files kept on the multifilehoster"
+            log.error("giving up on transfer after {} failed uploads to drive: {}", currentTransfer.failedUploadsToDrive, currentTransfer)
+        } else {
+            currentTransfer.transferStatus = TransferStatus.READY_TO_BE_DOWNLOADED
+            currentTransfer.feedbackMessage = "upload to drive failed, retry ${currentTransfer.failedUploadsToDrive}/$MAX_UPLOAD_TO_DRIVE_RETRIES"
+        }
         transferService.save(currentTransfer)
     }
 
@@ -695,5 +704,6 @@ class MultifileHosterService(
 
     companion object {
         private val log by LoggerDelegate()
+        const val MAX_UPLOAD_TO_DRIVE_RETRIES = 2
     }
 }
