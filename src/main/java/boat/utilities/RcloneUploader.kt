@@ -19,7 +19,9 @@ class RcloneUploader {
                 .directory(File(System.getProperty("user.home")))
                 .redirectErrorStream(true)
                 .start()
-            process.inputStream.bufferedReader().useLines { lines -> lines.forEach { log.info("rclone: {}", it) } }
+            process.inputStream.bufferedReader().useLines { lines ->
+                lines.forEach { line -> if (isErrorLine(line)) log.error("rclone: {}", line) else log.info("rclone: {}", line) }
+            }
             process.waitFor()
         } catch (e: IOException) {
             log.error("upload failed: {} - {}", destinationPath, e.message)
@@ -40,5 +42,9 @@ class RcloneUploader {
 
     companion object {
         private val log by LoggerDelegate()
+        // rclone log lines look like "2026/10/21 07:08:55 ERROR : Attempt 1/3 failed ..."
+        private val errorLinePattern = Regex("^\\d{4}/\\d{2}/\\d{2} \\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)? (?:ERROR|CRITICAL)\\s*:")
+
+        internal fun isErrorLine(line: String): Boolean = errorLinePattern.containsMatchIn(line)
     }
 }
