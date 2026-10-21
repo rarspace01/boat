@@ -30,6 +30,11 @@ object PropertiesHelper {
         return value ?: default
     }
 
+    /** For settings the application can't work without, so a missing one fails at startup with a clear message. */
+    fun requireProperty(propname: String): String =
+        getProperty(propname)?.takeIf { it.isNotBlank() }
+            ?: throw IllegalStateException("'$propname' is not set, set it in $PROPERTIY_FILE or as environment variable")
+
     private val propertyFile: String?
         get() = when {
             File(PROPERTIY_FILE).isFile -> PROPERTIY_FILE

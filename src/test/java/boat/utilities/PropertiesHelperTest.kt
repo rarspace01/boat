@@ -30,4 +30,12 @@ internal class PropertiesHelperTest {
         assertThat(PropertiesHelper.getProperty("BOAT_SURELY_NOT_SET_PROPERTY", "fallback")).isEqualTo("fallback")
         assertThat(PropertiesHelper.getProperty("BOAT_SURELY_NOT_SET_PROPERTY")).isNull()
     }
+
+    @Test
+    fun requirePropertyFailsWithAClearMessage() {
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException::class.java) {
+            PropertiesHelper.requireProperty("BOAT_SURELY_NOT_SET_PROPERTY")
+        }.also { assertThat(it.message).contains("BOAT_SURELY_NOT_SET_PROPERTY", "boat.cfg") }
+        assertThat(PropertiesHelper.requireProperty("PATH")).isNotEmpty()
+    }
 }

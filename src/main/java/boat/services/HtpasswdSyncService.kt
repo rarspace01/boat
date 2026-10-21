@@ -2,6 +2,7 @@ package boat.services
 
 import boat.repositories.UserRepository
 import boat.utilities.LoggerDelegate
+import boat.utilities.PropertiesHelper
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
 import java.io.File
@@ -31,9 +32,9 @@ class HtpasswdSyncService(private val userRepository: UserRepository) {
                 }
             }
             
-            val file = File(HTPASSWD_FILE_PATH)
+            val file = File(PropertiesHelper.getProperty("HTPASSWD_FILE", HTPASSWD_FILE_PATH)!!)
             file.writeText(htpasswdContent)
-            logger.debug("Successfully synced {} users to {}", users.size, HTPASSWD_FILE_PATH)
+            logger.debug("Successfully synced {} users to {}", users.size, file)
         } catch (e: Exception) {
             logger.error("Failed to sync users to htpasswd file", e)
         }

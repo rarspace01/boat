@@ -1,6 +1,6 @@
 package boat
 
-import boat.utilities.PropertiesHelper.getProperty
+import boat.utilities.PropertiesHelper.requireProperty
 import com.mongodb.client.MongoClient
 import com.mongodb.client.MongoClients
 import org.springframework.context.annotation.Bean
@@ -17,7 +17,7 @@ import kotlin.math.max
 class AppConfiguration : SchedulingConfigurer {
     @Bean
     fun mongoClient(): MongoClient {
-        return MongoClients.create(getProperty("MONGO_URI") ?: "")
+        return MongoClients.create(requireProperty("MONGO_URI"))
     }
 
     @Bean

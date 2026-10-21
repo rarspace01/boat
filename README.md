@@ -9,6 +9,20 @@ from `~/.config/rlcone/rclone.conf` for building the docker-image.
 Run `/runBoat.sh` to have an autoupdate of the
 newest version.
 
+Settings are read from `boat.cfg` (or `boat.default.cfg`) and can be overridden by environment variables:
+
+| Setting | Default | |
+|---|---|---|
+| `MONGO_URI` | | **required**, boat doesn't start without it |
+| `RCLONEDIR` | | **required**, the rclone path of the library, e.g. `remote:PFDB` |
+| `PREMIUMIZE_APIKEY`, `ALLDEBRID_APIKEY` | | at least one multifilehoster, a warning is logged if none is set |
+| `TFDB_APIKEY`, `TVDB_APIKEY` | | media lookup, a warning is logged if missing |
+| `MODE` | `BOTH` | `SEARCH`, `DOWNLOAD` or `BOTH` |
+| `QUEUE_FILE` | `/tmp/boat/queue.list` | where the queue is stored |
+| `HTPASSWD_FILE` | `/tmp/htpasswd` | where the users are written for a reverse proxy |
+| `ALLOW_PRIVATE_URLS` | `false` | allow local addresses in search list urls |
+| `RCLONE_NO_CHECK_CERTIFICATE` | `false` | pass `--no-check-certificate` to rclone |
+
 install certbot & generate certifiactes
 ```
 sudo apt install certbot
