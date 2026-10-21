@@ -165,7 +165,7 @@ $switchToSearch$switchToSearchList${switchToProgress.replace("..", "../boat")}""
     fun searchList(): String {
         return htmlHeader + """
 <h2>Here to serve you</h2>
-<form action="./queryOld" target="_blank" method="POST">
+<form action="./queueList" target="_blank" method="POST">
 Download multiple movies (one per line):<br>
 <textarea id="qqq" name="qqq" rows="25" cols="25">
 </textarea>
@@ -180,7 +180,6 @@ $switchToSearch${switchToProgress}""" + htmlFooter
     fun searchTorrentsOld(
         @RequestParam(value = "q", required = false) searchString: String?,
         @RequestParam(value = "qq", required = false) localSearchString: String?,
-        @RequestParam(value = "qqq", required = false) luckySearchList: String?,
     ): String {
         var searchString = searchString
         val startTime = System.currentTimeMillis()
@@ -201,28 +200,29 @@ $switchToSearch${switchToProgress}""" + htmlFooter
             )
             htmlHeader + torrentList.stream().limit(50).collect(Collectors.toList())
                 .joinToString(separator = "") + htmlFooter
-        } else if (luckySearchList != null && Strings.isNotEmpty(luckySearchList)) {
-            val schemes = arrayOf("http", "https")
-            val urlValidator = UrlValidator(schemes)
-            val pageWithEntries: String = if (urlValidator.isValid(luckySearchList)) {
-                httpHelper.getPage(luckySearchList)
-            } else {
-                luckySearchList
-            }
-            if (Strings.isNotEmpty(pageWithEntries)) {
-                val titles = pageWithEntries.split("\n".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
-                val listOfMediaItems = titles.mapNotNull { parseSearchListEntry(it) }
-                    .map { entry -> matchSearchListEntry(entry) }
-                    .filter { mediaItem: MediaItem -> isNotAlreadyDownloaded(mediaItem) }
-                queueService.addAll(listOfMediaItems)
-                queueService.saveQueue()
-                htmlHeader + (switchToProgress.replace("..", "../boat") + listOfMediaItems) + htmlFooter
-            } else {
-                htmlHeader + "Error: nothing in remote url" + htmlFooter
-            }
         } else {
             htmlHeader + "Error: nothing to search" + htmlFooter
         }
+    }
+
+    /** Matches the entries of a list (one title per line, or the url of such a list) and adds them to the queue. */
+    @PostMapping("/boat/queueList")
+    fun queueList(@RequestParam(value = "qqq", required = false) luckySearchList: String?): String {
+        if (luckySearchList.isNullOrEmpty()) return htmlHeader + "Error: nothing to search" + htmlFooter
+        val urlValidator = UrlValidator(arrayOf("http", "https"))
+        val pageWithEntries: String = if (urlValidator.isValid(luckySearchList)) {
+            httpHelper.getPage(luckySearchList)
+        } else {
+            luckySearchList
+        }
+        if (pageWithEntries.isEmpty()) return htmlHeader + "Error: nothing in remote url" + htmlFooter
+        val titles = pageWithEntries.split("\n".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
+        val listOfMediaItems = titles.mapNotNull { parseSearchListEntry(it) }
+            .map { entry -> matchSearchListEntry(entry) }
+            .filter { mediaItem: MediaItem -> isNotAlreadyDownloaded(mediaItem) }
+        queueService.addAll(listOfMediaItems)
+        queueService.saveQueue()
+        return htmlHeader + (switchToProgress.replace("..", "../boat") + listOfMediaItems) + htmlFooter
     }
 
     @GetMapping("/boat/search")
