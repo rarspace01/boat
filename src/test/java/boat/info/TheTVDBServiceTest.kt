@@ -15,7 +15,7 @@ internal class TheTVDBServiceTest {
 
     @Test
     fun search() {
-        val mediaItems = tvdbs!!.search("MASH")
+        val mediaItems = tvdbs!!.search("MASH")!!
         assertThat(mediaItems).isNotEmpty
         assertThat(mediaItems.any { it.title == "M*A*S*H" && it.year == 1972 }).isTrue()
     }

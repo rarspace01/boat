@@ -1478,11 +1478,15 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
 
     /**
      * Renames and moves the media files below [path] into the library at [basePath] (default ~/pfdb/PFDB).
+     * With [skipFilesWithRemoteId] files that already carry a remote media id like `{tmdb-123}` are left alone, so
+     * no lookups are made for the files that were renamed before.
      */
-    fun processFilesFromDirectory(path: String, logFile: File? = null, isTestRun: Boolean = true, basePath: String? = null) {
+    fun processFilesFromDirectory(
+        path: String, logFile: File? = null, isTestRun: Boolean = true, basePath: String? = null, skipFilesWithRemoteId: Boolean = false
+    ) {
         val writer = logFile?.let { BufferedWriter(FileWriter(it, true)) }
         try {
-            processFilesFromDirectoryInternal(path, writer, isTestRun, basePath, HashSet())
+            processFilesFromDirectoryInternal(path, writer, isTestRun, basePath, HashSet(), skipFilesWithRemoteId)
         } finally {
             writer?.flush()
             writer?.close()
@@ -1494,7 +1498,8 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
      * [assignedTargets] are the targets of this run, a test run reports the files which would collide as well.
      */
     private fun processFilesFromDirectoryInternal(
-        path: String, logWriter: BufferedWriter?, isTestRun: Boolean, basePath: String?, assignedTargets: MutableSet<String>
+        path: String, logWriter: BufferedWriter?, isTestRun: Boolean, basePath: String?, assignedTargets: MutableSet<String>,
+        skipFilesWithRemoteId: Boolean
     ) {
         val files = File(path).listFiles()
         files?.let { fileList ->
@@ -1551,6 +1556,10 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
 
                     // already renamed files carry their remote media id, the one closest to the file wins
                     val remoteMediaId = remoteMediaIdPattern.findAll(fullName).lastOrNull()?.value
+                    if (skipFilesWithRemoteId && remoteMediaId != null) {
+                        logWriter?.write("F:'$fullName'→'$extractedName'→'null' (Y: $year, S: $season, E: $episode)  skipped, already has $remoteMediaId\n")
+                        continue
+                    }
                     val mediaResult = remoteMediaId?.let { mediaProxyService.findByRemoteMediaId(it, extractedName, mediaIndicator) }
                         ?: if (isMovieInSeriesPath && year == null) searchMovieByTitle(extractedName)
                         else searchMediaForFile(extractedName, year, mediaIndicator, (isSeriesPath && !isMovieInSeriesPath) || isSeriesInMoviePath)
@@ -1596,7 +1605,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
                     }
                     logWriter?.write(logLine + "\n")
                 } else {
-                    processFilesFromDirectoryInternal(file.absolutePath, logWriter, isTestRun, basePath, assignedTargets)
+                    processFilesFromDirectoryInternal(file.absolutePath, logWriter, isTestRun, basePath, assignedTargets, skipFilesWithRemoteId)
                     println("Processed directory: $file")
                 }
             }

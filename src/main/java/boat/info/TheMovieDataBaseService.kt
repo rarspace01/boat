@@ -7,6 +7,7 @@ import boat.utilities.HttpHelper
 import boat.utilities.PropertiesHelper
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
+import com.google.gson.JsonParseException
 import com.google.gson.JsonParser
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
@@ -43,15 +44,23 @@ class TheMovieDataBaseService @Autowired constructor(private val httpHelper: Htt
         return parseResponsePage(page, path)
     }
 
+    /**
+     * The media items of a search response. Null if there was no usable answer (no response, no JSON or an error
+     * like an invalid api key), which is something else than an answer without results.
+     */
     fun parseResponsePage(pageContent: String?, defaultMediaType: String? = null): List<MediaItem>? {
-        if (pageContent == null) {
+        if (pageContent.isNullOrBlank()) {
             return null
         }
         val mediaItems: MutableList<MediaItem> = ArrayList()
-        val jsonRoot = JsonParser.parseString(pageContent)
-        if (!jsonRoot.isJsonObject) return emptyList()
+        val jsonRoot = try {
+            JsonParser.parseString(pageContent)
+        } catch (_: JsonParseException) {
+            return null
+        }
+        if (!jsonRoot.isJsonObject) return null
         val results = jsonRoot.asJsonObject["results"]
-        if (results == null || !results.isJsonArray) return emptyList()
+        if (results == null || !results.isJsonArray) return null
         val jsonArray = results.asJsonArray
         jsonArray.forEach(Consumer { jsonMedia: JsonElement ->
             val jsonMediaObject = jsonMedia.asJsonObject

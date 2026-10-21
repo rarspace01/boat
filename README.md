@@ -18,6 +18,8 @@ Settings are read from `boat.cfg` (or `boat.default.cfg`) and can be overridden 
 | `PREMIUMIZE_APIKEY`, `ALLDEBRID_APIKEY` | | at least one multifilehoster, a warning is logged if none is set |
 | `TFDB_APIKEY`, `TVDB_APIKEY` | | media lookup, a warning is logged if missing |
 | `MODE` | `BOTH` | `SEARCH`, `DOWNLOAD` or `BOTH` |
+| `MEDIA_CACHE_TTL_DAYS` | `90` | how long TMDB/TVDB results are cached, `0` keeps them forever (e.g. for local rename test runs) |
+| `MEDIA_CACHE_NOT_FOUND_TTL_DAYS` | `7` | same for searches without a result |
 | `QUEUE_FILE` | `/tmp/boat/queue.list` | where the queue is stored |
 | `HTPASSWD_FILE` | `/tmp/htpasswd` | where the users are written for a reverse proxy |
 | `ALLOW_PRIVATE_URLS` | `false` | allow local addresses in search list urls |
