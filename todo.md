@@ -17,7 +17,8 @@ Findings from a code review of `src/main/java/boat`. Check items off as they get
 - [x] **`StringUtil.deductFirstTorrentLetter`**: `Ü` is mapped to `Ü` instead of `U` (ends up as `?`); titles starting with a year ("2001: A Space Odyssey") give an empty letter → `Movies//...`.
 - [ ] **`CloudService.isCloudTokenValid`** is a `val` evaluated once at startup; an expired or late-ready token is never re-checked.
 - [ ] **`CloudFileService.getFilesInPath`** caches empty results of failed rclone calls for 12h (`@Cacheable`), causing duplicate downloads; `waitFor(5s)` before reading output always costs 5s on large listings.
-- [ ] **Premiumize**: `enrichCacheStateOfTorrents` sublist end `size - 1` skips the last torrent when >100 results; `catch (IOException)` never catches Jackson 3 (unchecked) exceptions; a null JSON field NPEs the whole transfer list.
+- [x] **Premiumize**: `enrichCacheStateOfTorrents` sublist end `size - 1` skips the last torrent when >100 results; `catch (IOException)` never catches Jackson 3 (unchecked) exceptions; a null JSON field NPEs the whole transfer list. Fixed in #545 for the cache check and the transfer list.
+- [ ] **Premiumize** folder listing (`getFilesFromTorrent`, `extractTorrentFilesFromJSONFolder`) still only catches `IOException`, so Jackson 3 errors and null fields propagate.
 - [x] **`updateIndexForLetters(joinToString())`**: joins with `", "` and splits per character, so `","` is treated as a folder letter.
 - [ ] **Version check** (`DownloadMonitor.checkForUpdatedVersionAndShutdownIfUpdateAvailable`): exits during an active upload (transfer stuck in `UPLOADING_TO_DRIVE`); throws on a GitHub rate-limit response; `contains` treats `1.2.10` as `1.2.1`.
 - [ ] **Name matching fallback** (`updateTransferStatus`) searches all transfers instead of unmatched ones, can overwrite an already matched transfer.
