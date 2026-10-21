@@ -22,10 +22,10 @@ class CachedAuthenticationProvider(
     private val passwordEncoder: PasswordEncoder
 ) : AuthenticationProvider {
 
-    // Cache: Key = keyed hash of "username:password", Value = the stored password hash the credentials were verified against.
-    // The plaintext credentials are never kept, and a hit is only valid while the user still has that password hash,
-    // so revoked users and changed passwords are rejected right away. The cache only saves the expensive BCrypt check.
-    private val authCache: Cache<String, String> = Caffeine.newBuilder()
+    // Cache: Key = keyed hash of "username:password", Value = Boolean (isValid)
+    // The plaintext credentials are never kept. Expires entries 10 minutes after write, so a removed user or a changed
+    // password is still accepted for up to 10 minutes, in exchange for no database lookup and no BCrypt check per request.
+    private val authCache: Cache<String, Boolean> = Caffeine.newBuilder()
         .maximumSize(500)
         .expireAfterWrite(10, TimeUnit.MINUTES)
         .build()
@@ -44,17 +44,17 @@ class CachedAuthenticationProvider(
         val username = authentication.name
         val password = authentication.credentials.toString()
         val cacheKey = cacheKey(username, password)
-        val user = userRepository.findByUsername(username)
         val authorities = listOf(SimpleGrantedAuthority("ROLE_USER"))
 
-        // 1. Instant Cache Hit, as long as the stored password is still the verified one
-        if (user != null && authCache.getIfPresent(cacheKey) == user.password) {
+        // 1. Instant Cache Hit
+        if (authCache.getIfPresent(cacheKey) == true) {
             return UsernamePasswordAuthenticationToken(username, password, authorities)
         }
 
-        // 2. BCrypt Fallback
+        // 2. Database/BCrypt Fallback
+        val user = userRepository.findByUsername(username)
         if (user != null && passwordEncoder.matches(password, user.password)) {
-            authCache.put(cacheKey, user.password)
+            authCache.put(cacheKey, true)
             return UsernamePasswordAuthenticationToken(username, password, authorities)
         }
 

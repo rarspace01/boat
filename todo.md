@@ -37,7 +37,7 @@ Findings from a code review of `src/main/java/boat`. Check items off as they get
 - [x] Shell injection: rclone commands were built via `bash -c` with interpolated URLs/paths. All rclone calls (`RcloneUploader`, `CloudFileService`, `ProcessUtil`) now pass an argument list.
 - [ ] TLS verification disabled everywhere (`HttpHelper` trust-all, rclone `--no-check-certificate`), including calls carrying API keys.
 - [ ] API keys in query strings end up in logs (`Premiumize`, `Alldebrid`, `HttpHelper` stack traces).
-- [x] `CachedAuthenticationProvider` kept the plaintext `user:password` as cache key and accepted revoked passwords for 10 minutes. Fixed: keyed HMAC as key, hits are checked against the current stored password hash.
+- [x] `CachedAuthenticationProvider` kept the plaintext `user:password` as cache key. Fixed: keyed HMAC as key. Revoked or changed passwords stay valid for up to 10 minutes on purpose (users change 1-2 times a year).
 - [ ] SSRF: `searchList` fetches arbitrary URLs server side.
 - [ ] `runBoat.sh` / `Dockerfile` run the latest release jar without checksum/signature verification.
 

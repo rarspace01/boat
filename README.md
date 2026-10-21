@@ -56,8 +56,8 @@ or as a document for MongoDB Compass / Atlas:
 }
 ```
 
-Changing the password works the same way, update the `password` field with a new hash. A changed or removed user is
-locked out immediately. Users with a `{bcrypt}` password are also written to `/tmp/htpasswd` every minute, for a
+Changing the password works the same way, update the `password` field with a new hash. Logins are cached for 10
+minutes, so a changed or removed user is locked out after that at the latest (restart boat to apply it right away). Users with a `{bcrypt}` password are also written to `/tmp/htpasswd` every minute, for a
 reverse proxy in front of boat.
 
 tested with:

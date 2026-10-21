@@ -21,37 +21,25 @@ internal class CachedAuthenticationProviderTest {
     private fun login(password: String) = provider.authenticate(UsernamePasswordAuthenticationToken("denis", password))
 
     @Test
-    fun shouldSkipTheExpensiveCheckForRepeatedLogins() {
+    fun shouldNotAskTheDatabaseAgainForRepeatedLogins() {
         every { userRepository.findByUsername("denis") } returns User(username = "denis", password = "hash1")
         every { passwordEncoder.matches("secret", "hash1") } returns true
 
         login("secret")
         assertThat(login("secret").isAuthenticated).isTrue
 
+        verify(exactly = 1) { userRepository.findByUsername("denis") }
         verify(exactly = 1) { passwordEncoder.matches(any(), any()) }
     }
 
     @Test
-    fun shouldRejectCachedLoginAfterThePasswordChanged() {
+    fun shouldNotAcceptAnotherPasswordOfACachedUser() {
         every { userRepository.findByUsername("denis") } returns User(username = "denis", password = "hash1")
         every { passwordEncoder.matches("secret", "hash1") } returns true
+        every { passwordEncoder.matches("wrong", "hash1") } returns false
         login("secret")
 
-        every { userRepository.findByUsername("denis") } returns User(username = "denis", password = "hash2")
-        every { passwordEncoder.matches("secret", "hash2") } returns false
-
-        assertThatThrownBy { login("secret") }.isInstanceOf(BadCredentialsException::class.java)
-    }
-
-    @Test
-    fun shouldRejectCachedLoginOfRemovedUser() {
-        every { userRepository.findByUsername("denis") } returns User(username = "denis", password = "hash1")
-        every { passwordEncoder.matches("secret", "hash1") } returns true
-        login("secret")
-
-        every { userRepository.findByUsername("denis") } returns null
-
-        assertThatThrownBy { login("secret") }.isInstanceOf(BadCredentialsException::class.java)
+        assertThatThrownBy { login("wrong") }.isInstanceOf(BadCredentialsException::class.java)
     }
 
     @Test
