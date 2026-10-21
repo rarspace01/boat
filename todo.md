@@ -20,11 +20,11 @@ Findings from a code review of `src/main/java/boat`. Check items off as they get
 - [x] **`CloudService.isCloudTokenValid`** was a `val` evaluated once at startup. Fixed: evaluated on each access.
 - [x] **`CloudFileService.getFilesInPath`** cached empty results for 12h; fixed with `unless = "#result.isEmpty()"`. Still open: `waitFor(5s)` before reading output always costs 5s on large listings.
 - [x] **Premiumize**: `enrichCacheStateOfTorrents` sublist end `size - 1` skips the last torrent when >100 results; `catch (IOException)` never catches Jackson 3 (unchecked) exceptions; a null JSON field NPEs the whole transfer list. Fixed in #545 for the cache check and the transfer list.
-- [ ] **Premiumize** folder listing (`getFilesFromTorrent`, `extractTorrentFilesFromJSONFolder`) still only catches `IOException`, so Jackson 3 errors and null fields propagate.
+- [x] **Premiumize** folder listing: any parse error or missing field now gives an empty file list instead of a partial one (which would upload some files and delete the rest).
 - [x] **`updateIndexForLetters(joinToString())`**: joins with `", "` and splits per character, so `","` is treated as a folder letter.
 - [x] **Version check**: no longer exits during an active upload, survives a GitHub rate-limit response, and matches `1.2.10` vs `1.2.1` on version boundaries.
-- [ ] **Name matching fallback** (`updateTransferStatus`) searches all transfers instead of unmatched ones, can overwrite an already matched transfer.
-- [ ] **Transfer cleanup** deletes any transfer not updated for a day, including ones still waiting in `ADDED` for traffic.
+- [x] **Name matching fallback** (`updateTransferStatus`) searched all transfers; it now skips transfers that were already matched.
+- [x] **Transfer cleanup** deleted transfers waiting in `ADDED` after a day; they now get 7 days.
 - [ ] **`QueueService`**: streams not closed; fails silently when `/tmp/boat` doesn't exist; keyed by title only (same title, different year collide); missing year stored as `"null"`.
 - [x] **`PropertiesHelper.getProperty(name, default)`** ignored `default` when the file or key was missing.
 

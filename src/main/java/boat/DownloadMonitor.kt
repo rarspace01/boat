@@ -195,11 +195,7 @@ class DownloadMonitor(
                 .filter { torrent: Torrent -> isTorrentStuckOnError(torrent) }
                 .forEach { torrent: Torrent? -> multifileHosterService.delete(torrent!!) }
             transferService.getAll().stream()
-                .filter { transfer: Transfer ->
-                    TransferStatus.ERROR == transfer.transferStatus || TransferStatus.DUPLICATE_ERROR == transfer.transferStatus || transfer.updated.isBefore(
-                        Instant.now().minus(1, ChronoUnit.DAYS)
-                    )
-                }
+                .filter { transfer: Transfer -> isTransferObsolete(transfer) }
                 .forEach { transfer: Transfer? -> transferService.delete(transfer!!) }
         }
     }
@@ -212,6 +208,13 @@ class DownloadMonitor(
         /** True if [githubVersion] is the local version, ignoring that `1.2.1` is a prefix of `1.2.10`. */
         internal fun isVersionUpToDate(localVersion: String?, githubVersion: String): Boolean =
             localVersion != null && Regex("(?<![0-9.])" + Regex.escape(githubVersion) + "(?![0-9.])").containsMatchIn(localVersion)
+
+        /** Transfers waiting in [TransferStatus.ADDED] for traffic are not updated, so they get more time. */
+        internal fun isTransferObsolete(transfer: Transfer, now: Instant = Instant.now()): Boolean {
+            if (TransferStatus.ERROR == transfer.transferStatus || TransferStatus.DUPLICATE_ERROR == transfer.transferStatus) return true
+            val maxAgeInDays = if (TransferStatus.ADDED == transfer.transferStatus) 7L else 1L
+            return transfer.updated.isBefore(now.minus(maxAgeInDays, ChronoUnit.DAYS))
+        }
 
         private fun isMatched(mediaItem: MediaItem) =
             !mediaItem.id.isNullOrBlank() && mediaItem.type != null && mediaItem.type != MediaType.Other
