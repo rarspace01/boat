@@ -53,4 +53,11 @@ internal class StringUtilTest {
         assertThat(deductFirstTorrentLetter("")).isEqualTo("")
         assertThat(deductFirstTorrentLetter("   ")).isEqualTo("")
     }
+
+    @Test
+    fun shouldUseNumberFolderForTitlesStartingWithAYear() {
+        assertThat(deductFirstTorrentLetter("2001 A Space Odyssey")).isEqualTo("0-9")
+        assertThat(deductFirstTorrentLetter("1917")).isEqualTo("0-9")
+        assertThat(deductFirstTorrentLetter("Blade Runner 2049")).isEqualTo("B")
+    }
 }

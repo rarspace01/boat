@@ -19,7 +19,7 @@ import boat.torrent.TorrentType
 import boat.utilities.HttpHelper
 import boat.utilities.LoggerDelegate
 import boat.utilities.ProcessUtil
-import boat.utilities.StreamGobbler
+import boat.utilities.RcloneUploader
 import boat.utilities.PropertiesHelper
 import boat.utilities.StringUtil
 import org.apache.logging.log4j.util.Strings
@@ -27,14 +27,14 @@ import org.springframework.cache.CacheManager
 import org.springframework.stereotype.Service
 import org.springframework.util.StringUtils
 import java.io.File
-import java.io.IOException
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 import java.time.Duration
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.Locale
-import java.util.concurrent.Executors
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.function.Consumer
 import java.util.regex.Pattern
 
@@ -47,15 +47,17 @@ class MultifileHosterService(
         private val cloudFileService: CloudFileService,
         private val mediaProxyService: MediaProxyService,
         private val contentRenamer: ContentRenamer = ContentRenamer(mediaProxyService),
+        private val rcloneUploader: RcloneUploader = RcloneUploader(),
 ) : HttpUser(httpHelper) {
-    private var isDownloadInProgress: Boolean = false
+    private val isDownloadInProgress = AtomicBoolean(false)
     private var isRcloneInstalled: Boolean? = null
     private val multifileHosterList: MutableList<MultifileHoster> = mutableListOf(Premiumize(httpHelper))//, Alldebrid(httpHelper))
     private val multifileHosterListForDownloads: MutableList<MultifileHoster> = getEligibleMultifileHoster(httpHelper)
 
-    private val localStatusStorage = HashMap<String, String>()
+    private val localStatusStorage = ConcurrentHashMap<String, String>()
 
-    var activeTorrents: MutableList<Torrent> = mutableListOf()
+    @Volatile
+    var activeTorrents: List<Torrent> = emptyList()
 
     private fun getEligibleMultifileHoster(httpHelper: HttpHelper): MutableList<MultifileHoster> {
         val eligibleList = mutableListOf<MultifileHoster>()
@@ -331,8 +333,12 @@ class MultifileHosterService(
     }
 
     fun checkForDownloadableTorrentsAndDownload() {
-        if (!isDownloadInProgress && isRcloneInstalled() && cloudService.isCloudTokenValid) {
-            checkForDownloadableTorrentsAndDownloadTheFirst()
+        if (isRcloneInstalled() && cloudService.isCloudTokenValid && isDownloadInProgress.compareAndSet(false, true)) {
+            try {
+                checkForDownloadableTorrentsAndDownloadTheFirst()
+            } finally {
+                isDownloadInProgress.set(false)
+            }
         }
     }
 
@@ -352,7 +358,6 @@ class MultifileHosterService(
                 remoteTorrent.remoteId = transferToBeDownloaded.remoteId ?: ""
             }
 
-            isDownloadInProgress = true
             var wasDownloadSuccessful = false
             try {
                 val mediaItem = (transferToBeDownloaded.remoteMediaId?.let {
@@ -363,6 +368,7 @@ class MultifileHosterService(
 
                 val filesFromTorrent = getFilesFromTorrent(remoteTorrent)
                 if (filesFromTorrent.isEmpty()) {
+                    // might be a temporary hoster failure, the transfer stays ready to be downloaded
                     log.warn("No files found to download for transfer: {}", transferToBeDownloaded)
                     return
                 }
@@ -373,7 +379,7 @@ class MultifileHosterService(
                 if (isSingleFileDownload(filesFromTorrent)) {
                     log.info("SFD - {}", transferToBeDownloaded)
                     val fileToDownload: TorrentFile = getMainFileURLFromTorrent(filesFromTorrent)
-                    updateUploadStatus(remoteTorrent, listOf(fileToDownload), 0, null)
+                    updateUploadStatus(transferToBeDownloaded, remoteTorrent, listOf(fileToDownload), 0, null)
 
                     val file = File(if (!fileToDownload.name.isNullOrBlank()) fileToDownload.name!! else extractFileNameFromUrl(fileToDownload.url))
                     val targetFilePath: String
@@ -390,8 +396,8 @@ class MultifileHosterService(
                     }
 
                     listOfCharactersToIndexUpdate.add(indexLetter)
-                    wasDownloadSuccessful = rcloneDownloadFileToDestination(fileToDownload.url, targetFilePath)
-                    updateUploadStatus(remoteTorrent, listOf(fileToDownload), 1, null)
+                    wasDownloadSuccessful = rcloneUploader.copyUrl(fileToDownload.url, targetFilePath)
+                    updateUploadStatus(transferToBeDownloaded, remoteTorrent, listOf(fileToDownload), 1, null)
                 } else {
                     log.info("MFD - {}", transferToBeDownloaded)
                     var currentFileNumber = 0
@@ -399,7 +405,7 @@ class MultifileHosterService(
                     val startTime = Instant.now()
 
                     for (torrentFile in filesFromTorrent) {
-                        updateUploadStatus(remoteTorrent, filesFromTorrent, currentFileNumber, startTime)
+                        updateUploadStatus(transferToBeDownloaded, remoteTorrent, filesFromTorrent, currentFileNumber, startTime)
                         val file = File(if (!torrentFile.name.isNullOrBlank()) torrentFile.name!! else extractFileNameFromUrl(torrentFile.url))
                         val targetFilePath: String
                         val indexLetter: String
@@ -420,32 +426,28 @@ class MultifileHosterService(
                         }
 
                         listOfCharactersToIndexUpdate.add(indexLetter)
-                        if (!rcloneDownloadFileToDestination(torrentFile.url, targetFilePath)) {
+                        if (!rcloneUploader.copyUrl(torrentFile.url, targetFilePath)) {
                             failedUploads++
                         }
                         currentFileNumber++
-                        updateUploadStatus(remoteTorrent, filesFromTorrent, currentFileNumber, startTime)
+                        updateUploadStatus(transferToBeDownloaded, remoteTorrent, filesFromTorrent, currentFileNumber, startTime)
                     }
 
                     wasDownloadSuccessful = failedUploads == 0
                 }
+
+                // the files are only removed from the hoster once all of them are in the drive
                 if (wasDownloadSuccessful) {
                     delete(remoteTorrent)
                     transferService.delete(transferToBeDownloaded)
-                } else {
-                    // keep the files on the multifilehoster and retry the download later
-                    transferToBeDownloaded.transferStatus = TransferStatus.READY_TO_BE_DOWNLOADED
-                    transferToBeDownloaded.feedbackMessage = "download to drive failed"
-                    transferService.save(transferToBeDownloaded)
                 }
                 updateIndexForLetters(listOfCharactersToIndexUpdate)
             } catch (exception: Exception) {
                 log.error(String.format("Couldn't download Transfer: %s", transferToBeDownloaded), exception)
-            } finally {
-                isDownloadInProgress = false
             }
             if (!wasDownloadSuccessful) {
                 log.error("Couldn't download Transfer: {}", transferToBeDownloaded)
+                resetTransferForRetry(transferToBeDownloaded)
             }
         } else {
             val optionalTransfer = transferService.getAll().stream()
@@ -457,6 +459,19 @@ class MultifileHosterService(
                 )
             }
         }
+    }
+
+    /**
+     * Sets a transfer whose upload to the drive failed back to ready, so it is downloaded again after the other
+     * waiting transfers (they are picked by their last update).
+     */
+    private fun resetTransferForRetry(transfer: Transfer) {
+        val currentTransfer = transferService.getAll().firstOrNull { it.id == transfer.id } ?: transfer
+        currentTransfer.transferStatus = TransferStatus.READY_TO_BE_DOWNLOADED
+        currentTransfer.progressInPercentage = 0.0
+        currentTransfer.eta = Duration.ZERO
+        currentTransfer.feedbackMessage = "upload to drive failed, will be retried"
+        transferService.save(currentTransfer)
     }
 
     /**
@@ -478,25 +493,20 @@ class MultifileHosterService(
     }
 
     private fun updateUploadStatus(
+            transferToBeDownloaded: Transfer,
             torrentToBeDownloaded: Torrent,
             listOfFiles: List<TorrentFile>,
             currentFileNumber: Int,
             startTime: Instant?
     ) {
-        val transfer = transferService.getAll().firstOrNull { transfer: Transfer ->
-            transfer.uri.isNotEmpty() && transfer.uri.lowercase(Locale.ROOT).contains(
-                    torrentToBeDownloaded.torrentId.lowercase(
-                            Locale.ROOT
-                    )
-            )
-        }
+        val transfer = transferService.getAll().firstOrNull { it.id == transferToBeDownloaded.id }
         if (transfer != null) {
             transfer.transferStatus = TransferStatus.UPLOADING_TO_DRIVE
             transfer.progressInPercentage = currentFileNumber.toDouble() / listOfFiles.size.toDouble()
             transfer.eta = getUploadDuration(listOfFiles, currentFileNumber, startTime)
             transferService.save(transfer)
         } else {
-            log.warn("couldn't update transfer: $torrentToBeDownloaded")
+            log.warn("couldn't update transfer: $transferToBeDownloaded")
         }
         torrentToBeDownloaded.remoteStatusText = getUploadStatusString(
                 torrentToBeDownloaded, listOfFiles, currentFileNumber,
@@ -594,40 +604,6 @@ class MultifileHosterService(
         return foundMatch?.replace("\\s".toRegex(), ".") ?: ""
     }
 
-    internal fun rcloneDownloadFileToDestination(fileURLFromTorrent: String?, destinationPath: String): Boolean {
-        log.info("D>[{}]", destinationPath)
-        val builder = ProcessBuilder()
-        val commandToRun = String.format("rclone --no-check-certificate copyurl '%s' '%s'", fileURLFromTorrent, destinationPath.replace("'".toRegex(), ""))
-        log.info(commandToRun)
-        builder.command("bash", "-c", commandToRun)
-        builder.directory(File(System.getProperty("user.home")))
-        val process: Process?
-        val exitCode: Int
-        try {
-            process = builder.start()
-            val streamGobbler = StreamGobbler(process.inputStream) { x: String? -> println(x) }
-            val streamGobblerError = StreamGobbler(process.errorStream) { x: String? -> log.error("E: $x") }
-            Executors.newSingleThreadExecutor().submit(streamGobbler)
-            Executors.newSingleThreadExecutor().submit(streamGobblerError)
-            exitCode = process.waitFor()
-        } catch (e: IOException) {
-            log.error("upload failed: {}", destinationPath)
-            log.error(e.message)
-            return false
-        } catch (e: InterruptedException) {
-            log.error("upload failed: {}", destinationPath)
-            log.error(e.message)
-            return false
-        }
-        return if (exitCode != 0) {
-            log.error("upload failed: {}", destinationPath)
-            false
-        } else {
-            log.info("DF>[{}]", destinationPath)
-            true
-        }
-    }
-
     fun buildFilename(name: String?, fileURLFromTorrent: String?): String {
         val fileEndingFromUrl: String? = extractFileEndingFromUrl(fileURLFromTorrent)
         var returnName = if (StringUtils.hasText(name)) name ?: fileURLFromTorrent!! else fileURLFromTorrent!!
@@ -667,8 +643,7 @@ class MultifileHosterService(
                     }
                 }
         )
-        activeTorrents = java.util.ArrayList()
-        activeTorrents.addAll(remoteTorrents)
+        activeTorrents = remoteTorrents
     }
 
     private fun getTorrentsToDownload(): List<Torrent> {
@@ -684,9 +659,8 @@ class MultifileHosterService(
                     }
             )
         }
-        activeTorrents = java.util.ArrayList()
-        activeTorrents.addAll(remoteTorrents)
-        return activeTorrents
+        activeTorrents = remoteTorrents
+        return remoteTorrents
     }
 
     private fun isReadyForDownloadStatus(status: String?): Boolean {
@@ -695,7 +669,7 @@ class MultifileHosterService(
 
     private fun updateTorrent(torrentUpdate: Torrent) {
         localStatusStorage[torrentUpdate.torrentId] = torrentUpdate.remoteStatusText
-        torrentUpdate.remoteId.let {
+        if (torrentUpdate.remoteId.isNotEmpty()) {
             localStatusStorage[torrentUpdate.remoteId] = torrentUpdate.remoteStatusText
         }
     }

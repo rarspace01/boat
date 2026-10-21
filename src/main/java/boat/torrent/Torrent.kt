@@ -125,18 +125,31 @@ data class Torrent(
         return other is Torrent && torrentId == other.torrentId
     }
 
-    val torrentId: String
+    override fun hashCode(): Int {
+        return torrentId.hashCode()
+    }
+
+    /**
+     * The btih hash of the magnet uri, null for other uris (e.g. direct download urls).
+     */
+    val infoHash: String?
         get() {
             if (magnetUri.isEmpty()) {
-                return remoteIdOrHash
+                return null
             }
             val matcher = magnetPattern.matcher(magnetUri)
-            return if (matcher.find()) {
-                matcher.group(2).lowercase(Locale.getDefault())
-            } else {
-                remoteIdOrHash
-            }
+            return if (matcher.find() && matcher.group(2).isNotEmpty()) matcher.group(2).lowercase(Locale.ROOT) else null
         }
+
+    /**
+     * Never empty: the info hash, else the remote id, else the uri, else an id of this instance. An empty id would be
+     * contained in every uri and so match any transfer.
+     */
+    val torrentId: String
+        get() = infoHash
+            ?: remoteId.ifEmpty { null }
+            ?: magnetUri.ifEmpty { null }
+            ?: "torrent-" + System.identityHashCode(this)
     val torrentNameFromUri: String?
         get() {
             if (magnetUri.isEmpty()) {
@@ -149,9 +162,6 @@ data class Torrent(
                 null
             }
         }
-    private val remoteIdOrHash: String
-        get() = Objects.requireNonNullElseGet(remoteId) { this.hashCode().toString() }
-
     override fun compareTo(other: Torrent): Int {
         return if (sizeInMB < other.sizeInMB) -1 else 1
     }

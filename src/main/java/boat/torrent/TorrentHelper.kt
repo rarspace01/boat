@@ -387,6 +387,6 @@ object TorrentHelper {
 
     private fun hashFromUri(uri: String?): String? {
         if (uri.isNullOrBlank() || !isMagnetUriLike(uri)) return null
-        return Torrent.of(uri).torrentId.ifBlank { null }
+        return Torrent.of(uri).infoHash
     }
 }
