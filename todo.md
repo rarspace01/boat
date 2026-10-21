@@ -44,14 +44,14 @@ Findings from a code review of `src/main/java/boat`. Check items off as they get
 ## Improvements
 
 - [ ] Split `ContentRenamer` (~2000 lines) and `MultifileHosterService`; remove duplicates (`getUploadDuration`/`getUploadStatusString`, the twice-copied name matching block, `remoteTorrents`/`remoteTorrentsForDownload`), the unused `getTorrentToBeDownloaded`, and commented-out code.
-- [ ] Cache `getRemainingTrafficInMB()` (2 HTTP calls, called very often); avoid `transferService.getAll()` once per uploaded file.
+- [x] `getRemainingTrafficInMB()` is cached for 30 seconds. Still open: avoid `transferService.getAll()` once per uploaded file (`updateUploadStatus`).
 - [ ] ~~`rcloneDownloadFileToDestination` creates two executors per file~~ (fixed by `RcloneUploader`); `TorrentInfoService` creates a pool with one thread per torrent per search. Use shared bounded executors.
 - [ ] Replace `HttpHelper` with `java.net.http.HttpClient`: normal TLS, read error bodies, close streams (`downloadFileToPath` leaks), drop the ignored `params` argument.
 - [ ] `MediaProxyService`: empty results cached permanently, cache unbounded, `saveCache` only called from `ContentRenamer`, `refreshCache` never called.
 - [ ] Fail fast on missing `MONGO_URI`, `RCLONE_DIR` and API keys (currently `MongoClients.create("")`, `"null/..."` paths); make `/tmp/boat`, `/tmp/htpasswd`, `~/pfdb/PFDB` configurable.
-- [ ] Remove the bean name dump and redundant annotations in `Application`; use the logger instead of `println`/`printStackTrace`.
-- [ ] `ContentRenamer.getTargetFile`: use `file.extension` instead of `name.replace(nameWithoutExtension, "")`.
-- [ ] Support TB sizes in `TorrentHelper.extractTorrentSizeFromString`.
+- [x] Removed the bean name dump and the redundant annotations in `Application`. Still open: use the logger instead of `println`/`printStackTrace` elsewhere.
+- [x] `ContentRenamer.getTargetFile` uses `file.extension` (a name like `mkv.mkv` lost its extension).
+- [x] `TorrentHelper.extractTorrentSizeFromString` supports TB/TiB; the two copies of it were merged.
 - [ ] rclone `copyurl` overwrites existing library files; consider `--no-clobber`.
 - [ ] Tests for the bugs above and HTML escaping; separate live search engine tests from unit tests.
-- [ ] `settings.gradle` agrees to the build scan terms, so every build publishes a public build scan; make it opt-in.
+- [x] `settings.gradle` accepted the build scan terms everywhere. Removed the Develocity plugin (and with it the build scans) for now.

@@ -508,6 +508,15 @@ internal class MultifileHosterServiceTest {
     }
 
     @Test
+    fun shouldReuseRemainingTrafficForAShortTime() {
+        multifileHosterService.getRemainingTrafficInMB()
+        multifileHosterService.getRemainingTrafficInMB()
+        multifileHosterService.getRemainingTrafficInMB()
+
+        verify(exactly = 1) { httpHelper.getPage(match { it.contains("account/info") }) }
+    }
+
+    @Test
     fun shouldGiveUpWhenTheHosterKeepsReturningNoFiles() {
         val transfer = Transfer(
             name = "Inception.2010.1080p.mkv",

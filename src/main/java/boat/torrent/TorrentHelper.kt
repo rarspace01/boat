@@ -32,38 +32,24 @@ object TorrentHelper {
     }
 
     fun extractTorrentSizeFromString(tempTorrent: Torrent): Double {
-        var torrentSize: Long = 0
-        try {
-            if (tempTorrent.size.contains("GiB") || tempTorrent.size.contains("GB")) {
-                torrentSize = (trimSizeStringToValue(tempTorrent).toDouble() * 1024).toLong()
-            } else if (tempTorrent.size.contains("MiB") || tempTorrent.size.contains("MB")) {
-                torrentSize = trimSizeStringToValue(tempTorrent).toDouble().toLong()
-            }
-        } catch (_: Exception) {
-        }
-        return torrentSize.toDouble()
+        return extractTorrentSizeFromString(tempTorrent.size)
     }
 
+    /**
+     * The size in MB of strings like "1.5 GiB" or "700 MB", 0 if the unit or number isn't understood.
+     */
     fun extractTorrentSizeFromString(sizeString: String): Double {
-        var torrentSize: Long = 0
-        try {
-            if (sizeString.contains("GiB") || sizeString.contains("GB")) {
-                torrentSize = (trimSizeStringToValue(sizeString).toDouble() * 1024).toLong()
-            } else if (sizeString.contains("MiB") || sizeString.contains("MB")) {
-                torrentSize = trimSizeStringToValue(sizeString).toDouble().toLong()
-            }
-        } catch (_: Exception) {
+        val megabytesPerUnit = when {
+            sizeString.contains("TiB") || sizeString.contains("TB") -> 1024.0 * 1024.0
+            sizeString.contains("GiB") || sizeString.contains("GB") -> 1024.0
+            sizeString.contains("MiB") || sizeString.contains("MB") -> 1.0
+            else -> return 0.0
         }
-        return torrentSize.toDouble()
+        val value = sizeString.replace(sizeUnitAndTagPattern, "").trim { it <= ' ' }.toDoubleOrNull() ?: return 0.0
+        return (value * megabytesPerUnit).toLong().toDouble()
     }
 
-    private fun trimSizeStringToValue(tempTorrent: Torrent): String {
-        return tempTorrent.size.replace("(GiB)|(GB)|(MiB)|(MB)|(<.*?>)".toRegex(), "").trim { it <= ' ' }
-    }
-
-    private fun trimSizeStringToValue(stringValue: String): String {
-        return stringValue.replace("(GiB)|(GB)|(MiB)|(MB)|(<.*?>)".toRegex(), "").trim { it <= ' ' }
-    }
+    private val sizeUnitAndTagPattern = "(TiB)|(TB)|(GiB)|(GB)|(MiB)|(MB)|(<.*?>)".toRegex()
 
     fun evaluateRating(tempTorrent: Torrent, searchName: String): Torrent {
         tempTorrent.debugRating = ""

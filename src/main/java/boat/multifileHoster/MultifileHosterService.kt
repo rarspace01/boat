@@ -34,6 +34,7 @@ import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.function.Consumer
 import java.util.regex.Pattern
@@ -178,9 +179,23 @@ class MultifileHosterService(
         return size.toDouble() / 1024.0 / 1024.0
     }
 
+    /**
+     * Asking the multifilehosters costs HTTP calls and this is needed very often, so the sum is reused for
+     * [TRAFFIC_CACHE_SECONDS].
+     */
     fun getRemainingTrafficInMB(): Double {
-        return multifileHosterList.sumOf { multifileHoster: MultifileHoster -> multifileHoster.getRemainingTrafficInMB() }
+        val cached = cachedRemainingTraffic
+        val now = System.nanoTime()
+        if (cached != null && now - cached.first < TimeUnit.SECONDS.toNanos(TRAFFIC_CACHE_SECONDS)) {
+            return cached.second
+        }
+        val remainingTraffic = multifileHosterList.sumOf { multifileHoster: MultifileHoster -> multifileHoster.getRemainingTrafficInMB() }
+        cachedRemainingTraffic = now to remainingTraffic
+        return remainingTraffic
     }
+
+    @Volatile
+    private var cachedRemainingTraffic: Pair<Long, Double>? = null
 
     private fun getFilesFromTorrent(torrentToBeDownloaded: Torrent): List<TorrentFile> {
         val hoster = multifileHosterList.firstOrNull { multifileHoster: MultifileHoster -> multifileHoster.getName() == torrentToBeDownloaded.source }
@@ -757,5 +772,6 @@ class MultifileHosterService(
     companion object {
         private val log by LoggerDelegate()
         const val MAX_UPLOAD_TO_DRIVE_RETRIES = 2
+        const val TRAFFIC_CACHE_SECONDS = 30L
     }
 }
