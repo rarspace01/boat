@@ -34,7 +34,7 @@ Findings from a code review of `src/main/java/boat`. Check items off as they get
 - [ ] No users in the database → every endpoint is open; `hasUsers` is only evaluated at startup.
 - [ ] XSS: torrent names (`Torrent.toHtml`), media titles, existing file names and `localSearchString` are written into HTML unescaped.
 - [ ] CSRF disabled with HTTP Basic auth, and state-changing endpoints accept GET (`/boat/download`).
-- [ ] Shell injection: rclone commands built via `bash -c` with interpolated URLs/paths; use a `ProcessBuilder` argument list. Done for uploads (`RcloneUploader`), still open in `CloudFileService` (`lsjson`, `about`).
+- [x] Shell injection: rclone commands were built via `bash -c` with interpolated URLs/paths. All rclone calls (`RcloneUploader`, `CloudFileService`, `ProcessUtil`) now pass an argument list.
 - [ ] TLS verification disabled everywhere (`HttpHelper` trust-all, rclone `--no-check-certificate`), including calls carrying API keys.
 - [ ] API keys in query strings end up in logs (`Premiumize`, `Alldebrid`, `HttpHelper` stack traces).
 - [ ] `CachedAuthenticationProvider` keys the cache with the plaintext `user:password`; revoked passwords stay valid for up to 10 minutes.
