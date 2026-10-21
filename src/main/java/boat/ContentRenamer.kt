@@ -1478,11 +1478,11 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
 
     /**
      * Renames and moves the media files below [path] into the library at [basePath] (default ~/pfdb/PFDB).
-     * With [skipFilesWithRemoteId] files that already carry a remote media id like `{tmdb-123}` are left alone, so
-     * no lookups are made for the files that were renamed before.
+     * With [skipFilesWithRemoteId] (the default) files that already carry a remote media id like `{tmdb-123}` are left
+     * alone, so no lookups are made for the files that were renamed before. Turn it off to check them again.
      */
     fun processFilesFromDirectory(
-        path: String, logFile: File? = null, isTestRun: Boolean = true, basePath: String? = null, skipFilesWithRemoteId: Boolean = false
+        path: String, logFile: File? = null, isTestRun: Boolean = true, basePath: String? = null, skipFilesWithRemoteId: Boolean = true
     ) {
         val writer = logFile?.let { BufferedWriter(FileWriter(it, true)) }
         try {
