@@ -19,13 +19,15 @@ object PropertiesHelper {
     fun getProperty(propname: String, default: String? = null): String? {
         System.getenv(propname)?.let { return it }
 
-        return propertyFile?.let { path ->
+        val value = propertyFile?.let { path ->
             runCatching {
                 FileInputStream(path).use { inputStream ->
                     Properties().apply { load(inputStream) }.getProperty(propname)
                 }
-            }.onFailure { println("'$propname' Notfound, using :'$default'") }.getOrElse({ default })
+            }.getOrNull()
         }
+        if (value == null) println("'$propname' Notfound, using :'$default'")
+        return value ?: default
     }
 
     private val propertyFile: String?

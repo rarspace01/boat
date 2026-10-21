@@ -26,8 +26,9 @@ class CloudService internal constructor(
         const val RCLONE_DIR = "RCLONEDIR"
     }
 
-    val isCloudTokenValid: Boolean =
-        cloudFileService.getFilesInPath(buildDestinationPathWithTypeOfMediaWithoutSubFolders("A", TorrentType.MOVIES))
+    /** Checked on every access (the listing is only cached when it is not empty), so an expired or late-ready token is noticed. */
+    val isCloudTokenValid: Boolean
+        get() = cloudFileService.getFilesInPath(buildDestinationPathWithTypeOfMediaWithoutSubFolders("A", TorrentType.MOVIES))
             .isNotEmpty()
 
     private fun deductSeriesNameFrom(preparedTorrentName: String): String {

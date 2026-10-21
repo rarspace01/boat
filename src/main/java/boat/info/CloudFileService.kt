@@ -51,7 +51,7 @@ class CloudFileService {
         }
     }
 
-    @Cacheable("filesCache")
+    @Cacheable("filesCache", unless = "#result.isEmpty()")
     fun getFilesInPath(destinationPath: String): List<String> {
         return getFilesInPathWithRetries(destinationPath, 3)
     }

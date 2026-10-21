@@ -116,15 +116,19 @@ class DownloadMonitor(
     @Scheduled(fixedRate = (SECONDS_BETWEEN_VERSION_CHECK * 1000).toLong(), initialDelay = 60 * 5 * 1000)
     fun checkForUpdatedVersionAndShutdownIfUpdateAvailable() {
         logger.info("checkForUpdatedVersionAndShutdown()")
-        val pageContent = httpHelper.getPage("https://api.github.com/repos/rarspace01/boat/releases/latest")
-        if (!Strings.isEmpty(pageContent)) {
-            val jsonRoot = JsonParser.parseString(pageContent)
-            val githubVersion = jsonRoot.asJsonObject["name"].asString
-            if (!PropertiesHelper.version!!.contains(githubVersion)) {
-                logger.info("Local [{}] != Github [{}]", PropertiesHelper.version, githubVersion)
-                logger.warn("version out of date, shutting down")
-                exitProcess(0)
+        val githubVersion = runCatching {
+            val pageContent = httpHelper.getPage("https://api.github.com/repos/rarspace01/boat/releases/latest")
+            if (Strings.isEmpty(pageContent)) null else JsonParser.parseString(pageContent).asJsonObject["name"]?.asString
+        }.onFailure { logger.warn("version check failed: {}", it.message) }.getOrNull()
+        if (githubVersion.isNullOrBlank()) return
+        if (!isVersionUpToDate(PropertiesHelper.version, githubVersion)) {
+            logger.info("Local [{}] != Github [{}]", PropertiesHelper.version, githubVersion)
+            if (transferService.getAll().any { it.transferStatus == TransferStatus.UPLOADING_TO_DRIVE }) {
+                logger.info("update available, but an upload is running, retrying later")
+                return
             }
+            logger.warn("version out of date, shutting down")
+            exitProcess(0)
         }
     }
 
@@ -202,6 +206,10 @@ class DownloadMonitor(
     }
 
     companion object {
+        /** True if [githubVersion] is the local version, ignoring that `1.2.1` is a prefix of `1.2.10`. */
+        internal fun isVersionUpToDate(localVersion: String?, githubVersion: String): Boolean =
+            localVersion != null && Regex("(?<![0-9.])" + Regex.escape(githubVersion) + "(?![0-9.])").containsMatchIn(localVersion)
+
         const val MIN_GB_FOR_QUEUE = 150
         const val MAX_QUEUE_DOWNLOADS_LIMIT = 20
         private const val SECONDS_BETWEEN_DOWNLOAD_POLLING = 30
