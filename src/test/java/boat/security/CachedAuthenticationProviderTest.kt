@@ -53,4 +53,11 @@ internal class CachedAuthenticationProviderTest {
 
         assertThatThrownBy { login("secret") }.isInstanceOf(BadCredentialsException::class.java)
     }
+
+    @Test
+    fun shouldDenyLoginIfThereAreNoUsers() {
+        every { userRepository.findByUsername("denis") } returns null
+
+        assertThatThrownBy { login("secret") }.isInstanceOf(BadCredentialsException::class.java)
+    }
 }
