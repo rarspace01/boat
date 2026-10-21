@@ -15,6 +15,7 @@ import boat.model.Transfer
 import boat.model.TransferStatus
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.assertj.core.api.Assertions.assertThat
@@ -93,5 +94,25 @@ internal class BoatControllerTest {
 
         assertThat(response.statusCode).isEqualTo(HttpStatus.SEE_OTHER)
         assertThat(response.headers.getFirst(HttpHeaders.LOCATION)).isEqualTo("./debug?message=restarted+Inception")
+    }
+
+    @Test
+    fun shouldQueueMatchedEntriesOfTheSearchList() {
+        val matched = MediaItem("Dune", "Dune", 1984, MediaType.Movie, "{tmdb-841}")
+        every { mediaProxyService.findBestMatch("Dune", 1984) } returns matched
+        every { cloudService.findExistingFiles(any()) } returns emptyList()
+        every { queueService.addAll(any()) } returns Unit
+        every { queueService.saveQueue() } returns Unit
+
+        val response = boatController.queueList("Dune 1984\n")
+
+        verify(exactly = 1) { queueService.addAll(listOf(matched)) }
+        assertThat(response).contains("{tmdb-841}")
+    }
+
+    @Test
+    fun shouldRejectEmptySearchList() {
+        assertThat(boatController.queueList("")).contains("nothing to search")
+        assertThat(boatController.queueList(null)).contains("nothing to search")
     }
 }
