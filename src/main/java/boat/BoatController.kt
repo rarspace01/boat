@@ -186,8 +186,8 @@ $switchToSearch${switchToProgress}""" + htmlFooter
         if (localSearchString != null && Strings.isNotEmpty(localSearchString)) {
             val existingFiles = cloudService.findExistingFiles(localSearchString)
             searchString = if (existingFiles.isNotEmpty()) {
-                return htmlHeader + ("We already found some files:<br/>" + java.lang.String.join("<br/>", existingFiles)
-                        + "<br/>Still want to search? <a href=\"?q=" + localSearchString + "\">Yes</a>") + htmlFooter
+                return htmlHeader + ("We already found some files:<br/>" + existingFiles.joinToString("<br/>") { HtmlUtils.htmlEscape(it) }
+                        + "<br/>Still want to search? <a href=\"?q=" + urlEncode(localSearchString) + "\">Yes</a>") + htmlFooter
             } else {
                 localSearchString
             }
@@ -222,7 +222,7 @@ $switchToSearch${switchToProgress}""" + htmlFooter
             .filter { mediaItem: MediaItem -> isNotAlreadyDownloaded(mediaItem) }
         queueService.addAll(listOfMediaItems)
         queueService.saveQueue()
-        return htmlHeader + (switchToProgress.replace("..", "../boat") + listOfMediaItems) + htmlFooter
+        return htmlHeader + (switchToProgress.replace("..", "../boat") + HtmlUtils.htmlEscape(listOfMediaItems.toString()).replace("\n", "<br/>")) + htmlFooter
     }
 
     @GetMapping("/boat/search")
@@ -272,7 +272,7 @@ $switchToSearchOld$switchToSearchList${switchToProgress.replace("..", "../boat")
             val existingFiles = (cloudService.findExistingFiles(cleanedTitle) +
                     (mediaId?.let { cloudService.findExistingFiles(it) } ?: emptyList())).distinct()
             if (existingFiles.isNotEmpty()) {
-                htmlHeader + ("We already found some files:<br/>" + existingFiles.joinToString("<br/>")
+                htmlHeader + ("We already found some files:<br/>" + existingFiles.joinToString("<br/>") { HtmlUtils.htmlEscape(it) }
                         + "<br/>Still want to search? <a href=\"?q=" + urlEncode(torrentSearchString) + midParam + "\">Yes</a>") + htmlFooter
             } else {
                 searchTorrents(null, null, null, torrentSearchString, mediaId, mediaType?.name)
@@ -287,10 +287,10 @@ $switchToSearchOld$switchToSearchList${switchToProgress.replace("..", "../boat")
                 val itemMidParam = (mediaItem.id?.let { "&mid=" + urlEncode(it) } ?: "") + (mediaItem.type?.let { "&mt=${it.name}" } ?: "")
                 val itemYearParam = mediaItem.year?.takeIf { mediaItem.type == boat.info.MediaType.Movie }
                     ?.let { "&y=$it" } ?: ""
-                "<a href=\"?t=" + urlEncode(mediaItem.title) + itemYearParam + itemMidParam + "\">" + mediaItem.title +
+                "<a href=\"?t=" + urlEncode(mediaItem.title) + itemYearParam + itemMidParam + "\">" + HtmlUtils.htmlEscape(mediaItem.title) +
                         (mediaItem.year?.let { " ($it)" } ?: "") +
                         (mediaItem.type?.let { " [$it]" } ?: "") +
-                        (mediaItem.id?.let { " $it" } ?: "") + "</a><br/>\n"
+                        (mediaItem.id?.let { " " + HtmlUtils.htmlEscape(it) } ?: "") + "</a><br/>\n"
             }
             htmlHeader + (if (mediaItems.isEmpty()) "No media found.<br/>" else "Select a title:<br/>$mediaList") +
                     htmlFooter
@@ -347,7 +347,7 @@ $switchToSearchOld$switchToSearchList${switchToProgress.replace("..", "../boat")
 
     @RequestMapping("/boat/tfdb")
     fun searchTfdb(@RequestParam(value = "q") query: String?): String {
-        return mediaProxyService.search(query).toString()
+        return HtmlUtils.htmlEscape(mediaProxyService.search(query).toString())
     }
 
     @GetMapping("/boat/debug")

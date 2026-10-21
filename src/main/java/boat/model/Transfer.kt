@@ -1,5 +1,6 @@
 package boat.model
 
+import org.springframework.web.util.HtmlUtils
 import boat.info.MediaType
 import boat.torrent.TorrentHelper.formatDuration
 import org.springframework.data.annotation.Id
@@ -28,12 +29,15 @@ data class Transfer(
 ) {
     override fun toString(): String {
         return String.format(
-            "\n<br/>[<!-- ID:[%s]RID:[%s]MID:[%s]MT:[%s] -->%s,\uD83C\uDFE0%s,%s,%s,%s<!-- MSG: %s -->%s<!-- ,%s -->]", id, remoteId, remoteMediaId, mediaType, name,
-            source[0], transferStatus.string, type, percentageString, feedbackMessage,
+            "\n<br/>[<!-- ID:[%s]RID:[%s]MID:[%s]MT:[%s] -->%s,\uD83C\uDFE0%s,%s,%s,%s<!-- MSG: %s -->%s<!-- ,%s -->]", esc(id), esc(remoteId), esc(remoteMediaId), mediaType, esc(name),
+            esc(source.take(1)), transferStatus.string, type, percentageString, esc(feedbackMessage),
             printDuration(),
             updated
         )
     }
+
+    // the transfer is written into html (debug page), names come from search engines and hosters
+    private fun esc(value: String?): String? = value?.let { HtmlUtils.htmlEscape(it) }
 
     /**
      * The name as reported by the multifilehoster, without the media title prefix ("<media title> | <hoster name>").

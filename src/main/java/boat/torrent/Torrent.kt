@@ -3,6 +3,7 @@ package boat.torrent
 import boat.info.MediaType
 import boat.model.TransferStatus
 import org.apache.logging.log4j.util.Strings
+import org.springframework.web.util.HtmlUtils
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.time.Duration
@@ -58,7 +59,7 @@ data class Torrent(
         if (magnetUri.isNotEmpty()) {
             magnetUriBase64 = Base64.getUrlEncoder().encodeToString(magnetUri.toByteArray(StandardCharsets.UTF_8))
         }
-        stringBuilder.append(String.format("[%s][%s]", name, retrieveSourceName()))
+        stringBuilder.append(String.format("[%s][%s]", HtmlUtils.htmlEscape(name), HtmlUtils.htmlEscape(retrieveSourceName())))
         if (!isRemoteTorrent) {
             stringBuilder.append(String.format("[%s@<!-- ][%s/%s][ -->%.2f]", size, leecher, seeder, seedRatio))
             stringBuilder.append(String.format("<!-- R: %.2f -->", searchRating))
@@ -89,7 +90,7 @@ data class Torrent(
             if (remoteStatusText.contains("Uploading")) {
                 progress = ""
             }
-            stringBuilder.append(" ").append(remoteStatusText.replace("finished".toRegex(), "Waiting for Upload"))
+            stringBuilder.append(" ").append(HtmlUtils.htmlEscape(remoteStatusText.replace("finished".toRegex(), "Waiting for Upload")))
                 .append(progress)
         }
         if (eta != Duration.ZERO) {
@@ -99,10 +100,10 @@ data class Torrent(
             stringBuilder.append(
                 String.format(
                     "%s - %s - folder_id: %s file_id: %s",
-                    torrentId,
-                    remoteId,
-                    folder_id,
-                    file_id
+                    HtmlUtils.htmlEscape(torrentId.toString()),
+                    HtmlUtils.htmlEscape(remoteId.toString()),
+                    HtmlUtils.htmlEscape(folder_id.toString()),
+                    HtmlUtils.htmlEscape(file_id.toString())
                 )
             )
         }
