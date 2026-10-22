@@ -41,16 +41,15 @@ import kotlin.math.pow
  * to 30% longer than it compete (whatever their differences among each other), shorter ones are incomplete and deleted, a longer one
  * (several episodes in one file) leaves the group undecided.
  *
- * A file which ffprobe can't read and which is under 1 MB is a failed download, it is deleted if a readable version
- * exists. A version shorter than half of the longest one is an incomplete file (or another cut) and is deleted too.
+ * A file which ffprobe can't read is broken, it is deleted if a readable version exists. A version shorter than half of the longest one is an incomplete file (or another cut) and is deleted too.
  *
- * A group is otherwise only decided if every version could be read, the codecs are known and they are about equally long (15%, PAL speed-up, recaps and credits differ by that much). Otherwise it is
+ * Episodes whose file names have different titles in front of the episode number ("Batman TAS.S01E02" and "The New
+ * Batman Adventures.S01E02" in the same show) are not the same episode, such a group is [UnsureGroup].
+ *
+ * A group is otherwise only decided if the codecs are known and they are about equally long (5%, a PAL speed-up of 4% or other credits differ by that much; more is another cut or episode, a mislabeled number). Otherwise it is
  * [UnsureGroup] and nothing of it is deleted: a file which is much shorter might be cut or damaged, or a different
  * cut or a double episode. The subtitles next to a deleted version are moved to the version which stays if it has
  * none for that language, otherwise they are deleted with it.
- *
- * If one file is at least [SIZE_FACTOR] times as large as each other one it is kept without reading anything, the
- * others are deleted.
  *
  * Run it as a test run first, it only writes what it would delete to the log. The log also tells how fast the probe is.
  */
@@ -155,12 +154,8 @@ class DuplicateCleaner(
             .mapNotNull { file -> duplicateKey(file)?.let { key -> key to file } }
             .groupBy({ it.first }, { it.second })
             .filter { it.value.size > 1 }
-        val (_, toProbe) = sameByName.entries.partition { largeEnoughToKeep(it.value) != null }
-        logger.info(
-            "{} groups of files which exist more than once, {} of them kept by size without reading, reading {} files",
-            sameByName.size, sameByName.size - toProbe.size, toProbe.sumOf { it.value.size }
-        )
-        val (infos, stats) = probeAll(toProbe.flatMap { it.value })
+        logger.info("{} groups of files which exist more than once, reading {} files", sameByName.size, sameByName.values.sumOf { it.size })
+        val (infos, stats) = probeAll(sameByName.values.flatten())
         logger.info("{}", stats)
         logger.info("deciding {} groups of files which exist more than once", sameByName.size)
         val decideStart = System.nanoTime()
@@ -174,16 +169,14 @@ class DuplicateCleaner(
             if (++decided % 250 == 0) {
                 logger.info("decided {} of {} groups after {} s, {} runtime lookups so far", decided, sameByName.size, (System.nanoTime() - decideStart) / 1_000_000_000, lookups)
             }
-            largeEnoughToKeep(files)?.let { largest ->
-                // no probe needed: the others are less than a quarter of the size
-                val unknown = VideoInfo(null, null, null, null, null)
-                val losers = (files - largest).map { Version(it, unknown) }
-                groups.add(DuplicateGroup(key, Version(largest, unknown), losers, losers.associate { it.file to "less than 1/${SIZE_FACTOR} of the size of the kept version" }))
+            val titles = files.mapNotNull { episodeTitleOf(it) }.distinctBy { normalizedTitle(it) }
+            if (titles.size > 1) {
+                unsure.add(UnsureGroup(key, files, "different titles (${titles.joinToString(" / ") { "'$it'" }})", files.mapNotNull { file -> infos[file]?.let { Version(file, it) } }))
                 return@forEach
             }
-            // a few bytes are a failed download, nothing to compare, it goes if there is a readable version
-            val stubs = files.filter { infos[it] == null && it.length() < MAX_STUB_BYTES }.takeIf { it.size < files.size } ?: emptyList()
-            val candidates = files - stubs.toSet()
+            // a file which can't be read is broken, it goes if there is a readable version
+            val broken = files.filter { infos[it] == null }.takeIf { it.size < files.size } ?: emptyList()
+            val candidates = files - broken.toSet()
             val versions = candidates.mapNotNull { file -> infos[file]?.let { Version(file, it) } }
             val unreadable = candidates.filter { infos[it] == null }
             val official = if (runtimeLookup != null && versions.size > 1 && versions.all { it.info.durationSeconds != null } && differentLength(versions)) {
@@ -218,10 +211,10 @@ class DuplicateCleaner(
                 unsure.add(UnsureGroup(key, files, reason, versions))
             } else {
                 val ranked = complete.sortedWith(bestFirst)
-                val broken = stubs.map { Version(it, VideoInfo(null, null, null, null, null)) }
-                val reasons = stubs.associateWith { "broken file, not readable" } +
+                val brokenVersions = broken.map { Version(it, VideoInfo(null, null, null, null, null)) }
+                val reasons = broken.associateWith { "broken file, not readable" } +
                         incomplete.associate { it.file to if (byRuntime) "shorter than the official runtime of ${formatDuration(official!!)}" else "incomplete, shorter than half of the longest version" }
-                groups.add(DuplicateGroup(key, ranked.first(), ranked.drop(1) + incomplete + broken, reasons))
+                groups.add(DuplicateGroup(key, ranked.first(), ranked.drop(1) + incomplete + brokenVersions, reasons))
             }
         }
         logger.info(
@@ -247,14 +240,6 @@ class DuplicateCleaner(
             runtimeLookup?.minutes(series.groupValues[1], series.groupValues[2].toInt(), series.groupValues[3].toInt())
         }
         return minutes?.times(60)
-    }
-
-    /** The file which is at least [SIZE_FACTOR] times as large as every other one of the [files], so it is kept without reading them, else null. */
-    private fun largeEnoughToKeep(files: List<File>): File? {
-        val sizes = files.associateWith { it.length() }
-        val largest = sizes.maxByOrNull { it.value } ?: return null
-        val others = sizes.filterKeys { it != largest.key }.values
-        return largest.key.takeIf { largest.value > 0 && others.isNotEmpty() && others.all { largest.value >= it * SIZE_FACTOR } }
     }
 
     private fun differentLength(versions: List<Version>): Boolean {
@@ -421,17 +406,11 @@ class DuplicateCleaner(
         private val movieKeyPattern = "movie \\{?((?:tmdb|tvdb)-\\d+)}? pt(\\d+)".toRegex()
         private val seriesKeyPattern = "series \\{?((?:tmdb|tvdb)-\\d+)}? S(\\d+)E(\\d+)".toRegex()
 
-        /** A file which ffprobe can't read and which is smaller than this is a failed download. */
-        private const val MAX_STUB_BYTES = 1024L * 1024
-
         /** A version shorter than this part of the longest one is an incomplete file (or another cut), it is deleted. */
         private const val MIN_COMPLETE_LENGTH = 0.5
 
-        /** A version which is this many times larger than all others of its group is kept without probing. */
-        private const val SIZE_FACTOR = 4
-
         /** Versions which differ more in length are not the same content. */
-        private const val MAX_LENGTH_DIFFERENCE = 0.15
+        private const val MAX_LENGTH_DIFFERENCE = 0.05
 
         private val standardHeights = listOf(4320, 2160, 1440, 1080, 720, 576, 480, 360, 240)
 
@@ -471,6 +450,16 @@ class DuplicateCleaner(
             val part = LibraryPaths.moviePartPattern.find(file.nameWithoutExtension)?.groupValues?.get(1)?.toInt() ?: 0
             return "movie $id pt$part"
         }
+
+        /** The title in front of the episode number of the file name ("Batman TAS" of "Batman TAS.S01E02.1080p.mp4"), null if there is none. */
+        internal fun episodeTitleOf(file: File): String? {
+            val name = file.nameWithoutExtension
+            return episodePattern.find(name)?.let { name.substring(0, it.range.first) }?.trim(' ', '.', '-', '_')?.takeIf { it.isNotEmpty() }
+        }
+
+        /** The title without case, punctuation and a leading "the", so "The.Crow.Girl" and "The Crow Girl" are the same. */
+        private fun normalizedTitle(title: String): String =
+            title.lowercase().replace("[^\\p{L}\\p{N}]+".toRegex(), " ").trim().removePrefix("the ")
 
         private fun episodeKey(file: File): String? {
             // the id is in the name of the folder of the show
