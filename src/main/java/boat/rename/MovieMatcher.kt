@@ -4,7 +4,7 @@ import boat.info.MediaItem
 import boat.info.MediaProxyService
 import boat.info.MediaType
 import boat.rename.EpisodeParser.nonAlphanumericPattern
-import boat.rename.MediaNameParser.normalizeMovieTitle
+import boat.rename.MovieNameParser.normalizeMovieTitle
 import kotlin.math.abs
 
 /**

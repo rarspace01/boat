@@ -1,677 +1,39 @@
 package boat.rename
 
-import boat.info.MediaProxyService
-import boat.rename.EpisodeParser.bracketPattern
-import boat.rename.EpisodeParser.bracketedEpisodePattern
-import boat.rename.EpisodeParser.dashEpisodePattern
 import boat.rename.EpisodeParser.doubleDashEpisodePattern
-import boat.rename.EpisodeParser.episodeWithTitlePattern
-import boat.rename.EpisodeParser.explicitEpisodeLookbehindPattern
 import boat.rename.EpisodeParser.gluedSeasonEpisode
-import boat.rename.EpisodeParser.isOpeningEndingOrOva
 import boat.rename.EpisodeParser.nonAlphanumericPattern
 import boat.rename.EpisodeParser.seasonEpisodePattern
-import boat.rename.EpisodeParser.seasonPattern
-import boat.rename.EpisodeParser.seasonPattern2
-import boat.rename.EpisodeParser.specialMarkerIndex
-import boat.rename.EpisodeParser.standaloneEpisodePattern
-import boat.rename.EpisodeParser.versionPattern
 import boat.rename.FileAttributes.decodeIfEncoded
-import boat.rename.FileAttributes.extractSubtitleLanguage
-import boat.rename.FileAttributes.isMovieExtra
-import boat.rename.FileAttributes.movieExtraPattern
-import boat.rename.FileAttributes.videoExtensions
-import boat.rename.NamePatterns.acronymPattern
-import boat.rename.NamePatterns.bookPattern
-import boat.rename.NamePatterns.categoryFolderNames
-import boat.rename.NamePatterns.cleanEpisodeMatchPattern
-import boat.rename.NamePatterns.copyCounterAfterParenthesizedYearPattern
-import boat.rename.NamePatterns.coursePattern
-import boat.rename.NamePatterns.creditlessFolderPattern
-import boat.rename.NamePatterns.dashDotNumPattern
-import boat.rename.NamePatterns.dayInNamePattern
-import boat.rename.NamePatterns.discStructureFolderNames
-import boat.rename.NamePatterns.discStructureRootNames
-import boat.rename.NamePatterns.dvdPattern
-import boat.rename.NamePatterns.episodeLikeShortPattern
-import boat.rename.NamePatterns.episodeNumberWithTitlePattern
-import boat.rename.NamePatterns.episodeRangePattern
-import boat.rename.NamePatterns.episodeWordPattern
-import boat.rename.NamePatterns.episodesAndMoviesPackPattern
-import boat.rename.NamePatterns.explicitEpisodePattern
-import boat.rename.NamePatterns.extrasFolderPattern
-import boat.rename.NamePatterns.extrasInNamePattern
-import boat.rename.NamePatterns.extrasPlusPattern
-import boat.rename.NamePatterns.groupPrefixPattern
-import boat.rename.NamePatterns.hexHashPattern
-import boat.rename.NamePatterns.languageNames
-import boat.rename.NamePatterns.leadingBracketGroupsPattern
-import boat.rename.NamePatterns.leadingReleaseGroupPattern
-import boat.rename.NamePatterns.leadingTrackNumberPattern
-import boat.rename.NamePatterns.leadingYearTitlePattern
-import boat.rename.NamePatterns.listNumberPrefixPattern
-import boat.rename.NamePatterns.midNameTechnicalTagPattern
-import boat.rename.NamePatterns.movieFileWordPattern
-import boat.rename.NamePatterns.movieFolderWordPattern
-import boat.rename.NamePatterns.movieHashPrefixPattern
-import boat.rename.NamePatterns.movieLanguageOrEditionTagPattern
-import boat.rename.NamePatterns.movieNumberPattern
-import boat.rename.NamePatterns.movieSitePrefixPattern
-import boat.rename.NamePatterns.movieSubtitlePattern
-import boat.rename.NamePatterns.movieTechnicalTagPattern
-import boat.rename.NamePatterns.movieYearPattern
-import boat.rename.NamePatterns.multiNumberTrailingPattern
-import boat.rename.NamePatterns.nonAlphanumericOnlyPattern
-import boat.rename.NamePatterns.nonLetterPattern
-import boat.rename.NamePatterns.nonMediaExtensions
-import boat.rename.NamePatterns.numShortWordPattern
-import boat.rename.NamePatterns.numberedSubFolderPattern
-import boat.rename.NamePatterns.numericRangePattern
-import boat.rename.NamePatterns.packInNamePattern
-import boat.rename.NamePatterns.packWithExtrasPattern
-import boat.rename.NamePatterns.paddingFilePattern
-import boat.rename.NamePatterns.parenthesizedEpisodeRangePattern
-import boat.rename.NamePatterns.parenthesizedGroupPattern
-import boat.rename.NamePatterns.parenthesizedPrefixPattern
-import boat.rename.NamePatterns.parenthesizedTagsPattern
-import boat.rename.NamePatterns.parenthesizedYearExtractorRegex
-import boat.rename.NamePatterns.parenthesizedYearPattern
-import boat.rename.NamePatterns.partInNamePattern
-import boat.rename.NamePatterns.pilotPattern
-import boat.rename.NamePatterns.pureNumberPattern
-import boat.rename.NamePatterns.rangeLetterPattern
-import boat.rename.NamePatterns.rangeSinglePattern
-import boat.rename.NamePatterns.releaseGroups
-import boat.rename.NamePatterns.remainderEpisodePattern
-import boat.rename.NamePatterns.remainderYearOrNumPattern
-import boat.rename.NamePatterns.remoteMediaIdPattern
-import boat.rename.NamePatterns.repeatedDashPattern
-import boat.rename.NamePatterns.sEPattern
-import boat.rename.NamePatterns.seasonDiscPartPattern
-import boat.rename.NamePatterns.seasonEpisodeMarkerPattern
-import boat.rename.NamePatterns.seasonFolderMarkerPattern
-import boat.rename.NamePatterns.seasonFolderPattern
-import boat.rename.NamePatterns.seasonInNamePattern
-import boat.rename.NamePatterns.seasonXEpisodeMarkerPattern
-import boat.rename.NamePatterns.shortAcronymPattern
-import boat.rename.NamePatterns.shortWordNumPattern
-import boat.rename.NamePatterns.showAfterEpisodeMarkerPattern
-import boat.rename.NamePatterns.sitePrefixPattern
-import boat.rename.NamePatterns.startsWithEpisodeNumberPattern
-import boat.rename.NamePatterns.subtitleFlags
-import boat.rename.NamePatterns.subtitleFolderPattern
-import boat.rename.NamePatterns.tokenPattern
-import boat.rename.NamePatterns.trailingDashArticlePattern
-import boat.rename.NamePatterns.trailingEpisodeMarkerPattern
-import boat.rename.NamePatterns.trailingEpisodeNumberMarkerPattern
-import boat.rename.NamePatterns.trailingEpisodePattern
-import boat.rename.NamePatterns.trailingMovieTagPattern
-import boat.rename.NamePatterns.trailingQualityTag
-import boat.rename.NamePatterns.trailingReleaseGroupPattern
-import boat.rename.NamePatterns.trailingSeasonNumberPattern
-import boat.rename.NamePatterns.trailingYearAfterNumberPattern
-import boat.rename.NamePatterns.trailingYearPattern
-import boat.rename.NamePatterns.unitPattern
-import boat.rename.NamePatterns.whitespacePattern
-import boat.rename.NamePatterns.xPattern
-import boat.rename.NamePatterns.yearEpisodeInNamePattern
-import boat.rename.NamePatterns.yearEpisodePrefixPattern
-import boat.rename.NamePatterns.yearExtractorRegex
-import boat.rename.NamePatterns.yearGluedToResolutionPattern
-import boat.rename.NamePatterns.yearPattern
-import boat.rename.NamePatterns.yearRangePattern
-import boat.rename.NamePatterns.zeroPaddedMatchPattern
+import boat.rename.JunkDetector.isAuxiliaryPathOrFile
+import boat.rename.JunkDetector.isJunk
+import boat.rename.LibraryFolders.isExtrasContainer
+import boat.rename.NameCleaner.cleanName
 import java.io.File
 
 /**
- * The title and year of a movie or show from file and folder names, and what kind of file or folder it is (extras, junk, library folders).
+ * The name of the show a file belongs to, taken from the name of the file and the folders above it (a file name like
+ * "Dune.2021.mkv" or "01 - Pilot.mkv" in "Show/Season 1"), and the year of a file.
  */
 object MediaNameParser {
 
-    /**
-     * Removes known release groups attached with "-", e.g. "sparks-inception" or "Inception.2010.x264-SPARKS".
-     */
-    fun removeReleaseGroups(name: String): String {
-        if (releaseGroups.isEmpty()) return name
-        return name.replace(leadingReleaseGroupPattern, "").replace(trailingReleaseGroupPattern, "")
-    }
-
-    fun cleanName(inputName: String): String {
-        var name = inputName
-        // Normalize unicode and foreign characters, remove backslash escape characters
-        name = name.replace("：", " ").replace("?", " ").replace("\\", "")
-
-        // the title ends at a bracketed episode like "House - [2x01] - Acceptance" or "Dragon Ball GT [1.21] A Secret Revealed"
-        val bracketedEpisode = bracketedEpisodePattern.find(name)
-        if (bracketedEpisode != null && bracketedEpisode.range.first > 0) {
-            name = name.substring(0, bracketedEpisode.range.first)
-        }
-
-        // Remove bracketed release info like [UNCENSORED], [1080p], [5.1 MP3], [x265], [FINAL]
-        name = name.replace(bracketPattern, " ").trim()
-
-        // Remove common release group/site prefixes
-        name = name.replace(sitePrefixPattern, "")
-        name = removeReleaseGroups(name)
-
-        // Remove remote media ids of already renamed files like {tmdb-27205}
-        name = name.replace(remoteMediaIdPattern, " ").trim()
-
-        // Remove release tag prefix like (B-A) or [GAX]
-        name = name.replace(parenthesizedPrefixPattern, "")
-
-        // check if it's a known hex garbage prefix (containing digits)
-        val match = groupPrefixPattern.find(name)
-        if (match != null && match.value.any { it.isDigit() } && !name.lowercase().startsWith("star") && !name.lowercase().startsWith("hack") &&
-            !name.lowercase().matches(unitPattern)
-        ) {
-            name = name.replace(groupPrefixPattern, "")
-        }
-
-        // Remove parenthesized tags like (BBC 1995), (2013 BluRay - 1080p DUAL AUDIO), (ger.sub), (h264), (moviesbyrizzo), (720p - DUAL Audio), (1BB88E0D)
-        // underscores are word characters and hide tags like (1520x1080_Blu-Ray_FLAC) from the word boundaries
-        name = name.replace(parenthesizedGroupPattern) { it.value.replace("_", " ") }
-        name = name.replace(parenthesizedTagsPattern, " ")
-
-        name = name.replace(parenthesizedEpisodeRangePattern, " ")
-
-        name = name.replace(episodeRangePattern, " ")
-
-        val hasParenthesizedYear = parenthesizedYearPattern.containsMatchIn(name)
-        if (hasParenthesizedYear) {
-            name = name.replace(copyCounterAfterParenthesizedYearPattern, "")
-        }
-        name = name.replace(parenthesizedYearPattern, " ")
-        name = name.replace("(", "").replace(")", "").replace("_", " ").trim()
-        name = name.removePrefix(".")
-
-        name = name.replace(yearEpisodePrefixPattern, "")
-
-        // Remove version markers like v2 in 01v2
-        name = name.replace(versionPattern, "")
-
-        // release tags end the title, the season and episode detection works on what's left
-        val technicalTagMatch = midNameTechnicalTagPattern.find(name)
-        if (technicalTagMatch != null && technicalTagMatch.range.first > 0) {
-            name = name.substring(0, technicalTagMatch.range.first).trim()
-        }
-
-        var truncated = false
-        val seasonMatch = seasonPattern.find(name)
-        val seasonMatch2 = seasonPattern2.find(name)
-        val seasonMatch3 = seasonInNamePattern.find(name)
-        val yearEpisodeMatch = yearEpisodeInNamePattern.find(name)
-        val partMatch = partInNamePattern.find(name)
-        val episodeWordMatch = episodeWordPattern.find(name)
-        val doubleDashEpisodeMatch = doubleDashEpisodePattern.find(name)
-        val specialMarkerIndex = specialMarkerIndex(name, casingReference = inputName)
-        val dayMatch = dayInNamePattern.find(name)
-        val dvdMatch = dvdPattern.find(name)
-        val bookMatch = bookPattern.find(name)
-        val packMatch = packInNamePattern.find(name)
-        val extrasMatch = extrasInNamePattern.find(name)
-
-        val potentialSeasonMatches = listOfNotNull(
-            seasonMatch?.range?.first,
-            seasonMatch2?.range?.first,
-            seasonMatch3?.range?.first,
-            if (yearEpisodeMatch != null && yearEpisodeMatch.range.first > 0) yearEpisodeMatch.range.first else null,
-            if (partMatch != null && partMatch.range.first > 0) partMatch.range.first else null,
-            if (episodeWordMatch != null && episodeWordMatch.range.first > 0) episodeWordMatch.range.first else null,
-            if (doubleDashEpisodeMatch != null && doubleDashEpisodeMatch.range.first > 0) doubleDashEpisodeMatch.range.first else null,
-            specialMarkerIndex?.takeIf { it > 0 },
-            if (dayMatch != null && dayMatch.range.first > 0) dayMatch.range.first else null,
-            dvdMatch?.range?.first,
-            bookMatch?.range?.first,
-            if (packMatch != null && packMatch.range.first > 0) packMatch.range.first else null,
-            if (extrasMatch != null && extrasMatch.range.first > 0) extrasMatch.range.first else null,
-        )
-
-        val earliestMatchIndex = potentialSeasonMatches.minOrNull()
-        if (earliestMatchIndex != null) {
-            name = name.substring(0, earliestMatchIndex)
-            truncated = true
-        } else if (!name.matches(numericRangePattern)) {
-            val epWithTitleMatch = episodeWithTitlePattern.find(name)
-            val dashEpMatch = dashEpisodePattern.find(name)
-            val explicitEpMatch = explicitEpisodePattern.find(name)
-            if (epWithTitleMatch != null) {
-                name = name.substring(0, epWithTitleMatch.range.first)
-                truncated = true
-            } else if (explicitEpMatch != null) {
-                name = name.substring(0, explicitEpMatch.range.first)
-                truncated = true
-            } else if (dashEpMatch != null) {
-                name = name.substring(0, dashEpMatch.range.first)
-                truncated = true
-            } else {
-                val episodeMatch = cleanEpisodeMatchPattern.find(name)
-                if (episodeMatch != null) {
-                    name = name.substring(0, episodeMatch.range.first)
-                    truncated = true
-                } else {
-                    val standaloneEpisodeMatch = standaloneEpisodePattern.find(name)
-                    val zeroPaddedMatch = zeroPaddedMatchPattern.find(name)
-                    if (zeroPaddedMatch != null) {
-                        name = name.substring(0, zeroPaddedMatch.range.first)
-                        truncated = true
-                    } else if (standaloneEpisodeMatch != null && yearPattern.find(standaloneEpisodeMatch.value) == null) {
-                        val beforeMatch = name.substring(0, standaloneEpisodeMatch.range.first).trim().lowercase()
-                        val articles = setOf("the", "a", "an", "der", "die", "das", "le", "la", "les", "el", "los", "las", "il", "lo", "gli", "un", "une")
-                        if (!articles.contains(beforeMatch)) {
-                            name = name.substring(0, standaloneEpisodeMatch.range.first)
-                            truncated = true
-                        }
-                    } else {
-                        val yearMatch = yearPattern.find(name)
-                        if (yearMatch != null && !hasParenthesizedYear && yearMatch.range.first > 0) {
-                            name = name.substring(0, yearMatch.range.first)
-                            truncated = true
-                        }
-                    }
-                }
-            }
-        }
-
-        name = name.replace(bracketPattern, "").trim()
-        name = name.replace(acronymPattern) { matchResult ->
-            matchResult.value.replace(".", "")
-        }
-        name = name.replace(".", " ").replace("_", " ").trim()
-        name = name.replace(extrasPlusPattern, " ")
-        name = name.replace(episodeRangePattern, " ")
-        name = name.replace(whitespacePattern, " ").trim()
-
-        val trailingPunctuation = setOf('-', '.', ',', ';', ':', '_', '~', '+', '!', '?', '\'', '"', '`', '/', '\\')
-        while (true) {
-            val before = name
-            name = name.replace(trailingQualityTag, "").trim()
-            if (!hasParenthesizedYear) {
-                name = name.replace(trailingYearPattern, "").trim()
-                if (truncated) {
-                    name = name.replace(trailingYearAfterNumberPattern, "").trim()
-                }
-            }
-            name = name.replace(trailingEpisodeMarkerPattern, "").trim()
-            name = name.replace(trailingDashArticlePattern, "").trim()
-            while (name.isNotEmpty() && name.last() in trailingPunctuation) {
-                name = name.dropLast(1).trim()
-            }
-            if (name == before) break
-        }
-        while (name.isNotEmpty() && name.first() in trailingPunctuation) {
-            name = name.drop(1).trim()
-        }
-
-        if (!truncated) {
-            // If extracted name ends with a number that looks like an episode (e.g., show-24)
-            // and we haven't truncated it yet, do a last resort truncation
-            val trailingMatch = trailingEpisodePattern.find(name)
-            if (trailingMatch != null) {
-                name = name.substring(0, trailingMatch.range.first).trim()
-            } else {
-                // If name has a number followed by space and another number (e.g. Golgo 13 20), truncate the trailing episode
-                val multiMatch = multiNumberTrailingPattern.find(name)
-                if (multiMatch != null) {
-                    name = name.substring(0, multiMatch.range.first).trim()
-                }
-            }
-        }
-        return name
-    }
-
-    fun isJunk(name: String): Boolean {
-        val trimmed = name.trim()
-        if (trimmed.isEmpty()) return true
-        if (trimmed.length <= 1 || trimmed.all { !it.isLetterOrDigit() }) return true
-
-        val normalized = trimmed.lowercase().replace("_", " ").replace(".", " ").replace("-", " ").trim()
-        val lower = trimmed.lowercase()
-        if (releaseGroups.contains(lower)) return true
-
-        val articles = setOf("the", "a", "an", "and", "or", "of", "in", "with", "&", "der", "die", "das", "le", "la", "les", "el", "los", "las", "il", "lo", "gli", "un", "une")
-        if (articles.contains(lower) || articles.contains(normalized)) return true
-
-        if (categoryFolderNames.contains(lower) || categoryFolderNames.contains(normalized)) return true
-
-        // Range folder names like "0-9", "a-z", etc.
-        if (lower.matches(rangeSinglePattern) || lower.matches(rangeLetterPattern)) return true
-
-        // Magnet URI or URLs
-        if (lower.startsWith("magnet:") || lower.contains("xt=urn:") || lower.startsWith("http://") || lower.startsWith("https://") || lower.startsWith("www.")) return true
-        if (lower.endsWith(".com") || lower.endsWith(".org") || lower.endsWith(".net") || lower.endsWith(".me") || lower.endsWith(".to") || lower.endsWith(".tv") || lower.endsWith(".io")) return true
-
-        // Pure numbers, or numbered sub folders like "2a. Season 1 (2010-11)"
-        if (lower.matches(pureNumberPattern) || lower.matches(numberedSubFolderPattern)) return true
-
-        // Pure hex hashes (e.g. 1E372EE5, BB605406)
-        if (lower.matches(hexHashPattern) && lower.any { it.isDigit() } && lower.any { it.isLetter() }) return true
-
-        // Season/Episode/Part/Volume/Disc patterns
-        if (normalized.matches(seasonDiscPartPattern)) return true
-        if (normalized.matches(sEPattern)) return true
-        if (normalized.matches(xPattern)) return true
-        if (normalized.matches(dashDotNumPattern)) return true
-        if (normalized.matches(shortWordNumPattern) && !normalized.startsWith("the ") && !normalized.startsWith("a ") && !normalized.startsWith("an ")) return true
-        if (normalized.matches(numShortWordPattern)) return true // e.g. "6 spa", "6_spa"
-
-        val countryAndLanguageTags = setOf(
-            "uk", "us", "usa", "ger", "fra", "fr", "de", "es", "ita", "it", "jp", "jpn", "kr", "kor", "cn", "chi", "ru", "rus", "eng", "en"
-        )
-        if (countryAndLanguageTags.contains(lower) || countryAndLanguageTags.contains(normalized)) return true
-
-        // Auxiliary exact keywords
-        val auxiliaryExactKeywords = setOf(
-            "subs", "sub", "subtitles", "subtitle", "vobsub", "idx", "srt",
-            "extras", "extra", "featurettes", "featurette", "bonus", "bonuses",
-            "sample", "samples", "proof", "proofs", "screenshot", "screenshots", "screens cap",
-            "trailer", "trailers", "teaser", "teasers", "promo", "promos", "promotional",
-            "deleted scenes", "deleted scene", "deleted", "deletedscenes",
-            "alternate ending", "alternate endings", "alternate opening", "alternate openings", "alternate cut",
-            "alternate scene", "alternate scenes", "extended scene", "extended scenes", "extended cut",
-            "outtakes", "outtake", "bloopers", "blooper", "gag reel", "gag reels", "gagreel", "gagreels",
-            "behind the scenes", "behindthescenes", "making of", "makingof",
-            "screentests", "screentest", "interview", "interviews", "cast", "crew",
-            "character profile", "character profiles", "profiles", "profile",
-            "original scripts", "script", "scripts",
-            "covers", "cover", "artwork", "artworks", "art", "fonts", "font", "scans", "scan", "covers and fonts",
-            "soundtrack", "soundtracks", "ost", "music video", "music videos", "music", "audio",
-            "metadata", "nfo", "info", "other", "misc", "miscellaneous",
-            "special", "specials", "sp", "ova", "ovas", "ona", "onas", "special feature", "special features",
-            "textless", "textless opening", "textless ending", "ncop", "nced", "creditless",
-            "episode guide", "guide", "cfwm", "teneighty", "greatest saga",
-            "fake psas", "fake psa", "tv spots", "tv spot", "storyboard comparison", "tv recap specials",
-            "new", "lessons", "videolessons", "intermediate", "advanced", "survival phrases", "audio blog",
-            "gallery", "galleries", "photo gallery", "image gallery", "still gallery", "stills gallery", "slideshow", "slideshows",
-            "story", "stories", "storyline", "temporada", "temporadas", "season", "seasons", "episode", "episodes",
-            "collection", "collections", "boxset", "pack", "full collection", "complete collection"
-        )
-        if (auxiliaryExactKeywords.contains(lower) || auxiliaryExactKeywords.contains(normalized)) return true
-
-        // Technical / codec tags when standalone
-        val technicalTags = setOf(
-            "1080p", "720p", "2160p", "480p", "576p", "4k", "uhd", "fhd", "hdtv",
-            "bluray", "blu-ray", "bdrip", "brrip", "dvdrip", "webrip", "web-dl", "webdl", "web", "remux", "proper", "repack", "rerip",
-            "av1", "x264", "x265", "h264", "h265", "hevc", "avc", "xvid", "divx", "aac", "ac3", "dts", "ddp5 1", "ddp5.1", "10bit", "8bit", "hdr",
-            "rarbg", "ettv", "eztv", "rartv", "tgx", "yts", "yify", "megusta"
-        )
-        if (technicalTags.contains(lower) || technicalTags.contains(normalized)) return true
-
-        val junkPrefixes = listOf(
-            "season ", "seasons ", "disc ", "disk ", "cd ", "dvd ",
-            "volume ", "vol ", "book ", "chapter ", "part ", "ep ", "episode ", "subs ", "subtitles ",
-            "extras ", "featurette ", "featurettes ", "trailer ", "trailers ", "sample ", "samples ",
-            "screenshot ", "screenshots ", "deleted scene", "deleted scenes", "making of ", "behind the scenes ",
-            "story ", "temporada "
-        )
-        if (junkPrefixes.any { normalized.startsWith(it) || lower.startsWith(it) }) return true
-
-        val allTechnicalAndJunkTokens = categoryFolderNames + auxiliaryExactKeywords + technicalTags + setOf(
-            "1080p", "720p", "2160p", "480p", "576p", "4k", "uhd", "fhd", "hd", "sd", "hdtv", "pdtv",
-            "bluray", "blu", "ray", "bdrip", "brrip", "dvdrip", "dvd", "webrip", "web", "dl", "webdl",
-            "remux", "proper", "repack", "rerip", "real", "extended", "unrated",
-            "x264", "x265", "h264", "h265", "hevc", "avc", "xvid", "divx", "vp9", "av1",
-            "aac", "ac3", "eac3", "dts", "ddp", "ddp5", "ddp51", "ddp5 1", "flac", "mp3", "truehd", "atmos",
-            "10bit", "8bit", "hdr", "hdr10", "hdr10plus", "dv", "dovi", "sdr",
-            "rarbg", "ettv", "eztv", "rartv", "tgx", "yts", "yify", "megusta", "vxt", "galaxytv",
-            "complete", "season", "seasons", "series", "ep", "episode", "episodes", "disc", "disk", "cd", "vol", "volume",
-            "movie", "movies", "special", "specials", "ova", "ovas", "ona", "onas", "collection", "collections", "boxset", "pack"
-        )
-
-        val tokenNormalized = trimmed.lowercase().replace(nonAlphanumericPattern, " ").trim()
-        val tokens = tokenNormalized.split(" ").filter { it.isNotBlank() }
-        val hasKnownJunkOrTechToken = tokens.any { allTechnicalAndJunkTokens.contains(it) }
-        if (hasKnownJunkOrTechToken && tokens.all { token ->
-                token.length <= 1 || token.matches(pureNumberPattern) || allTechnicalAndJunkTokens.contains(token)
-            }) {
-            return true
-        }
-
-        return false
-    }
-
-    private fun isAuxiliaryPathOrFile(file: File, cleanedFileName: String): Boolean {
-        val nonMediaExtensions = setOf(
-            "pdf", "txt", "nfo", "jpg", "jpeg", "png", "gif", "bmp", "doc", "docx",
-            "xls", "xlsx", "exe", "zip", "rar", "7z", "tar", "gz", "sfv", "par2", "cue", "md5", "torrent", "url"
-        )
-        if (nonMediaExtensions.contains(file.extension.lowercase())) return true
-
-        val auxiliaryFolderKeywords = setOf(
-            "extras", "extra", "featurettes", "featurette", "bonus", "bonuses",
-            "samples", "sample", "screenshots", "screenshot", "screens cap", "screens",
-            "trailers", "trailer", "teasers", "teaser", "promos", "promo",
-            "deleted scenes", "deleted scene", "screentests", "screentest",
-            "subs", "subtitles", "sub", "original scripts", "soundtracks", "soundtrack",
-            "ost", "artwork", "covers", "fonts", "scans", "proofs",
-            "outtakes", "outtake", "bloopers", "blooper", "gag reel", "behind the scenes", "making of",
-            "fake psas", "fake psa", "tv spots", "tv spot", "storyboard comparison", "tv recap specials",
-            "lessons", "videolessons", "audio blog", "gallery", "galleries", "photo gallery", "image gallery", "still gallery", "stills gallery", "slideshow", "slideshows"
-        )
-
-        val lowerCleaned = cleanedFileName.lowercase()
-        val auxiliaryFileKeywords = listOf(
-            "alternate ending", "alternate endings", "alternate opening", "alternate openings", "alternate cut",
-            "alternate scene", "alternate scenes", "extended scene", "extended scenes", "extended cut",
-            "featurette", "featurettes", "trailer", "trailers", "teaser", "teasers", "promo", "promos",
-            "deleted scene", "deleted scenes", "screentest", "screentests", "outtake", "outtakes",
-            "blooper", "bloopers", "gag reel", "gag reels", "screenshot", "screenshots", "sample", "samples",
-            "character profile", "character profiles", "behind the scenes", "making of", "interview", "interviews",
-            "original script", "original scripts", "textless", "special feature", "special features", "bonus", "bonuses",
-            "gallery", "galleries", "photo gallery", "image gallery", "still gallery", "stills gallery", "slideshow", "slideshows"
-        )
-        if (auxiliaryFileKeywords.any { lowerCleaned.contains(it) }) {
-            val fileNameWithoutExt = file.nameWithoutExtension
-            if (seasonPattern.find(fileNameWithoutExt) == null && seasonPattern2.find(fileNameWithoutExt) == null) {
-                return true
-            }
-        }
-
-        var p = file.parentFile
-        var depth = 0
-        while (p != null && depth < 6) {
-            val pName = decodeIfEncoded(p.name).lowercase().trim()
-            val pNormalized = pName.replace("_", " ").replace(".", " ").replace("-", " ")
-            val pTokens = pNormalized.split(nonAlphanumericPattern).filter { it.isNotBlank() }
-
-            val isPackFolder = pName.contains("+") || pNormalized.contains("with extras") || pNormalized.contains("and extras") ||
-                    pNormalized.matches(packWithExtrasPattern)
-
-            if (!isPackFolder) {
-                if (auxiliaryFolderKeywords.contains(pName) || auxiliaryFolderKeywords.contains(pNormalized)) {
-                    return true
-                }
-                if (pTokens.size <= 3 && pTokens.any { auxiliaryFolderKeywords.contains(it) }) {
-                    return true
-                }
-            }
-            p = p.parentFile
-            depth++
-        }
-
-        return false
-    }
-
     fun extractName(file: File): String {
-        val fileName = decodeIfEncoded(file.name)
-        val rawBaseName = fileName.substringBeforeLast(".")
+        val rawBaseName = decodeIfEncoded(file.name).substringBeforeLast(".")
         val cleanedFileName = cleanName(gluedSeasonEpisode(file)?.first ?: rawBaseName)
         val cleanedFileNameWithoutTrackNumber = cleanName(rawBaseName.replace(leadingTrackNumberPattern, ""))
 
-        val isNumericShowName = cleanedFileName.matches(pureNumberPattern) &&
-                !cleanedFileName.startsWith("0") &&
-                cleanedFileName != rawBaseName &&
-                startsWithEpisodeNumberPattern.find(rawBaseName) == null
+        val folders = collectShowFolders(file)
+        val parentShowName = combineShowFolderNames(folders.names)?.let { removeTrailingSeasonNumber(it, rawBaseName) }
 
-        val isCandidate0Junk = (isJunk(cleanedFileName) && !isNumericShowName) ||
-                startsWithEpisodeNumberPattern.find(rawBaseName) != null ||
-                rawBaseName.lowercase().startsWith("s0") ||
-                rawBaseName.lowercase().startsWith("s1") ||
-                rawBaseName.lowercase().startsWith("s2") ||
-                rawBaseName.lowercase().startsWith("s3") ||
-                isAuxiliaryPathOrFile(file, cleanedFileName)
-
-        val isShortAcronym = cleanedFileName.matches(shortAcronymPattern) &&
-                (cleanedFileName == cleanedFileName.uppercase() || cleanedFileName.lowercase() in setOf("iasip", "btas", "tas", "cfwm", "stargatesg1"))
-
-        // Search upwards in parent directory hierarchy for candidates
-        val candidates = mutableListOf<String>()
-        var currentFile: File? = file.parentFile
-        var depth = 0
-        var isInsidePackOrSeriesFolder = false
-        var isBelowExtrasContainer = false
-        while (currentFile != null && depth < 5) {
-            val parentName = decodeIfEncoded(currentFile.name)
-            val lowerParent = parentName.lowercase().trim()
-            val normalizedParent = lowerParent.replace("_", " ").replace(".", " ").replace("-", " ").trim()
-
-            // Stop traversing upwards if we reached a single letter folder, symbol folder, range folder, or root category / filesystem folder
-            if (parentName.trim().length <= 1 ||
-                parentName.trim().all { !it.isLetterOrDigit() } ||
-                lowerParent.matches(rangeSinglePattern) ||
-                lowerParent.matches(rangeLetterPattern) ||
-                categoryFolderNames.contains(lowerParent) ||
-                categoryFolderNames.contains(normalizedParent)
-            ) {
-                if (categoryFolderNames.contains(lowerParent) || categoryFolderNames.contains(normalizedParent)) {
-                    if (lowerParent in setOf("series-shows", "series shows", "series", "shows", "tv", "tv shows", "tv-shows", "tv series", "tv-series", "cartoons", "cartoon", "anime")) {
-                        isInsidePackOrSeriesFolder = true
-                    }
-                }
-                break
-            }
-
-            val isExtrasContainer = isExtrasContainer(parentName)
-            if (isExtrasContainer) {
-                isBelowExtrasContainer = true
-                candidates.clear()
-            }
-
-            if (packInNamePattern.containsMatchIn(parentName) ||
-                parentName.contains("1080p", ignoreCase = true) ||
-                parentName.contains("720p", ignoreCase = true) ||
-                parentName.contains("x264", ignoreCase = true) ||
-                parentName.contains("dvdrip", ignoreCase = true) ||
-                parentName.contains("bluray", ignoreCase = true) ||
-                parentName.contains("complete", ignoreCase = true) ||
-                parentName.contains("season", ignoreCase = true)
-            ) {
-                isInsidePackOrSeriesFolder = true
-            }
-
-            val cleanedParentName = cleanName(parentName)
-            val isParentNumericShowName = cleanedParentName.matches(pureNumberPattern) &&
-                    !cleanedParentName.startsWith("0") &&
-                    (parentName != cleanedParentName || currentFile.parentFile?.let { p ->
-                        val pName = decodeIfEncoded(p.name).lowercase().trim()
-                        pName.matches(rangeSinglePattern) || categoryFolderNames.contains(pName)
-                    } == true)
-
-            if (!isExtrasContainer && cleanedParentName.isNotBlank() && (!isJunk(cleanedParentName) && !isJunk(parentName) || isParentNumericShowName)) {
-                candidates.add(cleanedParentName)
-            }
-            currentFile = currentFile.parentFile
-            depth++
-        }
-
-        val combinedParentShowName: String? = if (candidates.isNotEmpty()) {
-            val reversed = candidates.reversed()
-            var combined = reversed.first()
-            for (i in 1 until reversed.size) {
-                val next = reversed[i]
-                val lowerCombined = combined.lowercase()
-                val lowerNext = next.lowercase()
-                val normCombined = lowerCombined.replace(nonAlphanumericOnlyPattern, "")
-                val normNext = lowerNext.replace(nonAlphanumericOnlyPattern, "")
-                if (normCombined == normNext ||
-                    normCombined.startsWith(normNext) ||
-                    normNext.startsWith(normCombined) ||
-                    lowerCombined.contains(lowerNext) ||
-                    lowerNext.contains(lowerCombined)
-                ) {
-                    if (lowerCombined.length >= lowerNext.length && !lowerCombined.contains("season")) {
-                        // keep combined
-                    } else if (!lowerNext.contains("season") && !lowerNext.contains("temporada")) {
-                        combined = next
-                    }
-                } else {
-                    val lowerNextCleaned = cleanName(next).lowercase()
-                    val isNextAcronym = lowerNextCleaned in setOf("iasip", "btas", "tas", "cfwm", "sg1", "stargatesg1") ||
-                            (lowerNextCleaned.length in 2..6 && lowerCombined.split(" ").mapNotNull { it.firstOrNull() }.joinToString("").lowercase() == lowerNextCleaned)
-                    if (!isJunk(lowerNextCleaned) && !isNextAcronym && !lowerNextCleaned.startsWith("story ") && !lowerNextCleaned.startsWith("temporada ")) {
-                        combined = "$combined $next"
-                    }
-                }
-            }
-            val result = combined.trim()
-            if (result.lowercase() == "iasip") "Its Always Sunny In Philadelphia"
-            else if (result.lowercase() == "stargatesg1") "Stargate SG-1"
-            else result
-        } else null
-        val parentShowName = combinedParentShowName?.let { removeTrailingSeasonNumber(it, rawBaseName) }
-
-        if (!isCandidate0Junk && cleanedFileName.isNotBlank() && (!isShortAcronym || file.parentFile == null)) {
+        if (isUsableFileName(file, rawBaseName, cleanedFileName)) {
             if (!parentShowName.isNullOrBlank()) {
                 // the file name of an extra describes the extra, e.g. "DVD Extras/Deep Space Nine Sketchbook.mkv"
-                if (isBelowExtrasContainer) {
+                if (folders.isBelowExtrasContainer) {
                     return showFromFileNameIfFolderAddsWords(cleanedFileNameWithoutTrackNumber, parentShowName) ?: parentShowName
                 }
-                // "Full Metal Panic 10 Run, Running, Ran" in "Full Metal Panic", episodes below 10 are already cut as zero padded number
-                // or "01. Crest of the Stars" and "1-01 Gigantor (US) S01E01" with a leading track number
-                val normalizedParentShowName = parentShowName.lowercase().replace(nonAlphanumericOnlyPattern, "")
-                val episodeNumberMatch = episodeNumberWithTitlePattern.find(cleanedFileName)
-                val showBeforeEpisodeNumber = episodeNumberMatch?.groupValues?.get(1)
-                val normalizedShowBeforeEpisodeNumber = showBeforeEpisodeNumber?.lowercase()?.replace(nonAlphanumericOnlyPattern, "")
-                if (normalizedShowBeforeEpisodeNumber != null && normalizedShowBeforeEpisodeNumber.startsWith(normalizedParentShowName)) {
-                    return parentShowName
-                }
-                // the folder carries more than the show, e.g. "No_Game_No_Life_English_Dub_720p_1-12_Complete"
-                // but the number isn't part of the show like "Space Battleship Yamato 2199"
-                if (normalizedShowBeforeEpisodeNumber != null && showBeforeEpisodeNumber.trim().contains(' ') &&
-                    normalizedParentShowName.startsWith(normalizedShowBeforeEpisodeNumber) &&
-                    !normalizedParentShowName.startsWith(normalizedShowBeforeEpisodeNumber + episodeNumberMatch.groupValues[2])
-                ) {
-                    return showBeforeEpisodeNumber.trim()
-                }
-                val fileNameAfterTrackNumber = rawBaseName.replace(leadingTrackNumberPattern, "")
-                if (fileNameAfterTrackNumber != rawBaseName) {
-                    val normalizedFileName = cleanName(fileNameAfterTrackNumber).lowercase().replace(nonAlphanumericOnlyPattern, "")
-                    if (normalizedFileName.isNotEmpty() &&
-                        (normalizedFileName.startsWith(normalizedParentShowName) || normalizedParentShowName.startsWith(normalizedFileName))
-                    ) {
-                        return parentShowName
-                    }
-                }
-                val remainder = if (cleanedFileName.startsWith(parentShowName, ignoreCase = true)) {
-                    cleanedFileName.substring(parentShowName.length).trim()
-                } else {
-                    cleanedFileName.removePrefix(parentShowName).trim()
-                }
-                val isNumberPartOfTitle = remainder.startsWith("-") && seasonEpisodePattern.containsMatchIn(rawBaseName)
-                if (remainder.isEmpty() || remainder.matches(remainderEpisodePattern) && !isNumberPartOfTitle) {
-                    return parentShowName
-                }
-                val remainderParent = if (parentShowName.startsWith(cleanedFileName, ignoreCase = true)) {
-                    parentShowName.substring(cleanedFileName.length).trim()
-                } else {
-                    parentShowName.removePrefix(cleanedFileName).trim()
-                }
-                if (remainderParent.isEmpty() || remainderParent.matches(remainderYearOrNumPattern)) {
-                    return parentShowName
-                }
-                if (isInsidePackOrSeriesFolder) {
-                    val parentWords = parentShowName.lowercase().split(nonAlphanumericPattern).filter { it.length > 2 && it !in setOf("the", "and", "for", "with", "from") }
-                    val fileWords = cleanedFileName.lowercase().split(nonAlphanumericPattern).filter { it.length > 2 && it !in setOf("the", "and", "for", "with", "from") }
-                    val hasOverlap = fileWords.any { fw -> parentWords.any { pw -> fw == pw || fw.contains(pw) || pw.contains(fw) } }
-                    if (!hasOverlap) {
-                        return parentShowName
-                    }
-                }
+                showFromFolderIfItDescribesTheFileBetter(parentShowName, cleanedFileName, rawBaseName, folders.isInsidePackOrSeriesFolder)?.let { return it }
             }
-            val result = cleanedFileName
-            if (result.lowercase() == "iasip") return "Its Always Sunny In Philadelphia"
-            if (result.lowercase() == "stargatesg1") return "Stargate SG-1"
-            return result
+            return knownShowName(cleanedFileName)
         }
 
         if (parentShowName != null && parentShowName.isNotBlank()) {
@@ -685,6 +47,196 @@ object MediaNameParser {
         doubleDashEpisodePattern.find(rawBaseName)?.takeIf { it.range.first > 0 }?.let { return cleanName(rawBaseName.substring(0, it.range.first)) }
         return ""
     }
+
+    // shows which are known by an abbreviation
+    private fun knownShowName(name: String): String = showNamesOfAbbreviations[name.lowercase()] ?: name
+
+    /**
+     * If the file name can be the name of the show: it isn't junk, an episode number, a season marker or a file next to
+     * the media (cover, nfo, ...), and it isn't a short acronym of a file in a folder.
+     */
+    private fun isUsableFileName(file: File, rawBaseName: String, cleanedFileName: String): Boolean {
+        val startsWithEpisodeNumber = startsWithEpisodeNumberPattern.find(rawBaseName) != null
+        val isNumericShowName = cleanedFileName.matches(pureNumberPattern) &&
+                !cleanedFileName.startsWith("0") &&
+                cleanedFileName != rawBaseName &&
+                !startsWithEpisodeNumber
+
+        val lowerBaseName = rawBaseName.lowercase()
+        val isUnusable = (isJunk(cleanedFileName) && !isNumericShowName) ||
+                startsWithEpisodeNumber ||
+                listOf("s0", "s1", "s2", "s3").any { lowerBaseName.startsWith(it) } ||
+                isAuxiliaryPathOrFile(file, cleanedFileName)
+
+        val isShortAcronym = cleanedFileName.matches(shortAcronymPattern) &&
+                (cleanedFileName == cleanedFileName.uppercase() || cleanedFileName.lowercase() in acronymFileNames)
+
+        return !isUnusable && cleanedFileName.isNotBlank() && (!isShortAcronym || file.parentFile == null)
+    }
+
+    /** The folders above a file which can name its show, nearest first. */
+    private class ShowFolders(val names: List<String>, val isInsidePackOrSeriesFolder: Boolean, val isBelowExtrasContainer: Boolean)
+
+    /**
+     * Walks up (at most 5 folders, up to the library category or letter folder) and collects the cleaned names of the
+     * folders which can be the name of the show.
+     */
+    private fun collectShowFolders(file: File): ShowFolders {
+        val names = mutableListOf<String>()
+        var isInsidePackOrSeriesFolder = false
+        var isBelowExtrasContainer = false
+        var currentFile: File? = file.parentFile
+        var depth = 0
+        while (currentFile != null && depth < 5) {
+            val parentName = decodeIfEncoded(currentFile.name)
+            val lowerParent = parentName.lowercase().trim()
+            val normalizedParent = lowerParent.replace("_", " ").replace(".", " ").replace("-", " ").trim()
+
+            // Stop traversing upwards if we reached a single letter folder, symbol folder, range folder, or root category / filesystem folder
+            val isCategoryFolder = categoryFolderNames.contains(lowerParent) || categoryFolderNames.contains(normalizedParent)
+            if (parentName.trim().length <= 1 ||
+                parentName.trim().all { !it.isLetterOrDigit() } ||
+                lowerParent.matches(rangeSinglePattern) ||
+                lowerParent.matches(rangeLetterPattern) ||
+                isCategoryFolder
+            ) {
+                if (isCategoryFolder && lowerParent in seriesCategoryFolders) {
+                    isInsidePackOrSeriesFolder = true
+                }
+                break
+            }
+
+            val isExtrasContainer = isExtrasContainer(parentName)
+            if (isExtrasContainer) {
+                isBelowExtrasContainer = true
+                names.clear()
+            }
+
+            if (packInNamePattern.containsMatchIn(parentName) || releaseFolderMarkers.any { parentName.contains(it, ignoreCase = true) }) {
+                isInsidePackOrSeriesFolder = true
+            }
+
+            val cleanedParentName = cleanName(parentName)
+            val isParentNumericShowName = cleanedParentName.matches(pureNumberPattern) &&
+                    !cleanedParentName.startsWith("0") &&
+                    (parentName != cleanedParentName || currentFile.parentFile?.let { p ->
+                        val pName = decodeIfEncoded(p.name).lowercase().trim()
+                        pName.matches(rangeSinglePattern) || categoryFolderNames.contains(pName)
+                    } == true)
+
+            if (!isExtrasContainer && cleanedParentName.isNotBlank() && (!isJunk(cleanedParentName) && !isJunk(parentName) || isParentNumericShowName)) {
+                names.add(cleanedParentName)
+            }
+            currentFile = currentFile.parentFile
+            depth++
+        }
+        return ShowFolders(names, isInsidePackOrSeriesFolder, isBelowExtrasContainer)
+    }
+
+    /** The show name of the folders: the outermost folder, extended by the inner folders which add something. */
+    private fun combineShowFolderNames(names: List<String>): String? {
+        if (names.isEmpty()) return null
+        val reversed = names.reversed()
+        var combined = reversed.first()
+        for (i in 1 until reversed.size) {
+            combined = mergeShowFolderName(combined, reversed[i])
+        }
+        return knownShowName(combined.trim())
+    }
+
+    private fun mergeShowFolderName(combined: String, next: String): String {
+        val lowerCombined = combined.lowercase()
+        val lowerNext = next.lowercase()
+        val normCombined = lowerCombined.replace(nonAlphanumericOnlyPattern, "")
+        val normNext = lowerNext.replace(nonAlphanumericOnlyPattern, "")
+        val isSameShow = normCombined == normNext ||
+                normCombined.startsWith(normNext) ||
+                normNext.startsWith(normCombined) ||
+                lowerCombined.contains(lowerNext) ||
+                lowerNext.contains(lowerCombined)
+        if (isSameShow) {
+            // keep the longer name, unless it is a season folder
+            return if (lowerCombined.length >= lowerNext.length && !lowerCombined.contains("season")) {
+                combined
+            } else if (!lowerNext.contains("season") && !lowerNext.contains("temporada")) {
+                next
+            } else {
+                combined
+            }
+        }
+        val lowerNextCleaned = cleanName(next).lowercase()
+        val isNextAcronym = lowerNextCleaned in showAcronyms ||
+                (lowerNextCleaned.length in 2..6 && lowerCombined.split(" ").mapNotNull { it.firstOrNull() }.joinToString("").lowercase() == lowerNextCleaned)
+        return if (!isJunk(lowerNextCleaned) && !isNextAcronym && !lowerNextCleaned.startsWith("story ") && !lowerNextCleaned.startsWith("temporada ")) {
+            "$combined $next"
+        } else {
+            combined
+        }
+    }
+
+    /**
+     * The show name of the folder if it describes the file better than the name of the file does ("Full Metal Panic 10
+     * Run, Running, Ran" in "Full Metal Panic"), null if the name of the file stays.
+     */
+    private fun showFromFolderIfItDescribesTheFileBetter(
+        parentShowName: String, cleanedFileName: String, rawBaseName: String, isInsidePackOrSeriesFolder: Boolean
+    ): String? {
+        // "Full Metal Panic 10 Run, Running, Ran" in "Full Metal Panic", episodes below 10 are already cut as zero padded number
+        // or "01. Crest of the Stars" and "1-01 Gigantor (US) S01E01" with a leading track number
+        val normalizedParentShowName = parentShowName.lowercase().replace(nonAlphanumericOnlyPattern, "")
+        val episodeNumberMatch = episodeNumberWithTitlePattern.find(cleanedFileName)
+        val showBeforeEpisodeNumber = episodeNumberMatch?.groupValues?.get(1)
+        val normalizedShowBeforeEpisodeNumber = showBeforeEpisodeNumber?.lowercase()?.replace(nonAlphanumericOnlyPattern, "")
+        if (normalizedShowBeforeEpisodeNumber != null && normalizedShowBeforeEpisodeNumber.startsWith(normalizedParentShowName)) {
+            return parentShowName
+        }
+        // the folder carries more than the show, e.g. "No_Game_No_Life_English_Dub_720p_1-12_Complete"
+        // but the number isn't part of the show like "Space Battleship Yamato 2199"
+        if (normalizedShowBeforeEpisodeNumber != null && showBeforeEpisodeNumber.trim().contains(' ') &&
+            normalizedParentShowName.startsWith(normalizedShowBeforeEpisodeNumber) &&
+            !normalizedParentShowName.startsWith(normalizedShowBeforeEpisodeNumber + episodeNumberMatch.groupValues[2])
+        ) {
+            return showBeforeEpisodeNumber.trim()
+        }
+        val fileNameAfterTrackNumber = rawBaseName.replace(leadingTrackNumberPattern, "")
+        if (fileNameAfterTrackNumber != rawBaseName) {
+            val normalizedFileName = cleanName(fileNameAfterTrackNumber).lowercase().replace(nonAlphanumericOnlyPattern, "")
+            if (normalizedFileName.isNotEmpty() &&
+                (normalizedFileName.startsWith(normalizedParentShowName) || normalizedParentShowName.startsWith(normalizedFileName))
+            ) {
+                return parentShowName
+            }
+        }
+        val remainder = if (cleanedFileName.startsWith(parentShowName, ignoreCase = true)) {
+            cleanedFileName.substring(parentShowName.length).trim()
+        } else {
+            cleanedFileName.removePrefix(parentShowName).trim()
+        }
+        val isNumberPartOfTitle = remainder.startsWith("-") && seasonEpisodePattern.containsMatchIn(rawBaseName)
+        if (remainder.isEmpty() || remainder.matches(remainderEpisodePattern) && !isNumberPartOfTitle) {
+            return parentShowName
+        }
+        val remainderParent = if (parentShowName.startsWith(cleanedFileName, ignoreCase = true)) {
+            parentShowName.substring(cleanedFileName.length).trim()
+        } else {
+            parentShowName.removePrefix(cleanedFileName).trim()
+        }
+        if (remainderParent.isEmpty() || remainderParent.matches(remainderYearOrNumPattern)) {
+            return parentShowName
+        }
+        if (isInsidePackOrSeriesFolder) {
+            val parentWords = significantWordsOf(parentShowName)
+            val fileWords = significantWordsOf(cleanedFileName)
+            val hasOverlap = fileWords.any { fw -> parentWords.any { pw -> fw == pw || fw.contains(pw) || pw.contains(fw) } }
+            if (!hasOverlap) {
+                return parentShowName
+            }
+        }
+        return null
+    }
+
+    private fun significantWordsOf(name: String): List<String> =
+        name.lowercase().split(nonAlphanumericPattern).filter { it.length > 2 && it !in overlapStopWords }
 
     /**
      * The file name if the folder only adds words to it, e.g. "Pride and Prejudice" in "Pride and Prejudice Jane Austen".
@@ -706,357 +258,32 @@ object MediaNameParser {
         return if (seasonInFileName.containsMatchIn(fileBaseName)) showName.replace(trailingSeasonNumberPattern, "").trim() else showName
     }
 
-    /**
-     * Movie title and year from the file name, or from the closest folder if the file name doesn't carry a title
-     * (e.g. cd1.mkv, sample.mkv, RARBG.txt). Unlike [extractName], folder names aren't combined, so movies in a
-     * collection like "Bruce Lee Collection/01. The Big Boss (1971).mp4" are named after their file.
-     */
-    fun extractMovieNameAndYear(file: File): Pair<String, Int?> {
-        val rawBaseName = decodeIfEncoded(file.name).substringBeforeLast(".")
-        val parsedFileName = parseMovieName(rawBaseName)
-        // extras like "Movie (2010)/Featurettes/Interview.mkv" belong to the movie of the folder above
-        val isInExtrasFolder = file.parentFile?.let { parent ->
-            movieExtraPattern.containsMatchIn(decodeIfEncoded(parent.name)) && parent.parentFile?.let { !isLibraryGroupFolder(it) } == true
-        } == true
-        // and extras like "Movie (2010)/Movie Trailer.mkv" to the movie of their folder
-        val isExtraInMovieFolder = movieExtraPattern.containsMatchIn(rawBaseName) && file.parentFile?.let { !isLibraryGroupFolder(it) } == true
-        if (!isInExtrasFolder && !isExtraInMovieFolder && isMovieTitle(parsedFileName)) {
-            return yearPrefixedTitle(file, parsedFileName) ?: parsedFileName
-        }
-        var current: File? = file.parentFile
-        var depth = 0
-        while (current != null && depth < 5 && !isLibraryGroupFolder(current)) {
-            val parentName = decodeIfEncoded(current.name)
-            if (parentName.lowercase() !in discStructureFolderNames && !(current == file.parentFile && isInExtrasFolder)) {
-                val parsedParentName = parseMovieName(parentName)
-                if (isMovieTitle(parsedParentName)) return parsedParentName
-            }
-            current = current.parentFile
-            depth++
-        }
-        return Pair("", null)
-    }
-
-    /**
-     * Splits a movie release name like "Alien.Romulus.2024.2160p.WEB-DL.DDP5.1" into title and year. Unlike [cleanName]
-     * numbers are never taken for episodes, so "127 Hours" or "1917.2019" keep their title. The name is cut at the
-     * release year, or without one at the first release tag. A cut inside parentheses drops the whole group, e.g.
-     * "Zabriskie Point (Antonioni 1970)".
-     */
-    fun parseMovieName(rawName: String): Pair<String, Int?> {
-        // "!" separates like "Werner - Beinhart!1990"
-        var name = rawName.replace("：", " ").replace("?", " ").replace("!", "! ")
-        name = name.replace(movieHashPrefixPattern, "").replace(yearGluedToResolutionPattern, "$1 ")
-        name = name.replace(remoteMediaIdPattern, " ")
-        name = name.replace(movieSitePrefixPattern, "")
-        name = name.replace(leadingBracketGroupsPattern, "").trim()
-        name = removeReleaseGroups(name)
-        name = name.replace(listNumberPrefixPattern, "")
-        name = name.replace("(", " (").replace(")", ") ").replace("[", " [").replace("]", "] ").replace("_", " ").replace("+", " ")
-        name = name.replace(acronymPattern) { matchResult ->
-            matchResult.value.replace(".", "")
-        }
-        name = name.replace(".", " ").replace(whitespacePattern, " ").trim()
-        // dash separated names like "Fear.Eats.the.Soul-1974--720p-EN" or "maleficent-1080p", but not "Spider-Man"
-        name = name.replace(tokenPattern) { token ->
-            val parts = token.value.split('-')
-            val isTaggedPart = parts.size > 1 && parts.any { it.lowercase().matches(movieTechnicalTagPattern) || it.matches(movieYearPattern) }
-            if (isTaggedPart) parts.joinToString(" ") else token.value
-        }.replace(whitespacePattern, " ").trim()
-
-        val tokens = tokenPattern.findAll(name).toList()
-        val cores = tokens.map { token -> token.value.trim { !it.isLetterOrDigit() }.lowercase() }
-        fun isTag(index: Int, tagPattern: Regex) = cores[index].matches(tagPattern) || cores[index].split('-').any { it.matches(tagPattern) }
-        fun isAnyTag(index: Int) = isTag(index, movieTechnicalTagPattern) || isTag(index, movieLanguageOrEditionTagPattern)
-
-        // the first token is always part of the title, e.g. "1917" or "2012"
-        val firstTechnicalTag = (1 until tokens.size).firstOrNull { isTag(it, movieTechnicalTagPattern) } ?: tokens.size
-        val firstLanguageOrEditionTag = (1 until tokens.size).firstOrNull { isTag(it, movieLanguageOrEditionTagPattern) } ?: tokens.size
-        val yearCandidates = (1 until firstTechnicalTag).filter { cores[it].matches(movieYearPattern) }
-        // the release year is in parentheses, follows a year of the title or is followed by tags, otherwise it's the first
-        // one ("Wonder Woman 1984 2020", "Summer of 1984 2023 1080p", "2000 Mules 2022 - ... of 2020")
-        val yearIndex = yearCandidates.lastOrNull { index ->
-            val token = tokens[index].value
-            (token.startsWith("(") && token.endsWith(")")) || (token.startsWith("[") && token.endsWith("]")) ||
-                    cores[index - 1].matches(movieYearPattern) || (index + 1 < tokens.size && isAnyTag(index + 1))
-        } ?: yearCandidates.firstOrNull()
-        val cutIndex = yearIndex ?: minOf(firstTechnicalTag, firstLanguageOrEditionTag)
-
-        var cut = if (cutIndex < tokens.size) tokens[cutIndex].range.first else name.length
-        val prefix = name.substring(0, cut)
-        val openGroup = prefix.lastIndexOfAny(charArrayOf('(', '['))
-        if (openGroup >= 0 && prefix.indexOfAny(charArrayOf(')', ']'), openGroup) == -1) {
-            cut = openGroup
-        }
-
-        var title = name.substring(0, cut).replace(bracketPattern, " ").replace("(", " ").replace(")", " ")
-            .replace(whitespacePattern, " ").trim()
-        val trailingPunctuation = charArrayOf('-', '.', ',', ';', ':', '_', '~', '+', '!', '?', '/', '\\')
-        while (true) {
-            val before = title
-            title = title.replace(trailingMovieTagPattern, "").trimEnd(*trailingPunctuation).trim()
-            if (title == before) break
-        }
-        title = title.trimStart(*trailingPunctuation).trim()
-        return Pair(title, yearIndex?.let { cores[it].toInt() })
-    }
-
-    /**
-     * Collections like "The Texas Chainsaw Massacre Collection (1974-2017)/2017.Leatherface.mkv" put the year in front.
-     */
-    private fun yearPrefixedTitle(file: File, titleAndYear: Pair<String, Int?>): Pair<String, Int?>? {
-        if (titleAndYear.second != null) return null
-        val match = leadingYearTitlePattern.find(titleAndYear.first) ?: return null
-        val year = match.groupValues[1].toInt()
-        val isInCollectionOfThatTime = generateSequence(file.parentFile) { it.parentFile }.take(3).takeWhile { !isLibraryGroupFolder(it) }.any { folder ->
-            yearRangePattern.findAll(decodeIfEncoded(folder.name)).any { range ->
-                val from = range.groupValues[1].toInt()
-                val to = range.groupValues[2].let { if (it.length == 2) from / 100 * 100 + it.toInt() else it.toInt() }
-                year in from..to
-            }
-        }
-        return if (isInCollectionOfThatTime) Pair(match.groupValues[2], year) else null
-    }
-
-    private fun isMovieTitle(titleAndYear: Pair<String, Int?>): Boolean {
-        val (title, year) = titleAndYear
-        if (title.isBlank() || title.none { it.isLetterOrDigit() } || title.lowercase().matches(movieTechnicalTagPattern)) return false
-        // numeric titles like 300 or 1917 need a release year, "00001.m2ts" or "2022.mp4" aren't titles
-        if (title.matches(pureNumberPattern)) return !title.startsWith("0") && year != null
-        // with a release year short titles like "It (2017)", "Home (2015)" or "48.Hrs.1982" are titles as well
-        if (year != null || !isJunk(title)) return true
-        // isJunk takes "Cars 2" or "Saw 3" for a season or volume
-        val normalized = title.lowercase()
-        return normalized.matches(shortWordNumPattern) && !normalized.matches(seasonDiscPartPattern) && !normalized.matches(episodeLikeShortPattern)
-    }
-
-    /**
-     * Letter, range (0-9) and category folders group the library, they never carry a title.
-     */
-    private fun isLibraryGroupFolder(folder: File): Boolean {
-        val name = decodeIfEncoded(folder.name).trim()
-        val lower = name.lowercase()
-        val normalized = lower.replace("_", " ").replace(".", " ").replace("-", " ").trim()
-        return name.length <= 1 || name.all { !it.isLetterOrDigit() } || lower.matches(rangeSinglePattern) || lower.matches(rangeLetterPattern) ||
-                lower in categoryFolderNames || normalized in categoryFolderNames
-    }
-
-    /**
-     * Series in the movies folder, detected by markers a movie title doesn't carry: S01E01 or 1x01 in the file name, a
-     * season folder or several numbered episodes of the same show next to each other. A plain number like in
-     * "Apollo 13" doesn't count.
-     */
-    fun hasSeriesMarkers(file: File): Boolean {
-        val fileName = decodeIfEncoded(file.nameWithoutExtension)
-        if (seasonEpisodeMarkerPattern.containsMatchIn(fileName) || seasonXEpisodeMarkerPattern.containsMatchIn(fileName)) return true
-
-        // files directly in a letter folder, e.g. Star.Wars.Episode.1, have no show folder
-        val showFolders = generateSequence(file.parentFile) { it.parentFile }.take(5).takeWhile { !isLibraryGroupFolder(it) }.toList()
-        if (showFolders.isEmpty()) return false
-        if (showFolders.any { seasonFolderMarkerPattern.containsMatchIn(decodeIfEncoded(it.name)) }) return true
-
-        // e.g. "Tales.Of.Little.Women.EP1", "Samurai Champloo - Ep. 20 - Elegy", "Patlabor ON TELEVISION - 47 (BDRip)" or "Gunslinger Girl 01"
-        val episodeMarker = episodeMarker(fileName) ?: return false
-        val episodeMarkers = file.parentFile.listFiles()
-            ?.filter { it.isFile && it.name != file.name && it.extension.lowercase() in videoExtensions }
-            ?.mapNotNull { sibling -> episodeMarker(decodeIfEncoded(sibling.nameWithoutExtension))?.takeIf { it.showName == episodeMarker.showName } }
-            .orEmpty()
-            .plus(episodeMarker)
-        // plain numbers only count zero-padded, "Ocean's 11", "Ocean's 12" and "Ocean's 13" are movies
-        val hasEpisodeNotation = episodeMarkers.any { it.isExplicit || it.number.startsWith("0") }
-        return hasEpisodeNotation && episodeMarkers.map { it.number.toInt() }.toSet().size >= 3
-    }
-
-    /**
-     * Removes the episode number [extractName] keeps for plain numbered episodes, e.g. "Gunslinger Girl 10".
-     */
-    fun removeEpisodeNumber(seriesName: String, file: File): String {
-        val episodeNumber = episodeMarker(decodeIfEncoded(file.nameWithoutExtension))?.number ?: return seriesName
-        return seriesName.removeSuffix(" $episodeNumber").trim()
-    }
-
-    /**
-     * Episode number in a file name, [isExplicit] if it's marked as episode (Ep. 20, - 47) rather than a plain trailing
-     * number. [showName] is the normalized text in front of it.
-     */
-    private data class EpisodeMarker(val showName: String, val number: String, val isExplicit: Boolean)
-
-    private fun episodeMarker(name: String): EpisodeMarker? {
-        fun showName(text: String, end: Int) = text.substring(0, end).lowercase().replace(nonAlphanumericPattern, "")
-        (explicitEpisodeLookbehindPattern.find(name) ?: dashEpisodePattern.find(name))?.let {
-            return EpisodeMarker(showName(name, it.range.first), it.groupValues[1], true)
-        }
-        val withoutTags = name.replace(bracketPattern, " ").replace(versionPattern, "").trim()
-        return trailingEpisodeNumberMarkerPattern.find(withoutTags)?.let { EpisodeMarker(showName(withoutTags, it.range.first), it.groupValues[1], false) }
-    }
-
-    /**
-     * Extras folders inside a movie or show folder, like "Movie (2010)/Featurettes" or "Show/NC". The top folder itself
-     * doesn't count, packs are named like "Good Omens Season 1 + Extras".
-     */
-    fun isInExtrasFolder(file: File): Boolean {
-        val folders = generateSequence(file.parentFile) { it.parentFile }.take(6).takeWhile { !isLibraryGroupFolder(it) }.toList()
-        return folders.dropLast(1).any { folder ->
-            val name = decodeIfEncoded(folder.name)
-            movieExtraPattern.containsMatchIn(name) || creditlessFolderPattern.matches(name.trim())
-        }
-    }
-
-    /**
-     * Files left alone: parts of a disc structure (moving them breaks the disc) and video courses, which no media
-     * database knows.
-     */
-    fun getSkipReason(file: File): String? {
-        val folderNames = generateSequence(file.parentFile) { it.parentFile }.map { decodeIfEncoded(it.name).lowercase() }.toList()
-        return when {
-            folderNames.any { it in discStructureRootNames } -> "disc structure"
-            paddingFilePattern.containsMatchIn(decodeIfEncoded(file.name)) -> "padding file"
-            file.extension.lowercase() in nonMediaExtensions -> "no media file"
-            coursePattern.containsMatchIn(decodeIfEncoded(file.absolutePath)) -> "course"
-            else -> null
-        }
-    }
-
     fun extractYear(fullName: String): Int? {
         val file = File(fullName)
+        val parent = file.parentFile
+        // the folders above the file, nearest first
+        val folders = generateSequence(parent) { it.parentFile }.take(5).toList()
 
         // 1. Prefer explicit parenthesized year in file name
-        val nameParenMatch = parenthesizedYearExtractorRegex.find(file.name)
-        if (nameParenMatch != null) return nameParenMatch.groupValues[1].toInt()
-
-        val parent = file.parentFile
-        val isSeasonFolder = parent?.name?.let {
-            seasonFolderPattern.containsMatchIn(it)
-        } ?: false
+        parenthesizedYearIn(file.name)?.let { return it }
 
         // If parent is a season folder, check grandparent show folder first
-        if (isSeasonFolder && parent.parentFile != null) {
-            val grandParentParenMatch = parenthesizedYearExtractorRegex.find(parent.parentFile.name)
-            if (grandParentParenMatch != null) return grandParentParenMatch.groupValues[1].toInt()
-
-            val grandParentMatch = yearExtractorRegex.find(parent.parentFile.name)
-            if (grandParentMatch != null && grandParentMatch.range.first > 0) {
-                return grandParentMatch.groupValues[1].toInt()
-            }
-            if (grandParentMatch != null) {
-                return grandParentMatch.groupValues[1].toInt()
-            }
+        val showFolder = parent?.parentFile
+        if (parent != null && seasonFolderPattern.containsMatchIn(parent.name) && showFolder != null) {
+            (parenthesizedYearIn(showFolder.name) ?: yearExtractorRegex.find(showFolder.name)?.groupValues?.get(1)?.toInt())?.let { return it }
         }
 
         // 2. Prefer explicit parenthesized year in parent folders
-        var current: File? = parent
-        var depth = 0
-        while (current != null && depth < 5) {
-            val parentParenMatch = parenthesizedYearExtractorRegex.find(current.name)
-            if (parentParenMatch != null) return parentParenMatch.groupValues[1].toInt()
-            current = current.parentFile
-            depth++
-        }
+        folders.firstNotNullOfOrNull { parenthesizedYearIn(it.name) }?.let { return it }
 
         // 3. Fall back to unparenthesized year (prefer match where index > 0, a leading year like 1917.2019 is the title)
         val nameMatches = yearExtractorRegex.findAll(file.name).toList()
         nameMatches.firstOrNull { it.range.first > 0 }?.let { return it.groupValues[1].toInt() }
-
-        current = parent
-        depth = 0
-        while (current != null && depth < 5) {
-            val currMatch = yearExtractorRegex.findAll(current.name).firstOrNull { it.range.first > 0 }
-            if (currMatch != null) {
-                return currMatch.groupValues[1].toInt()
-            }
-            current = current.parentFile
-            depth++
-        }
-
+        folders.firstNotNullOfOrNull { folder -> yearExtractorRegex.findAll(folder.name).firstOrNull { it.range.first > 0 } }
+            ?.let { return it.groupValues[1].toInt() }
         nameMatches.firstOrNull()?.let { return it.groupValues[1].toInt() }
-
-        current = parent
-        depth = 0
-        while (current != null && depth < 5) {
-            val currMatch = yearExtractorRegex.find(current.name)
-            if (currMatch != null) {
-                return currMatch.groupValues[1].toInt()
-            }
-            current = current.parentFile
-            depth++
-        }
-
-        return null
+        return folders.firstNotNullOfOrNull { folder -> yearExtractorRegex.find(folder.name) }?.groupValues?.get(1)?.toInt()
     }
 
-    private fun containerName(folderName: String) =
-        folderName.lowercase().replace(bracketPattern, " ").replace("_", " ").replace(".", " ").substringAfterLast(" - ")
-            .replace(whitespacePattern, " ").trim()
-
-    private fun isExtrasFolder(folderName: String) = containerName(folderName).matches(extrasFolderPattern)
-
-    private fun isExtrasContainer(folderName: String) = containerName(folderName).let { it.matches(extrasFolderPattern) || it.matches(subtitleFolderPattern) }
-
-    /**
-     * Name of an extra in the featurettes of its show, with the folders below the outermost extras folder so extras of
-     * different folders don't collide, e.g. "Season 2 - The Log Lady - The Log Lady 01.mkv" for
-     * "Twin.Peaks.(1990)/Featurettes/Season 2/The Log Lady/The Log Lady 01.mkv". Null if the file isn't an extra.
-     */
-    fun extraNameInFeaturettes(file: File): String? {
-        val folders = generateSequence(file.parentFile) { it.parentFile }.takeWhile { !isLibraryGroupFolder(it) }.toList()
-        val outermostExtrasFolder = folders.indexOfLast { isExtrasFolder(decodeIfEncoded(it.name)) }
-        // extras named after their folder like "Season 03 Extras - Inside The X-Files.avi"
-        val fileName = decodeIfEncoded(file.nameWithoutExtension)
-        if (outermostExtrasFolder < 0 && fileName.contains(" - ") && isExtrasFolder(fileName.substringBefore(" - "))) return decodeIfEncoded(file.name)
-        if (outermostExtrasFolder < 0) return null
-        val subFolders = folders.take(outermostExtrasFolder).reversed().map { decodeIfEncoded(it.name) }
-        return (subFolders + decodeIfEncoded(file.name)).joinToString(" - ")
-    }
-
-    /**
-     * Language of a subtitle from its name or folder, e.g. "en" for "2_English.srt", "da" for "Danish/Show E1.srt" or
-     * "en.sdh" for "english_SDH/Show.S01E01.srt".
-     */
-    fun extractSeriesSubtitleLanguage(file: File): String? {
-        extractSubtitleLanguage(file)?.let { return it }
-        val tokens = (listOf(file.nameWithoutExtension) + listOfNotNull(file.parentFile?.name))
-            .flatMap { decodeIfEncoded(it).lowercase().split(nonLetterPattern) }.filter { it.isNotBlank() }
-        val language = tokens.firstNotNullOfOrNull { languageNames[it] } ?: return null
-        return (listOf(language) + subtitleFlags.filter { it in tokens }).joinToString(".")
-    }
-
-    /**
-     * Movies in a series folder go to the movies, detected by a movie in the file name or in one of the two folders
-     * above, e.g. "Naruto/3.Naruto Movies/1 - Ninja Clash in the Land of Snow.mkv" or "Aeon Flux/Movie (2005)/Aeon Flux.mp4".
-     * Packs of episodes and movies like "Eden of the East 1-11+Movie 1-2 Complete" don't make their episodes movies.
-     */
-    fun isMovieInSeriesFolder(file: File): Boolean {
-        val fileName = decodeIfEncoded(file.nameWithoutExtension)
-        if (isOpeningEndingOrOva(file) || pilotPattern.containsMatchIn(fileName) || isMovieExtra(file)) return false
-        if (seasonEpisodeMarkerPattern.containsMatchIn(fileName) || seasonXEpisodeMarkerPattern.containsMatchIn(fileName) ||
-            seasonInNamePattern.containsMatchIn(fileName)
-        ) return false
-        // files in a show of the library were put there on purpose, e.g. "The Office (US) {tvdb-73244}/Season 7/Threat Level Midnight The Movie.mkv"
-        if (remoteMediaIdPattern.containsMatchIn(decodeIfEncoded(file.absolutePath))) return false
-        val folders = generateSequence(file.parentFile) { it.parentFile }.takeWhile { !isLibraryGroupFolder(it) }.map { decodeIfEncoded(it.name) }.toList()
-        if (folders.any { isExtrasContainer(it) }) return false
-        return movieFileWordPattern.containsMatchIn(fileName) ||
-                folders.take(2).any { movieFolderWordPattern.containsMatchIn(it) && !episodesAndMoviesPackPattern.containsMatchIn(it) }
-    }
-
-    /**
-     * Title and year of a movie in a series folder without its numbering, "Hunter X Hunter - Movie 1 - Phantom Rouge"
-     * is searched as "Hunter X Hunter - Phantom Rouge", the year may come from its folder like "Movie (2005)".
-     */
-    fun extractMovieInSeriesNameAndYear(file: File): Pair<String, Int?> {
-        val fileName = decodeIfEncoded(file.nameWithoutExtension).replace(leadingTrackNumberPattern, "")
-        val (name, year) = parseMovieName(fileName)
-        val subtitleMatch = movieSubtitlePattern.find(fileName.replace(".", " ").replace("_", " "))
-        val fullName = if (subtitleMatch != null) {
-            // the year stands before the number, "Ranma ½ [1991] - Movie 01 - Big Trouble In Nekonron China" would end at it
-            val show = cleanName(subtitleMatch.groupValues[1])
-            "$show ${parseMovieName(subtitleMatch.groupValues[2]).first}"
-        } else name
-        val title = fullName.replace(movieNumberPattern, " - ").replace(repeatedDashPattern, " - ")
-            .replace(whitespacePattern, " ").trim { it == ' ' || it == '-' }
-        val folderYear = file.parentFile?.let { parseMovieName(decodeIfEncoded(it.name)) }?.second
-        return Pair(title, year ?: folderYear)
-    }
-
-    fun normalizeMovieTitle(title: String) = MediaProxyService.normalizeTitle(title).removePrefix("the ").replace(" ", "")
+    private fun parenthesizedYearIn(name: String): Int? = parenthesizedYearExtractorRegex.find(name)?.groupValues?.get(1)?.toInt()
 }

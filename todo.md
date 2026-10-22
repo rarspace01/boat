@@ -14,8 +14,6 @@ are in the git history (PRs #545 to #569), the settings are in the README.
 - [ ] `TorrentSearchEngineService` still creates a `ForkJoinPool` per search, sized by the number of active engines.
 - [ ] Alldebrid: kept on purpose, but only Premiumize is registered in `MultifileHosterService`. Register it there to
   use it (the API key setting and the tests exist).
-- [ ] `MediaNameParser` (1,060 lines) is mostly a few very long functions (`extractName` 190 lines, `cleanName` 180,
-  `isJunk` 110), the patterns are in `NamePatterns`. Split those functions up if they need to change.
 - [ ] `BluRayComService`: kept for finding BD releases to download, not used by anything yet.
 
 ## Decisions and known limits
