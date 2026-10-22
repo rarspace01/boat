@@ -269,11 +269,11 @@ internal class DuplicateCleanerTest {
     }
 
     @Test
-    fun `should keep a version which is 5 times larger than the others without reading anything`(@TempDir tempDir: Path) {
+    fun `should keep a version which is 4 times larger than the others without reading anything`(@TempDir tempDir: Path) {
         val base = tempDir.toFile()
-        val big = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mkv", video(height = 480), bytes = 500)
+        val big = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mkv", video(height = 480), bytes = 400)
         val small = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mp4", video(height = 1080), bytes = 100)
-        val similar1 = file(base, "Movies/M/Matrix (1999) {tmdb-603}.mkv", video(height = 480), bytes = 499)
+        val similar1 = file(base, "Movies/M/Matrix (1999) {tmdb-603}.mkv", video(height = 480), bytes = 399)
         val similar2 = file(base, "Movies/M/Matrix (1999) {tmdb-603}.mp4", video(height = 1080), bytes = 100)
 
         val result = run(base)

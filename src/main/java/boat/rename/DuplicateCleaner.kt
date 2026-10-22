@@ -170,7 +170,7 @@ class DuplicateCleaner(
                 logger.info("decided {} of {} groups after {} s, {} runtime lookups so far", decided, sameByName.size, (System.nanoTime() - decideStart) / 1_000_000_000, lookups)
             }
             largeEnoughToKeep(files)?.let { largest ->
-                // no probe needed: the others are less than a fifth of the size
+                // no probe needed: the others are less than a quarter of the size
                 val unknown = VideoInfo(null, null, null, null, null)
                 val losers = (files - largest).map { Version(it, unknown) }
                 groups.add(DuplicateGroup(key, Version(largest, unknown), losers, losers.associate { it.file to "less than 1/${SIZE_FACTOR} of the size of the kept version" }))
@@ -409,7 +409,7 @@ class DuplicateCleaner(
         private const val MIN_COMPLETE_LENGTH = 0.5
 
         /** A version which is this many times larger than all others of its group is kept without probing. */
-        private const val SIZE_FACTOR = 5
+        private const val SIZE_FACTOR = 4
 
         /** Versions which differ more in length are not the same content. */
         private const val MAX_LENGTH_DIFFERENCE = 0.15
