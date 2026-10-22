@@ -118,7 +118,7 @@ bitrate wins: its bitrate divided by what its codec needs for the same picture q
 per generation (modern: AV1/HEVC/VP9, H.264 class, older): it stays against an H.264 file with up to 20% more quality
 bitrate, above that the higher bitrate wins. `DUPLICATE_BETTER_CODEC_MARGIN_PERCENT` changes the 20 (`0` = none),
 `DUPLICATE_CODEC_WEIGHT_PERCENT` says how much the efficiency of the codec counts at all (`100` fully, `0` only the
-plain bitrate, the most material for a later re-encode). A file under 1 MB which can't be read is a failed download and a version shorter than half of the longest one is incomplete, both are deleted when a complete version exists. Versions which are not equally long (more than 5%) or can't be read otherwise are left alone and listed as
+plain bitrate, the most material for a later re-encode). A file under 1 MB which can't be read is a failed download and a version shorter than half of the longest one is incomplete, both are deleted when a complete version exists. If versions differ in length, the runtime of TMDB/TVDB (needs the API keys) decides which ones are the whole episode or movie (15% shorter to 30% longer than it); shorter ones are deleted, a longer one (several episodes in one file) leaves the group undecided. Without a runtime, versions which are not equally long (more than 5%) or can't be read otherwise are left alone and listed as
 `UNSURE`. The subtitles of a deleted version move to the version which stays.
 
 Start with a test run: the manual tests in `DuplicateCleanerIntegrationTest` (remove the `@Disabled`) write

@@ -289,6 +289,61 @@ internal class DuplicateCleanerTest {
         assertThat(b).exists()
     }
 
+    private fun withRuntime(vararg minutes: Pair<String, Double>) = DuplicateCleaner(
+        { file -> infos[file.name] }, probeThreads = 2, codecWeightPercent = 100, betterCodecMarginPercent = 20,
+        runtimeLookup = RuntimeLookup { id, season, episode -> minutes.toMap()["$id S$season E$episode"] },
+    )
+
+    @Test
+    fun `should decide versions which differ in length if both match the official runtime`(@TempDir tempDir: Path) {
+        val base = tempDir.toFile()
+        val a = file(base, "Series-Shows/H/Heroes {tvdb-79501}/Season 3/Heroes.S03E15.1080p.x265.mkv", video(codec = "hevc", seconds = 2489.0))
+        val b = file(base, "Series-Shows/H/Heroes {tvdb-79501}/Season 3/Heroes.S03E15.xvid.avi", video(codec = "mpeg4", height = 360, seconds = 2369.0))
+
+        val result = withRuntime("tvdb-79501 S3 E15" to 41.0).processFilesFromDirectory(base.path, null, false)
+
+        assertThat(result.groups.single().keep.file).isEqualTo(a)
+        assertThat(b).doesNotExist()
+    }
+
+    @Test
+    fun `should delete the version shorter than the official runtime`(@TempDir tempDir: Path) {
+        val base = tempDir.toFile()
+        val good = file(base, "Series-Shows/H/Heroes {tvdb-79501}/Season 1/Heroes.S01E01.mkv", video(seconds = 2600.0))
+        val partial = file(base, "Series-Shows/H/Heroes {tvdb-79501}/Season 1/Heroes.S01E01.mp4", video(seconds = 1500.0))
+
+        withRuntime("tvdb-79501 S1 E1" to 43.0).processFilesFromDirectory(base.path, null, false)
+
+        assertThat(good).exists()
+        assertThat(partial).doesNotExist()
+    }
+
+    @Test
+    fun `should not decide if a version is longer than the official runtime`(@TempDir tempDir: Path) {
+        val base = tempDir.toFile()
+        val episode = file(base, "Series-Shows/N/Naruto {tvdb-78857}/Season 1/Naruto.S01E28.avi", video(seconds = 1329.0))
+        val merged = file(base, "Series-Shows/N/Naruto {tvdb-78857}/Season 1/Naruto.S01E28.mkv", video(seconds = 7602.0))
+
+        val result = withRuntime("tvdb-78857 S1 E28" to 22.0).processFilesFromDirectory(base.path, null, false)
+
+        assertThat(result.unsureGroups.single().reason).contains("longer than the official runtime")
+        assertThat(episode).exists()
+        assertThat(merged).exists()
+    }
+
+    @Test
+    fun `should fall back to the lengths without a runtime or if no version matches it`(@TempDir tempDir: Path) {
+        val base = tempDir.toFile()
+        file(base, "Movies/I/Inception (2010) {tmdb-27205}.mkv", video(seconds = 8880.0))
+        file(base, "Movies/I/Inception (2010) {tmdb-27205}.mp4", video(seconds = 8000.0))
+
+        val unknown = withRuntime().processFilesFromDirectory(base.path, null, true)
+        val noMatch = withRuntime("tmdb-27205 Snull Enull" to 60.0).processFilesFromDirectory(base.path, null, true)
+
+        assertThat(unknown.unsureGroups).hasSize(1)
+        assertThat(noMatch.unsureGroups).hasSize(1)
+    }
+
     @Test
     fun `should not decide groups with a file ffprobe cannot read`(@TempDir tempDir: Path) {
         val base = tempDir.toFile()

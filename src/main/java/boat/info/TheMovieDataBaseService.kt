@@ -77,6 +77,37 @@ class TheMovieDataBaseService @Autowired constructor(private val httpHelper: Htt
         return parseDetailsPage(page, mediaType)
     }
 
+    /** The runtime of a movie in minutes, null if TMDB doesn't know it. */
+    fun movieRuntime(id: String): Int? =
+        parseRuntime(httpHelper.getPage("$apiRootUrl/movie/${urlEncode(id)}?api_key=$apiKey"))
+
+    fun parseRuntime(pageContent: String?): Int? {
+        if (pageContent.isNullOrBlank()) return null
+        return try {
+            JsonParser.parseString(pageContent).asJsonObject["runtime"]?.takeIf { !it.isJsonNull }?.asInt?.takeIf { it > 0 }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    /** The runtimes in minutes by episode number of a season of a series, empty if TMDB doesn't know them. */
+    fun episodeRuntimes(id: String, season: Int): Map<Int, Int> =
+        parseEpisodeRuntimes(httpHelper.getPage("$apiRootUrl/tv/${urlEncode(id)}/season/$season?api_key=$apiKey"))
+
+    fun parseEpisodeRuntimes(pageContent: String?): Map<Int, Int> {
+        if (pageContent.isNullOrBlank()) return emptyMap()
+        return try {
+            JsonParser.parseString(pageContent).asJsonObject["episodes"].asJsonArray.mapNotNull { element ->
+                val episode = element.asJsonObject
+                val number = episode["episode_number"]?.takeIf { !it.isJsonNull }?.asInt ?: return@mapNotNull null
+                val runtime = episode["runtime"]?.takeIf { !it.isJsonNull }?.asInt?.takeIf { it > 0 } ?: return@mapNotNull null
+                number to runtime
+            }.toMap()
+        } catch (_: Exception) {
+            emptyMap()
+        }
+    }
+
     fun parseDetailsPage(pageContent: String?, mediaType: MediaType): MediaItem? {
         if (pageContent.isNullOrBlank()) return null
         return try {
