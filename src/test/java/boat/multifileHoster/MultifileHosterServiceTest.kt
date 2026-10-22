@@ -40,6 +40,12 @@ internal class MultifileHosterServiceTest {
     private val rcloneUploader: RcloneUploader = mockk()
     lateinit var multifileHosterService: MultifileHosterService
 
+    // the service reads the list of transfers and single transfers by id
+    private fun stubTransfers(transfers: List<Transfer>) {
+        every { transferService.getAll() } returns transfers
+        every { transferService.getById(any()) } answers { transfers.firstOrNull { it.id == firstArg<String>() } }
+    }
+
     @BeforeEach
     fun beforeEach() {
         every { httpHelper.getPage(match { it.contains("account/info") }) } returns "{\"limit_used\": 0.1}"
@@ -278,7 +284,7 @@ internal class MultifileHosterServiceTest {
         val transfer2 = Transfer(name = "T2", transferStatus = TransferStatus.READY_TO_BE_DOWNLOADED, sizeInBytes = 1000L)
         val transfer3 = Transfer(name = "T3", transferStatus = TransferStatus.READY_TO_BE_DOWNLOADED, sizeInBytes = 2000L)
 
-        every { transferService.getAll() } returns listOf(transfer1, transfer2, transfer3)
+        stubTransfers(listOf(transfer1, transfer2, transfer3))
 
         val result = multifileHosterService.getTransferToBeDownloaded()
         assertThat(result).isEqualTo(transfer2)
@@ -295,7 +301,7 @@ internal class MultifileHosterServiceTest {
         )
         val mediaItem = MediaItem(title = "Inception", year = 2010, type = MediaType.Movie, id = "{tmdb-27205}")
 
-        every { transferService.getAll() } returns listOf(transfer)
+        stubTransfers(listOf(transfer))
         every { mediaProxyService.findByRemoteMediaId("{tmdb-27205}", any(), any()) } returns mediaItem
         every { contentRenamer.getSafeTitle(mediaItem) } returns "Inception"
         every { contentRenamer.extractSeasonAndEpisode(any(), mediaItem) } returns Pair(null, null)
@@ -322,7 +328,7 @@ internal class MultifileHosterServiceTest {
         )
         val mediaItem = MediaItem(title = "Inception", year = 2010, type = MediaType.Movie, id = "{tmdb-27205}")
 
-        every { transferService.getAll() } returns listOf(transfer)
+        stubTransfers(listOf(transfer))
         every { mediaProxyService.findByRemoteMediaId("{tmdb-27205}", "Inception.2010.1080p", MediaType.Movie) } returns mediaItem
         every { contentRenamer.getSafeTitle(mediaItem) } returns "Inception"
         every { contentRenamer.extractSeasonAndEpisode(any(), mediaItem) } returns Pair(null, null)
@@ -347,7 +353,7 @@ internal class MultifileHosterServiceTest {
         )
         val mediaItem = MediaItem(title = "Breaking Bad", year = 2008, type = MediaType.Series, id = "{tvdb-81189}")
 
-        every { transferService.getAll() } returns listOf(transfer)
+        stubTransfers(listOf(transfer))
         every { mediaProxyService.findByRemoteMediaId("{tvdb-81189}", any(), any()) } returns mediaItem
         every { contentRenamer.getSafeTitle(mediaItem) } returns "Breaking Bad"
         every { contentRenamer.extractSeasonAndEpisode(any(), mediaItem) } returns Pair(1, 5)
@@ -371,7 +377,7 @@ internal class MultifileHosterServiceTest {
         )
         val mediaItem = MediaItem(title = "Breaking Bad", year = 2008, type = MediaType.Series, id = "{tvdb-81189}")
 
-        every { transferService.getAll() } returns listOf(transfer)
+        stubTransfers(listOf(transfer))
         every { mediaProxyService.findByRemoteMediaId("{tvdb-81189}", any(), any()) } returns mediaItem
         every { contentRenamer.getSafeTitle(mediaItem) } returns "Breaking Bad"
         every { contentRenamer.extractSeasonAndEpisode(any(), mediaItem) } returns Pair(1, 1)
@@ -396,7 +402,7 @@ internal class MultifileHosterServiceTest {
             remoteId = "remote-123",
             source = "Premiumize"
         )
-        every { transferService.getAll() } returns listOf(transfer)
+        stubTransfers(listOf(transfer))
         every { cloudService.buildDestinationPath(any(), any()) } returns Pair("I", "/destination/Movies/I/")
         every { httpHelper.getPage(match { it.contains("folder/list") }) } returns
                 "{\"status\":\"success\",\"content\":[{\"id\":\"f1\",\"name\":\"Inception.mkv\",\"type\":\"file\",\"size\":1000,\"link\":\"http://premiumize.me/dl/inception.mkv\"}]}"
@@ -417,7 +423,7 @@ internal class MultifileHosterServiceTest {
             remoteId = "remote-456",
             source = "Premiumize"
         )
-        every { transferService.getAll() } returns listOf(transfer)
+        stubTransfers(listOf(transfer))
         every { cloudService.buildDestinationPath(any(), any()) } returns Pair("B", "/destination/Series-Shows/B/Breaking.Bad/")
         every { httpHelper.getPage(match { it.contains("folder/list") }) } returns "{\"status\":\"success\",\"content\":[" +
                 "{\"id\":\"f1\",\"name\":\"Breaking.Bad.S01E01.mkv\",\"type\":\"file\",\"size\":1000,\"link\":\"http://premiumize.me/dl/bb01.mkv\"}," +
@@ -440,7 +446,7 @@ internal class MultifileHosterServiceTest {
             remoteId = "remote-123",
             source = "Premiumize"
         )
-        every { transferService.getAll() } returns listOf(transfer)
+        stubTransfers(listOf(transfer))
         every { cloudService.buildDestinationPath(any(), any()) } returns Pair("I", "/destination/Movies/I/")
         every { httpHelper.getPage(match { it.contains("folder/list") }) } returns
                 "{\"status\":\"success\",\"content\":[{\"id\":\"f1\",\"name\":\"Inception.mkv\",\"type\":\"file\",\"size\":1000,\"link\":\"http://premiumize.me/dl/inception.mkv\"}]}"
@@ -470,7 +476,7 @@ internal class MultifileHosterServiceTest {
             remoteId = "remote-123",
             source = "Premiumize"
         )
-        every { transferService.getAll() } returns listOf(transfer)
+        stubTransfers(listOf(transfer))
         every { cloudService.buildDestinationPath(any(), any()) } returns Pair("I", "/destination/Movies/I/")
         every { httpHelper.getPage(match { it.contains("folder/list") }) } returns
                 "{\"status\":\"success\",\"content\":[{\"id\":\"f1\",\"name\":\"Inception.mkv\",\"type\":\"file\",\"size\":1000,\"link\":\"http://premiumize.me/dl/inception.mkv\"}]}"
@@ -496,7 +502,7 @@ internal class MultifileHosterServiceTest {
             transferType = boat.model.TransferType.URL,
             source = "Premiumize"
         )
-        every { transferService.getAll() } returns listOf(otherTransfer, transfer)
+        stubTransfers(listOf(otherTransfer, transfer))
         every { cloudService.buildDestinationPath(any(), any()) } returns Pair("M", "/destination/transfer/M/")
         every { httpHelper.getPage(match { it.contains("folder/list") }) } returns
                 "{\"status\":\"success\",\"content\":[{\"id\":\"f1\",\"name\":\"movie.mkv\",\"type\":\"file\",\"size\":1000,\"link\":\"http://premiumize.me/dl/movie.mkv\"}]}"
@@ -524,7 +530,7 @@ internal class MultifileHosterServiceTest {
             remoteId = "remote-123",
             source = "Premiumize"
         )
-        every { transferService.getAll() } returns listOf(transfer)
+        stubTransfers(listOf(transfer))
         every { httpHelper.getPage(match { it.contains("folder/list") }) } returns "{\"status\":\"success\",\"content\":[]}"
 
         repeat(MultifileHosterService.MAX_UPLOAD_TO_DRIVE_RETRIES + 1) {
@@ -545,7 +551,7 @@ internal class MultifileHosterServiceTest {
             remoteId = "remote-123",
             source = "Premiumize"
         )
-        every { transferService.getAll() } returns listOf(transfer)
+        stubTransfers(listOf(transfer))
         every { cloudService.buildDestinationPath(any(), any()) } returns Pair("I", "/destination/Movies/I/")
         every { httpHelper.getPage(match { it.contains("folder/list") }) } returns
                 "{\"status\":\"success\",\"content\":[{\"id\":\"f1\",\"name\":\"Inception.mkv\",\"type\":\"file\",\"size\":1000,\"link\":\"http://premiumize.me/dl/inception.mkv\"}]}"
@@ -569,7 +575,7 @@ internal class MultifileHosterServiceTest {
             source = "Premiumize",
             failedUploadsToDrive = MultifileHosterService.MAX_UPLOAD_TO_DRIVE_RETRIES
         )
-        every { transferService.getAll() } returns listOf(transfer)
+        stubTransfers(listOf(transfer))
         every { cloudService.buildDestinationPath(any(), any()) } returns Pair("I", "/destination/Movies/I/")
         every { httpHelper.getPage(match { it.contains("folder/list") }) } returns
                 "{\"status\":\"success\",\"content\":[{\"id\":\"f1\",\"name\":\"Inception.mkv\",\"type\":\"file\",\"size\":1000,\"link\":\"http://premiumize.me/dl/inception.mkv\"}]}"
@@ -594,7 +600,7 @@ internal class MultifileHosterServiceTest {
             uri = "magnet:?xt=urn:btih:10e93389d579ba4538c68b8d297268a81620fae2",
             source = "Premiumize"
         )
-        every { transferService.getAll() } returns listOf(transfer)
+        stubTransfers(listOf(transfer))
         every { httpHelper.getPage(match { it.contains("transfer/list") }) } returns
                 "{\"status\":\"success\",\"transfers\":[{\"id\":\"remote-123\",\"name\":\"Inception.2010.1080p.mkv\",\"status\":\"finished\"," +
                 "\"folder_id\":\"folder-1\",\"file_id\":null,\"src\":\"magnet:?xt=urn:btih:10e93389d579ba4538c68b8d297268a81620fae2\",\"message\":\"\",\"progress\":1}]}"
@@ -619,7 +625,7 @@ internal class MultifileHosterServiceTest {
     @Test
     fun shouldDeleteTransferAndItsRemoteTorrent() {
         val transfer = failedTransfer()
-        every { transferService.getAll() } returns listOf(transfer)
+        stubTransfers(listOf(transfer))
         every { httpHelper.getPage(match { it.contains("transfer/list") }) } returns readyTransferList
 
         val message = multifileHosterService.deleteTransfer(transfer.id)
@@ -632,7 +638,7 @@ internal class MultifileHosterServiceTest {
     @Test
     fun shouldFindRemoteTorrentByInfoHashWithoutRemoteId() {
         val transfer = failedTransfer(remoteId = null)
-        every { transferService.getAll() } returns listOf(transfer)
+        stubTransfers(listOf(transfer))
         every { httpHelper.getPage(match { it.contains("transfer/list") }) } returns readyTransferList
 
         multifileHosterService.deleteTransfer(transfer.id)
@@ -643,7 +649,7 @@ internal class MultifileHosterServiceTest {
     @Test
     fun shouldNotDeleteOrRestartTransferUploadingToDrive() {
         val transfer = failedTransfer().apply { transferStatus = TransferStatus.UPLOADING_TO_DRIVE }
-        every { transferService.getAll() } returns listOf(transfer)
+        stubTransfers(listOf(transfer))
         every { httpHelper.getPage(match { it.contains("transfer/list") }) } returns readyTransferList
 
         assertThat(multifileHosterService.deleteTransfer(transfer.id)).contains("uploading")
@@ -656,7 +662,7 @@ internal class MultifileHosterServiceTest {
 
     @Test
     fun shouldReportUnknownTransfer() {
-        every { transferService.getAll() } returns emptyList()
+        stubTransfers(emptyList())
 
         assertThat(multifileHosterService.deleteTransfer("unknown")).isEqualTo("transfer not found")
         assertThat(multifileHosterService.restartTransfer("unknown")).isEqualTo("transfer not found")
@@ -665,7 +671,7 @@ internal class MultifileHosterServiceTest {
     @Test
     fun shouldRestartUploadToDriveIfFilesAreReadyAtHoster() {
         val transfer = failedTransfer()
-        every { transferService.getAll() } returns listOf(transfer)
+        stubTransfers(listOf(transfer))
         every { httpHelper.getPage(match { it.contains("transfer/list") }) } returns readyTransferList
 
         multifileHosterService.restartTransfer(transfer.id)
@@ -680,7 +686,7 @@ internal class MultifileHosterServiceTest {
     @Test
     fun shouldAddTransferAgainIfHosterHasNoReadyFiles() {
         val transfer = failedTransfer().apply { transferStatus = TransferStatus.ERROR }
-        every { transferService.getAll() } returns listOf(transfer)
+        stubTransfers(listOf(transfer))
         every { httpHelper.getPage(match { it.contains("transfer/list") }) } returns readyTransferList.replace("finished", "error")
 
         multifileHosterService.restartTransfer(transfer.id)

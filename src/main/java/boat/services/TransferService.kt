@@ -24,6 +24,10 @@ class TransferService(private val transferRepository: TransferRepository) {
         return transferRepository.findAll()
     }
 
+    fun getById(id: String): Transfer? {
+        return transferRepository.findById(id).orElse(null)
+    }
+
     fun get(transfer: Transfer): Optional<Transfer> {
         return transferRepository.findById(transfer.id)
     }
