@@ -2,7 +2,6 @@ package boat.torrent.searchEngines
 
 import boat.torrent.HttpUser
 import boat.torrent.Torrent
-import boat.torrent.TorrentComparator
 import boat.torrent.TorrentHelper
 import boat.torrent.TorrentSearchEngine
 import boat.utilities.HttpHelper
@@ -24,7 +23,6 @@ class ExtraTorrent internal constructor(httpHelper: HttpHelper) : HttpUser(httpH
         val torrentList = CopyOnWriteArrayList<Torrent>()
         val resultString = httpHelper.getPage(buildSearchUrl(searchName))
         torrentList.addAll(parseTorrentsOnResultPage(resultString, searchName))
-        torrentList.sortWith(TorrentComparator)
         return torrentList
     }
 
@@ -57,10 +55,7 @@ class ExtraTorrent internal constructor(httpHelper: HttpHelper) : HttpUser(httpH
                 tempTorrent.leecher = TorrentHelper.cleanNumberString(
                     torrentElement.selectFirst("td.ly, td.ln")?.text() ?: ""
                 ).toIntOrNull() ?: 0
-                TorrentHelper.evaluateRating(tempTorrent, searchName)
-                if (TorrentHelper.isValidTorrent(tempTorrent)) {
-                    torrentList.add(tempTorrent)
-                }
+                torrentList.add(tempTorrent)
             })
         } catch (exception: Exception) {
             logger.error("[{}] couldn't parse search results", this, exception)

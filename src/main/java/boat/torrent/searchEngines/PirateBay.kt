@@ -2,7 +2,6 @@ package boat.torrent.searchEngines
 
 import boat.torrent.HttpUser
 import boat.torrent.Torrent
-import boat.torrent.TorrentComparator
 import boat.torrent.TorrentHelper
 import boat.torrent.TorrentSearchEngine
 import boat.utilities.HttpHelper
@@ -27,8 +26,6 @@ class PirateBay internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelp
             parseTorrentsOnResultPage(resultString, searchName)
         )
 
-        // sort the findings
-        torrentList.sortWith(TorrentComparator)
         return torrentList
     }
 
@@ -57,10 +54,7 @@ class PirateBay internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelp
                     val size = jsonObject["size"].asLong
                     tempTorrent.sizeInMB = (size / 1024.0f / 1024.0f).toDouble()
                     tempTorrent.size = String.format("%s", TorrentHelper.humanReadableByteCountBinary(size))
-                    TorrentHelper.evaluateRating(tempTorrent, searchName)
-                    if (TorrentHelper.isValidTorrent(tempTorrent)) {
-                        torrentList.add(tempTorrent)
-                    }
+                    torrentList.add(tempTorrent)
                 })
             }
         } catch (e: JsonSyntaxException) {

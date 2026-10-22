@@ -2,7 +2,6 @@ package boat.torrent.searchEngines
 
 import boat.torrent.HttpUser
 import boat.torrent.Torrent
-import boat.torrent.TorrentComparator
 import boat.torrent.TorrentHelper
 import boat.torrent.TorrentSearchEngine
 import boat.utilities.HttpHelper
@@ -11,7 +10,6 @@ import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
-import java.util.concurrent.CopyOnWriteArrayList
 import java.util.function.Consumer
 import java.util.stream.Collectors
 
@@ -22,17 +20,13 @@ class NyaaSi internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper)
     }
 
     override fun searchTorrents(searchName: String): List<Torrent> {
-        val torrentList = CopyOnWriteArrayList<Torrent>()
-        val resultString = httpHelper.getPage(buildSearchUrl(searchName))
-        torrentList.addAll(parseTorrentsOnResultPage(resultString, searchName))
-        torrentList.sortWith(TorrentComparator)
-        return torrentList
+        return SearchPaging.collect { page -> parseTorrentsOnResultPage(httpHelper.getPage(buildSearchUrl(searchName, page)), searchName) }
     }
 
-    private fun buildSearchUrl(searchName: String): String {
+    private fun buildSearchUrl(searchName: String, page: Int): String {
         return String.format(
-            "%s/?f=0&c=0_0&q=%s&s=seeders&o=desc", baseUrl,
-            URLEncoder.encode(searchName, StandardCharsets.UTF_8)
+            "%s/?f=0&c=0_0&q=%s&s=seeders&o=desc&p=%d", baseUrl,
+            URLEncoder.encode(searchName, StandardCharsets.UTF_8), page
         )
     }
 
@@ -76,10 +70,7 @@ class NyaaSi internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper)
                 }
 
                 // evaluate result
-                TorrentHelper.evaluateRating(tempTorrent, searchName)
-                if (TorrentHelper.isValidTorrent(tempTorrent)) {
-                    torrentList.add(tempTorrent)
-                }
+                torrentList.add(tempTorrent)
             }
         }
         return torrentList

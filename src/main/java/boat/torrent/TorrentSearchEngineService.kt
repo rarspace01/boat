@@ -17,15 +17,19 @@ import java.util.stream.Collectors
 class TorrentSearchEngineService(
     final val httpHelper: HttpHelper,
     val multifileHosterService: MultifileHosterService,
-    val torrentInfoService: TorrentInfoService
+    val torrentInfoService: TorrentInfoService,
+    searchEngines: List<TorrentSearchEngine>? = null
 ) {
 
     companion object {
         private val logger by LoggerDelegate()
         const val DUMMY_SEEDERS_OF_CACHED_TORRENT = 1
+
+        /** The most results a search returns, after everything is filtered and sorted. */
+        const val MAX_SEARCH_RESULTS = 100
     }
 
-    private val allSearchEngines: List<TorrentSearchEngine> = listOf<TorrentSearchEngine>(
+    private val allSearchEngines: List<TorrentSearchEngine> = searchEngines ?: listOf<TorrentSearchEngine>(
         AnyBT(httpHelper),
         EZTV(httpHelper),
         ExtraTorrent(httpHelper),
@@ -105,12 +109,23 @@ class TorrentSearchEngineService(
                 logger.error("searchTorrents() terminated after timeout")
             }
         }
-        val returnResults: List<Torrent> = ArrayList(cleanDuplicates(combineResults.filterNot { TorrentHelper.isExplicitContent(it, searchString) }))
+        val returnResults: List<Torrent> = ArrayList(cleanDuplicates(prepareCandidates(combineResults, searchString)))
         val cacheStateOfTorrents = mutableListOf<Torrent>()
         cacheStateOfTorrents.addAll(multifileHosterService.getCachedStateOfTorrents(returnResults))
 
-        return rateResults(cacheStateOfTorrents, searchString)
+        // the search engines return as many results as they have, only now the list is cut to what is shown
+        return rateResults(cacheStateOfTorrents, searchString).take(MAX_SEARCH_RESULTS)
     }
+
+    /**
+     * Drops what is never wanted (explicit content for this search, bad quality, no size or magnet) before the
+     * lookups at the multifilehosters and trackers, and rates the rest (the better of two duplicates is kept).
+     */
+    internal fun prepareCandidates(torrents: List<Torrent>, searchString: String): List<Torrent> =
+        torrents
+            .filterNot { TorrentHelper.isExplicitContent(it, searchString) }
+            .filter { TorrentHelper.isValidTorrent(it) }
+            .onEach { TorrentHelper.evaluateRating(it, searchString) }
 
     /**
      * Asks the trackers for the seeders of the torrents which are not cached at a multifilehoster (cached ones
@@ -128,23 +143,16 @@ class TorrentSearchEngineService(
             .sortedWith(TorrentComparator)
     }
 
+    /** The better rated one of torrents with the same info hash, in the order of the first one. */
     fun cleanDuplicates(combineResults: List<Torrent>): List<Torrent> {
-        val cleanedTorrents = ArrayList<Torrent>()
-        combineResults.forEach(
-            Consumer { result: Torrent ->
-                if (!cleanedTorrents.contains(result)) {
-                    cleanedTorrents.add(result)
-                } else {
-                    val existingTorrentIndex = cleanedTorrents.indexOf(result)
-                    val existingTorrent = cleanedTorrents[existingTorrentIndex]
-                    if (existingTorrent.searchRating < result.searchRating) {
-                        cleanedTorrents.remove(existingTorrent)
-                        cleanedTorrents.add(result)
-                    }
-                }
+        val cleanedTorrents = LinkedHashMap<Torrent, Torrent>()
+        combineResults.forEach { result ->
+            val existingTorrent = cleanedTorrents[result]
+            if (existingTorrent == null || existingTorrent.searchRating < result.searchRating) {
+                cleanedTorrents[result] = result
             }
-        )
-        return cleanedTorrents
+        }
+        return cleanedTorrents.values.toList()
     }
 
 }

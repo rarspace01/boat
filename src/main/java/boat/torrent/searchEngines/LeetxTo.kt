@@ -2,7 +2,6 @@ package boat.torrent.searchEngines
 
 import boat.torrent.HttpUser
 import boat.torrent.Torrent
-import boat.torrent.TorrentComparator
 import boat.torrent.TorrentHelper
 import boat.torrent.TorrentSearchEngine
 import boat.utilities.HttpHelper
@@ -19,7 +18,6 @@ class LeetxTo internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper
         val torrentList = CopyOnWriteArrayList<Torrent>()
         val resultString = httpHelper.getPage(buildSearchUrl(searchName))
         torrentList.addAll(parseTorrentsOnResultPage(resultString, searchName))
-        torrentList.sortWith(TorrentComparator)
         return torrentList
     }
 
@@ -68,8 +66,6 @@ class LeetxTo internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper
                     })
                 }
 
-                // evaluate result
-                TorrentHelper.evaluateRating(tempTorrent, searchName)
                 torrentList.add(tempTorrent)
             }
         }
@@ -79,8 +75,7 @@ class LeetxTo internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper
             torrent.remoteUrl = ""
         }
 
-        // remove torrents without magneturi
-        return torrentList.filter { torrent: Torrent -> TorrentHelper.isValidTorrent(torrent) }
+        return torrentList
     }
 
     private fun retrieveMagnetUri(torrent: Torrent): String {

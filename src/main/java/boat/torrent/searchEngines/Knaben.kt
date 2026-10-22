@@ -2,7 +2,6 @@ package boat.torrent.searchEngines
 
 import boat.torrent.HttpUser
 import boat.torrent.Torrent
-import boat.torrent.TorrentComparator
 import boat.torrent.TorrentHelper
 import boat.torrent.TorrentSearchEngine
 import boat.utilities.HttpHelper
@@ -11,36 +10,35 @@ import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import java.util.*
-import java.util.concurrent.CopyOnWriteArrayList
 import java.util.function.Consumer
 
 class Knaben internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper), TorrentSearchEngine {
 
     companion object {
+        private const val PAGE_SIZE = 300
         private val logger by LoggerDelegate()
     }
 
     override fun searchTorrents(searchName: String): List<Torrent> {
-        val torrentList = CopyOnWriteArrayList<Torrent>()
-        val resultString = httpHelper.getPage(buildSearchUrl(), body = buildSearchBody(searchName))
-        torrentList.addAll(parseTorrentsOnResultPage(resultString, searchName))
-        torrentList.sortWith(TorrentComparator)
-        return torrentList
+        // the API gives at most PAGE_SIZE hits per request and sorts them by seeders
+        return SearchPaging.collect { page ->
+            parseTorrentsOnResultPage(httpHelper.getPage(buildSearchUrl(), body = buildSearchBody(searchName, (page - 1) * PAGE_SIZE)), searchName)
+        }
     }
 
     private fun buildSearchUrl(): String {
         return "$baseUrl/v1"
     }
 
-    private fun buildSearchBody(searchName: String): String {
+    private fun buildSearchBody(searchName: String, offset: Int): String {
         val body = JsonObject()
         body.addProperty("search_type", "100%")
         body.addProperty("search_field", "title")
         body.addProperty("query", searchName.trim { it <= ' ' })
         body.addProperty("order_by", "seeders")
         body.addProperty("order_direction", "desc")
-        body.addProperty("from", 0)
-        body.addProperty("size", 100)
+        body.addProperty("from", offset)
+        body.addProperty("size", PAGE_SIZE)
         body.addProperty("hide_unsafe", true)
         body.addProperty("hide_xxx", true)
         return body.toString()
@@ -78,10 +76,7 @@ class Knaben internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper)
                 val sizeInBytes = jsonTorrent["bytes"].asLong
                 tempTorrent.size = TorrentHelper.humanReadableByteCountBinary(sizeInBytes)
                 tempTorrent.sizeInMB = (sizeInBytes / 1024.0f / 1024.0f).toDouble()
-                TorrentHelper.evaluateRating(tempTorrent, searchName)
-                if (TorrentHelper.isValidTorrent(tempTorrent)) {
-                    torrentList.add(tempTorrent)
-                }
+                torrentList.add(tempTorrent)
             })
         } catch (exception: Exception) {
             logger.error("failed to parse string:\n${pageContent}", exception)

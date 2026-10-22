@@ -291,19 +291,13 @@ class Premiumize(httpHelper: HttpHelper) : HttpUser(httpHelper), MultifileHoster
         }
     }
 
+    /** The cache of up to [MAXIMUM_QUERY_CACHE_SIZE] torrents is checked per request, the requests run in parallel. */
     override fun enrichCacheStateOfTorrents(torrents: List<Torrent>) {
-        val maximumQueryCacheSize = 100
-        if (torrents.size <= maximumQueryCacheSize) {
-            enrichCacheStatusForGivenTorrents(torrents)
+        val batches = torrents.chunked(MAXIMUM_QUERY_CACHE_SIZE)
+        if (batches.size <= 1) {
+            batches.forEach { enrichCacheStatusForGivenTorrents(it) }
         } else {
-            for (i in torrents.indices step maximumQueryCacheSize) {
-                enrichCacheStatusForGivenTorrents(
-                    torrents.subList(
-                        i,
-                        (i + maximumQueryCacheSize).coerceAtMost(torrents.size)
-                    )
-                )
-            }
+            batches.parallelStream().forEach { enrichCacheStatusForGivenTorrents(it) }
         }
     }
 
@@ -346,6 +340,7 @@ class Premiumize(httpHelper: HttpHelper) : HttpUser(httpHelper), MultifileHoster
     }
 
     companion object {
+        private const val MAXIMUM_QUERY_CACHE_SIZE = 100
         private val log = LoggerFactory.getLogger(Premiumize::class.java)
         private val durationPattern = Regex("(\\d+)\\s*(day|hour|min|sec)", RegexOption.IGNORE_CASE)
     }

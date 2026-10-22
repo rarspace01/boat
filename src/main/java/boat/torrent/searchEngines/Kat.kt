@@ -2,7 +2,6 @@ package boat.torrent.searchEngines
 
 import boat.torrent.HttpUser
 import boat.torrent.Torrent
-import boat.torrent.TorrentComparator
 import boat.torrent.TorrentHelper
 import boat.torrent.TorrentSearchEngine
 import boat.utilities.HttpHelper
@@ -24,7 +23,6 @@ class Kat internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper), T
             val torrentList = CopyOnWriteArrayList<Torrent>()
             val resultString = httpHelper.getPage(buildSearchUrl(searchName))
             torrentList.addAll(parseTorrentsOnResultPage(resultString, searchName))
-            torrentList.sortWith(TorrentComparator)
             return torrentList
         } catch (e: Exception) {
         logger.error("Error during torrent search", e)
@@ -80,10 +78,7 @@ class Kat internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper), T
             }
 
             // evaluate result
-            TorrentHelper.evaluateRating(tempTorrent, searchName)
-            if (TorrentHelper.isValidTorrent(tempTorrent)) {
-                torrentList.add(tempTorrent)
-            }
+            torrentList.add(tempTorrent)
         }
         return torrentList
     }

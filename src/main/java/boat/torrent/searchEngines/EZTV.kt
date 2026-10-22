@@ -2,7 +2,6 @@ package boat.torrent.searchEngines
 
 import boat.torrent.HttpUser
 import boat.torrent.Torrent
-import boat.torrent.TorrentComparator
 import boat.torrent.TorrentHelper
 import boat.torrent.TorrentSearchEngine
 import boat.utilities.HttpHelper
@@ -26,7 +25,6 @@ class EZTV internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper), 
         val torrentList = CopyOnWriteArrayList<Torrent>()
         val resultString = httpHelper.getPageWithCookies(buildSearchUrl(searchName), COOKIES)
         torrentList.addAll(parseTorrentsOnResultPage(resultString, searchName))
-        torrentList.sortWith(TorrentComparator)
         return torrentList
     }
 
@@ -63,10 +61,7 @@ class EZTV internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper), 
                     torrentElement.selectFirst("td:nth-child(6)")?.text() ?: ""
                 ).toIntOrNull() ?: 0
                 tempTorrent.leecher = 0
-                TorrentHelper.evaluateRating(tempTorrent, searchName)
-                if (TorrentHelper.isValidTorrent(tempTorrent)) {
-                    torrentList.add(tempTorrent)
-                }
+                torrentList.add(tempTorrent)
             })
         } catch (exception: Exception) {
             logger.error("[{}] couldn't parse search results", this, exception)
