@@ -26,14 +26,14 @@ import kotlin.math.pow
  *
  * Which version is better is not taken from the file names (they often have no resolution or codec) but from the
  * video itself, read with ffprobe ([FfprobeVideoProbe]): the higher resolution first. At the same resolution the
- * version with the higher score wins: its bitrate (keeps the most material, e.g. for a later re-encode; the bitrate,
- * not the size: a bigger file of a longer video is not better), plus a bonus of [codecBonusPercent] for every step
- * of the codec (AV1/HEVC before H.264 before the old ones). So the better codec wins as long as the other version
- * has less than 20% more bitrate (with the default), and above that the higher bitrate wins even with the older codec.
- * The source (remux, web) and the language of the audio are not known, a German and an English version of the same
- * episode are duplicates to it.
+ * version with the higher quality bitrate wins: its bitrate divided by what the codec needs for the same picture
+ * quality ([CODEC_BITRATE_NEEDS], H.264 is 1.0, HEVC about 0.55, an old xvid file about 1.9), so a HEVC file with 2.2
+ * Mbit/s is worth an H.264 file with 4 Mbit/s. The bitrate, not the size: a bigger file of a longer video is not
+ * better. With [codecWeightPercent] below 100 the codec counts less and the plain bitrate more (0: only the bitrate,
+ * which keeps the most material for a later re-encode). The source (remux, web) and the language of the audio are
+ * not known, a German and an English version of the same episode are duplicates to it.
  *
- * A group is only decided if every version could be read and they are about equally long (5%). Otherwise it is
+ * A group is only decided if every version could be read, the codecs are known and they are about equally long (5%). Otherwise it is
  * [UnsureGroup] and nothing of it is deleted: a file which is much shorter might be cut or damaged, or a different
  * cut or a double episode. The subtitles next to a deleted version are moved to the version which stays if it has
  * none for that language, otherwise they are deleted with it.
@@ -43,8 +43,8 @@ import kotlin.math.pow
 class DuplicateCleaner(
     private val videoProbe: VideoProbe = FfprobeVideoProbe(),
     private val probeThreads: Int = DEFAULT_PROBE_THREADS,
-    /** `DUPLICATE_CODEC_BONUS_PERCENT` in boat.cfg: 0 only counts the bitrate, a high number the codec first. */
-    private val codecBonusPercent: Int = codecBonusFromSettings(),
+    /** `DUPLICATE_CODEC_WEIGHT_PERCENT` in boat.cfg: how much the efficiency of the codec counts, 100 fully, 0 not at all. */
+    private val codecWeightPercent: Int = codecWeightFromSettings(),
 ) {
 
     private val logger by LoggerDelegate()
@@ -52,12 +52,12 @@ class DuplicateCleaner(
     /** A video file of the library with what decides which version is the better one. */
     class Version(val file: File, val info: VideoInfo) {
         val resolutionClass: Int = resolutionClassOf(info)
-        val codecRank: Int = codecRankOf(info.codec)
         val bitrate: Long = info.bitrate ?: 0
         val size: Long = file.length()
 
-        /** The bitrate, worth [codecBonusPercent] more for every step of the codec. */
-        fun score(codecBonusPercent: Int): Double = bitrate * (1 + codecBonusPercent / 100.0).pow(codecRank)
+        /** The bitrate in H.264 terms: what an H.264 file would need for the quality of this one. [codecWeightPercent] 100 is full. */
+        fun score(codecWeightPercent: Int): Double =
+            bitrate / (bitrateNeededByCodec(info.codec) ?: 1.0).pow(codecWeightPercent / 100.0)
 
         fun description(): String = listOf(
             if (resolutionClass > 0) "${resolutionClass}p" else "?",
@@ -142,6 +142,8 @@ class DuplicateCleaner(
             val reason = when {
                 unreadable.isNotEmpty() -> "ffprobe could not read ${unreadable.joinToString { "'${it.name}'" }}"
                 versions.any { it.info.durationSeconds == null } -> "the length of a version is not known"
+                versions.any { bitrateNeededByCodec(it.info.codec) == null } ->
+                    "the codec is not known (${versions.joinToString { it.info.codec ?: "?" }})"
                 differentLength(versions) -> "the versions are not equally long (${versions.joinToString(" / ") { formatDuration(it.info.durationSeconds!!) }})"
                 else -> null
             }
@@ -156,8 +158,7 @@ class DuplicateCleaner(
     }
 
     private val bestFirst: Comparator<Version> = compareByDescending<Version> { it.resolutionClass }
-        .thenByDescending { it.score(codecBonusPercent) }
-        .thenByDescending { it.codecRank }
+        .thenByDescending { it.score(codecWeightPercent) }
         .thenByDescending { it.size }
         .thenBy { it.file.path }
 
@@ -245,11 +246,38 @@ class DuplicateCleaner(
 
     companion object {
         const val DEFAULT_PROBE_THREADS = 4
-        const val DEFAULT_CODEC_BONUS_PERCENT = 20
+        const val DEFAULT_CODEC_WEIGHT_PERCENT = 100
 
-        internal fun codecBonusFromSettings(): Int = codecBonusOf(PropertiesHelper.getProperty("DUPLICATE_CODEC_BONUS_PERCENT"))
+        internal fun codecWeightFromSettings(): Int = codecWeightOf(PropertiesHelper.getProperty("DUPLICATE_CODEC_WEIGHT_PERCENT"))
 
-        internal fun codecBonusOf(value: String?): Int = value?.trim()?.toIntOrNull()?.takeIf { it >= 0 } ?: DEFAULT_CODEC_BONUS_PERCENT
+        internal fun codecWeightOf(value: String?): Int = value?.trim()?.toIntOrNull()?.takeIf { it in 0..100 } ?: DEFAULT_CODEC_WEIGHT_PERCENT
+
+        /**
+         * How much bitrate a codec needs for the same picture quality, H.264 = 1.0. Rules of thumb from published
+         * encoder comparisons (HEVC saves 40 to 50% against H.264, AV1 about 30% more than HEVC, MPEG-4 part 2 like xvid
+         * and DivX needs nearly the double, MPEG-2 more than that), they depend on the encoder and the material.
+         * By the `codec_name` of ffprobe.
+         */
+        val CODEC_BITRATE_NEEDS = mapOf(
+            "av1" to 0.45,
+            "hevc" to 0.55,
+            "vp9" to 0.6,
+            "h264" to 1.0,
+            "vc1" to 1.15,
+            "vp8" to 1.3,
+            "wmv3" to 1.3,
+            "theora" to 1.6,
+            "mpeg4" to 1.9,
+            "msmpeg4v3" to 2.2,
+            "h263" to 2.2,
+            "mpeg2video" to 2.3,
+            "msmpeg4v2" to 2.5,
+            "wmv2" to 2.5,
+            "wmv1" to 2.8,
+            "mpeg1video" to 3.5,
+        )
+
+        internal fun bitrateNeededByCodec(codec: String?): Double? = codec?.lowercase()?.let { CODEC_BITRATE_NEEDS[it] }
 
         /** Reading a file which takes longer than this is written to the log (a slow disk, a damaged file). */
         private const val SLOW_PROBE_MILLIS = 10_000
@@ -266,14 +294,6 @@ class DuplicateCleaner(
         internal fun resolutionClassOf(info: VideoInfo): Int {
             val height = maxOf(info.height ?: 0, ((info.width ?: 0) * 9 / 16))
             return standardHeights.firstOrNull { height >= it * 0.9 } ?: if (height > 0) height else 0
-        }
-
-        /** The newer codecs are better at the same resolution. */
-        internal fun codecRankOf(codec: String?): Int = when (codec?.lowercase()) {
-            "av1", "hevc" -> 3
-            "h264", "vp9" -> 2
-            "mpeg4", "msmpeg4v3", "wmv3", "vc1", "mpeg2video", "mpeg1video" -> 1
-            else -> 0
         }
 
         private fun formatDuration(seconds: Double): String {
