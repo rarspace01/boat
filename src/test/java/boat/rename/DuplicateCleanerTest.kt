@@ -34,7 +34,7 @@ internal class DuplicateCleanerTest {
         val base = tempDir.toFile()
         // no resolution in the names, the file with the bigger size is the one with the lower resolution
         val hd = file(base, "Series-Shows/D/Dark {tvdb-334824}/Season 1/Dark.S01E01.mkv", video(height = 1080), bytes = 100)
-        val sd = file(base, "Series-Shows/D/Dark {tvdb-334824}/Season 1/Dark.S01E01.mp4", video(height = 480), bytes = 900)
+        val sd = file(base, "Series-Shows/D/Dark {tvdb-334824}/Season 1/Dark.S01E01.mp4", video(height = 480), bytes = 300)
 
         val result = run(base)
 
@@ -180,6 +180,16 @@ internal class DuplicateCleanerTest {
     }
 
     @Test
+    fun `the number of probe threads comes from the setting and is 8 by default`() {
+        assertThat(DuplicateCleaner.probeThreadsOf(null)).isEqualTo(8)
+        assertThat(DuplicateCleaner.probeThreadsOf(" 12 ")).isEqualTo(12)
+        assertThat(DuplicateCleaner.probeThreadsOf("1")).isEqualTo(1)
+        assertThat(DuplicateCleaner.probeThreadsOf("0")).isEqualTo(8)
+        assertThat(DuplicateCleaner.probeThreadsOf("100")).isEqualTo(8)
+        assertThat(DuplicateCleaner.probeThreadsOf("many")).isEqualTo(8)
+    }
+
+    @Test
     fun `the weight comes from the setting and is 100 by default`() {
         assertThat(DuplicateCleaner.codecWeightOf(null)).isEqualTo(100)
         assertThat(DuplicateCleaner.codecWeightOf(" 50 ")).isEqualTo(50)
@@ -259,6 +269,42 @@ internal class DuplicateCleanerTest {
     }
 
     @Test
+    fun `should keep a version which is 5 times larger than the others without reading anything`(@TempDir tempDir: Path) {
+        val base = tempDir.toFile()
+        val big = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mkv", video(height = 480), bytes = 500)
+        val small = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mp4", video(height = 1080), bytes = 100)
+        val similar1 = file(base, "Movies/M/Matrix (1999) {tmdb-603}.mkv", video(height = 480), bytes = 499)
+        val similar2 = file(base, "Movies/M/Matrix (1999) {tmdb-603}.mp4", video(height = 1080), bytes = 100)
+
+        val result = run(base)
+
+        assertThat(result.groups.map { it.keep.file }).containsExactlyInAnyOrder(big, similar2)
+        assertThat(result.probeStats.files).isEqualTo(2)
+        assertThat(big).exists()
+        assertThat(small).doesNotExist()
+        assertThat(similar1).doesNotExist()
+        assertThat(similar2).exists()
+    }
+
+    @Test
+    fun `should decide versions which differ in length by up to 15 percent but not by more`(@TempDir tempDir: Path) {
+        val base = tempDir.toFile()
+        val a = file(base, "Series-Shows/D/Dark {tvdb-334824}/Season 1/Dark.S01E01.mkv", video(height = 1080, seconds = 2800.0))
+        val b = file(base, "Series-Shows/D/Dark {tvdb-334824}/Season 1/Dark.S01E01.mp4", video(height = 720, seconds = 2500.0))
+        val c = file(base, "Series-Shows/D/Dark {tvdb-334824}/Season 1/Dark.S01E02.mkv", video(height = 1080, seconds = 2800.0))
+        val d = file(base, "Series-Shows/D/Dark {tvdb-334824}/Season 1/Dark.S01E02.mp4", video(height = 720, seconds = 2300.0))
+
+        val result = run(base)
+
+        assertThat(result.groups.map { it.key }).containsExactly("series {tvdb-334824} S01E01")
+        assertThat(result.unsureGroups.map { it.key }).containsExactly("series {tvdb-334824} S01E02")
+        assertThat(a).exists()
+        assertThat(b).doesNotExist()
+        assertThat(c).exists()
+        assertThat(d).exists()
+    }
+
+    @Test
     fun `should delete a stub which ffprobe cannot read and a version shorter than half`(@TempDir tempDir: Path) {
         val base = tempDir.toFile()
         val good = file(base, "Series-Shows/D/Dark {tvdb-334824}/Season 1/Dark.S01E01.mkv", video(seconds = 3000.0))
@@ -335,7 +381,7 @@ internal class DuplicateCleanerTest {
     fun `should fall back to the lengths without a runtime or if no version matches it`(@TempDir tempDir: Path) {
         val base = tempDir.toFile()
         file(base, "Movies/I/Inception (2010) {tmdb-27205}.mkv", video(seconds = 8880.0))
-        file(base, "Movies/I/Inception (2010) {tmdb-27205}.mp4", video(seconds = 8000.0))
+        file(base, "Movies/I/Inception (2010) {tmdb-27205}.mp4", video(seconds = 6000.0))
 
         val unknown = withRuntime().processFilesFromDirectory(base.path, null, true)
         val noMatch = withRuntime("tmdb-27205 Snull Enull" to 60.0).processFilesFromDirectory(base.path, null, true)
@@ -347,7 +393,7 @@ internal class DuplicateCleanerTest {
     @Test
     fun `should not decide groups with a file ffprobe cannot read`(@TempDir tempDir: Path) {
         val base = tempDir.toFile()
-        val good = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mkv", video())
+        val good = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mkv", video(), bytes = 1_500_000)
         val broken = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mp4", null, bytes = 2_000_000)
 
         val result = run(base)

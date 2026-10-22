@@ -43,16 +43,20 @@ import kotlin.math.pow
  * A file which ffprobe can't read and which is under 1 MB is a failed download, it is deleted if a readable version
  * exists. A version shorter than half of the longest one is an incomplete file (or another cut) and is deleted too.
  *
- * A group is otherwise only decided if every version could be read, the codecs are known and they are about equally long (5%). Otherwise it is
+ * A group is otherwise only decided if every version could be read, the codecs are known and they are about equally long (15%, PAL speed-up, recaps and credits differ by that much). Otherwise it is
  * [UnsureGroup] and nothing of it is deleted: a file which is much shorter might be cut or damaged, or a different
  * cut or a double episode. The subtitles next to a deleted version are moved to the version which stays if it has
  * none for that language, otherwise they are deleted with it.
+ *
+ * If one file is at least [SIZE_FACTOR] times as large as each other one it is kept without reading anything, the
+ * others are deleted.
  *
  * Run it as a test run first, it only writes what it would delete to the log. The log also tells how fast the probe is.
  */
 class DuplicateCleaner(
     private val videoProbe: VideoProbe = FfprobeVideoProbe(),
-    private val probeThreads: Int = DEFAULT_PROBE_THREADS,
+    /** `DUPLICATE_PROBE_THREADS` in boat.cfg: how many files ffprobe reads at once. */
+    private val probeThreads: Int = probeThreadsFromSettings(),
     /** `DUPLICATE_CODEC_WEIGHT_PERCENT` in boat.cfg: how much the efficiency of the codec counts, 100 fully, 0 not at all. */
     private val codecWeightPercent: Int = codecWeightFromSettings(),
     /** `DUPLICATE_BETTER_CODEC_MARGIN_PERCENT` in boat.cfg: the head start of the better codec per generation, 0 for none. */
@@ -150,7 +154,8 @@ class DuplicateCleaner(
             .mapNotNull { file -> duplicateKey(file)?.let { key -> key to file } }
             .groupBy({ it.first }, { it.second })
             .filter { it.value.size > 1 }
-        val (infos, stats) = probeAll(sameByName.values.flatten())
+        val (_, toProbe) = sameByName.entries.partition { largeEnoughToKeep(it.value) != null }
+        val (infos, stats) = probeAll(toProbe.flatMap { it.value })
         logger.info("{}", stats)
         logger.info("deciding {} groups of files which exist more than once", sameByName.size)
         val decideStart = System.nanoTime()
@@ -163,6 +168,13 @@ class DuplicateCleaner(
         sameByName.toSortedMap().forEach { (key, files) ->
             if (++decided % 250 == 0) {
                 logger.info("decided {} of {} groups after {} s, {} runtime lookups so far", decided, sameByName.size, (System.nanoTime() - decideStart) / 1_000_000_000, lookups)
+            }
+            largeEnoughToKeep(files)?.let { largest ->
+                // no probe needed: the others are less than a fifth of the size
+                val unknown = VideoInfo(null, null, null, null, null)
+                val losers = (files - largest).map { Version(it, unknown) }
+                groups.add(DuplicateGroup(key, Version(largest, unknown), losers, losers.associate { it.file to "less than 1/${SIZE_FACTOR} of the size of the kept version" }))
+                return@forEach
             }
             // a few bytes are a failed download, nothing to compare, it goes if there is a readable version
             val stubs = files.filter { infos[it] == null && it.length() < MAX_STUB_BYTES }.takeIf { it.size < files.size } ?: emptyList()
@@ -230,6 +242,14 @@ class DuplicateCleaner(
             runtimeLookup?.minutes(series.groupValues[1], series.groupValues[2].toInt(), series.groupValues[3].toInt())
         }
         return minutes?.times(60)
+    }
+
+    /** The file which is at least [SIZE_FACTOR] times as large as every other one of the [files], so it is kept without reading them, else null. */
+    private fun largeEnoughToKeep(files: List<File>): File? {
+        val sizes = files.associateWith { it.length() }
+        val largest = sizes.maxByOrNull { it.value } ?: return null
+        val others = sizes.filterKeys { it != largest.key }.values
+        return largest.key.takeIf { largest.value > 0 && others.isNotEmpty() && others.all { largest.value >= it * SIZE_FACTOR } }
     }
 
     private fun differentLength(versions: List<Version>): Boolean {
@@ -315,7 +335,13 @@ class DuplicateCleaner(
     }
 
     companion object {
-        const val DEFAULT_PROBE_THREADS = 4
+        /** More than about 8 threads don't read faster: on the rclone mount of the library it is the mount (one core) which is the limit, not ffprobe. */
+        const val DEFAULT_PROBE_THREADS = 8
+
+        internal fun probeThreadsFromSettings(): Int = probeThreadsOf(PropertiesHelper.getProperty("DUPLICATE_PROBE_THREADS"))
+
+        internal fun probeThreadsOf(value: String?): Int = value?.trim()?.toIntOrNull()?.takeIf { it in 1..64 } ?: DEFAULT_PROBE_THREADS
+
         const val DEFAULT_CODEC_WEIGHT_PERCENT = 100
 
         internal fun codecWeightFromSettings(): Int = codecWeightOf(PropertiesHelper.getProperty("DUPLICATE_CODEC_WEIGHT_PERCENT"))
@@ -382,8 +408,11 @@ class DuplicateCleaner(
         /** A version shorter than this part of the longest one is an incomplete file (or another cut), it is deleted. */
         private const val MIN_COMPLETE_LENGTH = 0.5
 
+        /** A version which is this many times larger than all others of its group is kept without probing. */
+        private const val SIZE_FACTOR = 5
+
         /** Versions which differ more in length are not the same content. */
-        private const val MAX_LENGTH_DIFFERENCE = 0.05
+        private const val MAX_LENGTH_DIFFERENCE = 0.15
 
         private val standardHeights = listOf(4320, 2160, 1440, 1080, 720, 576, 480, 360, 240)
 

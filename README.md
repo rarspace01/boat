@@ -42,6 +42,7 @@ Settings are read from `boat.cfg` (or `boat.default.cfg`) and can be overridden 
 | `RCLONE_NO_CHECK_CERTIFICATE` | `false` | pass `--no-check-certificate` to rclone |
 | `DUPLICATE_BETTER_CODEC_MARGIN_PERCENT` | `20` | duplicates of the same resolution: the head start (in %) of the better codec per generation against a version with a higher quality bitrate, `0` = none |
 | `DUPLICATE_CODEC_WEIGHT_PERCENT` | `100` | duplicates of the same resolution: how much the efficiency of the codec counts against the bitrate, `100` fully, `0` only the plain bitrate |
+| `DUPLICATE_PROBE_THREADS` | `8` | duplicates: how many files `ffprobe` reads at once (1 to 64), the rclone mount of a library is the limit above about 8 |
 
 install certbot & generate certifiactes
 ```
