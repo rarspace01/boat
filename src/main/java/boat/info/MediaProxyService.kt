@@ -352,6 +352,32 @@ class MediaProxyService(
         return mediaItem
     }
 
+    private val seasonCounts = ConcurrentHashMap<String, Pair<Long, Int>>()
+
+    /**
+     * The number of seasons of a series. The searches don't tell it, the details of the series do (one request per
+     * series, kept for a day). Null for everything which is not a series, without id or if the lookup fails.
+     */
+    fun seasonCountOf(mediaItem: MediaItem): Int? {
+        if (mediaItem.type != MediaType.Series) return null
+        mediaItem.seasonCount?.let { return it }
+        val remoteMediaId = mediaItem.id?.takeIf { it.isNotBlank() } ?: return null
+        seasonCounts[remoteMediaId]?.takeIf { clock() - it.first < TimeUnit.DAYS.toMillis(1) }?.let { return it.second }
+        val match = REMOTE_MEDIA_ID_PATTERN.find(remoteMediaId.trim()) ?: return null
+        val (provider, id) = match.destructured
+        val count = try {
+            when (provider.lowercase()) {
+                "tvdb" -> theTVDBService.findById(id)?.seasonCount
+                else -> theMovieDataBaseService.findById(id, MediaType.Series)?.seasonCount
+            }
+        } catch (e: Exception) {
+            logger.warn("Failed to look up the seasons of $remoteMediaId: ${e.message}")
+            null
+        }
+        count?.let { seasonCounts[remoteMediaId] = clock() to it }
+        return count
+    }
+
     /** Best match for a title with an optional year; the year might be part of the title (e.g. "Space 1999"). */
     fun findBestMatch(title: String, year: Int?): MediaItem? =
         if (year != null) search(title, year).firstOrNull() ?: search("$title $year").firstOrNull()

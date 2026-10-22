@@ -71,6 +71,17 @@ class BoatController @Autowired constructor(
             return MediaItem(title, title, year, boat.info.MediaType.Other)
         }
 
+        /** The page of a title at TMDB or TVDB, from its id like `{tmdb-27205}`. */
+        internal fun mediaDatabaseUrl(mediaItem: MediaItem): String? {
+            val match = Regex("\\{(tmdb|tvdb)-(\\d+)}", RegexOption.IGNORE_CASE).find(mediaItem.id ?: return null) ?: return null
+            val (provider, id) = match.destructured
+            val isSeries = mediaItem.type == boat.info.MediaType.Series
+            return when (provider.lowercase()) {
+                "tmdb" -> "https://www.themoviedb.org/${if (isSeries) "tv" else "movie"}/$id"
+                else -> "https://thetvdb.com/dereferrer/${if (isSeries) "series" else "movie"}/$id"
+            }
+        }
+
         private fun parseMediaType(mediaType: String?): boat.info.MediaType? {
             return boat.info.MediaType.entries.firstOrNull { it.name.equals(mediaType, ignoreCase = true) }
         }
@@ -224,6 +235,27 @@ $switchToSearch${switchToProgress}""" + htmlFooter
         return htmlHeader + (switchToProgress.replace("..", "../boat") + HtmlUtils.htmlEscape(listOfMediaItems.toString()).replace("\n", "<br/>")) + htmlFooter
     }
 
+    /**
+     * A title to select: the link of the title does the search for the whole series or the movie, then the link to the
+     * page of the title at TMDB or TVDB (to check it is the one), and for a series the seasons to search for.
+     */
+    private fun mediaItemLine(mediaItem: MediaItem, seasonCount: Int?): String {
+        val itemMidParam = (mediaItem.id?.let { "&mid=" + urlEncode(it) } ?: "") + (mediaItem.type?.let { "&mt=${it.name}" } ?: "")
+        val itemYearParam = mediaItem.year?.takeIf { mediaItem.type == boat.info.MediaType.Movie }
+            ?.let { "&y=$it" } ?: ""
+        val searchLink = "?t=" + urlEncode(mediaItem.title) + itemYearParam + itemMidParam
+        val line = StringBuilder("<a href=\"$searchLink\">" + HtmlUtils.htmlEscape(mediaItem.title) +
+                (mediaItem.year?.let { " ($it)" } ?: "") +
+                (mediaItem.type?.let { " [$it]" } ?: "") +
+                (mediaItem.id?.let { " " + HtmlUtils.htmlEscape(it) } ?: "") + "</a>")
+        mediaDatabaseUrl(mediaItem)?.let { line.append(" <a href=\"${HtmlUtils.htmlEscape(it)}\" target=\"_blank\" rel=\"noopener noreferrer\">${if (it.contains("themoviedb")) "TMDB" else "TVDB"}</a>") }
+        if (seasonCount != null && seasonCount > 0) {
+            line.append(" ")
+            line.append((1..seasonCount).joinToString(" ") { season -> "<a href=\"$searchLink&s=$season\">S$season</a>" })
+        }
+        return line.append("<br/>\n").toString()
+    }
+
     @GetMapping("/boat/search")
     fun search(): String {
         return htmlHeader + """
@@ -253,10 +285,12 @@ $switchToSearchOld$switchToSearchList${switchToProgress.replace("..", "../boat")
         @RequestParam(value = "q", required = false) searchString: String?,
         @RequestParam(value = "mid", required = false) remoteMediaId: String?,
         @RequestParam(value = "mt", required = false) mediaTypeString: String?,
+        @RequestParam(value = "s", required = false) selectedSeason: Int?,
     ): String {
         val startTime = System.currentTimeMillis()
         val mediaId = remoteMediaId?.ifBlank { null }
         val mediaType = parseMediaType(mediaTypeString)
+        val season = selectedSeason?.takeIf { it > 0 }
         val midParam = (if (mediaId != null) "&mid=" + urlEncode(mediaId) else "") + (mediaType?.let { "&mt=${it.name}" } ?: "")
         return if (!searchString.isNullOrBlank()) {
             val torrentList = torrentSearchEngineService.searchTorrents(searchString)
@@ -267,14 +301,14 @@ $switchToSearchOld$switchToSearchList${switchToProgress.replace("..", "../boat")
             htmlHeader + torrentList.joinToString(separator = "") { it.toHtml(mediaId, mediaType) } + htmlFooter
         } else if (!selectedTitle.isNullOrBlank()) {
             val cleanedTitle = removeSpecialCharacters(selectedTitle)
-            val torrentSearchString = cleanedTitle + (selectedYear?.let { " $it" } ?: "")
+            val torrentSearchString = cleanedTitle + (selectedYear?.let { " $it" } ?: "") + (season?.let { " S%02d".format(it) } ?: "")
             val existingFiles = (cloudService.findExistingFiles(cleanedTitle) +
                     (mediaId?.let { cloudService.findExistingFiles(it) } ?: emptyList())).distinct()
             if (existingFiles.isNotEmpty()) {
                 htmlHeader + ("We already found some files:<br/>" + existingFiles.joinToString("<br/>") { HtmlUtils.htmlEscape(it) }
                         + "<br/>Still want to search? <a href=\"?q=" + urlEncode(torrentSearchString) + midParam + "\">Yes</a>") + htmlFooter
             } else {
-                searchTorrents(null, null, null, torrentSearchString, mediaId, mediaType?.name)
+                searchTorrents(null, null, null, torrentSearchString, mediaId, mediaType?.name, null)
             }
         } else if (!mediaSearchString.isNullOrBlank()) {
             val mediaItems = mediaProxyService.searchWithTrailingYear(mediaSearchString)
@@ -282,15 +316,9 @@ $switchToSearchOld$switchToSearchList${switchToProgress.replace("..", "../boat")
                 "Took: [{}]ms for media search [{}] found [{}]", System.currentTimeMillis() - startTime,
                 mediaSearchString, mediaItems.size
             )
-            val mediaList = mediaItems.joinToString(separator = "") { mediaItem ->
-                val itemMidParam = (mediaItem.id?.let { "&mid=" + urlEncode(it) } ?: "") + (mediaItem.type?.let { "&mt=${it.name}" } ?: "")
-                val itemYearParam = mediaItem.year?.takeIf { mediaItem.type == boat.info.MediaType.Movie }
-                    ?.let { "&y=$it" } ?: ""
-                "<a href=\"?t=" + urlEncode(mediaItem.title) + itemYearParam + itemMidParam + "\">" + HtmlUtils.htmlEscape(mediaItem.title) +
-                        (mediaItem.year?.let { " ($it)" } ?: "") +
-                        (mediaItem.type?.let { " [$it]" } ?: "") +
-                        (mediaItem.id?.let { " " + HtmlUtils.htmlEscape(it) } ?: "") + "</a><br/>\n"
-            }
+            // the searches don't tell the number of seasons of a series, its details do
+            val seasonCounts = mediaItems.parallelStream().map { mediaProxyService.seasonCountOf(it) }.toList()
+            val mediaList = mediaItems.indices.joinToString(separator = "") { index -> mediaItemLine(mediaItems[index], seasonCounts[index]) }
             htmlHeader + (if (mediaItems.isEmpty()) "No media found.<br/>" else "Select a title:<br/>$mediaList") +
                     htmlFooter
         } else {

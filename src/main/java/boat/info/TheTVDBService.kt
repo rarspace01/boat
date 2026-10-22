@@ -139,6 +139,7 @@ class TheTVDBService @Autowired constructor(private val httpHelper: HttpHelper) 
             series["originalLanguage"]?.let { mapped.add("primary_language", it) }
             series["originalCountry"]?.let { mapped.add("country", it) }
             series["aliases"]?.let { mapped.add("aliases", it) }
+            officialSeasonCount(series["seasons"])?.let { mapped.addProperty("season_count", it) }
             val translations = series["translations"]
             if (translations != null && translations.isJsonObject) {
                 translations.asJsonObject["nameTranslations"]?.let { mapped.add("translations", it) }
@@ -148,6 +149,16 @@ class TheTVDBService @Autowired constructor(private val httpHelper: HttpHelper) 
             logger.warn("Error parsing TVDB series response: {}", e.message)
             null
         }
+    }
+
+    /** The number of the last official season, the specials (season 0), DVD and absolute orders don't count. */
+    private fun officialSeasonCount(seasons: JsonElement?): Int? {
+        if (seasons == null || !seasons.isJsonArray) return null
+        return seasons.asJsonArray.mapNotNull { element ->
+            val season = element.takeIf { it.isJsonObject }?.asJsonObject ?: return@mapNotNull null
+            val isOfficial = season["type"]?.takeIf { it.isJsonObject }?.asJsonObject?.get("type")?.takeIf { !it.isJsonNull }?.asString == "official"
+            season["number"]?.takeIf { isOfficial && !it.isJsonNull }?.asInt?.takeIf { it > 0 }
+        }.maxOrNull()
     }
 
     private fun parseMediaObject(jsonMediaObject: JsonObject): MediaItem? {
