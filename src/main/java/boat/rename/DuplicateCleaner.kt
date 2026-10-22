@@ -28,10 +28,13 @@ import kotlin.math.pow
  * video itself, read with ffprobe ([FfprobeVideoProbe]): the higher resolution first. At the same resolution the
  * version with the higher quality bitrate wins: its bitrate divided by what the codec needs for the same picture
  * quality ([CODEC_BITRATE_NEEDS], H.264 is 1.0, HEVC about 0.55, an old xvid file about 1.9), so a HEVC file with 2.2
- * Mbit/s is worth an H.264 file with 4 Mbit/s. The bitrate, not the size: a bigger file of a longer video is not
- * better. With [codecWeightPercent] below 100 the codec counts less and the plain bitrate more (0: only the bitrate,
- * which keeps the most material for a later re-encode). The source (remux, web) and the language of the audio are
- * not known, a German and an English version of the same episode are duplicates to it.
+ * Mbit/s is worth an H.264 file with 4 Mbit/s. The better codec has a head start of [betterCodecMarginPercent] for
+ * every generation it is ahead (modern: AV1, HEVC, VP9; H.264 class; older), so it stays against a version of an
+ * older generation which has up to 20% more quality bitrate, only above that the higher bitrate wins. The bitrate,
+ * not the size: a bigger file of a longer video is not better. With [codecWeightPercent] below 100 the efficiency of
+ * the codec counts less and the plain bitrate more (0: only the bitrate, which keeps the most material for a later
+ * re-encode). The source (remux, web) and the language of the audio are not known, a German and an English version
+ * of the same episode are duplicates to it.
  *
  * A group is only decided if every version could be read, the codecs are known and they are about equally long (5%). Otherwise it is
  * [UnsureGroup] and nothing of it is deleted: a file which is much shorter might be cut or damaged, or a different
@@ -45,6 +48,8 @@ class DuplicateCleaner(
     private val probeThreads: Int = DEFAULT_PROBE_THREADS,
     /** `DUPLICATE_CODEC_WEIGHT_PERCENT` in boat.cfg: how much the efficiency of the codec counts, 100 fully, 0 not at all. */
     private val codecWeightPercent: Int = codecWeightFromSettings(),
+    /** `DUPLICATE_BETTER_CODEC_MARGIN_PERCENT` in boat.cfg: the head start of the better codec per generation, 0 for none. */
+    private val betterCodecMarginPercent: Int = betterCodecMarginFromSettings(),
 ) {
 
     private val logger by LoggerDelegate()
@@ -55,9 +60,13 @@ class DuplicateCleaner(
         val bitrate: Long = info.bitrate ?: 0
         val size: Long = file.length()
 
-        /** The bitrate in H.264 terms: what an H.264 file would need for the quality of this one. [codecWeightPercent] 100 is full. */
-        fun score(codecWeightPercent: Int): Double =
-            bitrate / (bitrateNeededByCodec(info.codec) ?: 1.0).pow(codecWeightPercent / 100.0)
+        /**
+         * The bitrate in H.264 terms (what an H.264 file would need for the quality of this one, [codecWeightPercent]
+         * 100 is full), with the head start of the generation of the codec ([betterCodecMarginPercent]) on top.
+         */
+        fun score(codecWeightPercent: Int, betterCodecMarginPercent: Int): Double =
+            bitrate / (bitrateNeededByCodec(info.codec) ?: 1.0).pow(codecWeightPercent / 100.0) *
+                    (1 + betterCodecMarginPercent / 100.0).pow(codecGenerationOf(info.codec))
 
         fun description(): String = listOf(
             if (resolutionClass > 0) "${resolutionClass}p" else "?",
@@ -158,7 +167,7 @@ class DuplicateCleaner(
     }
 
     private val bestFirst: Comparator<Version> = compareByDescending<Version> { it.resolutionClass }
-        .thenByDescending { it.score(codecWeightPercent) }
+        .thenByDescending { it.score(codecWeightPercent, betterCodecMarginPercent) }
         .thenByDescending { it.size }
         .thenBy { it.file.path }
 
@@ -252,6 +261,14 @@ class DuplicateCleaner(
 
         internal fun codecWeightOf(value: String?): Int = value?.trim()?.toIntOrNull()?.takeIf { it in 0..100 } ?: DEFAULT_CODEC_WEIGHT_PERCENT
 
+        const val DEFAULT_BETTER_CODEC_MARGIN_PERCENT = 20
+
+        internal fun betterCodecMarginFromSettings(): Int =
+            betterCodecMarginOf(PropertiesHelper.getProperty("DUPLICATE_BETTER_CODEC_MARGIN_PERCENT"))
+
+        internal fun betterCodecMarginOf(value: String?): Int =
+            value?.trim()?.toIntOrNull()?.takeIf { it in 0..300 } ?: DEFAULT_BETTER_CODEC_MARGIN_PERCENT
+
         /**
          * How much bitrate a codec needs for the same picture quality, H.264 = 1.0. Rules of thumb from published
          * encoder comparisons (HEVC saves 40 to 50% against H.264, AV1 about 30% more than HEVC, MPEG-4 part 2 like xvid
@@ -278,6 +295,12 @@ class DuplicateCleaner(
         )
 
         internal fun bitrateNeededByCodec(codec: String?): Double? = codec?.lowercase()?.let { CODEC_BITRATE_NEEDS[it] }
+
+        /** 2 for the modern codecs (AV1, HEVC, VP9), 1 for the H.264 class, 0 for the older ones. */
+        internal fun codecGenerationOf(codec: String?): Int = when (val needs = bitrateNeededByCodec(codec)) {
+            null -> 1
+            else -> if (needs <= 0.7) 2 else if (needs <= 1.3) 1 else 0
+        }
 
         /** Reading a file which takes longer than this is written to the log (a slow disk, a damaged file). */
         private const val SLOW_PROBE_MILLIS = 10_000
