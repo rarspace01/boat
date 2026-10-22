@@ -25,13 +25,9 @@ import boat.utilities.StringUtil
 import org.apache.logging.log4j.util.Strings
 import org.springframework.cache.CacheManager
 import org.springframework.stereotype.Service
-import org.springframework.util.StringUtils
 import java.io.File
-import java.net.URLDecoder
-import java.nio.charset.StandardCharsets
 import java.time.Duration
 import java.time.Instant
-import java.time.temporal.ChronoUnit
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
@@ -52,7 +48,7 @@ class MultifileHosterService(
 ) : HttpUser(httpHelper) {
     private val isDownloadInProgress = AtomicBoolean(false)
     private var isRcloneInstalled: Boolean? = null
-    private val multifileHosterList: MutableList<MultifileHoster> = mutableListOf(Premiumize(httpHelper))//, Alldebrid(httpHelper))
+    private val multifileHosterList: MutableList<MultifileHoster> = mutableListOf(Premiumize(httpHelper))
     private val multifileHosterListForDownloads: MutableList<MultifileHoster> = getEligibleMultifileHoster(httpHelper)
 
     private val localStatusStorage = ConcurrentHashMap<String, String>()
@@ -63,7 +59,6 @@ class MultifileHosterService(
     private fun getEligibleMultifileHoster(httpHelper: HttpHelper): MutableList<MultifileHoster> {
         val eligibleList = mutableListOf<MultifileHoster>()
         eligibleList.add(Premiumize(httpHelper))
-        //eligibleList.add(Alldebrid(httpHelper))
         return eligibleList
     }
 
@@ -157,10 +152,6 @@ class MultifileHosterService(
         get() = multifileHosterListForDownloads
                 .flatMap { multifileHoster: MultifileHoster -> multifileHoster.getRemoteTorrents() }
 
-    val remoteTorrentsForDownload: List<Torrent>
-        get() = multifileHosterListForDownloads
-                .flatMap { multifileHoster: MultifileHoster -> multifileHoster.getRemoteTorrents() }
-
     private fun isSingleFileDownload(torrentFiles: List<TorrentFile>): Boolean {
         var sumFileSize = 0L
         var biggestFileYet = 0L
@@ -172,11 +163,6 @@ class MultifileHosterService(
         }
         // if maxfilesize >90% sumSize --> Singlefile
         return biggestFileYet > 0.9 * sumFileSize
-    }
-
-    private fun getSizeOfTorrentInMB(torrent: Torrent): Double {
-        val size: Long = getFilesFromTorrent(torrent).sumOf { torrentFile: TorrentFile -> torrentFile.filesize }
-        return size.toDouble() / 1024.0 / 1024.0
     }
 
     /**
@@ -294,57 +280,38 @@ class MultifileHosterService(
         val matchedTorrents = mutableListOf<Torrent>()
         val torrentsForDownload = remoteTorrents
         matchTransfersAndTorrentsByIdAndUpdateStatus(torrentsForDownload, transfers, matchedTransfers, matchedTorrents)
-        var listOfUnmatchedTransfers = transfers.filter { matchedTransfers.none { matchedTransfer -> matchedTransfer.id.equals(it.id) } }
-        var listOfUnmatchedTorrents = torrentsForDownload.filter { matchedTorrents.none { matchedTorrent -> matchedTorrent.torrentId == (it.torrentId) } }
-        if (listOfUnmatchedTorrents.isNotEmpty() && listOfUnmatchedTransfers.isNotEmpty()) {
-            listOfUnmatchedTorrents.forEach { torrent ->
+
+        fun unmatchedTransfers() = transfers.filter { matchedTransfers.none { matchedTransfer -> matchedTransfer.id == it.id } }
+        fun unmatchedTorrents() = torrentsForDownload.filter { matchedTorrents.none { matchedTorrent -> matchedTorrent.torrentId == it.torrentId } }
+
+        // the names must be the same first, then up to two words may differ
+        for (maxDiff in listOf(0, 2)) {
+            if (unmatchedTorrents().isEmpty() || unmatchedTransfers().isEmpty()) break
+            unmatchedTorrents().forEach { torrent ->
                 transfers.find { transfer ->
-                    matchedTransfers.none { it.id == transfer.id } &&
-                    transferMatchedTorrentByName(transfer, torrent, 0)
+                    matchedTransfers.none { it.id == transfer.id } && TransferMatching.transferMatchedTorrentByName(transfer, torrent, maxDiff)
                 }?.also { transfer ->
-                    transfer.transferStatus = torrent.remoteTransferStatus
-                    transfer.progressInPercentage = torrent.remoteProgressInPercent
-                    transfer.updateHosterName(TorrentHelper.resolveDownloadName(torrent, transfer.hosterName()))
-                    transfer.eta = torrent.eta
-                    transfer.remoteId = torrent.remoteId
-                    transferService.save(transfer)
+                    updateTransferFromTorrent(transfer, torrent)
                     matchedTransfers.add(transfer)
                     matchedTorrents.add(torrent)
                 } ?: also {
                     log.warn("no transfer for torrent found after name match: {}", torrent)
                 }
             }
-            listOfUnmatchedTransfers = transfers.filter { matchedTransfers.none { matchedTransfer -> matchedTransfer.id.equals(it.id) } }
-            listOfUnmatchedTorrents =
-                    torrentsForDownload.filter { matchedTorrents.none { matchedTorrent -> matchedTorrent.torrentId == (it.torrentId) } }
+        }
+        if (unmatchedTransfers().isNotEmpty() || unmatchedTorrents().isNotEmpty()) {
+            log.warn("listOfUnmatchedTransfers: [{}]", unmatchedTransfers())
+            log.warn("listOfUnmatchedTorrents: [{}]", unmatchedTorrents())
+        }
+    }
 
-            if (listOfUnmatchedTorrents.isNotEmpty() && listOfUnmatchedTransfers.isNotEmpty()) {
-                listOfUnmatchedTorrents.forEach { torrent ->
-                    transfers.find { transfer ->
-                        matchedTransfers.none { it.id == transfer.id } &&
-                        transferMatchedTorrentByName(transfer, torrent, 2)
-                    }?.also { transfer ->
-                        transfer.transferStatus = torrent.remoteTransferStatus
-                        transfer.progressInPercentage = torrent.remoteProgressInPercent
-                        transfer.updateHosterName(TorrentHelper.resolveDownloadName(torrent, transfer.hosterName()))
-                        transfer.eta = torrent.eta
-                        transfer.remoteId = torrent.remoteId
-                        transferService.save(transfer)
-                        matchedTransfers.add(transfer)
-                        matchedTorrents.add(torrent)
-                    } ?: also {
-                        log.warn("no transfer for torrent found after name match: {}", torrent)
-                    }
-                }
-                listOfUnmatchedTransfers = transfers.filter { matchedTransfers.none { matchedTransfer -> matchedTransfer.id.equals(it.id) } }
-                listOfUnmatchedTorrents =
-                        torrentsForDownload.filter { matchedTorrents.none { matchedTorrent -> matchedTorrent.torrentId == (it.torrentId) } }
-            }
-        }
-        if (listOfUnmatchedTransfers.isNotEmpty() || listOfUnmatchedTorrents.isNotEmpty()) {
-            log.warn("listOfUnmatchedTransfers: [{}]", listOfUnmatchedTransfers)
-            log.warn("listOfUnmatchedTorrents: [{}]", listOfUnmatchedTorrents)
-        }
+    private fun updateTransferFromTorrent(transfer: Transfer, torrent: Torrent) {
+        transfer.transferStatus = torrent.remoteTransferStatus
+        transfer.progressInPercentage = torrent.remoteProgressInPercent
+        transfer.updateHosterName(TorrentHelper.resolveDownloadName(torrent, transfer.hosterName()))
+        transfer.eta = torrent.eta
+        transfer.remoteId = torrent.remoteId
+        transferService.save(transfer)
     }
 
     private fun matchTransfersAndTorrentsByIdAndUpdateStatus(
@@ -357,45 +324,15 @@ class MultifileHosterService(
             transfers.find { transfer ->
                 transfer.uri.lowercase().contains(torrent.torrentId.lowercase()) ||
                         transfer.remoteId != null && transfer.remoteId == torrent.remoteId ||
-                        transferMatchedTorrentBySource(transfer, torrent)
+                        TransferMatching.transferMatchedTorrentBySource(transfer, torrent)
             }
                     ?.also { transfer ->
-                        transfer.transferStatus = torrent.remoteTransferStatus
-                        transfer.progressInPercentage = torrent.remoteProgressInPercent
-                        transfer.updateHosterName(TorrentHelper.resolveDownloadName(torrent, transfer.hosterName()))
-                        transfer.eta = torrent.eta
-                        transfer.remoteId = torrent.remoteId
-                        transferService.save(transfer)
+                        updateTransferFromTorrent(transfer, torrent)
                         matchedTransfers.add(transfer)
                         matchedTorrents.add(torrent)
                     } ?: also {
                 log.warn("no transfer for torrent found: {}", torrent)
             }
-        }
-    }
-
-    private fun transferMatchedTorrentBySource(transfer: Transfer, torrent: Torrent): Boolean {
-        return Strings.isNotEmpty(transfer.uri) && transfer.uri == torrent.magnetUri
-    }
-
-    fun transferMatchedTorrentByName(transfer: Transfer, torrent: Torrent, maxDiff: Int = 0): Boolean {
-        val transferName = TorrentHelper.getNormalizedTorrentStringWithSpaces(transfer.hosterName()).lowercase()
-        val torrentName = TorrentHelper.getNormalizedTorrentStringWithSpaces(torrent.name).lowercase()
-        val matchedByName = transfer.hosterName().isNotEmpty() && transferName.lowercase() == torrentName.lowercase()
-        return if (matchedByName) {
-            log.warn("transfer only matched by name: {} <-> {}", transfer, torrent)
-            true
-        } else {
-            val transferWordList = transferName.split(" ")
-            val torrentWordList = torrentName.split(" ")
-            val transferInTorrentCount = transferWordList.count { torrentWordList.contains(it) }
-            val torrentInTransferCount = torrentWordList.count { transferWordList.contains(it) }
-            val transferDiffCount = transferWordList.size - transferInTorrentCount
-            val torrentDiffCount = torrentWordList.size - torrentInTransferCount
-            (
-                    (transferInTorrentCount.toDouble() / transferWordList.count().toDouble() > 0.75) && transferDiffCount <= maxDiff &&
-                            (torrentInTransferCount.toDouble() / torrentWordList.count().toDouble() > 0.75) && torrentDiffCount <= maxDiff
-                    )
         }
     }
 
@@ -449,7 +386,7 @@ class MultifileHosterService(
                     val fileToDownload: TorrentFile = getMainFileURLFromTorrent(filesFromTorrent)
                     updateUploadStatus(transferToBeDownloaded, remoteTorrent, listOf(fileToDownload), 0, null)
 
-                    val file = File(if (!fileToDownload.name.isNullOrBlank()) fileToDownload.name!! else extractFileNameFromUrl(fileToDownload.url))
+                    val file = File(if (!fileToDownload.name.isNullOrBlank()) fileToDownload.name!! else DownloadFileNames.extractFileNameFromUrl(fileToDownload.url))
                     val targetFilePath: String
                     val indexLetter: String
 
@@ -459,7 +396,7 @@ class MultifileHosterService(
                         indexLetter = mediaTarget.second
                     } else {
                         val destination = cloudService.buildDestinationPath(remoteTorrent.name, listOf(fileToDownload))
-                        targetFilePath = destination.second + buildFilename(remoteTorrent.name, fileToDownload.url)
+                        targetFilePath = destination.second + DownloadFileNames.buildFilename(remoteTorrent.name, fileToDownload.url)
                         indexLetter = destination.first
                     }
 
@@ -474,7 +411,7 @@ class MultifileHosterService(
 
                     for (torrentFile in filesFromTorrent) {
                         updateUploadStatus(transferToBeDownloaded, remoteTorrent, filesFromTorrent, currentFileNumber, startTime)
-                        val file = File(if (!torrentFile.name.isNullOrBlank()) torrentFile.name!! else extractFileNameFromUrl(torrentFile.url))
+                        val file = File(if (!torrentFile.name.isNullOrBlank()) torrentFile.name!! else DownloadFileNames.extractFileNameFromUrl(torrentFile.url))
                         val targetFilePath: String
                         val indexLetter: String
 
@@ -579,24 +516,16 @@ class MultifileHosterService(
         if (transfer != null) {
             transfer.transferStatus = TransferStatus.UPLOADING_TO_DRIVE
             transfer.progressInPercentage = currentFileNumber.toDouble() / listOfFiles.size.toDouble()
-            transfer.eta = getUploadDuration(listOfFiles, currentFileNumber, startTime)
+            transfer.eta = UploadProgress.getUploadDuration(listOfFiles, currentFileNumber, startTime)
             transferService.save(transfer)
         } else {
             log.warn("couldn't update transfer: $transferToBeDownloaded")
         }
-        torrentToBeDownloaded.remoteStatusText = getUploadStatusString(
+        torrentToBeDownloaded.remoteStatusText = UploadProgress.getUploadStatusString(
                 torrentToBeDownloaded, listOfFiles, currentFileNumber,
                 startTime
         )
         updateTorrent(torrentToBeDownloaded)
-    }
-
-    fun getTorrentToBeDownloaded(): Torrent? {
-        val activeTorrents: List<Torrent> = getTorrentsToDownload()
-        val remainingTrafficInMB: Double = getRemainingTrafficInMB()
-        return activeTorrents
-                .filter { remoteTorrent: Torrent -> checkIfTorrentCanBeDownloaded(remoteTorrent) }
-                .filter { torrent: Torrent -> getSizeOfTorrentInMB(torrent) < remainingTrafficInMB }.minOrNull()
     }
 
     fun isRcloneInstalled(): Boolean {
@@ -609,134 +538,17 @@ class MultifileHosterService(
         return isRcloneInstalled as Boolean
     }
 
-    private fun checkIfTorrentCanBeDownloaded(remoteTorrent: Torrent): Boolean {
-        return TransferStatus.READY_TO_BE_DOWNLOADED === remoteTorrent.remoteTransferStatus
-    }
-
-    private fun getUploadDuration(
-            listOfFiles: List<TorrentFile>,
-            currentFileNumber: Int,
-            startTime: Instant?
-    ): Duration {
-        val remainingDuration: Duration
-        val fileCount = listOfFiles.size
-        remainingDuration = if (startTime == null || currentFileNumber == 0) {
-            val size = listOfFiles.stream()
-                    .map { torrentFile: TorrentFile -> torrentFile.filesize }
-                    .reduce(0L) { a: Long, b: Long -> java.lang.Long.sum(a, b) }
-            val lsize = size.toDouble() / 1024.0 / 1024.0
-            val expectedSecondsRemaining = (lsize / 10.0).toLong()
-            Duration.of(expectedSecondsRemaining, ChronoUnit.SECONDS)
-        } else {
-            val diffTime = Instant.now().toEpochMilli() - startTime.toEpochMilli()
-            val milliPerFile = diffTime / currentFileNumber.toLong()
-            val remainingFileCount = fileCount - currentFileNumber
-            val expectedMilliRemaining = milliPerFile * remainingFileCount
-            Duration.of(expectedMilliRemaining, ChronoUnit.MILLIS)
-        }
-        return remainingDuration
-    }
-
-    fun getUploadStatusString(
-            torrentToBeDownloaded: Torrent?,
-            listOfFiles: List<TorrentFile>,
-            currentFileNumber: Int,
-            startTime: Instant?
-    ): String {
-        val remainingDuration: Duration
-        val fileCount = listOfFiles.size
-        remainingDuration = if (startTime == null || currentFileNumber == 0) {
-            val size = listOfFiles.stream()
-                    .map { torrentFile: TorrentFile -> torrentFile.filesize }
-                    .reduce(0L) { a: Long, b: Long -> java.lang.Long.sum(a, b) }
-            val lsize = size.toDouble() / 1024.0 / 1024.0
-            val expectedSecondsRemaining = (lsize / 10.0).toLong()
-            Duration.of(expectedSecondsRemaining, ChronoUnit.SECONDS)
-        } else {
-            val diffTime = Instant.now().toEpochMilli() - startTime.toEpochMilli()
-            val milliPerFile = diffTime / currentFileNumber.toLong()
-            val remainingFileCount = fileCount - currentFileNumber
-            val expectedMilliRemaining = milliPerFile * remainingFileCount
-            Duration.of(expectedMilliRemaining, ChronoUnit.MILLIS)
-        }
-        return String.format(
-                "Uploading: %d/%d done ETA: %02d:%02d:%02d",
-                currentFileNumber,
-                fileCount,
-                remainingDuration.toHours(),
-                remainingDuration.toMinutesPart(),
-                remainingDuration.toSecondsPart()
-        )
-    }
-
-    private fun extractFileNameFromUrl(fileURLFromTorrent: String): String {
-        val fileString = URLDecoder.decode(fileURLFromTorrent, StandardCharsets.UTF_8)
-        val pattern = Pattern.compile("[^\\/]+\$")
-        var foundMatch: String? = null
-        val matcher = pattern.matcher(fileString)
-        while (matcher.find()) {
-            foundMatch = matcher.group()
-        }
-        return foundMatch?.replace("\\s".toRegex(), ".") ?: ""
-    }
-
-    fun buildFilename(name: String?, fileURLFromTorrent: String?): String {
-        val fileEndingFromUrl: String? = extractFileEndingFromUrl(fileURLFromTorrent)
-        var returnName = if (StringUtils.hasText(name)) name ?: fileURLFromTorrent!! else fileURLFromTorrent!!
-        returnName = returnName.replace("\"".toRegex(), "")
-        returnName = returnName.replace("\\.torrent".toRegex(), "")
-        returnName = returnName.replace("[wW][wW][wW]\\.[A-Za-z0-9-]*\\.[a-zA-Z]+[\\s-]*".toRegex(), "").trim { it <= ' ' }
-        returnName = returnName.replace("\\s".toRegex(), ".")
-        return if (fileEndingFromUrl?.let { !returnName.contains(it) } ?: true) {
-            "$returnName.$fileEndingFromUrl"
-        } else {
-            returnName
-        }
-    }
-
-    private fun extractFileEndingFromUrl(fileURLFromTorrent: String?): String? {
-        val pattern = Pattern.compile("[A-Za-z0-9]+$")
-        var foundMatch: String? = null
-        val matcher = fileURLFromTorrent?.let { pattern.matcher(it) }
-        matcher?.let {
-            while (matcher.find()) {
-                foundMatch = matcher.group()
-            }
-        }
-        // remove quotes && .torrent
-        return foundMatch?.replace("\"".toRegex(), "")?.replace(".torrent".toRegex(), "") ?: fileURLFromTorrent
-    }
-
     fun refreshTorrents() {
         val remoteTorrents = remoteTorrents
-        remoteTorrents.forEach(
-                Consumer { torrent: Torrent ->
-                    if (isReadyForDownloadStatus(torrent.remoteStatusText)) {
-                        val localStatus = localStatusStorage[torrent.torrentId]
-                        torrent.remoteStatusText = localStatus ?: torrent.remoteStatusText
-                    } else {
-                        localStatusStorage.remove(torrent.torrentId)
-                    }
-                }
-        )
-        activeTorrents = remoteTorrents
-    }
-
-    private fun getTorrentsToDownload(): List<Torrent> {
-        val remoteTorrents = remoteTorrentsForDownload.apply {
-            forEach(
-                    Consumer { torrent: Torrent ->
-                        if (isReadyForDownloadStatus(torrent.remoteStatusText)) {
-                            val localStatus = localStatusStorage[torrent.torrentId]
-                            torrent.remoteStatusText = localStatus ?: torrent.remoteStatusText
-                        } else {
-                            localStatusStorage.remove(torrent.torrentId)
-                        }
-                    }
-            )
+        remoteTorrents.forEach { torrent: Torrent ->
+            if (isReadyForDownloadStatus(torrent.remoteStatusText)) {
+                val localStatus = localStatusStorage[torrent.torrentId]
+                torrent.remoteStatusText = localStatus ?: torrent.remoteStatusText
+            } else {
+                localStatusStorage.remove(torrent.torrentId)
+            }
         }
         activeTorrents = remoteTorrents
-        return remoteTorrents
     }
 
     private fun isReadyForDownloadStatus(status: String?): Boolean {
