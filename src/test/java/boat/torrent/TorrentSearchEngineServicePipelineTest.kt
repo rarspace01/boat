@@ -113,30 +113,4 @@ internal class TorrentSearchEngineServicePipelineTest {
 
         assertThat(service.searchTorrents("Dune 2021")).hasSize(1)
     }
-
-    @Test
-    fun shouldOnlyKeepTheSeasonWhichWasSearchedBeforeTheLookupsAndTheCut() {
-        val season1 = torrent(1, name = "The.Office.US.S01.1080p.BluRay.x264")
-        val season2 = torrent(2, name = "The.Office.US.S02E05.1080p.WEB-DL.x264")
-        val season2pack = torrent(3, name = "The Office US Season 2 Complete 720p")
-        val series = torrent(4, name = "The Office US Complete Series 1080p")
-        val noSeason = torrent(5, name = "The Office US 2005 1080p WEB-DL")
-        val checked = slot<List<Torrent>>()
-        val service = service(engine { listOf(season1, season2, season2pack, series, noSeason) })
-        every { multifileHosterService.getCachedStateOfTorrents(capture(checked)) } answers { firstArg() }
-
-        val results = service.searchTorrents("The Office S02", season = 2)
-
-        assertThat(checked.captured).containsExactlyInAnyOrder(season2, season2pack, series)
-        assertThat(results).containsExactlyInAnyOrder(season2, season2pack, series)
-    }
-
-    @Test
-    fun shouldKeepEverythingWithoutASeason() {
-        val season1 = torrent(1, name = "The.Office.US.S01.1080p.BluRay.x264")
-        val season2 = torrent(2, name = "The.Office.US.S02E05.1080p.WEB-DL.x264")
-        val service = service(engine { listOf(season1, season2) })
-
-        assertThat(service.searchTorrents("The Office")).containsExactlyInAnyOrder(season1, season2)
-    }
 }

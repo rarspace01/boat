@@ -291,16 +291,14 @@ $switchToSearchOld$switchToSearchList${switchToProgress.replace("..", "../boat")
         val mediaId = remoteMediaId?.ifBlank { null }
         val mediaType = parseMediaType(mediaTypeString)
         val season = selectedSeason?.takeIf { it > 0 }
-        val midParam = (if (mediaId != null) "&mid=" + urlEncode(mediaId) else "") + (mediaType?.let { "&mt=${it.name}" } ?: "") +
-                (season?.let { "&s=$it" } ?: "")
+        val midParam = (if (mediaId != null) "&mid=" + urlEncode(mediaId) else "") + (mediaType?.let { "&mt=${it.name}" } ?: "")
         return if (!searchString.isNullOrBlank()) {
-            val torrentList = torrentSearchEngineService.searchTorrents(searchString, season)
+            val torrentList = torrentSearchEngineService.searchTorrents(searchString)
             logger.info(
                 "Took: [{}]ms for [{}]{} found [{}]", System.currentTimeMillis() - startTime, searchString,
                 mediaId ?: "", torrentList.size
             )
-            htmlHeader + (season?.let { "Season $it only<br/>" } ?: "") +
-                    torrentList.joinToString(separator = "") { it.toHtml(mediaId, mediaType) } + htmlFooter
+            htmlHeader + torrentList.joinToString(separator = "") { it.toHtml(mediaId, mediaType) } + htmlFooter
         } else if (!selectedTitle.isNullOrBlank()) {
             val cleanedTitle = removeSpecialCharacters(selectedTitle)
             val torrentSearchString = cleanedTitle + (selectedYear?.let { " $it" } ?: "") + (season?.let { " S%02d".format(it) } ?: "")
@@ -310,7 +308,7 @@ $switchToSearchOld$switchToSearchList${switchToProgress.replace("..", "../boat")
                 htmlHeader + ("We already found some files:<br/>" + existingFiles.joinToString("<br/>") { HtmlUtils.htmlEscape(it) }
                         + "<br/>Still want to search? <a href=\"?q=" + urlEncode(torrentSearchString) + midParam + "\">Yes</a>") + htmlFooter
             } else {
-                searchTorrents(null, null, null, torrentSearchString, mediaId, mediaType?.name, season)
+                searchTorrents(null, null, null, torrentSearchString, mediaId, mediaType?.name, null)
             }
         } else if (!mediaSearchString.isNullOrBlank()) {
             val mediaItems = mediaProxyService.searchWithTrailingYear(mediaSearchString)

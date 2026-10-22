@@ -80,31 +80,31 @@ internal class BoatControllerSearchTest {
     @Test
     fun shouldSearchTheTorrentsOfASeasonWithTheSeasonInTheSearchString() {
         every { cloudService.findExistingFiles(any()) } returns emptyList()
-        every { torrentSearchEngineService.searchTorrents("Dark S02", 2) } returns emptyList()
+        every { torrentSearchEngineService.searchTorrents("Dark S02") } returns emptyList()
 
-        val html = controller.searchTorrents(null, "Dark", null, null, "{tvdb-334824}", "Series", 2)
+        controller.searchTorrents(null, "Dark", null, null, "{tvdb-334824}", "Series", 2)
 
-        verify(exactly = 1) { torrentSearchEngineService.searchTorrents("Dark S02", 2) }
-        assertThat(html).contains("Season 2 only")
+        // the search engines search for the season, what they find is not filtered by season afterwards
+        verify(exactly = 1) { torrentSearchEngineService.searchTorrents("Dark S02") }
     }
 
     @Test
     fun shouldSearchTheWholeSeriesWithoutASeason() {
         every { cloudService.findExistingFiles(any()) } returns emptyList()
-        every { torrentSearchEngineService.searchTorrents("Dark", null) } returns emptyList()
+        every { torrentSearchEngineService.searchTorrents("Dark") } returns emptyList()
 
         controller.searchTorrents(null, "Dark", null, null, "{tvdb-334824}", "Series", null)
 
-        verify(exactly = 1) { torrentSearchEngineService.searchTorrents("Dark", null) }
+        verify(exactly = 1) { torrentSearchEngineService.searchTorrents("Dark") }
     }
 
     @Test
-    fun shouldKeepTheSeasonWhenSearchingAgainDespiteExistingFiles() {
+    fun shouldSearchForTheSeasonWhenSearchingAgainDespiteExistingFiles() {
         every { cloudService.findExistingFiles(any()) } returns listOf("remote:Series-Shows/D/Dark/Season 1/Dark.S01E01.mkv")
 
         val html = controller.searchTorrents(null, "Dark", null, null, "{tvdb-334824}", "Series", 3)
 
-        assertThat(html).contains("?q=Dark+S03&mid=%7Btvdb-334824%7D&mt=Series&s=3")
+        assertThat(html).contains("?q=Dark+S03&mid=%7Btvdb-334824%7D&mt=Series\"")
     }
 
     @Test
