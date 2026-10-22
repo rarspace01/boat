@@ -7,6 +7,7 @@ import boat.info.MediaType
 import boat.info.TheMovieDataBaseService
 import boat.info.TheTVDBService
 import boat.utilities.HttpHelper
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import java.io.File
 
@@ -950,6 +951,7 @@ class ContentRenamerTest {
         assertThat(episode).isEqualTo(25)
     }
 
+    @Tag("live")
     @Test
     fun testCOPSExtraction() {
         val httpHelper = HttpHelper()
@@ -971,6 +973,7 @@ class ContentRenamerTest {
         assertThat(searchResult.first().title).isNotEqualTo("Katts and Dog")
     }
 
+    @Tag("live")
     @Test
     fun testRamsaysKitchenNightmaresExtraction() {
         val httpHelper = HttpHelper()
@@ -996,6 +999,7 @@ class ContentRenamerTest {
         assertThat(searchResult.first().title).containsIgnoringCase("Kitchen Nightmares")
     }
 
+    @Tag("live")
     @Test
     fun testLupinIIIExtraction() {
         val httpHelper = HttpHelper()
@@ -1019,6 +1023,7 @@ class ContentRenamerTest {
         assertThat(searchResult.first().title.contains("Lupin", ignoreCase = true) && searchResult.first().title.contains("Pilot", ignoreCase = true)).isTrue()
     }
 
+    @Tag("live")
     @Test
     fun testMoeshaExtraction() {
         val httpHelper = HttpHelper()
@@ -1044,6 +1049,7 @@ class ContentRenamerTest {
         assertThat(searchResult.first().title).isEqualToIgnoringCase("Moesha")
     }
 
+    @Tag("live")
     @Test
     fun testGolgo13Extraction() {
         val httpHelper = HttpHelper()
@@ -1067,6 +1073,7 @@ class ContentRenamerTest {
         assertThat(searchResult.first().title).containsIgnoringCase("Golgo 13")
     }
 
+    @Tag("live")
     @Test
     fun testSpace1999Extraction() {
         val httpHelper = HttpHelper()
@@ -1092,6 +1099,7 @@ class ContentRenamerTest {
         assertThat(searchResultInterview.first().title.contains("Space: 1999", ignoreCase = true) || searchResultInterview.first().title.contains("Space 1999", ignoreCase = true)).isTrue()
     }
 
+    @Tag("live")
     @Test
     fun test2001SpaceOdysseyExtraction() {
         val httpHelper = HttpHelper()
@@ -1110,6 +1118,7 @@ class ContentRenamerTest {
         assertThat(searchResult.first().title.contains("2001: A Space Odyssey") || searchResult.first().title.contains("2001 A Space Odyssey")).isTrue()
     }
 
+    @Tag("live")
     @Test
     fun test2012MovieExtraction() {
         val httpHelper = HttpHelper()
@@ -1128,6 +1137,7 @@ class ContentRenamerTest {
         assertThat(searchResult.first().title).isEqualTo("2012")
     }
 
+    @Tag("live")
     @Test
     fun test1917MovieExtraction() {
         val httpHelper = HttpHelper()
@@ -1146,6 +1156,7 @@ class ContentRenamerTest {
         assertThat(searchResult.first().title).isEqualTo("1917")
     }
 
+    @Tag("live")
     @Test
     fun testClassOf1999Extraction() {
         val httpHelper = HttpHelper()
@@ -1164,6 +1175,7 @@ class ContentRenamerTest {
         assertThat(searchResult.first().title).containsIgnoringCase("Class of 1999")
     }
 
+    @Tag("live")
     @Test
     fun testMASHExtraction() {
         val httpHelper = HttpHelper()

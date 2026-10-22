@@ -2,7 +2,7 @@ package boat.torrent.searchEngines;
 
 import boat.torrent.Torrent;
 import boat.utilities.HttpHelper;
-import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class KatTest {
 
-    @Disabled
+    @Tag("live")
     @Test
     public void shouldFindTorrents() {
         // Given

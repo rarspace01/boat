@@ -1,12 +1,14 @@
 package boat
 
 import boat.torrent.TorrentSearchEngineService
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 
 @SpringBootTest
+@Tag("live")
 internal class DownloadMonitorIntegrationTest {
     @Autowired
     var downloadMonitor: DownloadMonitor? = null

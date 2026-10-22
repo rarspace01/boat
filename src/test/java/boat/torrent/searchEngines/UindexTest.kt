@@ -2,14 +2,14 @@ package boat.torrent.searchEngines
 
 import boat.torrent.Torrent
 import boat.utilities.HttpHelper
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Assertions.assertDoesNotThrow
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 
 class UindexTest {
 
-    @Disabled
+    @Tag("live")
     @Test
     fun shouldFindTorrents() {
         // Given
@@ -18,7 +18,7 @@ class UindexTest {
         // Then
     }
 
-    @Disabled
+    @Tag("live")
     @Test
     fun shouldFindNoTorrents() {
         // Given

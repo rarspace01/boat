@@ -121,12 +121,30 @@ tasks.classes {
 }
 
 tasks.test {
-    useJUnitPlatform()
+    // tests tagged "live" need the internet (search engines, TMDB, TVDB, trackers) and run with ./gradlew liveTest
+    useJUnitPlatform {
+        excludeTags("live")
+    }
     jvmArgs("-XX:+EnableDynamicAgentLoading", "-Xshare:off")
     testLogging {
         events("standardOut", "started", "passed", "skipped", "failed")
         showStandardStreams = true
     }
+}
+
+val liveTest by tasks.registering(Test::class) {
+    description = "Runs the tests which talk to the real search engines, metadata services and trackers."
+    group = "verification"
+    testClassesDirs = sourceSets["test"].output.classesDirs
+    classpath = sourceSets["test"].runtimeClasspath
+    useJUnitPlatform {
+        includeTags("live")
+    }
+    jvmArgs("-XX:+EnableDynamicAgentLoading", "-Xshare:off")
+    testLogging {
+        events("started", "passed", "skipped", "failed")
+    }
+    shouldRunAfter(tasks.test)
 }
 
 tasks.wrapper {
