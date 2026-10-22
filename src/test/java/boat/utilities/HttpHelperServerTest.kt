@@ -126,6 +126,15 @@ internal class HttpHelperServerTest {
     }
 
     @Test
+    fun shouldLetTheCallerReplaceTheUserAgentOfBinaryRequests() {
+        helper.getBinary(url("/bytes"), headers = mapOf("User-Agent" to "boat-test"))
+        helper.getBinary(url("/bytes"))
+
+        assertThat(requests.map { it["userAgent"] }).containsExactly("boat-test", requests.last()["userAgent"])
+        assertThat(requests.last()["userAgent"]).contains("Mozilla")
+    }
+
+    @Test
     fun shouldNotLogApiKeysOfErrorAnswers() {
         assertThat(HttpHelper.redactSecrets("{\"error\":\"nothing here apikey=secret123\"}")).doesNotContain("secret123")
     }

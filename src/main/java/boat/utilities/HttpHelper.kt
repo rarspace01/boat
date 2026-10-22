@@ -155,17 +155,18 @@ class HttpHelper {
     }
 
     /**
-     * Fetches a url without decoding the answer, for binary content like tracker answers. Certificates are verified.
+     * Fetches a url without decoding the answer, for binary content like tracker answers or pages with their own
+     * charset. [headers] replace the default ones (e.g. the User-Agent). Certificates are verified.
      * Unlike the page methods this doesn't hide failures: connection problems and timeouts are thrown as
      * [IOException], other status codes than 200 are returned.
      */
     @Throws(IOException::class)
-    fun getBinary(url: String, timeout: Int = SHORT_TIMEOUT): BinaryResponse {
-        val request = HttpRequest.newBuilder(URI.create(url))
+    fun getBinary(url: String, timeout: Int = SHORT_TIMEOUT, headers: Map<String, String> = emptyMap()): BinaryResponse {
+        val builder = HttpRequest.newBuilder(URI.create(url))
             .timeout(Duration.ofMillis(timeout.toLong()))
-            .header("User-Agent", USER_AGENT_BROWSER)
-            .GET()
-            .build()
+            .setHeader("User-Agent", USER_AGENT_BROWSER)
+        headers.forEach { (key, value) -> builder.setHeader(key, value) }
+        val request = builder.GET().build()
         return try {
             val response = verifiedClientFor(url).send(request, HttpResponse.BodyHandlers.ofByteArray())
             BinaryResponse(response.statusCode(), response.body())
