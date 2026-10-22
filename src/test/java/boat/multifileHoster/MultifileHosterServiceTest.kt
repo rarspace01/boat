@@ -22,9 +22,7 @@ import io.mockk.slot
 import io.mockk.spyk
 import io.mockk.verify
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.springframework.cache.CacheManager
 
@@ -102,7 +100,7 @@ internal class MultifileHosterServiceTest {
         // When
 
         val matched =
-            multifileHosterService.transferMatchedTorrentByName(transfer, torrent, 2)
+            TransferMatching.transferMatchedTorrentByName(transfer, torrent, 2)
         // Then
         assertThat(matched).isTrue
     }
@@ -118,7 +116,7 @@ internal class MultifileHosterServiceTest {
             url = ""
         )
         // When
-        val uploadStatusString = multifileHosterService.getUploadStatusString(torrent, listOf(torrentFile), 0, null)
+        val uploadStatusString = UploadProgress.getUploadStatusString(torrent, listOf(torrentFile), 0, null)
         // Then
         assertThat(uploadStatusString).doesNotMatch("Uploading: 0/1 done ETA: 00:00:00")
     }
@@ -126,8 +124,7 @@ internal class MultifileHosterServiceTest {
     @Test
     fun shouldBuildProperFilenames() {
         // When
-        val filename = multifileHosterService
-            .buildFilename("www.url.lol - Movie Title 2018", "www.movie-url.lol-movie_title_2018.mkv")
+        val filename = DownloadFileNames.buildFilename("www.url.lol - Movie Title 2018", "www.movie-url.lol-movie_title_2018.mkv")
         // Then
         assertThat(filename).isEqualTo("Movie.Title.2018.mkv")
     }
@@ -135,8 +132,7 @@ internal class MultifileHosterServiceTest {
     @Test
     fun shouldBuildProperFilenamesWithoutQuotesAndTorrentInName() {
         // When
-        val filename = multifileHosterService
-            .buildFilename("\"www.url.lol - Movie Title 2018.torrent\"", "www.movie-url.lol-movie_title_2018.mkv")
+        val filename = DownloadFileNames.buildFilename("\"www.url.lol - Movie Title 2018.torrent\"", "www.movie-url.lol-movie_title_2018.mkv")
         // Then
         assertThat(filename).isEqualTo("Movie.Title.2018.mkv")
     }
@@ -144,8 +140,7 @@ internal class MultifileHosterServiceTest {
     @Test
     fun shouldBuildProperFilenameFromFileIfEmptyName() {
         // When
-        val filename = multifileHosterService
-            .buildFilename("", "www.movie-url.lol-movie.title.2018.mkv")
+        val filename = DownloadFileNames.buildFilename("", "www.movie-url.lol-movie.title.2018.mkv")
         // Then
         assertThat(filename).isEqualTo("movie.title.2018.mkv")
     }
@@ -153,20 +148,9 @@ internal class MultifileHosterServiceTest {
     @Test
     fun shouldBuildProperFilenameFromFileIfNullName() {
         // When
-        val filename = multifileHosterService
-            .buildFilename(null, "www.movie-url.lol-movie.title.2018.mkv")
+        val filename = DownloadFileNames.buildFilename(null, "www.movie-url.lol-movie.title.2018.mkv")
         // Then
         assertThat(filename).isEqualTo("movie.title.2018.mkv")
-    }
-
-    @Disabled
-    @Test
-    fun getTorrentToBeDownloaded() {
-        // Given
-        // When
-        val torrentToBeDownloaded = multifileHosterService.getTorrentToBeDownloaded()
-        // Then
-        Assertions.assertNotNull(torrentToBeDownloaded)
     }
 
     @Test
@@ -256,7 +240,7 @@ internal class MultifileHosterServiceTest {
         val transfer = Transfer(name = "Inception | Inception.2010.1080p", remoteMediaId = "{tmdb-27205}")
         val torrent = Torrent("Premiumize").apply { name = "Inception.2010.1080p" }
 
-        assertThat(multifileHosterService.transferMatchedTorrentByName(transfer, torrent)).isTrue()
+        assertThat(TransferMatching.transferMatchedTorrentByName(transfer, torrent)).isTrue()
     }
 
     @Test
@@ -608,6 +592,84 @@ internal class MultifileHosterServiceTest {
         multifileHosterService.updateTransferStatus()
 
         assertThat(transfer.transferStatus).isEqualTo(TransferStatus.UPLOAD_TO_DRIVE_FAILED)
+    }
+
+    private fun remoteTransfer(id: String, name: String, hash: String, status: String = "running", progress: Double = 0.5) =
+        "{\"id\":\"$id\",\"name\":\"$name\",\"status\":\"$status\",\"folder_id\":null,\"file_id\":null," +
+                "\"src\":\"magnet:?xt=urn:btih:$hash\",\"message\":\"\",\"progress\":$progress}"
+
+    private fun stubRemoteTransfers(vararg transfers: String) {
+        every { httpHelper.getPage(match { it.contains("transfer/list") }) } returns
+                "{\"status\":\"success\",\"transfers\":[" + transfers.joinToString(",") + "]}"
+    }
+
+    private fun waitingTransfer(name: String) =
+        Transfer(name = name, transferStatus = TransferStatus.ADDED, uri = "magnet:?xt=urn:btih:" + "a".repeat(40), source = "Premiumize")
+
+    @Test
+    fun shouldMatchATransferToItsTorrentByNameIfTheHashDiffers() {
+        val transfer = waitingTransfer("Alpha Bravo Charlie Delta Echo Foxtrot Golf Hotel")
+        stubTransfers(listOf(transfer))
+        stubRemoteTransfers(remoteTransfer("remote-1", "Alpha Bravo Charlie Delta Echo Foxtrot Golf Hotel", "b".repeat(40)))
+
+        multifileHosterService.updateTransferStatus()
+
+        assertThat(transfer.remoteId).isEqualTo("remote-1")
+        assertThat(transfer.transferStatus).isEqualTo(TransferStatus.DOWNLOADING_TO_MULTIHOSTER)
+    }
+
+    @Test
+    fun shouldPreferTheTransferWithTheSameNameOverOneWithAnotherWord() {
+        val similar = waitingTransfer("Alpha Bravo Charlie Delta Echo Foxtrot Golf Hotel India")
+        val same = waitingTransfer("Alpha Bravo Charlie Delta Echo Foxtrot Golf Hotel")
+        stubTransfers(listOf(similar, same))
+        stubRemoteTransfers(remoteTransfer("remote-1", "Alpha Bravo Charlie Delta Echo Foxtrot Golf Hotel", "b".repeat(40)))
+
+        multifileHosterService.updateTransferStatus()
+
+        assertThat(same.remoteId).isEqualTo("remote-1")
+        assertThat(similar.remoteId).isNull()
+    }
+
+    @Test
+    fun shouldMatchByNameWithTwoDifferentWordsIfNothingMatchesExactly() {
+        val transfer = waitingTransfer("Alpha Bravo Charlie Delta Echo Foxtrot Golf Hotel India Juliet")
+        stubTransfers(listOf(transfer))
+        stubRemoteTransfers(remoteTransfer("remote-1", "Alpha Bravo Charlie Delta Echo Foxtrot Golf Hotel", "b".repeat(40)))
+
+        multifileHosterService.updateTransferStatus()
+
+        assertThat(transfer.remoteId).isEqualTo("remote-1")
+    }
+
+    @Test
+    fun shouldNotMatchByNameWithMoreThanTwoDifferentWords() {
+        val transfer = waitingTransfer("Alpha Bravo Charlie Delta Echo Foxtrot Golf Hotel India Juliet Kilo")
+        stubTransfers(listOf(transfer))
+        stubRemoteTransfers(remoteTransfer("remote-1", "Alpha Bravo Charlie Delta Echo Foxtrot Golf Hotel", "b".repeat(40)))
+
+        multifileHosterService.updateTransferStatus()
+
+        assertThat(transfer.remoteId).isNull()
+    }
+
+    @Test
+    fun shouldNotLetANameMatchOverwriteATransferWhichWasMatchedByItsHash() {
+        val hash1 = "1".repeat(40)
+        val matchedByHash = Transfer(
+            name = "Alpha Bravo Charlie Delta Echo Foxtrot Golf Hotel", transferStatus = TransferStatus.ADDED, source = "Premiumize",
+            uri = "magnet:?xt=urn:btih:$hash1"
+        )
+        stubTransfers(listOf(matchedByHash))
+        // the second torrent has the same name, but another hash
+        stubRemoteTransfers(
+            remoteTransfer("remote-1", "Alpha Bravo Charlie Delta Echo Foxtrot Golf Hotel", hash1),
+            remoteTransfer("remote-2", "Alpha Bravo Charlie Delta Echo Foxtrot Golf Hotel", "2".repeat(40)),
+        )
+
+        multifileHosterService.updateTransferStatus()
+
+        assertThat(matchedByHash.remoteId).isEqualTo("remote-1")
     }
 
     private val readyTransferList = "{\"status\":\"success\",\"transfers\":[{\"id\":\"remote-123\",\"name\":\"Inception.2010.1080p.mkv\",\"status\":\"finished\"," +
