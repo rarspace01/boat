@@ -199,22 +199,35 @@ object TorrentHelper {
         return value.replace(",".toRegex(), "")
     }
 
-    fun isBlocklisted(torrent: Torrent): Boolean {
+    fun isBlocklisted(torrent: Torrent, searchName: String = ""): Boolean {
         val torrentNameLowerCased = torrent.name.lowercase(Locale.getDefault())
-        return isBadQualityName(torrentNameLowerCased) || isExplicitContent(torrentNameLowerCased)
+        return isBadQualityName(torrentNameLowerCased) || isExplicitContent(torrent, searchName)
     }
 
-    private fun isExplicitContent(torrentNameLowerCased: String): Boolean {
-        return torrentNameLowerCased.contains("xxx") || torrentNameLowerCased.contains("porn") || torrentNameLowerCased.contains(
-            "sluts"
-        )
+    /**
+     * Adult releases carry "XXX" as a tag after their title. The movies "xXx" (2002, 2005, 2017) start with it, so
+     * when the search itself is for "xxx", torrents named after the movie are kept.
+     */
+    fun isExplicitContent(torrent: Torrent, searchName: String): Boolean {
+        val torrentNameLowerCased = torrent.name.lowercase(Locale.getDefault())
+        if (torrentNameLowerCased.contains("porn") || torrentNameLowerCased.contains("sluts")) return true
+        if (!torrentNameLowerCased.contains("xxx")) return false
+        val isSearchForXxx = searchName.lowercase(Locale.getDefault()).contains(xxxWordRegex)
+        return !(isSearchForXxx && torrentNameLowerCased.contains(startsWithXxxWordRegex))
     }
+
+    private val xxxWordRegex = Regex("(?<![a-z0-9])xxx(?![a-z0-9])")
+    // leading release groups like "[ETRG] " are skipped
+    private val startsWithXxxWordRegex = Regex("^(?:\\W*\\[[^]]*])*\\W*xxx(?![a-z0-9])")
 
     private fun isBadQualityName(torrentNameLowerCased: String) =
         torrentNameLowerCased.contains(badQualityRegex)
 
+    /**
+     * Explicit content depends on the search, it is filtered by [TorrentSearchEngineService] with [isExplicitContent].
+     */
     fun isValidTorrent(torrent: Torrent): Boolean {
-        return !isBlocklisted(torrent) && torrent.sizeInMB > 0 && torrent.magnetUri.isNotBlank()
+        return !isBadQualityName(torrent.name.lowercase(Locale.getDefault())) && torrent.sizeInMB > 0 && torrent.magnetUri.isNotBlank()
     }
 
     fun urlEncode(string: String): String {

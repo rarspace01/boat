@@ -105,7 +105,7 @@ class TorrentSearchEngineService(
                 logger.error("searchTorrents() terminated after timeout")
             }
         }
-        val returnResults: List<Torrent> = ArrayList(cleanDuplicates(combineResults))
+        val returnResults: List<Torrent> = ArrayList(cleanDuplicates(combineResults.filterNot { TorrentHelper.isExplicitContent(it, searchString) }))
         val cacheStateOfTorrents = mutableListOf<Torrent>()
         cacheStateOfTorrents.addAll(multifileHosterService.getCachedStateOfTorrents(returnResults))
 

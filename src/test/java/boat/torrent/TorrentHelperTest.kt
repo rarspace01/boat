@@ -388,6 +388,30 @@ internal class TorrentHelperTest {
     }
 
     @Test
+    fun shouldFilterExplicitContent() {
+        Assertions.assertTrue(TorrentHelper.isExplicitContent(Torrent("Test").apply { name = "Some.Title.XXX.1080p" }, "Some Title"))
+        Assertions.assertTrue(TorrentHelper.isExplicitContent(Torrent("Test").apply { name = "Some Porn title" }, "Some title"))
+        Assertions.assertFalse(TorrentHelper.isExplicitContent(Torrent("Test").apply { name = "Movie.2020.1080p" }, "Movie"))
+    }
+
+    @Test
+    fun shouldKeepTheMovieXxxWhenSearchingForIt() {
+        Assertions.assertFalse(TorrentHelper.isExplicitContent(Torrent("Test").apply { name = "xXx.2002.1080p.BluRay.x264" }, "xxx 2002"))
+        Assertions.assertFalse(TorrentHelper.isExplicitContent(Torrent("Test").apply { name = "XXX (2002) [1080p]" }, "xXx"))
+        Assertions.assertFalse(TorrentHelper.isExplicitContent(Torrent("Test").apply { name = "xXx.State.of.the.Union.2005.720p" }, "xxx state of the union"))
+        Assertions.assertFalse(TorrentHelper.isExplicitContent(Torrent("Test").apply { name = "[ETRG] xXx Return of Xander Cage 2017" }, "xxx return of xander cage"))
+    }
+
+    @Test
+    fun shouldFilterAdultReleasesWhenSearchingForTheMovieXxx() {
+        // XXX as a tag after another title
+        Assertions.assertTrue(TorrentHelper.isExplicitContent(Torrent("Test").apply { name = "Some.Title.2002.XXX.1080p" }, "xxx 2002"))
+        // the search only contains xxx inside another word
+        Assertions.assertTrue(TorrentHelper.isExplicitContent(Torrent("Test").apply { name = "XXX.Some.Title" }, "xxxl"))
+        Assertions.assertTrue(TorrentHelper.isExplicitContent(Torrent("Test").apply { name = "xXx Porn Parody" }, "xxx"))
+    }
+
+    @Test
     fun shouldNotBlocklistGoodTorrentsContainingBadQualityLetters() {
         Assertions.assertFalse(TorrentHelper.isBlocklisted(Torrent("Test").apply { name = "Movie.2020.1080p.BluRay.x264" }))
         Assertions.assertFalse(TorrentHelper.isBlocklisted(Torrent("Test").apply { name = "Scam.2020.1080p.WEB" }))
@@ -405,6 +429,8 @@ internal class TorrentHelperTest {
         Assertions.assertFalse(TorrentHelper.isValidTorrent(validTorrent.copy(sizeInMB = 0.0)))
         Assertions.assertFalse(TorrentHelper.isValidTorrent(validTorrent.copy(magnetUri = " ")))
         Assertions.assertFalse(TorrentHelper.isValidTorrent(validTorrent.copy(name = "Movie.2020.HDCAM")))
+        // explicit content is filtered with the search name by the TorrentSearchEngineService
+        Assertions.assertTrue(TorrentHelper.isValidTorrent(validTorrent.copy(name = "xXx.2002.1080p.BluRay")))
     }
 
     @Test
