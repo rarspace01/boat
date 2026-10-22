@@ -14,6 +14,7 @@ import java.util.concurrent.Callable
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicLong
 import kotlin.math.pow
 
 /**
@@ -155,6 +156,10 @@ class DuplicateCleaner(
             .groupBy({ it.first }, { it.second })
             .filter { it.value.size > 1 }
         val (_, toProbe) = sameByName.entries.partition { largeEnoughToKeep(it.value) != null }
+        logger.info(
+            "{} groups of files which exist more than once, {} of them kept by size without reading, reading {} files",
+            sameByName.size, sameByName.size - toProbe.size, toProbe.sumOf { it.value.size }
+        )
         val (infos, stats) = probeAll(toProbe.flatMap { it.value })
         logger.info("{}", stats)
         logger.info("deciding {} groups of files which exist more than once", sameByName.size)
@@ -263,6 +268,7 @@ class DuplicateCleaner(
         val durations = Collections.synchronizedList(mutableListOf<Long>())
         val done = AtomicInteger()
         val start = System.nanoTime()
+        val lastProgress = AtomicLong(start)
         val executor = Executors.newFixedThreadPool(probeThreads.coerceAtLeast(1))
         try {
             executor.invokeAll(files.map { file ->
@@ -273,7 +279,17 @@ class DuplicateCleaner(
                     if (millis > SLOW_PROBE_MILLIS) logger.warn("reading {} took {} ms", file, millis)
                     durations.add(millis)
                     val count = done.incrementAndGet()
-                    if (count % 500 == 0) logger.info("probed {} of {} files after {} s", count, files.size, (System.nanoTime() - start) / 1_000_000_000)
+                    val now = System.nanoTime()
+                    val last = lastProgress.get()
+                    if (now - last >= PROGRESS_INTERVAL_NANOS && lastProgress.compareAndSet(last, now)) {
+                        val seconds = (now - start) / 1_000_000_000.0
+                        val rate = count / seconds
+                        logger.info(
+                            "probed {} of {} files ({}%) after {} s, {} files/s, about {} s to go",
+                            count, files.size, count * 100 / files.size, seconds.toLong(),
+                            String.format(Locale.ROOT, "%.1f", rate), ((files.size - count) / rate).toLong()
+                        )
+                    }
                 }
             })
         } finally {
@@ -388,6 +404,9 @@ class DuplicateCleaner(
             null -> 1
             else -> if (needs <= 0.7) 2 else if (needs <= 1.3) 1 else 0
         }
+
+        /** How often the progress of the reading is written to the log. */
+        private const val PROGRESS_INTERVAL_NANOS = 10_000_000_000L
 
         /** Reading a file which takes longer than this is written to the log (a slow disk, a damaged file). */
         private const val SLOW_PROBE_MILLIS = 10_000
