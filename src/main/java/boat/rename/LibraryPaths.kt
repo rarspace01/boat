@@ -6,11 +6,11 @@ import boat.rename.EpisodeParser.isOpeningEndingOrOva
 import boat.rename.FileAttributes.decodeIfEncoded
 import boat.rename.FileAttributes.extractCodec
 import boat.rename.FileAttributes.extractResolution
+import boat.rename.FileAttributes.extractSeriesSubtitleLanguage
 import boat.rename.FileAttributes.extractSubtitleLanguage
 import boat.rename.FileAttributes.isMovieExtra
 import boat.rename.FileAttributes.subtitleExtensions
-import boat.rename.MediaNameParser.extraNameInFeaturettes
-import boat.rename.MediaNameParser.extractSeriesSubtitleLanguage
+import boat.rename.LibraryFolders.extraNameInFeaturettes
 import boat.utilities.StringUtil
 import java.io.File
 

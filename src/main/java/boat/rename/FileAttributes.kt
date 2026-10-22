@@ -99,4 +99,17 @@ object FileAttributes {
         // a letter O instead of the zero, e.g. "The.Blacklist.SO1E01"
         return decodedName.replace(letterOSeasonPattern, "S0").replace("&#039;", "'").replace("&amp;", "&")
     }
+
+
+    /**
+     * Language of a subtitle from its name or folder, e.g. "en" for "2_English.srt", "da" for "Danish/Show E1.srt" or
+     * "en.sdh" for "english_SDH/Show.S01E01.srt".
+     */
+    fun extractSeriesSubtitleLanguage(file: File): String? {
+        extractSubtitleLanguage(file)?.let { return it }
+        val tokens = (listOf(file.nameWithoutExtension) + listOfNotNull(file.parentFile?.name))
+            .flatMap { decodeIfEncoded(it).lowercase().split(nonLetterPattern) }.filter { it.isNotBlank() }
+        val language = tokens.firstNotNullOfOrNull { languageNames[it] } ?: return null
+        return (listOf(language) + subtitleFlags.filter { it in tokens }).joinToString(".")
+    }
 }

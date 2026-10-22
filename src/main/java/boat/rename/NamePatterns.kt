@@ -339,3 +339,36 @@ internal val showNamesOfAbbreviations = mapOf("iasip" to "Its Always Sunny In Ph
 
 /** Words which don't count when a folder name and a file name are compared. */
 internal val overlapStopWords = setOf("the", "and", "for", "with", "from")
+
+// ---- auxiliary files and folders (extras, samples, ...), see MediaNameParser.isAuxiliaryPathOrFile
+
+/** Extensions of files which are not media and not worth a name. */
+internal val auxiliaryNonMediaExtensions = setOf(
+    "pdf", "txt", "nfo", "jpg", "jpeg", "png", "gif", "bmp", "doc", "docx",
+    "xls", "xlsx", "exe", "zip", "rar", "7z", "tar", "gz", "sfv", "par2", "cue", "md5", "torrent", "url"
+)
+
+/** Names of folders which hold extras. */
+internal val auxiliaryFolderKeywords = setOf(
+    "extras", "extra", "featurettes", "featurette", "bonus", "bonuses",
+    "samples", "sample", "screenshots", "screenshot", "screens cap", "screens",
+    "trailers", "trailer", "teasers", "teaser", "promos", "promo",
+    "deleted scenes", "deleted scene", "screentests", "screentest",
+    "subs", "subtitles", "sub", "original scripts", "soundtracks", "soundtrack",
+    "ost", "artwork", "covers", "fonts", "scans", "proofs",
+    "outtakes", "outtake", "bloopers", "blooper", "gag reel", "behind the scenes", "making of",
+    "fake psas", "fake psa", "tv spots", "tv spot", "storyboard comparison", "tv recap specials",
+    "lessons", "videolessons", "audio blog", "gallery", "galleries", "photo gallery", "image gallery", "still gallery", "stills gallery", "slideshow", "slideshows"
+)
+
+/** Words in the name of a file which say it is an extra. */
+internal val auxiliaryFileKeywords = listOf(
+    "alternate ending", "alternate endings", "alternate opening", "alternate openings", "alternate cut",
+    "alternate scene", "alternate scenes", "extended scene", "extended scenes", "extended cut",
+    "featurette", "featurettes", "trailer", "trailers", "teaser", "teasers", "promo", "promos",
+    "deleted scene", "deleted scenes", "screentest", "screentests", "outtake", "outtakes",
+    "blooper", "bloopers", "gag reel", "gag reels", "screenshot", "screenshots", "sample", "samples",
+    "character profile", "character profiles", "behind the scenes", "making of", "interview", "interviews",
+    "original script", "original scripts", "textless", "special feature", "special features", "bonus", "bonuses",
+    "gallery", "galleries", "photo gallery", "image gallery", "still gallery", "stills gallery", "slideshow", "slideshows"
+)

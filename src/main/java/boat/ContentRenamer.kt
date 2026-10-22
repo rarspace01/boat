@@ -6,12 +6,16 @@ import boat.info.MediaType
 import boat.rename.EpisodeParser
 import boat.rename.FileAttributes
 import boat.rename.FileAttributes.isMovieFile
+import boat.rename.JunkDetector
+import boat.rename.JunkDetector.getSkipReason
+import boat.rename.LibraryFolders
+import boat.rename.LibraryFolders.isInExtrasFolder
 import boat.rename.LibraryPaths
 import boat.rename.MediaNameParser
-import boat.rename.MediaNameParser.getSkipReason
-import boat.rename.MediaNameParser.isInExtrasFolder
-import boat.rename.MediaNameParser.normalizeMovieTitle
 import boat.rename.MovieMatcher
+import boat.rename.MovieNameParser
+import boat.rename.MovieNameParser.normalizeMovieTitle
+import boat.rename.NameCleaner
 import boat.rename.nonMediaExtensions as renameNonMediaExtensions
 import boat.rename.paddingFilePattern as renamePaddingFilePattern
 import boat.rename.remoteMediaIdPattern as renameRemoteMediaIdPattern
@@ -24,8 +28,11 @@ import org.springframework.stereotype.Service
 
 /**
  * Renames and moves the media files of a directory into the library. The work is done by the classes in
- * `boat.rename`: [MediaNameParser] (titles and years), [EpisodeParser] (seasons and episodes), [FileAttributes]
- * (resolution, codec, subtitle language), [LibraryPaths] (target paths) and [MovieMatcher] (finding the movie).
+ * `boat.rename`, from the file name to the new path:
+ * [JunkDetector] (names and files that are no title), [NameCleaner] (title of a name), [EpisodeParser] (seasons and
+ * episodes), [FileAttributes] (resolution, codec, subtitle language), [LibraryFolders] (what the folders say),
+ * [MediaNameParser] (the show of a series file), [MovieNameParser] (title and year of a movie), [MovieMatcher]
+ * (finding the movie in the media proxy) and [LibraryPaths] (the new path).
  * The functions of those which are used from outside are available here as well.
  */
 @Service
@@ -48,9 +55,9 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
 
     fun extractEpisode(file: File, mediaItem: MediaItem? = null): Int? = EpisodeParser.extractEpisode(file, mediaItem)
 
-    fun isJunk(name: String): Boolean = MediaNameParser.isJunk(name)
+    fun isJunk(name: String): Boolean = JunkDetector.isJunk(name)
 
-    fun removeEpisodeNumber(seriesName: String, file: File): String = MediaNameParser.removeEpisodeNumber(seriesName, file)
+    fun removeEpisodeNumber(seriesName: String, file: File): String = LibraryFolders.removeEpisodeNumber(seriesName, file)
 
     fun extractSeason(file: File): Int? = EpisodeParser.extractSeason(file)
 
@@ -69,21 +76,21 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
 
     fun getSafeTitle(title: String): String = LibraryPaths.getSafeTitle(title)
 
-    fun isMovieInSeriesFolder(file: File): Boolean = MediaNameParser.isMovieInSeriesFolder(file)
+    fun isMovieInSeriesFolder(file: File): Boolean = LibraryFolders.isMovieInSeriesFolder(file)
 
-    fun hasSeriesMarkers(file: File): Boolean = MediaNameParser.hasSeriesMarkers(file)
+    fun hasSeriesMarkers(file: File): Boolean = LibraryFolders.hasSeriesMarkers(file)
 
     fun extractSeasonAndEpisode(file: File, mediaItem: MediaItem): Pair<Int?, Int?> = EpisodeParser.extractSeasonAndEpisode(file, mediaItem)
 
-    fun extractMovieNameAndYear(file: File): Pair<String, Int?> = MediaNameParser.extractMovieNameAndYear(file)
+    fun extractMovieNameAndYear(file: File): Pair<String, Int?> = MovieNameParser.extractMovieNameAndYear(file)
 
-    fun removeReleaseGroups(name: String): String = MediaNameParser.removeReleaseGroups(name)
+    fun removeReleaseGroups(name: String): String = NameCleaner.removeReleaseGroups(name)
 
-    fun parseMovieName(rawName: String): Pair<String, Int?> = MediaNameParser.parseMovieName(rawName)
+    fun parseMovieName(rawName: String): Pair<String, Int?> = MovieNameParser.parseMovieName(rawName)
 
     fun extractResolution(file: File): String? = FileAttributes.extractResolution(file)
 
-    fun extractMovieInSeriesNameAndYear(file: File): Pair<String, Int?> = MediaNameParser.extractMovieInSeriesNameAndYear(file)
+    fun extractMovieInSeriesNameAndYear(file: File): Pair<String, Int?> = MovieNameParser.extractMovieInSeriesNameAndYear(file)
 
     fun decodeIfEncoded(name: String): String = FileAttributes.decodeIfEncoded(name)
 
