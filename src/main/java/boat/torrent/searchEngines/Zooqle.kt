@@ -2,7 +2,6 @@ package boat.torrent.searchEngines
 
 import boat.torrent.HttpUser
 import boat.torrent.Torrent
-import boat.torrent.TorrentComparator
 import boat.torrent.TorrentHelper
 import boat.torrent.TorrentSearchEngine
 import boat.utilities.HttpHelper
@@ -24,7 +23,6 @@ class Zooqle internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper)
         val torrentList = CopyOnWriteArrayList<Torrent>()
         val resultString = httpHelper.getPage(buildSearchUrl(searchName))
         torrentList.addAll(parseTorrentsOnResultPage(resultString, searchName))
-        torrentList.sortWith(TorrentComparator)
         return torrentList
     }
 
@@ -53,10 +51,7 @@ class Zooqle internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper)
                 tempTorrent.sizeInMB = (torrentElement.getElementsByTag("torrent:contentlength").text().toLong() / 1024.0f / 1024.0f).toDouble()
                 tempTorrent.size = TorrentHelper.humanReadableByteCountBinary((tempTorrent.sizeInMB * 1024.0 * 1024.0).toLong())
                 tempTorrent.isVerified = "1" == torrentElement.getElementsByTag("torrent:verified").text()
-                TorrentHelper.evaluateRating(tempTorrent, searchName)
-                if (TorrentHelper.isValidTorrent(tempTorrent)) {
-                    torrentList.add(tempTorrent)
-                }
+                torrentList.add(tempTorrent)
             })
         } catch (exception:Exception) {
             logger.error("Zooqle",exception)

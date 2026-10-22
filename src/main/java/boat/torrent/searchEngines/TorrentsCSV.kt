@@ -2,7 +2,6 @@ package boat.torrent.searchEngines
 
 import boat.torrent.HttpUser
 import boat.torrent.Torrent
-import boat.torrent.TorrentComparator
 import boat.torrent.TorrentHelper
 import boat.torrent.TorrentSearchEngine
 import boat.utilities.HttpHelper
@@ -12,7 +11,6 @@ import com.google.gson.JsonParser
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.util.*
-import java.util.concurrent.CopyOnWriteArrayList
 import java.util.function.Consumer
 
 class TorrentsCSV internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper), TorrentSearchEngine {
@@ -26,18 +24,28 @@ class TorrentsCSV internal constructor(httpHelper: HttpHelper) : HttpUser(httpHe
         if (searchName.trim { it <= ' ' }.length < 3) {
             return emptyList()
         }
-        val torrentList = CopyOnWriteArrayList<Torrent>()
-        val resultString = httpHelper.getPage(buildSearchUrl(searchName))
-        torrentList.addAll(parseTorrentsOnResultPage(resultString, searchName))
-        torrentList.sortWith(TorrentComparator)
-        return torrentList
+        // 25 results per page, the answer says where the next page starts
+        var after: String? = null
+        return SearchPaging.collect { page ->
+            if (page > 1 && after == null) return@collect emptyList()
+            val resultString = httpHelper.getPage(buildSearchUrl(searchName, after))
+            after = nextPageStart(resultString)
+            parseTorrentsOnResultPage(resultString, searchName)
+        }
     }
 
-    private fun buildSearchUrl(searchName: String): String {
-        return String.format(
+    private fun buildSearchUrl(searchName: String, after: String?): String {
+        val url = String.format(
             "%s/service/search?size=100&q=%s", baseUrl,
             URLEncoder.encode(searchName.trim { it <= ' ' }, StandardCharsets.UTF_8)
         )
+        return if (after == null) url else url + "&after=" + URLEncoder.encode(after, StandardCharsets.UTF_8)
+    }
+
+    private fun nextPageStart(pageContent: String): String? = try {
+        JsonParser.parseString(pageContent).asJsonObject["next"]?.takeIf { !it.isJsonNull }?.asString
+    } catch (exception: Exception) {
+        null
     }
 
     override fun getBaseUrl(): String {
@@ -66,10 +74,7 @@ class TorrentsCSV internal constructor(httpHelper: HttpHelper) : HttpUser(httpHe
                 tempTorrent.size = TorrentHelper.humanReadableByteCountBinary(sizeInBytes)
                 tempTorrent.sizeInMB = (sizeInBytes / 1024.0f / 1024.0f).toDouble()
                 tempTorrent.date = Date(jsonTorrent["created_unix"].asLong * 1000)
-                TorrentHelper.evaluateRating(tempTorrent, searchName)
-                if (TorrentHelper.isValidTorrent(tempTorrent)) {
-                    torrentList.add(tempTorrent)
-                }
+                torrentList.add(tempTorrent)
             })
         } catch (exception: Exception) {
             logger.error("failed to parse string:\n${pageContent}", exception)

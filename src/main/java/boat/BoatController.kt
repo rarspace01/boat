@@ -38,7 +38,6 @@ import java.lang.management.ManagementFactory
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.util.*
-import java.util.stream.Collectors
 import kotlin.concurrent.thread
 import kotlin.system.exitProcess
 
@@ -198,8 +197,7 @@ $switchToSearch${switchToProgress}""" + htmlFooter
                 "Took: [{}]ms for [{}] found [{}]", System.currentTimeMillis() - startTime, searchString,
                 torrentList.size
             )
-            htmlHeader + torrentList.stream().limit(50).collect(Collectors.toList())
-                .joinToString(separator = "") + htmlFooter
+            htmlHeader + torrentList.joinToString(separator = "") + htmlFooter
         } else {
             htmlHeader + "Error: nothing to search" + htmlFooter
         }
@@ -266,7 +264,7 @@ $switchToSearchOld$switchToSearchList${switchToProgress.replace("..", "../boat")
                 "Took: [{}]ms for [{}]{} found [{}]", System.currentTimeMillis() - startTime, searchString,
                 mediaId ?: "", torrentList.size
             )
-            htmlHeader + torrentList.take(50).joinToString(separator = "") { it.toHtml(mediaId, mediaType) } + htmlFooter
+            htmlHeader + torrentList.joinToString(separator = "") { it.toHtml(mediaId, mediaType) } + htmlFooter
         } else if (!selectedTitle.isNullOrBlank()) {
             val cleanedTitle = removeSpecialCharacters(selectedTitle)
             val torrentSearchString = cleanedTitle + (selectedYear?.let { " $it" } ?: "")

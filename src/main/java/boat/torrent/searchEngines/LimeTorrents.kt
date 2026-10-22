@@ -2,7 +2,6 @@ package boat.torrent.searchEngines
 
 import boat.torrent.HttpUser
 import boat.torrent.Torrent
-import boat.torrent.TorrentComparator
 import boat.torrent.TorrentHelper
 import boat.torrent.TorrentSearchEngine
 import boat.utilities.HttpHelper
@@ -11,26 +10,22 @@ import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
-import java.util.concurrent.CopyOnWriteArrayList
 import java.util.function.Consumer
 
 class LimeTorrents internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper), TorrentSearchEngine {
 
     companion object {
+        private val hashInTorrentLinkPattern = Regex("/torrent/([A-Fa-f0-9]{40})")
         private val logger by LoggerDelegate()
     }
 
     override fun searchTorrents(searchName: String): List<Torrent> {
-        val torrentList = CopyOnWriteArrayList<Torrent>()
-        val resultString = httpHelper.getPage(buildSearchUrl(searchName))
-        torrentList.addAll(parseTorrentsOnResultPage(resultString, searchName))
-        torrentList.sortWith(TorrentComparator)
-        return torrentList
+        return SearchPaging.collect { page -> parseTorrentsOnResultPage(httpHelper.getPage(buildSearchUrl(searchName, page)), searchName) }
     }
 
-    private fun buildSearchUrl(searchName: String): String {
+    private fun buildSearchUrl(searchName: String, page: Int): String {
         val encodedSearch = URLEncoder.encode(searchName, StandardCharsets.UTF_8)
-        return String.format("%s/search/all/%s/seeds/1/", baseUrl, encodedSearch)
+        return String.format("%s/search/all/%s/seeds/%d/", baseUrl, encodedSearch, page)
     }
 
     override fun getBaseUrl(): String {
@@ -47,10 +42,11 @@ class LimeTorrents internal constructor(httpHelper: HttpHelper) : HttpUser(httpH
         torrentListOnPage.forEach(Consumer { torrentElement: Element ->
             val tempTorrent = Torrent(toString())
             tempTorrent.name = torrentElement.getElementsByClass("tt-name").first()?.text() ?: ""
+            // the link to the torrent file holds the hash: http://itorrents.net/torrent/<hash>.torrent?title=...
             val torrentHash = torrentElement.getElementsByClass("tt-name").first()
                 ?.getElementsByAttributeValueContaining("href", "itorrents")?.first()?.attr("href")
-                ?.replace("http://itorrents.org/torrent/".toRegex(), "")?.replace("\\.torrent.*".toRegex(), "")
-            tempTorrent.magnetUri = TorrentHelper.buildMagnetUriFromHash(torrentHash, tempTorrent.name)
+                ?.let { hashInTorrentLinkPattern.find(it)?.groupValues?.get(1) }
+            tempTorrent.magnetUri = if (torrentHash != null) TorrentHelper.buildMagnetUriFromHash(torrentHash.lowercase(), tempTorrent.name) else ""
             try {
                 tempTorrent.seeder = torrentElement.getElementsByClass("tdseed").first()!!.text().replace("[,.]".toRegex(), "").toInt()
                 tempTorrent.leecher = torrentElement.getElementsByClass("tdleech").first()!!.text().replace("[,.]".toRegex(), "").toInt()
@@ -59,10 +55,7 @@ class LimeTorrents internal constructor(httpHelper: HttpHelper) : HttpUser(httpH
             } catch (exception: Exception) {
                 logger.error("parsing exception", exception)
             }
-            TorrentHelper.evaluateRating(tempTorrent, searchName)
-            if (TorrentHelper.isValidTorrent(tempTorrent)) {
-                torrentList.add(tempTorrent)
-            }
+            torrentList.add(tempTorrent)
         })
         return torrentList
     }

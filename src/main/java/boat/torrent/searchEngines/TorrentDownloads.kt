@@ -2,7 +2,6 @@ package boat.torrent.searchEngines
 
 import boat.torrent.HttpUser
 import boat.torrent.Torrent
-import boat.torrent.TorrentComparator
 import boat.torrent.TorrentHelper
 import boat.torrent.TorrentSearchEngine
 import boat.utilities.HttpHelper
@@ -24,7 +23,6 @@ class TorrentDownloads internal constructor(httpHelper: HttpHelper) : HttpUser(h
         val torrentList = CopyOnWriteArrayList<Torrent>()
         val resultString = httpHelper.getPage(buildSearchUrl(searchName))
         torrentList.addAll(parseTorrentsOnResultPage(resultString, searchName))
-        torrentList.sortWith(TorrentComparator)
         return torrentList
     }
 
@@ -60,7 +58,6 @@ class TorrentDownloads internal constructor(httpHelper: HttpHelper) : HttpUser(h
                 tempTorrent.leecher = TorrentHelper.cleanNumberString(
                     torrentElement.selectFirst("span:nth-child(3)")?.text() ?: ""
                 ).toIntOrNull() ?: 0
-                TorrentHelper.evaluateRating(tempTorrent, searchName)
                 torrentList.add(tempTorrent)
             })
         } catch (exception: Exception) {
@@ -73,8 +70,7 @@ class TorrentDownloads internal constructor(httpHelper: HttpHelper) : HttpUser(h
                 torrent.magnetUri = retrieveMagnetUri(torrent)
                 torrent.remoteUrl = ""
             }
-        // remove torrents without magneturi
-        return torrentList.filter { torrent: Torrent -> TorrentHelper.isValidTorrent(torrent) }
+        return torrentList
     }
 
     private fun retrieveMagnetUri(torrent: Torrent): String {

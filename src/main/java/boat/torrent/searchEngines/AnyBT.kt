@@ -22,7 +22,6 @@ class AnyBT internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper),
             body = "{\"sql\":\"select /*+ SET_VAR(full_text_option='{\\\"highlight\\\":{ \\\"style\\\":\\\"html\\\",\\\"fields\\\":[\\\"file_name\\\"]}}') */ file_name,filesize,total_count,_id,category,firstadd_utc_timestamp,_score from library.dht where query_string('file_name:\\\\\\\"" + searchName + "\\\\\\\"^1') order by total_count desc limit 0, 200\",\"dataset_name\":\"anybt\",\"arguments\":[]}\n"
         )
         torrentList.addAll(parseTorrentsOnResultPage(resultString, searchName))
-        torrentList.sortWith(TorrentComparator)
         return torrentList
     }
 
@@ -63,10 +62,7 @@ class AnyBT internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper),
                     java.lang.Double.parseDouble(jsonTorrent["firstadd_utc_timestamp"].asJsonObject.get("value").asString)
                         .toLong() * 1000
                 )
-                TorrentHelper.evaluateRating(tempTorrent, searchName)
-                if (TorrentHelper.isValidTorrent(tempTorrent)) {
-                    torrentList.add(tempTorrent)
-                }
+                torrentList.add(tempTorrent)
             })
         } catch (exception: Exception) {
             logger.error("failed to parse string:\n${pageContent}", exception)

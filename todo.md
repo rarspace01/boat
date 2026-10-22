@@ -38,6 +38,7 @@ are in the git history (PRs #545 to #569), the settings are in the README.
 - `ContentRenamer.processFilesFromDirectory` skips files which already have a `{tmdb-…}`/`{tvdb-…}` id. A file whose
   first pass name was imperfect is therefore not corrected by a later run, pass `skipFilesWithRemoteId = false` to check
   them again. Without a base path it defaults to `~/pfdb/PFDB`.
+- Search: the engines return as many results as they have (up to `SEARCH_MAX_RESULTS_PER_ENGINE`, paged for Knaben, TorrentsCSV, YTS, Nyaa and LimeTorrents, stopping at torrents without seeders). Filtering (explicit content, bad quality, no size or magnet) is in `TorrentSearchEngineService` before the cache and tracker lookups; the list is cut to the best 100 (`MAX_SEARCH_RESULTS`) only after the final rating and sorting. `TorrentProject` and `TorrentDownloads` only fetch the magnet page of torrents with seeders (one request per torrent) and are not paged; `PirateBay` (100) and `TorrentDownload` (50) have no further pages.
 - Tracker stats: one scrape request for up to 40 torrents, split in halves if the tracker refuses it. The tracker list is
   cached for a day, three built in trackers are used while it can't be loaded.
 - Tests: `./gradlew test` (and the CI build) only runs the offline tests. The ones that need the internet are tagged
