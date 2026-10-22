@@ -11,7 +11,7 @@ internal class DuplicateCleanerTest {
     /** What the fake ffprobe says about a file, by the start of its name. */
     private val infos = mutableMapOf<String, VideoInfo?>()
 
-    private val cleaner = DuplicateCleaner({ file -> infos.entries.firstOrNull { file.name.startsWith(it.key) }?.value ?: infos[file.name] }, probeThreads = 2)
+    private val cleaner = DuplicateCleaner({ file -> infos.entries.firstOrNull { file.name.startsWith(it.key) }?.value ?: infos[file.name] }, probeThreads = 2, ranking = DuplicateCleaner.Ranking.BITRATE_FIRST)
 
     private fun video(codec: String = "h264", height: Int = 1080, width: Int = height * 16 / 9, bitrate: Long = 5_000_000, seconds: Double = 1500.0) =
         VideoInfo(codec, width, height, bitrate, seconds)
@@ -67,7 +67,23 @@ internal class DuplicateCleanerTest {
     }
 
     @Test
-    fun `should prefer the better codec at the same resolution and then the higher bitrate`(@TempDir tempDir: Path) {
+    fun `should prefer the higher bitrate at the same resolution and the codec if it is the same`(@TempDir tempDir: Path) {
+        val base = tempDir.toFile()
+        val big = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mkv", video(codec = "h264", bitrate = 9_000_000), bytes = 900)
+        val small = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mp4", video(codec = "hevc", bitrate = 2_000_000))
+        val dune1 = file(base, "Movies/D/Dune (2021) {tmdb-438631}.mkv", video(codec = "h264", bitrate = 4_000_000))
+        val dune2 = file(base, "Movies/D/Dune (2021) {tmdb-438631}.mp4", video(codec = "hevc", bitrate = 4_000_000))
+
+        run(base)
+
+        assertThat(big).exists()
+        assertThat(small).doesNotExist()
+        assertThat(dune2).exists()
+        assertThat(dune1).doesNotExist()
+    }
+
+    @Test
+    fun `should prefer the better codec before the bitrate if asked to`(@TempDir tempDir: Path) {
         val base = tempDir.toFile()
         val hevc = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mkv", video(codec = "hevc", bitrate = 2_000_000))
         val h264 = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mp4", video(codec = "h264", bitrate = 9_000_000), bytes = 900)
@@ -75,13 +91,36 @@ internal class DuplicateCleanerTest {
         val dune1 = file(base, "Movies/D/Dune (2021) {tmdb-438631}.mkv", video(bitrate = 4_000_000))
         val dune2 = file(base, "Movies/D/Dune (2021) {tmdb-438631}.mp4", video(bitrate = 8_000_000))
 
-        run(base)
+        DuplicateCleaner({ infos[it.name] }, 2, DuplicateCleaner.Ranking.CODEC_FIRST).processFilesFromDirectory(base.absolutePath, null, false)
 
         assertThat(hevc).exists()
         assertThat(h264).doesNotExist()
         assertThat(old).doesNotExist()
         assertThat(dune2).exists()
         assertThat(dune1).doesNotExist()
+    }
+
+    @Test
+    fun `the resolution counts before bitrate and codec in both rankings`(@TempDir tempDir: Path) {
+        DuplicateCleaner.Ranking.entries.forEach { ranking ->
+            val base = File(tempDir.toFile(), ranking.name)
+            val hd = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mkv", video(height = 1080, codec = "h264", bitrate = 1_000_000))
+            val sd = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mp4", video(height = 480, codec = "hevc", bitrate = 9_000_000))
+
+            DuplicateCleaner({ infos[it.name] }, 2, ranking).processFilesFromDirectory(base.absolutePath, null, false)
+
+            assertThat(hd).describedAs(ranking.name).exists()
+            assertThat(sd).describedAs(ranking.name).doesNotExist()
+        }
+    }
+
+    @Test
+    fun `the ranking comes from the setting and is the bitrate by default`() {
+        assertThat(DuplicateCleaner.Ranking.of("codec")).isEqualTo(DuplicateCleaner.Ranking.CODEC_FIRST)
+        assertThat(DuplicateCleaner.Ranking.of(" Codec ")).isEqualTo(DuplicateCleaner.Ranking.CODEC_FIRST)
+        assertThat(DuplicateCleaner.Ranking.of("bitrate")).isEqualTo(DuplicateCleaner.Ranking.BITRATE_FIRST)
+        assertThat(DuplicateCleaner.Ranking.of(null)).isEqualTo(DuplicateCleaner.Ranking.BITRATE_FIRST)
+        assertThat(DuplicateCleaner.Ranking.of("something else")).isEqualTo(DuplicateCleaner.Ranking.BITRATE_FIRST)
     }
 
     @Test

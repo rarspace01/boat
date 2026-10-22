@@ -4,6 +4,7 @@ import boat.rename.FileAttributes.isMovieExtra
 import boat.rename.FileAttributes.subtitleExtensions
 import boat.rename.FileAttributes.videoExtensions
 import boat.utilities.LoggerDelegate
+import boat.utilities.PropertiesHelper
 import java.io.BufferedWriter
 import java.io.File
 import java.io.FileWriter
@@ -23,10 +24,11 @@ import java.util.concurrent.atomic.AtomicInteger
  * first ([boat.ContentRenamer]).
  *
  * Which version is better is not taken from the file names (they often have no resolution or codec) but from the
- * video itself, read with ffprobe ([FfprobeVideoProbe]): the higher resolution, then the better codec (AV1/HEVC
- * before H.264 before the old ones), then the higher bitrate (a bigger file of a longer video is not better). The
- * source (remux, web) and the language of the audio are not known, a German and an English version of the same
- * episode are duplicates to it.
+ * video itself, read with ffprobe ([FfprobeVideoProbe]): the higher resolution first. Then, with [Ranking.BITRATE_FIRST]
+ * (the default) the higher bitrate, which keeps the most material for a later re-encode, and the better codec (AV1/HEVC
+ * before H.264 before the old ones) only if that is the same. With [Ranking.CODEC_FIRST] the codec counts before the
+ * bitrate. The bitrate, not the size: a bigger file of a longer video is not better. The source (remux, web) and the
+ * language of the audio are not known, a German and an English version of the same episode are duplicates to it.
  *
  * A group is only decided if every version could be read and they are about equally long (5%). Otherwise it is
  * [UnsureGroup] and nothing of it is deleted: a file which is much shorter might be cut or damaged, or a different
@@ -38,7 +40,25 @@ import java.util.concurrent.atomic.AtomicInteger
 class DuplicateCleaner(
     private val videoProbe: VideoProbe = FfprobeVideoProbe(),
     private val probeThreads: Int = DEFAULT_PROBE_THREADS,
+    private val ranking: Ranking = Ranking.fromSettings(),
 ) {
+
+    /** What decides between versions of the same resolution. */
+    enum class Ranking(val setting: String) {
+        /** Keeps the most data, e.g. to re-encode it later. */
+        BITRATE_FIRST("bitrate"),
+
+        /** Prefers the newer codec, which is smaller at the same quality. */
+        CODEC_FIRST("codec");
+
+        companion object {
+            /** `DUPLICATE_RANKING` in boat.cfg: `bitrate` (default) or `codec`. */
+            fun fromSettings(): Ranking = of(PropertiesHelper.getProperty("DUPLICATE_RANKING"))
+
+            internal fun of(value: String?): Ranking =
+                entries.firstOrNull { it.setting.equals(value?.trim(), ignoreCase = true) } ?: BITRATE_FIRST
+        }
+    }
 
     private val logger by LoggerDelegate()
 
@@ -138,12 +158,17 @@ class DuplicateCleaner(
             if (reason != null) {
                 unsure.add(UnsureGroup(key, files, reason, versions))
             } else {
-                val ranked = versions.sortedWith(BEST_FIRST)
+                val ranked = versions.sortedWith(bestFirst)
                 groups.add(DuplicateGroup(key, ranked.first(), ranked.drop(1)))
             }
         }
         return Result(groups, unsure, stats)
     }
+
+    private val bestFirst: Comparator<Version> = when (ranking) {
+        Ranking.BITRATE_FIRST -> compareByDescending<Version> { it.resolutionClass }.thenByDescending { it.bitrate }.thenByDescending { it.codecRank }
+        Ranking.CODEC_FIRST -> compareByDescending<Version> { it.resolutionClass }.thenByDescending { it.codecRank }.thenByDescending { it.bitrate }
+    }.thenByDescending { it.size }.thenBy { it.file.path }
 
     private fun differentLength(versions: List<Version>): Boolean {
         val lengths = versions.map { it.info.durationSeconds!! }
@@ -235,12 +260,6 @@ class DuplicateCleaner(
 
         /** Versions which differ more in length are not the same content. */
         private const val MAX_LENGTH_DIFFERENCE = 0.05
-
-        private val BEST_FIRST = compareByDescending<Version> { it.resolutionClass }
-            .thenByDescending { it.codecRank }
-            .thenByDescending { it.bitrate }
-            .thenByDescending { it.size }
-            .thenBy { it.file.path }
 
         private val standardHeights = listOf(4320, 2160, 1440, 1080, 720, 576, 480, 360, 240)
 
