@@ -25,6 +25,7 @@ private const val ACCEPT_HEADER =
  * The page methods return an empty string if the page can't be read (the reason is logged, including the start of the
  * answer of the server), [getBinary] and [getPublicPage] are for callers which need to tell failures apart.
  * Certificates are verified, only torrent search sites fall back to an unverified connection ([mayFallBackToUnverifiedTls]).
+ * https uses HTTP/2 where the server supports it, plain http uses HTTP/1.1.
  */
 @Service
 class HttpHelper {
@@ -44,7 +45,7 @@ class HttpHelper {
 
     private fun fetchPage(url: String, cookies: String?, body: String?, timeout: Int, headers: Map<String, String>?): String {
         return try {
-            readPage(url, send(verifiedClient, url, cookies, body, timeout, headers))
+            readPage(url, send(verifiedClientFor(url), url, cookies, body, timeout, headers))
         } catch (exception: SSLException) {
             if (mayFallBackToUnverifiedTls(url)) {
                 log.warn("TLS verification failed for [{}], retrying without verification: {}", hostOf(url), redactSecrets(exception.message))
@@ -125,7 +126,7 @@ class HttpHelper {
                     .setHeader("User-Agent", USER_AGENT_BROWSER)
                     .GET()
                     .build()
-                val response = noRedirectClient.send(request, HttpResponse.BodyHandlers.ofInputStream())
+                val response = noRedirectClientFor(currentUrl).send(request, HttpResponse.BodyHandlers.ofInputStream())
                 response.body().use { stream ->
                     val status = response.statusCode()
                     if (status in 300..399) {
@@ -166,7 +167,7 @@ class HttpHelper {
             .GET()
             .build()
         return try {
-            val response = verifiedClient.send(request, HttpResponse.BodyHandlers.ofByteArray())
+            val response = verifiedClientFor(url).send(request, HttpResponse.BodyHandlers.ofByteArray())
             BinaryResponse(response.statusCode(), response.body())
         } catch (e: InterruptedException) {
             Thread.currentThread().interrupt()
@@ -190,16 +191,34 @@ class HttpHelper {
         /** Hides the values of api keys and similar parameters, e.g. before an url ends up in a log. */
         fun redactSecrets(text: String?): String? = text?.replace(secretPattern) { it.groupValues[1] + "=***" }
 
-        // HTTP/1.1, some trackers and sites answer the HTTP/2 upgrade offered on plain http badly
-        private fun clientBuilder() = HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).connectTimeout(Duration.ofSeconds(10))
+        // https uses HTTP/2 where the server offers it (the JDK negotiates it with ALPN and falls back to HTTP/1.1), plain
+        // http stays on HTTP/1.1, so no HTTP/2 upgrade is attempted on it
+        private fun clientBuilder(version: HttpClient.Version) =
+            HttpClient.newBuilder().version(version).connectTimeout(Duration.ofSeconds(10))
 
-        private val verifiedClient: HttpClient by lazy { clientBuilder().followRedirects(HttpClient.Redirect.NORMAL).build() }
-        private val noRedirectClient: HttpClient by lazy { clientBuilder().followRedirects(HttpClient.Redirect.NEVER).build() }
+        private val httpsClient: HttpClient by lazy {
+            clientBuilder(HttpClient.Version.HTTP_2).followRedirects(HttpClient.Redirect.NORMAL).build()
+        }
+        private val plainClient: HttpClient by lazy {
+            clientBuilder(HttpClient.Version.HTTP_1_1).followRedirects(HttpClient.Redirect.NORMAL).build()
+        }
+        private val httpsClientWithoutRedirects: HttpClient by lazy {
+            clientBuilder(HttpClient.Version.HTTP_2).followRedirects(HttpClient.Redirect.NEVER).build()
+        }
+        private val plainClientWithoutRedirects: HttpClient by lazy {
+            clientBuilder(HttpClient.Version.HTTP_1_1).followRedirects(HttpClient.Redirect.NEVER).build()
+        }
+
+        private fun isHttps(url: String) = url.startsWith("https:", ignoreCase = true)
+
+        private fun verifiedClientFor(url: String) = if (isHttps(url)) httpsClient else plainClient
+
+        private fun noRedirectClientFor(url: String) = if (isHttps(url)) httpsClientWithoutRedirects else plainClientWithoutRedirects
 
         // a plain X509TrustManager, so the host name is still checked, only expired or unknown certificates are accepted
         private val unverifiedClient: HttpClient by lazy {
             val sslContext = SSLContext.getInstance("TLS").apply { init(null, trustAllCerts, null) }
-            clientBuilder().sslContext(sslContext).followRedirects(HttpClient.Redirect.NORMAL).build()
+            clientBuilder(HttpClient.Version.HTTP_2).sslContext(sslContext).followRedirects(HttpClient.Redirect.NORMAL).build()
         }
 
         /** http(s) url whose host only resolves to public addresses (unless [allowPrivate]). */
