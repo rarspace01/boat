@@ -22,7 +22,7 @@ class PirateBay internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelp
     }
 
     override fun searchTorrents(searchName: String): List<Torrent> {
-        val resultString = httpHelper.getPageWithShortTimeout(buildSearchUrl(searchName), null, "lw=s")
+        val resultString = httpHelper.getPageWithCookies(buildSearchUrl(searchName), "lw=s", HttpHelper.SHORT_TIMEOUT)
         val torrentList = CopyOnWriteArrayList(
             parseTorrentsOnResultPage(resultString, searchName)
         )

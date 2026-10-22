@@ -24,7 +24,7 @@ class EZTV internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper), 
 
     override fun searchTorrents(searchName: String): List<Torrent> {
         val torrentList = CopyOnWriteArrayList<Torrent>()
-        val resultString = httpHelper.getPage(buildSearchUrl(searchName), null, COOKIES)
+        val resultString = httpHelper.getPageWithCookies(buildSearchUrl(searchName), COOKIES)
         torrentList.addAll(parseTorrentsOnResultPage(resultString, searchName))
         torrentList.sortWith(TorrentComparator)
         return torrentList
