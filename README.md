@@ -118,7 +118,7 @@ bitrate wins: its bitrate divided by what its codec needs for the same picture q
 per generation (modern: AV1/HEVC/VP9, H.264 class, older): it stays against an H.264 file with up to 20% more quality
 bitrate, above that the higher bitrate wins. `DUPLICATE_BETTER_CODEC_MARGIN_PERCENT` changes the 20 (`0` = none),
 `DUPLICATE_CODEC_WEIGHT_PERCENT` says how much the efficiency of the codec counts at all (`100` fully, `0` only the
-plain bitrate, the most material for a later re-encode). Versions which are not equally long (more than 5%) or can't be read are left alone and listed as
+plain bitrate, the most material for a later re-encode). A file under 1 MB which can't be read is a failed download and a version shorter than half of the longest one is incomplete, both are deleted when a complete version exists. Versions which are not equally long (more than 5%) or can't be read otherwise are left alone and listed as
 `UNSURE`. The subtitles of a deleted version move to the version which stays.
 
 Start with a test run: the manual tests in `DuplicateCleanerIntegrationTest` (remove the `@Disabled`) write

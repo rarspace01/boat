@@ -259,10 +259,41 @@ internal class DuplicateCleanerTest {
     }
 
     @Test
+    fun `should delete a stub which ffprobe cannot read and a version shorter than half`(@TempDir tempDir: Path) {
+        val base = tempDir.toFile()
+        val good = file(base, "Series-Shows/D/Dark {tvdb-334824}/Season 1/Dark.S01E01.mkv", video(seconds = 3000.0))
+        val partial = file(base, "Series-Shows/D/Dark {tvdb-334824}/Season 1/Dark.S01E01.mp4", video(seconds = 1400.0))
+        val stub = file(base, "Series-Shows/D/Dark {tvdb-334824}/Season 1/Dark.S01E01.avi", null, bytes = 265)
+        val log = File(base, "duplicates.log")
+
+        val result = run(base, logFile = log)
+
+        assertThat(result.groups.single().keep.file).isEqualTo(good)
+        assertThat(good).exists()
+        assertThat(partial).doesNotExist()
+        assertThat(stub).doesNotExist()
+        assertThat(log.readText()).contains("incomplete, shorter than half").contains("broken file, not readable")
+    }
+
+    @Test
+    fun `should not delete a stub if nothing else is readable`(@TempDir tempDir: Path) {
+        val base = tempDir.toFile()
+        val a = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mkv", null, bytes = 200)
+        val b = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mp4", null, bytes = 200)
+
+        val result = run(base)
+
+        assertThat(result.groups).isEmpty()
+        assertThat(result.unsureGroups).hasSize(1)
+        assertThat(a).exists()
+        assertThat(b).exists()
+    }
+
+    @Test
     fun `should not decide groups with a file ffprobe cannot read`(@TempDir tempDir: Path) {
         val base = tempDir.toFile()
         val good = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mkv", video())
-        val broken = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mp4", null)
+        val broken = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mp4", null, bytes = 2_000_000)
 
         val result = run(base)
 
