@@ -250,7 +250,7 @@ $switchToSearch${switchToProgress}""" + htmlFooter
                 (mediaItem.id?.let { " " + HtmlUtils.htmlEscape(it) } ?: "") + "</a>")
         mediaDatabaseUrl(mediaItem)?.let { line.append(" <a href=\"${HtmlUtils.htmlEscape(it)}\" target=\"_blank\" rel=\"noopener noreferrer\">${if (it.contains("themoviedb")) "TMDB" else "TVDB"}</a>") }
         if (seasonCount != null && seasonCount > 0) {
-            line.append(" Season: ")
+            line.append(" ")
             line.append((1..seasonCount).joinToString(" ") { season -> "<a href=\"$searchLink&s=$season\">S$season</a>" })
         }
         return line.append("<br/>\n").toString()

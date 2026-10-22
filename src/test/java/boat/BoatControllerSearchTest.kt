@@ -53,18 +53,18 @@ internal class BoatControllerSearchTest {
     fun shouldOfferTheSeasonsOfASeries() {
         val html = search(listOf(dark, dune), mapOf(dark to 3))
 
-        assertThat(html).contains("Season: <a href=\"?t=Dark&mid=%7Btvdb-334824%7D&mt=Series&s=1\">S1</a> <a href=\"?t=Dark&mid=%7Btvdb-334824%7D&mt=Series&s=2\">S2</a> <a href=\"?t=Dark&mid=%7Btvdb-334824%7D&mt=Series&s=3\">S3</a>")
+        assertThat(html).contains("</a> <a href=\"https://thetvdb.com/dereferrer/series/334824\" target=\"_blank\" rel=\"noopener noreferrer\">TVDB</a> <a href=\"?t=Dark&mid=%7Btvdb-334824%7D&mt=Series&s=1\">S1</a> <a href=\"?t=Dark&mid=%7Btvdb-334824%7D&mt=Series&s=2\">S2</a> <a href=\"?t=Dark&mid=%7Btvdb-334824%7D&mt=Series&s=3\">S3</a>")
         assertThat(html).doesNotContain("s=4")
         // the title itself searches the whole series, movies have no seasons
         assertThat(html).contains("<a href=\"?t=Dark&mid=%7Btvdb-334824%7D&mt=Series\">Dark (2017) [Series] {tvdb-334824}</a>")
-        assertThat(html.substringAfter("Dune").substringBefore("<br/>")).doesNotContain("Season:")
+        assertThat(html.substringAfter("Dune").substringBefore("<br/>")).doesNotContain(">S1<")
     }
 
     @Test
     fun shouldNotOfferSeasonsIfTheNumberIsNotKnown() {
         val html = search(listOf(dark), mapOf(dark to null))
 
-        assertThat(html).doesNotContain("Season:")
+        assertThat(html).doesNotContain(">S1<")
     }
 
     @Test
