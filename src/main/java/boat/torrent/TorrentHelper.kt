@@ -118,6 +118,9 @@ object TorrentHelper {
             additionalRating += 0.25
             debugAdditional += "✅"
         }
+        val videoCodec = VideoCodec.of(torrentName)
+        additionalRating += (videoCodec ?: VideoCodec.DEFAULT).rating
+        debugAdditional += "🎞" + (videoCodec?.name ?: "?")
         val speedRating: Double
         var speedMultiplier = 0.5
         if (tempTorrent.statsVerified) {
