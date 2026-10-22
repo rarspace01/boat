@@ -401,7 +401,7 @@ class MultifileHosterService(
                     }
 
                     listOfCharactersToIndexUpdate.add(indexLetter)
-                    wasDownloadSuccessful = rcloneUploader.copyUrl(fileToDownload.url, targetFilePath)
+                    wasDownloadSuccessful = rcloneUploader.copyUrl(fileToDownload.url, targetFilePath, fileToDownload.filesize)
                     updateUploadStatus(transferToBeDownloaded, remoteTorrent, listOf(fileToDownload), 1, null)
                 } else {
                     log.info("MFD - {}", transferToBeDownloaded)
@@ -431,7 +431,7 @@ class MultifileHosterService(
                         }
 
                         listOfCharactersToIndexUpdate.add(indexLetter)
-                        if (!rcloneUploader.copyUrl(torrentFile.url, targetFilePath)) {
+                        if (!rcloneUploader.copyUrl(torrentFile.url, targetFilePath, torrentFile.filesize)) {
                             failedUploads++
                         }
                         currentFileNumber++
