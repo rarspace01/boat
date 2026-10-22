@@ -152,16 +152,31 @@ class DuplicateCleaner(
             .filter { it.value.size > 1 }
         val (infos, stats) = probeAll(sameByName.values.flatten())
         logger.info("{}", stats)
+        logger.info("deciding {} groups of files which exist more than once", sameByName.size)
+        val decideStart = System.nanoTime()
+        var decided = 0
+        var lookups = 0
+        var lookupMillis = 0L
 
         val groups = mutableListOf<DuplicateGroup>()
         val unsure = mutableListOf<UnsureGroup>()
         sameByName.toSortedMap().forEach { (key, files) ->
+            if (++decided % 250 == 0) {
+                logger.info("decided {} of {} groups after {} s, {} runtime lookups so far", decided, sameByName.size, (System.nanoTime() - decideStart) / 1_000_000_000, lookups)
+            }
             // a few bytes are a failed download, nothing to compare, it goes if there is a readable version
             val stubs = files.filter { infos[it] == null && it.length() < MAX_STUB_BYTES }.takeIf { it.size < files.size } ?: emptyList()
             val candidates = files - stubs.toSet()
             val versions = candidates.mapNotNull { file -> infos[file]?.let { Version(file, it) } }
             val unreadable = candidates.filter { infos[it] == null }
-            val official = if (runtimeLookup != null && versions.size > 1 && versions.all { it.info.durationSeconds != null } && differentLength(versions)) officialRuntimeSeconds(key) else null
+            val official = if (runtimeLookup != null && versions.size > 1 && versions.all { it.info.durationSeconds != null } && differentLength(versions)) {
+                val begin = System.nanoTime()
+                officialRuntimeSeconds(key).also {
+                    lookups++
+                    lookupMillis += (System.nanoTime() - begin) / 1_000_000
+                    if (lookups % 25 == 0) logger.info("{} runtime lookups, {} ms on average, last: {}", lookups, lookupMillis / lookups, key)
+                }
+            } else null
             val matching = official?.let { runtime -> versions.filter { it.info.durationSeconds!! in runtime * (1 - RUNTIME_SHORTER)..runtime * (1 + RUNTIME_LONGER) } }.orEmpty()
             val tooLong = official?.let { runtime -> versions.filter { it.info.durationSeconds!! > runtime * (1 + RUNTIME_LONGER) } }.orEmpty()
             val byRuntime = matching.isNotEmpty()
@@ -192,6 +207,10 @@ class DuplicateCleaner(
                 groups.add(DuplicateGroup(key, ranked.first(), ranked.drop(1) + incomplete + broken, reasons))
             }
         }
+        logger.info(
+            "decided {} groups, {} not decided, in {} s ({} runtime lookups, {} s)", groups.size, unsure.size,
+            (System.nanoTime() - decideStart) / 1_000_000_000, lookups, lookupMillis / 1000
+        )
         return Result(groups, unsure, stats)
     }
 
@@ -234,7 +253,7 @@ class DuplicateCleaner(
                     if (millis > SLOW_PROBE_MILLIS) logger.warn("reading {} took {} ms", file, millis)
                     durations.add(millis)
                     val count = done.incrementAndGet()
-                    if (count % 500 == 0) logger.info("probed {} of {} files", count, files.size)
+                    if (count % 500 == 0) logger.info("probed {} of {} files after {} s", count, files.size, (System.nanoTime() - start) / 1_000_000_000)
                 }
             })
         } finally {
