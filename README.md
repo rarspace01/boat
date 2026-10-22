@@ -2,6 +2,21 @@
 
 the boat sails with wind
 
+## Requirements
+
+| What | For |
+|---|---|
+| Java 25 (JRE to run, JDK 25 to build; the Docker image is `eclipse-temurin:25-jre`) | boat itself |
+| MongoDB | users, transfers (`MONGO_URI`) |
+| [rclone](https://rclone.org) with a configured remote | the library (`RCLONEDIR`), uploads and listings; has to be in the `PATH` |
+| A multifilehoster account (Premiumize or Alldebrid) and its API key | downloads |
+| TMDB and TVDB API keys | looking up titles, years and seasons |
+| `wget` and `sha256sum` | `runBoat.sh` (updates and checks the jar) |
+| [ffmpeg](https://ffmpeg.org) (`ffprobe`) in the `PATH` | only for finding duplicates in the library (`DuplicateCleaner`), it reads the resolution, codec and length of the videos. The Docker image has it. |
+| `htpasswd` (`apache2-utils`) | optional, to create the password hash of the first user |
+| `tmux` | optional, the Docker image serves the library with `rclone serve webdav` in it |
+| certbot | optional, certificates for https |
+
 ## Setup
 
 Copy `boat.default.cfg` to `boat.cfg` and modify values accordingly. Copy `rclone.conf`
@@ -25,6 +40,8 @@ Settings are read from `boat.cfg` (or `boat.default.cfg`) and can be overridden 
 | `HTPASSWD_FILE` | `/tmp/htpasswd` | where the users are written for a reverse proxy |
 | `ALLOW_PRIVATE_URLS` | `false` | allow local addresses in search list urls |
 | `RCLONE_NO_CHECK_CERTIFICATE` | `false` | pass `--no-check-certificate` to rclone |
+| `DUPLICATE_BETTER_CODEC_MARGIN_PERCENT` | `20` | duplicates of the same resolution: the head start (in %) of the better codec per generation against a version with a higher quality bitrate, `0` = none |
+| `DUPLICATE_CODEC_WEIGHT_PERCENT` | `100` | duplicates of the same resolution: how much the efficiency of the codec counts against the bitrate, `100` fully, `0` only the plain bitrate |
 
 install certbot & generate certifiactes
 ```
@@ -90,10 +107,29 @@ The search list accepts a url instead of titles. Only http(s) urls to public add
 redirects), at most 1 MB. Set `ALLOW_PRIVATE_URLS=true` in `boat.cfg` (or as environment variable) to allow
 addresses in the local network.
 
+## Duplicates in the library
+
+`boat.rename.DuplicateCleaner` finds the same movie or episode more than once in the renamed library (same
+`{tmdb-…}`/`{tvdb-…}` id, same season and episode) and deletes the worse versions. It needs `ffprobe` (see
+requirements): the version with the higher resolution wins. At the same resolution the version with the higher quality
+bitrate wins: its bitrate divided by what its codec needs for the same picture quality compared with H.264 (HEVC about
+55%, AV1 45%, VP9 60%, xvid/DivX 190%, MPEG-2 230%, ...), so a HEVC file with 2.2 Mbit/s is worth an H.264 file with
+4 Mbit/s. The values are rules of thumb (`DuplicateCleaner.CODEC_BITRATE_NEEDS`). The better codec has a head start of 20%
+per generation (modern: AV1/HEVC/VP9, H.264 class, older): it stays against an H.264 file with up to 20% more quality
+bitrate, above that the higher bitrate wins. `DUPLICATE_BETTER_CODEC_MARGIN_PERCENT` changes the 20 (`0` = none),
+`DUPLICATE_CODEC_WEIGHT_PERCENT` says how much the efficiency of the codec counts at all (`100` fully, `0` only the
+plain bitrate, the most material for a later re-encode). Versions which are not equally long (more than 5%) or can't be read are left alone and listed as
+`UNSURE`. The subtitles of a deleted version move to the version which stays.
+
+Start with a test run: the manual tests in `DuplicateCleanerIntegrationTest` (remove the `@Disabled`) write
+`duplicates.log` and delete nothing. The first line of the log tells how fast `ffprobe` was (files per second, average,
+median, 95th percentile and maximum per file). Look at the log, then run `deleteDuplicateMovies` or
+`deleteDuplicateSeries`.
+
 tested with:
 
 ```
-openjdk version "21.0.1 2023-10-17 LTS"
+openjdk version "25" 2025-09-16 LTS
 ```
 
 

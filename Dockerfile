@@ -2,7 +2,7 @@ FROM eclipse-temurin:25-jre
 HEALTHCHECK --start-period=30s CMD curl --fail http://localhost:8080 || exit 1
 VOLUME /tmp/boat
 SHELL ["/bin/bash", "-c"]
-RUN apt-get update && apt-get install -y curl unzip dnsutils tmux && apt-get clean \
+RUN apt-get update && apt-get install -y curl unzip dnsutils tmux ffmpeg && apt-get clean \
     && curl https://rclone.org/install.sh -o install.sh && chmod +x install.sh && ./install.sh && rm -f ./install.sh
 RUN useradd -ms /bin/bash boatuser
 USER boatuser
