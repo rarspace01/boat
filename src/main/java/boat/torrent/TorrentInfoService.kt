@@ -16,7 +16,11 @@ import java.util.concurrent.TimeUnit
 class TorrentInfoService(httpHelper: HttpHelper) :
     HttpUser(httpHelper) {
 
-    private val trackerUrl = TorrentService(httpHelper).trackerUrls.first()
+    private val torrentService = TorrentService(httpHelper)
+
+    // loaded when needed (the service must start even if the tracker list is not reachable), the list is cached
+    private val trackerUrl: String
+        get() = torrentService.trackerUrls.first()
 
     // shared and bounded, a search with many results doesn't open one thread per torrent
     internal val executor: ExecutorService = Executors.newFixedThreadPool(MAX_PARALLEL_TRACKER_REQUESTS) { runnable ->
@@ -48,8 +52,9 @@ class TorrentInfoService(httpHelper: HttpHelper) :
         val startOfRefresh = System.currentTimeMillis()
         val torrentsByHash = torrentList.filter { torrent -> torrent.cached.size == 0 }.groupByHash()
         try {
+            val tracker = trackerUrl
             val tasks = torrentsByHash.keys.chunked(BATCH_SIZE).map { hashes ->
-                Callable { applyStats(scrape(trackerUrl, hashes), torrentsByHash) }
+                Callable { applyStats(scrape(tracker, hashes), torrentsByHash) }
             }
             // tasks which didn't finish in time are cancelled
             executor.invokeAll(tasks, REFRESH_TIMEOUT_SECONDS, TimeUnit.SECONDS).forEach { future ->

@@ -52,6 +52,7 @@ Findings from a code review of `src/main/java/boat`. Check items off as they get
 - [x] Removed the bean name dump and the redundant annotations in `Application`; `println`/`printStackTrace` in `src/main` were replaced by the logger.
 - [x] `ContentRenamer.getTargetFile` uses `file.extension` (a name like `mkv.mkv` lost its extension).
 - [x] `TorrentHelper.extractTorrentSizeFromString` supports TB/TiB; the two copies of it were merged.
+- [x] `TorrentService` loaded the tracker list on every call, read the release tags resource on every call (once per torrent in `TorrentHelper`) and `TorrentInfoService` failed to start when the list could not be loaded (`first()` of an empty list, e.g. when GitHub rate limits). The list is now cached for a day (default trackers while it can't be loaded, retried after 5 minutes), the release tags are read once, and the tracker is looked up when needed.
 - [ ] rclone `copyurl` overwrites existing library files; consider `--no-clobber`.
 - [ ] Tests for the bugs above and HTML escaping; separate live search engine tests from unit tests.
 - [x] `settings.gradle` accepted the build scan terms everywhere. Removed the Develocity plugin (and with it the build scans) for now.
