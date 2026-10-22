@@ -232,7 +232,7 @@ class MultifileHosterService(
      * Deletes a transfer and its torrent at the multifilehoster. Returns a message for the user.
      */
     fun deleteTransfer(transferId: String): String {
-        val transfer = transferService.getAll().firstOrNull { it.id == transferId } ?: return "transfer not found"
+        val transfer = transferService.getById(transferId) ?: return "transfer not found"
         if (transfer.transferStatus == TransferStatus.UPLOADING_TO_DRIVE) {
             return "${transfer.name} is uploading to the drive, try again when it's done"
         }
@@ -246,7 +246,7 @@ class MultifileHosterService(
      * otherwise the torrent is removed at the multifilehoster and added again. Returns a message for the user.
      */
     fun restartTransfer(transferId: String): String {
-        val transfer = transferService.getAll().firstOrNull { it.id == transferId } ?: return "transfer not found"
+        val transfer = transferService.getById(transferId) ?: return "transfer not found"
         if (transfer.transferStatus == TransferStatus.UPLOADING_TO_DRIVE) {
             return "${transfer.name} is uploading to the drive, try again when it's done"
         }
@@ -535,7 +535,7 @@ class MultifileHosterService(
      * update). After that it is marked as failed and its files stay on the multifilehoster.
      */
     private fun handleFailedUploadToDrive(transfer: Transfer, reason: String = "upload to drive failed") {
-        val currentTransfer = transferService.getAll().firstOrNull { it.id == transfer.id } ?: transfer
+        val currentTransfer = transferService.getById(transfer.id) ?: transfer
         currentTransfer.failedUploadsToDrive++
         currentTransfer.progressInPercentage = 0.0
         currentTransfer.eta = Duration.ZERO
@@ -575,7 +575,7 @@ class MultifileHosterService(
             currentFileNumber: Int,
             startTime: Instant?
     ) {
-        val transfer = transferService.getAll().firstOrNull { it.id == transferToBeDownloaded.id }
+        val transfer = transferService.getById(transferToBeDownloaded.id)
         if (transfer != null) {
             transfer.transferStatus = TransferStatus.UPLOADING_TO_DRIVE
             transfer.progressInPercentage = currentFileNumber.toDouble() / listOfFiles.size.toDouble()

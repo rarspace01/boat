@@ -3,12 +3,14 @@ package boat.torrent;
 import java.util.List;
 
 import boat.utilities.HttpHelper;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TorrentServiceTest {
 
+    @Tag("live")
     @Test
     void getTrackerUrls() {
         // Given

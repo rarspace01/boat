@@ -2,12 +2,12 @@ package boat.torrent.searchEngines
 
 import boat.torrent.Torrent
 import boat.utilities.HttpHelper
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Assertions
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 
 internal class ZooqleTest {
-    @Disabled
+    @Tag("live")
     @Test
     fun shouldFindTorrents() {
         // Given
@@ -15,7 +15,7 @@ internal class ZooqleTest {
         Assertions.assertDoesNotThrow<List<Torrent>> { Zooqle(HttpHelper()).searchTorrents("planet") }
     }
 
-    @Disabled
+    @Tag("live")
     @Test
     fun shouldFindNoTorrents() {
         // Given

@@ -2,12 +2,12 @@ package boat.torrent
 
 import boat.utilities.HttpHelper
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.Disabled
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 
 internal class TorrentInfoServiceTest {
 
-    @Disabled
+    @Tag("live")
     @Test
     fun getSeedAndLeecherFromTracker() {
         // Given
@@ -27,7 +27,7 @@ internal class TorrentInfoServiceTest {
 
     }
 
-    @Disabled
+    @Tag("live")
     @Test
     fun getSeedAndLeechersFromTracker() {
         // Given
@@ -48,7 +48,7 @@ internal class TorrentInfoServiceTest {
         assertThat(torrentList[1].seeder).isGreaterThan(-1)
     }
 
-    @Disabled
+    @Tag("live")
     @Test
     fun resfreshSeederAndLeechersFromTracker() {
         // Given
@@ -67,7 +67,7 @@ internal class TorrentInfoServiceTest {
         assertThat(torrentList[1].seeder).isGreaterThan(-1)
     }
 
-    @Disabled
+    @Tag("live")
     @Test
     fun resfreshAlotOfSeederAndLeechersFromTracker() {
         // Given

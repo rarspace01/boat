@@ -3,9 +3,11 @@ package boat.info
 import boat.torrent.Torrent
 import boat.utilities.HttpHelper
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
+@Tag("live")
 internal class TheMovieDataBaseServiceTest {
     private var tfdbs: TheMovieDataBaseService? = null
     @BeforeEach

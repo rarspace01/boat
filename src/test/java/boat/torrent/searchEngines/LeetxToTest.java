@@ -1,14 +1,14 @@
 package boat.torrent.searchEngines;
 
 import boat.utilities.HttpHelper;
-import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 class LeetxToTest {
 
-    @Disabled
+    @Tag("live")
     @Test
     void shouldFindTorrents() {
         // Given
