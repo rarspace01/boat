@@ -11,8 +11,9 @@ import boat.rename.MediaNameParser
 import boat.rename.MediaNameParser.getSkipReason
 import boat.rename.MediaNameParser.isInExtrasFolder
 import boat.rename.MediaNameParser.normalizeMovieTitle
-import boat.rename.MediaNameParser.remoteMediaIdPattern
 import boat.rename.MovieMatcher
+import boat.rename.NamePatterns
+import boat.rename.NamePatterns.remoteMediaIdPattern
 import boat.utilities.LoggerDelegate
 import java.io.BufferedWriter
 import java.io.File
@@ -34,9 +35,9 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
     private val movieMatcher = MovieMatcher(mediaProxyService)
 
     companion object {
-        val remoteMediaIdPattern = MediaNameParser.remoteMediaIdPattern
-        val paddingFilePattern = MediaNameParser.paddingFilePattern
-        val nonMediaExtensions = MediaNameParser.nonMediaExtensions
+        val remoteMediaIdPattern = NamePatterns.remoteMediaIdPattern
+        val paddingFilePattern = NamePatterns.paddingFilePattern
+        val nonMediaExtensions = NamePatterns.nonMediaExtensions
 
         // Plex names extras behind a dash, "Uncut.Gems/Audition Tape-other.mkv"
         val plexExtraSuffixPattern = "(?i)-(?:behindthescenes|deleted|featurette|interview|scene|short|trailer|other)$".toRegex()
