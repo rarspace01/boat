@@ -40,7 +40,7 @@ Settings are read from `boat.cfg` (or `boat.default.cfg`) and can be overridden 
 | `HTPASSWD_FILE` | `/tmp/htpasswd` | where the users are written for a reverse proxy |
 | `ALLOW_PRIVATE_URLS` | `false` | allow local addresses in search list urls |
 | `RCLONE_NO_CHECK_CERTIFICATE` | `false` | pass `--no-check-certificate` to rclone |
-| `DUPLICATE_RANKING` | `bitrate` | which duplicate is kept at the same resolution: the higher `bitrate`, or the better `codec` first |
+| `DUPLICATE_CODEC_BONUS_PERCENT` | `20` | duplicates of the same resolution: how much more bitrate (in %) a version with an older codec needs per step of the codec to win, `0` = only the bitrate counts |
 
 install certbot & generate certifiactes
 ```
@@ -110,9 +110,10 @@ addresses in the local network.
 
 `boat.rename.DuplicateCleaner` finds the same movie or episode more than once in the renamed library (same
 `{tmdb-…}`/`{tvdb-…}` id, same season and episode) and deletes the worse versions. It needs `ffprobe` (see
-requirements): the version with the higher resolution wins, then the higher bitrate (the most material, e.g. to
-re-encode later) and only then the better codec (AV1/HEVC, H.264, older). With `DUPLICATE_RANKING=codec` the codec
-counts before the bitrate. Versions which are not equally long (more than 5%) or can't be read are left alone and listed as
+requirements): the version with the higher resolution wins. At the same resolution the higher bitrate wins (the most
+material, e.g. to re-encode later), but the better codec (AV1/HEVC before H.264 before older) is worth 20% bitrate per
+step: a HEVC file stays against an H.264 file with up to 20% more bitrate, above that the H.264 file with the higher
+bitrate wins. `DUPLICATE_CODEC_BONUS_PERCENT` changes the 20, `0` only counts the bitrate. Versions which are not equally long (more than 5%) or can't be read are left alone and listed as
 `UNSURE`. The subtitles of a deleted version move to the version which stays.
 
 Start with a test run: the manual tests in `DuplicateCleanerIntegrationTest` (remove the `@Disabled`) write

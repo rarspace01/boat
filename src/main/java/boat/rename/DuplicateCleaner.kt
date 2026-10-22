@@ -14,6 +14,7 @@ import java.util.concurrent.Callable
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.math.pow
 
 /**
  * Finds the same movie or episode more than once in the (renamed) library and deletes the worse versions.
@@ -24,11 +25,13 @@ import java.util.concurrent.atomic.AtomicInteger
  * first ([boat.ContentRenamer]).
  *
  * Which version is better is not taken from the file names (they often have no resolution or codec) but from the
- * video itself, read with ffprobe ([FfprobeVideoProbe]): the higher resolution first. Then, with [Ranking.BITRATE_FIRST]
- * (the default) the higher bitrate, which keeps the most material for a later re-encode, and the better codec (AV1/HEVC
- * before H.264 before the old ones) only if that is the same. With [Ranking.CODEC_FIRST] the codec counts before the
- * bitrate. The bitrate, not the size: a bigger file of a longer video is not better. The source (remux, web) and the
- * language of the audio are not known, a German and an English version of the same episode are duplicates to it.
+ * video itself, read with ffprobe ([FfprobeVideoProbe]): the higher resolution first. At the same resolution the
+ * version with the higher score wins: its bitrate (keeps the most material, e.g. for a later re-encode; the bitrate,
+ * not the size: a bigger file of a longer video is not better), plus a bonus of [codecBonusPercent] for every step
+ * of the codec (AV1/HEVC before H.264 before the old ones). So the better codec wins as long as the other version
+ * has less than 20% more bitrate (with the default), and above that the higher bitrate wins even with the older codec.
+ * The source (remux, web) and the language of the audio are not known, a German and an English version of the same
+ * episode are duplicates to it.
  *
  * A group is only decided if every version could be read and they are about equally long (5%). Otherwise it is
  * [UnsureGroup] and nothing of it is deleted: a file which is much shorter might be cut or damaged, or a different
@@ -40,25 +43,9 @@ import java.util.concurrent.atomic.AtomicInteger
 class DuplicateCleaner(
     private val videoProbe: VideoProbe = FfprobeVideoProbe(),
     private val probeThreads: Int = DEFAULT_PROBE_THREADS,
-    private val ranking: Ranking = Ranking.fromSettings(),
+    /** `DUPLICATE_CODEC_BONUS_PERCENT` in boat.cfg: 0 only counts the bitrate, a high number the codec first. */
+    private val codecBonusPercent: Int = codecBonusFromSettings(),
 ) {
-
-    /** What decides between versions of the same resolution. */
-    enum class Ranking(val setting: String) {
-        /** Keeps the most data, e.g. to re-encode it later. */
-        BITRATE_FIRST("bitrate"),
-
-        /** Prefers the newer codec, which is smaller at the same quality. */
-        CODEC_FIRST("codec");
-
-        companion object {
-            /** `DUPLICATE_RANKING` in boat.cfg: `bitrate` (default) or `codec`. */
-            fun fromSettings(): Ranking = of(PropertiesHelper.getProperty("DUPLICATE_RANKING"))
-
-            internal fun of(value: String?): Ranking =
-                entries.firstOrNull { it.setting.equals(value?.trim(), ignoreCase = true) } ?: BITRATE_FIRST
-        }
-    }
 
     private val logger by LoggerDelegate()
 
@@ -68,6 +55,9 @@ class DuplicateCleaner(
         val codecRank: Int = codecRankOf(info.codec)
         val bitrate: Long = info.bitrate ?: 0
         val size: Long = file.length()
+
+        /** The bitrate, worth [codecBonusPercent] more for every step of the codec. */
+        fun score(codecBonusPercent: Int): Double = bitrate * (1 + codecBonusPercent / 100.0).pow(codecRank)
 
         fun description(): String = listOf(
             if (resolutionClass > 0) "${resolutionClass}p" else "?",
@@ -165,10 +155,11 @@ class DuplicateCleaner(
         return Result(groups, unsure, stats)
     }
 
-    private val bestFirst: Comparator<Version> = when (ranking) {
-        Ranking.BITRATE_FIRST -> compareByDescending<Version> { it.resolutionClass }.thenByDescending { it.bitrate }.thenByDescending { it.codecRank }
-        Ranking.CODEC_FIRST -> compareByDescending<Version> { it.resolutionClass }.thenByDescending { it.codecRank }.thenByDescending { it.bitrate }
-    }.thenByDescending { it.size }.thenBy { it.file.path }
+    private val bestFirst: Comparator<Version> = compareByDescending<Version> { it.resolutionClass }
+        .thenByDescending { it.score(codecBonusPercent) }
+        .thenByDescending { it.codecRank }
+        .thenByDescending { it.size }
+        .thenBy { it.file.path }
 
     private fun differentLength(versions: List<Version>): Boolean {
         val lengths = versions.map { it.info.durationSeconds!! }
@@ -254,6 +245,11 @@ class DuplicateCleaner(
 
     companion object {
         const val DEFAULT_PROBE_THREADS = 4
+        const val DEFAULT_CODEC_BONUS_PERCENT = 20
+
+        internal fun codecBonusFromSettings(): Int = codecBonusOf(PropertiesHelper.getProperty("DUPLICATE_CODEC_BONUS_PERCENT"))
+
+        internal fun codecBonusOf(value: String?): Int = value?.trim()?.toIntOrNull()?.takeIf { it >= 0 } ?: DEFAULT_CODEC_BONUS_PERCENT
 
         /** Reading a file which takes longer than this is written to the log (a slow disk, a damaged file). */
         private const val SLOW_PROBE_MILLIS = 10_000

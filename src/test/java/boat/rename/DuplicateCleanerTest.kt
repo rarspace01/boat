@@ -11,7 +11,7 @@ internal class DuplicateCleanerTest {
     /** What the fake ffprobe says about a file, by the start of its name. */
     private val infos = mutableMapOf<String, VideoInfo?>()
 
-    private val cleaner = DuplicateCleaner({ file -> infos.entries.firstOrNull { file.name.startsWith(it.key) }?.value ?: infos[file.name] }, probeThreads = 2, ranking = DuplicateCleaner.Ranking.BITRATE_FIRST)
+    private val cleaner = DuplicateCleaner({ file -> infos.entries.firstOrNull { file.name.startsWith(it.key) }?.value ?: infos[file.name] }, probeThreads = 2, codecBonusPercent = 20)
 
     private fun video(codec: String = "h264", height: Int = 1080, width: Int = height * 16 / 9, bitrate: Long = 5_000_000, seconds: Double = 1500.0) =
         VideoInfo(codec, width, height, bitrate, seconds)
@@ -66,61 +66,94 @@ internal class DuplicateCleanerTest {
         assertThat(DuplicateCleaner.resolutionClassOf(VideoInfo("h264", null, null, null, null))).isEqualTo(0)
     }
 
-    @Test
-    fun `should prefer the higher bitrate at the same resolution and the codec if it is the same`(@TempDir tempDir: Path) {
-        val base = tempDir.toFile()
-        val big = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mkv", video(codec = "h264", bitrate = 9_000_000), bytes = 900)
-        val small = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mp4", video(codec = "hevc", bitrate = 2_000_000))
-        val dune1 = file(base, "Movies/D/Dune (2021) {tmdb-438631}.mkv", video(codec = "h264", bitrate = 4_000_000))
-        val dune2 = file(base, "Movies/D/Dune (2021) {tmdb-438631}.mp4", video(codec = "hevc", bitrate = 4_000_000))
+    // ---- the same resolution: the codec within a margin of bitrate, above it the bitrate
 
-        run(base)
-
-        assertThat(big).exists()
-        assertThat(small).doesNotExist()
-        assertThat(dune2).exists()
-        assertThat(dune1).doesNotExist()
-    }
-
-    @Test
-    fun `should prefer the better codec before the bitrate if asked to`(@TempDir tempDir: Path) {
-        val base = tempDir.toFile()
-        val hevc = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mkv", video(codec = "hevc", bitrate = 2_000_000))
-        val h264 = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mp4", video(codec = "h264", bitrate = 9_000_000), bytes = 900)
-        val old = file(base, "Movies/I/Inception (2010) {tmdb-27205}.avi", video(codec = "mpeg4", bitrate = 20_000_000), bytes = 5000)
-        val dune1 = file(base, "Movies/D/Dune (2021) {tmdb-438631}.mkv", video(bitrate = 4_000_000))
-        val dune2 = file(base, "Movies/D/Dune (2021) {tmdb-438631}.mp4", video(bitrate = 8_000_000))
-
-        DuplicateCleaner({ infos[it.name] }, 2, DuplicateCleaner.Ranking.CODEC_FIRST).processFilesFromDirectory(base.absolutePath, null, false)
-
-        assertThat(hevc).exists()
-        assertThat(h264).doesNotExist()
-        assertThat(old).doesNotExist()
-        assertThat(dune2).exists()
-        assertThat(dune1).doesNotExist()
-    }
-
-    @Test
-    fun `the resolution counts before bitrate and codec in both rankings`(@TempDir tempDir: Path) {
-        DuplicateCleaner.Ranking.entries.forEach { ranking ->
-            val base = File(tempDir.toFile(), ranking.name)
-            val hd = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mkv", video(height = 1080, codec = "h264", bitrate = 1_000_000))
-            val sd = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mp4", video(height = 480, codec = "hevc", bitrate = 9_000_000))
-
-            DuplicateCleaner({ infos[it.name] }, 2, ranking).processFilesFromDirectory(base.absolutePath, null, false)
-
-            assertThat(hd).describedAs(ranking.name).exists()
-            assertThat(sd).describedAs(ranking.name).doesNotExist()
+    private fun keptOf(tempDir: Path, bonus: Int, a: VideoInfo, b: VideoInfo): String {
+        val base = File(tempDir.toFile(), "case${System.nanoTime()}")
+        val first = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mkv", a)
+        val second = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mp4", b)
+        DuplicateCleaner({ infos[it.name] }, 2, bonus).processFilesFromDirectory(base.absolutePath, null, false)
+        return when {
+            first.exists() && !second.exists() -> "first"
+            second.exists() && !first.exists() -> "second"
+            else -> "?"
         }
     }
 
     @Test
-    fun `the ranking comes from the setting and is the bitrate by default`() {
-        assertThat(DuplicateCleaner.Ranking.of("codec")).isEqualTo(DuplicateCleaner.Ranking.CODEC_FIRST)
-        assertThat(DuplicateCleaner.Ranking.of(" Codec ")).isEqualTo(DuplicateCleaner.Ranking.CODEC_FIRST)
-        assertThat(DuplicateCleaner.Ranking.of("bitrate")).isEqualTo(DuplicateCleaner.Ranking.BITRATE_FIRST)
-        assertThat(DuplicateCleaner.Ranking.of(null)).isEqualTo(DuplicateCleaner.Ranking.BITRATE_FIRST)
-        assertThat(DuplicateCleaner.Ranking.of("something else")).isEqualTo(DuplicateCleaner.Ranking.BITRATE_FIRST)
+    fun `the better codec wins as long as the other version has less than 20 percent more bitrate`(@TempDir tempDir: Path) {
+        val hevc = video(codec = "hevc", bitrate = 4_000_000)
+
+        assertThat(keptOf(tempDir, 20, hevc, video(codec = "h264", bitrate = 4_000_000))).isEqualTo("first")
+        assertThat(keptOf(tempDir, 20, hevc, video(codec = "h264", bitrate = 4_500_000))).isEqualTo("first")
+        assertThat(keptOf(tempDir, 20, hevc, video(codec = "h264", bitrate = 4_700_000))).isEqualTo("first")
+        // a worse codec with less bitrate never wins
+        assertThat(keptOf(tempDir, 20, hevc, video(codec = "h264", bitrate = 1_000_000))).isEqualTo("first")
+    }
+
+    @Test
+    fun `the higher bitrate wins above that margin even with the older codec`(@TempDir tempDir: Path) {
+        val hevc = video(codec = "hevc", bitrate = 4_000_000)
+
+        assertThat(keptOf(tempDir, 20, hevc, video(codec = "h264", bitrate = 4_900_000))).isEqualTo("second")
+        assertThat(keptOf(tempDir, 20, hevc, video(codec = "h264", bitrate = 9_000_000))).isEqualTo("second")
+    }
+
+    @Test
+    fun `every step of the codec is worth the margin`(@TempDir tempDir: Path) {
+        val hevc = video(codec = "hevc", bitrate = 4_000_000)
+
+        // mpeg4 is two steps behind hevc: 44 percent more bitrate are needed
+        assertThat(keptOf(tempDir, 20, hevc, video(codec = "mpeg4", bitrate = 5_500_000))).isEqualTo("first")
+        assertThat(keptOf(tempDir, 20, hevc, video(codec = "mpeg4", bitrate = 6_000_000))).isEqualTo("second")
+    }
+
+    @Test
+    fun `the bonus can be zero to count only the bitrate or large to count the codec first`(@TempDir tempDir: Path) {
+        val hevc = video(codec = "hevc", bitrate = 2_000_000)
+        val h264 = video(codec = "h264", bitrate = 9_000_000)
+
+        assertThat(keptOf(tempDir, 0, hevc, h264)).isEqualTo("second")
+        assertThat(keptOf(tempDir, 0, video(codec = "hevc", bitrate = 4_000_000), video(codec = "h264", bitrate = 4_000_000))).isEqualTo("first")
+        assertThat(keptOf(tempDir, 1000, hevc, h264)).isEqualTo("first")
+    }
+
+    @Test
+    fun `the order of the versions is consistent for several of them`(@TempDir tempDir: Path) {
+        val base = tempDir.toFile()
+        // hevc 3.0 -> beats h264 3.5 (17 percent more); h264 3.5 beats mpeg4 4.0; hevc 3.0 beats mpeg4 4.0 (33 percent more, two steps)
+        val hevc = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mkv", video(codec = "hevc", bitrate = 3_000_000))
+        val h264 = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mp4", video(codec = "h264", bitrate = 3_500_000))
+        val mpeg4 = file(base, "Movies/I/Inception (2010) {tmdb-27205}.avi", video(codec = "mpeg4", bitrate = 4_000_000))
+
+        val result = run(base)
+
+        assertThat(result.groups.single().keep.file).isEqualTo(hevc)
+        assertThat(h264).doesNotExist()
+        assertThat(mpeg4).doesNotExist()
+    }
+
+    @Test
+    fun `the bonus comes from the setting and is 20 percent by default`() {
+        assertThat(DuplicateCleaner.codecBonusOf(null)).isEqualTo(20)
+        assertThat(DuplicateCleaner.codecBonusOf(" 35 ")).isEqualTo(35)
+        assertThat(DuplicateCleaner.codecBonusOf("0")).isEqualTo(0)
+        assertThat(DuplicateCleaner.codecBonusOf("-5")).isEqualTo(20)
+        assertThat(DuplicateCleaner.codecBonusOf("codec")).isEqualTo(20)
+    }
+
+    @Test
+    fun `the resolution counts before bitrate and codec`(@TempDir tempDir: Path) {
+        listOf(0, 20, 1000).forEach { bonus ->
+            val base = File(tempDir.toFile(), "bonus$bonus")
+            val hd = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mkv", video(height = 1080, codec = "h264", bitrate = 1_000_000))
+            val sd = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mp4", video(height = 480, codec = "hevc", bitrate = 9_000_000))
+
+            DuplicateCleaner({ infos[it.name] }, 2, bonus).processFilesFromDirectory(base.absolutePath, null, false)
+
+            assertThat(hd).describedAs("bonus $bonus").exists()
+            assertThat(sd).describedAs("bonus $bonus").doesNotExist()
+        }
     }
 
     @Test
