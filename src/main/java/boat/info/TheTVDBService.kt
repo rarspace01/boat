@@ -117,6 +117,30 @@ class TheTVDBService @Autowired constructor(private val httpHelper: HttpHelper) 
         return parseSeriesPage(httpHelper.getPage(url, null, headers))
     }
 
+    /** The runtimes in minutes by episode number of a season (aired order) of a series, empty if TVDB doesn't know them. */
+    fun episodeRuntimes(id: String, season: Int): Map<Int, Int> {
+        val jwtToken = getToken() ?: return emptyMap()
+        val headers = mapOf("Authorization" to "Bearer $jwtToken")
+        val url = "$baseUrl/series/${urlEncode(id)}/episodes/default?season=$season&page=0"
+        return parseEpisodeRuntimes(httpHelper.getPage(url, null, headers), season)
+    }
+
+    fun parseEpisodeRuntimes(pageContent: String?, season: Int): Map<Int, Int> {
+        if (pageContent.isNullOrBlank()) return emptyMap()
+        return try {
+            JsonParser.parseString(pageContent).asJsonObject["data"].asJsonObject["episodes"].asJsonArray.mapNotNull { element ->
+                val episode = element.asJsonObject
+                if (episode["seasonNumber"]?.takeIf { !it.isJsonNull }?.asInt != season) return@mapNotNull null
+                val number = episode["number"]?.takeIf { !it.isJsonNull }?.asInt ?: return@mapNotNull null
+                val runtime = episode["runtime"]?.takeIf { !it.isJsonNull }?.asInt?.takeIf { it > 0 } ?: return@mapNotNull null
+                number to runtime
+            }.toMap()
+        } catch (e: Exception) {
+            logger.warn("Error parsing TVDB episodes response: {}", e.message)
+            emptyMap()
+        }
+    }
+
     /**
      * Parses the /series/{id}/extended response. Its field names differ from the search
      * response, so they're mapped onto the search shape to reuse the title extraction.

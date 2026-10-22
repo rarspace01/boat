@@ -36,7 +36,14 @@ import kotlin.math.pow
  * re-encode). The source (remux, web) and the language of the audio are not known, a German and an English version
  * of the same episode are duplicates to it.
  *
- * A group is only decided if every version could be read, the codecs are known and they are about equally long (5%). Otherwise it is
+ * If the versions differ in length, the official runtime of TMDB/TVDB ([RuntimeLookup]) decides: the versions from 15% shorter
+ * to 30% longer than it compete (whatever their differences among each other), shorter ones are incomplete and deleted, a longer one
+ * (several episodes in one file) leaves the group undecided.
+ *
+ * A file which ffprobe can't read and which is under 1 MB is a failed download, it is deleted if a readable version
+ * exists. A version shorter than half of the longest one is an incomplete file (or another cut) and is deleted too.
+ *
+ * A group is otherwise only decided if every version could be read, the codecs are known and they are about equally long (5%). Otherwise it is
  * [UnsureGroup] and nothing of it is deleted: a file which is much shorter might be cut or damaged, or a different
  * cut or a double episode. The subtitles next to a deleted version are moved to the version which stays if it has
  * none for that language, otherwise they are deleted with it.
@@ -50,6 +57,8 @@ class DuplicateCleaner(
     private val codecWeightPercent: Int = codecWeightFromSettings(),
     /** `DUPLICATE_BETTER_CODEC_MARGIN_PERCENT` in boat.cfg: the head start of the better codec per generation, 0 for none. */
     private val betterCodecMarginPercent: Int = betterCodecMarginFromSettings(),
+    /** The official runtime from TMDB/TVDB decides groups whose versions differ in length, none: only the lengths are compared. */
+    private val runtimeLookup: RuntimeLookup? = null,
 ) {
 
     private val logger by LoggerDelegate()
@@ -77,7 +86,8 @@ class DuplicateCleaner(
         ).joinToString(", ")
     }
 
-    class DuplicateGroup(val key: String, val keep: Version, val remove: List<Version>)
+    /** [reasons] tells why a version of [remove] is not just the worse one: a broken or incomplete file. */
+    class DuplicateGroup(val key: String, val keep: Version, val remove: List<Version>, val reasons: Map<File, String> = emptyMap())
 
     /** Files which are the same by name, but can't be decided: [reason] says why. Nothing of it is deleted. */
     class UnsureGroup(val key: String, val files: List<File>, val reason: String, val versions: List<Version>)
@@ -119,7 +129,7 @@ class DuplicateCleaner(
             result.groups.forEach { group ->
                 writer?.write("Duplicates of ${group.key}:\n")
                 writer?.write("KEEP '${group.keep.file.path}' (${group.keep.description()})\n")
-                group.remove.forEach { loser -> deleteVersion(group.keep, loser, isTestRun, writer) }
+                group.remove.forEach { loser -> deleteVersion(group.keep, loser, group.reasons[loser.file], isTestRun, writer) }
             }
             writer?.write(
                 "${result.groups.size} duplicates found, ${result.groups.sumOf { it.remove.size }} worse versions" +
@@ -142,27 +152,65 @@ class DuplicateCleaner(
             .filter { it.value.size > 1 }
         val (infos, stats) = probeAll(sameByName.values.flatten())
         logger.info("{}", stats)
+        logger.info("deciding {} groups of files which exist more than once", sameByName.size)
+        val decideStart = System.nanoTime()
+        var decided = 0
+        var lookups = 0
+        var lookupMillis = 0L
 
         val groups = mutableListOf<DuplicateGroup>()
         val unsure = mutableListOf<UnsureGroup>()
         sameByName.toSortedMap().forEach { (key, files) ->
-            val versions = files.mapNotNull { file -> infos[file]?.let { Version(file, it) } }
-            val unreadable = files.filter { infos[it] == null }
+            if (++decided % 250 == 0) {
+                logger.info("decided {} of {} groups after {} s, {} runtime lookups so far", decided, sameByName.size, (System.nanoTime() - decideStart) / 1_000_000_000, lookups)
+            }
+            // a few bytes are a failed download, nothing to compare, it goes if there is a readable version
+            val stubs = files.filter { infos[it] == null && it.length() < MAX_STUB_BYTES }.takeIf { it.size < files.size } ?: emptyList()
+            val candidates = files - stubs.toSet()
+            val versions = candidates.mapNotNull { file -> infos[file]?.let { Version(file, it) } }
+            val unreadable = candidates.filter { infos[it] == null }
+            val official = if (runtimeLookup != null && versions.size > 1 && versions.all { it.info.durationSeconds != null } && differentLength(versions)) {
+                val begin = System.nanoTime()
+                officialRuntimeSeconds(key).also {
+                    lookups++
+                    lookupMillis += (System.nanoTime() - begin) / 1_000_000
+                    if (lookups % 25 == 0) logger.info("{} runtime lookups, {} ms on average, last: {}", lookups, lookupMillis / lookups, key)
+                }
+            } else null
+            val matching = official?.let { runtime -> versions.filter { it.info.durationSeconds!! in runtime * (1 - RUNTIME_SHORTER)..runtime * (1 + RUNTIME_LONGER) } }.orEmpty()
+            val tooLong = official?.let { runtime -> versions.filter { it.info.durationSeconds!! > runtime * (1 + RUNTIME_LONGER) } }.orEmpty()
+            val byRuntime = matching.isNotEmpty()
+            val longest = versions.mapNotNull { it.info.durationSeconds }.maxOrNull()
+            val incomplete = when {
+                byRuntime -> versions - matching.toSet() - tooLong.toSet()
+                longest == null -> emptyList()
+                else -> versions.filter { (it.info.durationSeconds ?: longest) < longest * MIN_COMPLETE_LENGTH }
+            }
+            val complete = if (byRuntime) matching else versions - incomplete.toSet()
             val reason = when {
                 unreadable.isNotEmpty() -> "ffprobe could not read ${unreadable.joinToString { "'${it.name}'" }}"
                 versions.any { it.info.durationSeconds == null } -> "the length of a version is not known"
                 versions.any { bitrateNeededByCodec(it.info.codec) == null } ->
                     "the codec is not known (${versions.joinToString { it.info.codec ?: "?" }})"
-                differentLength(versions) -> "the versions are not equally long (${versions.joinToString(" / ") { formatDuration(it.info.durationSeconds!!) }})"
+                byRuntime && tooLong.isNotEmpty() ->
+                    "longer than the official runtime of ${formatDuration(official!!)} (several episodes?) (${versions.joinToString(" / ") { formatDuration(it.info.durationSeconds!!) }})"
+                !byRuntime && differentLength(complete) -> "the versions are not equally long (${versions.joinToString(" / ") { formatDuration(it.info.durationSeconds!!) }})"
                 else -> null
             }
             if (reason != null) {
                 unsure.add(UnsureGroup(key, files, reason, versions))
             } else {
-                val ranked = versions.sortedWith(bestFirst)
-                groups.add(DuplicateGroup(key, ranked.first(), ranked.drop(1)))
+                val ranked = complete.sortedWith(bestFirst)
+                val broken = stubs.map { Version(it, VideoInfo(null, null, null, null, null)) }
+                val reasons = stubs.associateWith { "broken file, not readable" } +
+                        incomplete.associate { it.file to if (byRuntime) "shorter than the official runtime of ${formatDuration(official!!)}" else "incomplete, shorter than half of the longest version" }
+                groups.add(DuplicateGroup(key, ranked.first(), ranked.drop(1) + incomplete + broken, reasons))
             }
         }
+        logger.info(
+            "decided {} groups, {} not decided, in {} s ({} runtime lookups, {} s)", groups.size, unsure.size,
+            (System.nanoTime() - decideStart) / 1_000_000_000, lookups, lookupMillis / 1000
+        )
         return Result(groups, unsure, stats)
     }
 
@@ -170,6 +218,19 @@ class DuplicateCleaner(
         .thenByDescending { it.score(codecWeightPercent, betterCodecMarginPercent) }
         .thenByDescending { it.size }
         .thenBy { it.file.path }
+
+    /** The runtime in seconds from TMDB/TVDB of the movie or episode of a duplicate [key], null if unknown or a part of a movie or episode. */
+    private fun officialRuntimeSeconds(key: String): Double? {
+        val movie = movieKeyPattern.matchEntire(key)
+        val minutes = if (movie != null) {
+            if (movie.groupValues[2] != "0") return null
+            runtimeLookup?.minutes(movie.groupValues[1], null, null)
+        } else {
+            val series = seriesKeyPattern.matchEntire(key) ?: return null
+            runtimeLookup?.minutes(series.groupValues[1], series.groupValues[2].toInt(), series.groupValues[3].toInt())
+        }
+        return minutes?.times(60)
+    }
 
     private fun differentLength(versions: List<Version>): Boolean {
         val lengths = versions.map { it.info.durationSeconds!! }
@@ -192,7 +253,7 @@ class DuplicateCleaner(
                     if (millis > SLOW_PROBE_MILLIS) logger.warn("reading {} took {} ms", file, millis)
                     durations.add(millis)
                     val count = done.incrementAndGet()
-                    if (count % 500 == 0) logger.info("probed {} of {} files", count, files.size)
+                    if (count % 500 == 0) logger.info("probed {} of {} files after {} s", count, files.size, (System.nanoTime() - start) / 1_000_000_000)
                 }
             })
         } finally {
@@ -202,12 +263,12 @@ class DuplicateCleaner(
         return infos to ProbeStats(files.size, files.size - infos.size, probeThreads.coerceAtLeast(1), wallMillis, durations.toList())
     }
 
-    private fun deleteVersion(keep: Version, loser: Version, isTestRun: Boolean, writer: BufferedWriter?) {
+    private fun deleteVersion(keep: Version, loser: Version, reason: String?, isTestRun: Boolean, writer: BufferedWriter?) {
         val keepBaseName = keep.file.nameWithoutExtension
         val loserBaseName = loser.file.nameWithoutExtension
         // versions with the same name and another extension (X.mkv, X.avi) share their subtitles, they stay
         val sidecars = if (loserBaseName == keepBaseName && loser.file.parentFile == keep.file.parentFile) emptyList() else sidecarsOf(loser.file)
-        writer?.write("DELETE '${loser.file.path}' (${loser.description()})${if (isTestRun) " [test run]" else ""}\n")
+        writer?.write("DELETE '${loser.file.path}' (${loser.description()})${reason?.let { " - $it" } ?: ""}${if (isTestRun) " [test run]" else ""}\n")
         if (!isTestRun) {
             loser.file.delete()
         }
@@ -304,6 +365,22 @@ class DuplicateCleaner(
 
         /** Reading a file which takes longer than this is written to the log (a slow disk, a damaged file). */
         private const val SLOW_PROBE_MILLIS = 10_000
+
+        /**
+         * A version from 15% shorter to 30% longer than the official runtime is the whole movie or episode (the
+         * databases are not exact, a version may have a recap or credits). Even longer: several episodes in one file.
+         */
+        private const val RUNTIME_SHORTER = 0.15
+        private const val RUNTIME_LONGER = 0.30
+
+        private val movieKeyPattern = "movie \\{?((?:tmdb|tvdb)-\\d+)}? pt(\\d+)".toRegex()
+        private val seriesKeyPattern = "series \\{?((?:tmdb|tvdb)-\\d+)}? S(\\d+)E(\\d+)".toRegex()
+
+        /** A file which ffprobe can't read and which is smaller than this is a failed download. */
+        private const val MAX_STUB_BYTES = 1024L * 1024
+
+        /** A version shorter than this part of the longest one is an incomplete file (or another cut), it is deleted. */
+        private const val MIN_COMPLETE_LENGTH = 0.5
 
         /** Versions which differ more in length are not the same content. */
         private const val MAX_LENGTH_DIFFERENCE = 0.05
