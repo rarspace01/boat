@@ -6,8 +6,8 @@ import java.io.File
 
 /**
  * Manual runs against the real library, like [boat.ContentRenamerIntegrationTest]. The test runs only write what
- * would be deleted to `duplicates.log`, look at it before starting a run which deletes. Rename the library first,
- * duplicates are only found by the remote media id in the names.
+ * would be deleted to `duplicates.log` (with the time ffprobe took), look at it before starting a run which deletes.
+ * Rename the library first, duplicates are only found by the remote media id in the names. Needs ffprobe (ffmpeg).
  */
 class DuplicateCleanerIntegrationTest {
     val homeDir: String? = System.getProperty("user.home")
@@ -40,8 +40,9 @@ class DuplicateCleanerIntegrationTest {
         val logFile = File("duplicates.log")
         if (logFile.exists()) logFile.delete()
         if (File(path).exists()) {
-            val groups = DuplicateCleaner().processFilesFromDirectory(path, logFile, isTestRun)
-            println("${groups.size} duplicates in $path, see ${logFile.absolutePath}")
+            val result = DuplicateCleaner().processFilesFromDirectory(path, logFile, isTestRun)
+            println("${result.groups.size} duplicates and ${result.unsureGroups.size} groups not decided in $path, ${result.probeStats}")
+            println("see ${logFile.absolutePath}")
         }
     }
 }

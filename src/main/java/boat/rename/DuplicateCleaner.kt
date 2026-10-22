@@ -1,7 +1,5 @@
 package boat.rename
 
-import boat.rename.FileAttributes.extractCodec
-import boat.rename.FileAttributes.extractResolution
 import boat.rename.FileAttributes.isMovieExtra
 import boat.rename.FileAttributes.subtitleExtensions
 import boat.rename.FileAttributes.videoExtensions
@@ -9,7 +7,12 @@ import boat.utilities.LoggerDelegate
 import java.io.BufferedWriter
 import java.io.File
 import java.io.FileWriter
+import java.util.Collections
 import java.util.Locale
+import java.util.concurrent.Callable
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * Finds the same movie or episode more than once in the (renamed) library and deletes the worse versions.
@@ -19,74 +22,165 @@ import java.util.Locale
  * Files without id, extras and everything which is not a video are never touched, so the library has to be renamed
  * first ([boat.ContentRenamer]).
  *
- * The better version has, in this order: the higher resolution, the better codec (AV1/HEVC before H.264 before the
- * old ones), the bigger file. The name of the library file only tells resolution and codec, there is no source (remux,
- * web) in it. If all are the same the first name is kept. The subtitles next to a deleted version are moved to the
- * version which stays if it has none for that language, otherwise they are deleted with it.
+ * Which version is better is not taken from the file names (they often have no resolution or codec) but from the
+ * video itself, read with ffprobe ([FfprobeVideoProbe]): the higher resolution, then the better codec (AV1/HEVC
+ * before H.264 before the old ones), then the higher bitrate (a bigger file of a longer video is not better). The
+ * source (remux, web) and the language of the audio are not known, a German and an English version of the same
+ * episode are duplicates to it.
  *
- * Does not know about the language of a version: a German and an English version of the same episode are duplicates
- * to it. Run it as a test run first, it only writes what it would delete to the log.
+ * A group is only decided if every version could be read and they are about equally long (5%). Otherwise it is
+ * [UnsureGroup] and nothing of it is deleted: a file which is much shorter might be cut or damaged, or a different
+ * cut or a double episode. The subtitles next to a deleted version are moved to the version which stays if it has
+ * none for that language, otherwise they are deleted with it.
+ *
+ * Run it as a test run first, it only writes what it would delete to the log. The log also tells how fast the probe is.
  */
-class DuplicateCleaner {
+class DuplicateCleaner(
+    private val videoProbe: VideoProbe = FfprobeVideoProbe(),
+    private val probeThreads: Int = DEFAULT_PROBE_THREADS,
+) {
 
     private val logger by LoggerDelegate()
 
     /** A video file of the library with what decides which version is the better one. */
-    class Version(val file: File) {
-        val height: Int = heightOf(extractResolution(file))
-        val codecRank: Int = codecRankOf(extractCodec(file))
+    class Version(val file: File, val info: VideoInfo) {
+        val resolutionClass: Int = resolutionClassOf(info)
+        val codecRank: Int = codecRankOf(info.codec)
+        val bitrate: Long = info.bitrate ?: 0
         val size: Long = file.length()
 
-        fun description(): String = listOfNotNull(extractResolution(file) ?: "?", extractCodec(file) ?: "?").joinToString(" ") +
-                ", " + String.format(Locale.ROOT, "%.2f GB", size / 1024.0 / 1024.0 / 1024.0)
+        fun description(): String = listOf(
+            if (resolutionClass > 0) "${resolutionClass}p" else "?",
+            info.codec ?: "?",
+            info.bitrate?.let { String.format(Locale.ROOT, "%.1f Mbit/s", it / 1_000_000.0) } ?: "? Mbit/s",
+            info.durationSeconds?.let { formatDuration(it) } ?: "?",
+            String.format(Locale.ROOT, "%.2f GB", size / 1024.0 / 1024.0 / 1024.0),
+        ).joinToString(", ")
     }
 
     class DuplicateGroup(val key: String, val keep: Version, val remove: List<Version>)
 
+    /** Files which are the same by name, but can't be decided: [reason] says why. Nothing of it is deleted. */
+    class UnsureGroup(val key: String, val files: List<File>, val reason: String, val versions: List<Version>)
+
+    /** How long ffprobe took for the files of a run. */
+    class ProbeStats(val files: Int, val failed: Int, val threads: Int, val wallMillis: Long, val durationsMillis: List<Long>) {
+        private val sorted = durationsMillis.sorted()
+        val averageMillis: Long get() = if (sorted.isEmpty()) 0 else sorted.sum() / sorted.size
+        val medianMillis: Long get() = sorted.getOrElse(sorted.size / 2) { 0 }
+        val p95Millis: Long get() = sorted.getOrElse((sorted.size * 95 / 100).coerceAtMost(sorted.size - 1)) { 0 }
+        val maxMillis: Long get() = sorted.lastOrNull() ?: 0
+        val filesPerSecond: Double get() = if (wallMillis == 0L) 0.0 else files * 1000.0 / wallMillis
+
+        override fun toString(): String = String.format(
+            Locale.ROOT,
+            "ffprobe: %d files in %.1f s with %d threads (%.1f files/s), per file avg %d ms, median %d ms, 95%% under %d ms, max %d ms, %d could not be read",
+            files, wallMillis / 1000.0, threads, filesPerSecond, averageMillis, medianMillis, p95Millis, maxMillis, failed
+        )
+    }
+
+    class Result(val groups: List<DuplicateGroup>, val unsureGroups: List<UnsureGroup>, val probeStats: ProbeStats)
+
     /**
-     * Looks for duplicates below [path] and deletes the worse versions, unless [isTestRun]. Returns the groups which
-     * were found, what happens is written to [logFile] if there is one.
+     * Looks for duplicates below [path] and deletes the worse versions, unless [isTestRun]. What happens is written to
+     * [logFile] if there is one.
      */
-    fun processFilesFromDirectory(path: String, logFile: File? = null, isTestRun: Boolean = true): List<DuplicateGroup> {
-        val groups = findDuplicates(path)
+    fun processFilesFromDirectory(path: String, logFile: File? = null, isTestRun: Boolean = true): Result {
+        val result = findDuplicates(path)
         val writer = logFile?.let { BufferedWriter(FileWriter(it, true)) }
         try {
-            groups.forEach { group ->
-                writer?.write("Duplicates of ${group.key}:\n")
-                writer?.write("KEEP '${group.keep.file.path}' (${group.keep.description()})\n")
-                group.remove.forEach { loser ->
-                    deleteVersion(group.keep, loser, isTestRun, writer)
+            writer?.write("${result.probeStats}\n")
+            result.unsureGroups.forEach { unsure ->
+                writer?.write("UNSURE ${unsure.key}: ${unsure.reason}\n")
+                unsure.files.forEach { file ->
+                    val version = unsure.versions.firstOrNull { it.file == file }
+                    writer?.write("  '${file.path}'${version?.let { " (${it.description()})" } ?: ""}\n")
                 }
             }
-            writer?.write("${groups.size} duplicates found, ${groups.sumOf { it.remove.size }} worse versions" +
-                    if (isTestRun) " (test run, nothing was deleted)\n" else " deleted\n")
+            result.groups.forEach { group ->
+                writer?.write("Duplicates of ${group.key}:\n")
+                writer?.write("KEEP '${group.keep.file.path}' (${group.keep.description()})\n")
+                group.remove.forEach { loser -> deleteVersion(group.keep, loser, isTestRun, writer) }
+            }
+            writer?.write(
+                "${result.groups.size} duplicates found, ${result.groups.sumOf { it.remove.size }} worse versions" +
+                        (if (isTestRun) " (test run, nothing was deleted)" else " deleted") +
+                        ", ${result.unsureGroups.size} groups not decided\n"
+            )
         } finally {
             writer?.flush()
             writer?.close()
         }
-        return groups
+        return result
     }
 
-    /** The files which are there more than once below [path], with the version to keep. */
-    fun findDuplicates(path: String): List<DuplicateGroup> {
+    /** The files which are there more than once below [path], with the version to keep, and the groups which can't be decided. */
+    fun findDuplicates(path: String): Result {
         val root = File(path)
-        if (!root.isDirectory) return emptyList()
-        return root.walkTopDown().filter { it.isFile }
+        val sameByName = if (!root.isDirectory) emptyMap() else root.walkTopDown().filter { it.isFile }
             .mapNotNull { file -> duplicateKey(file)?.let { key -> key to file } }
             .groupBy({ it.first }, { it.second })
             .filter { it.value.size > 1 }
-            .map { (key, files) ->
-                val ranked = files.map { Version(it) }.sortedWith(BEST_FIRST)
-                DuplicateGroup(key, ranked.first(), ranked.drop(1))
+        val (infos, stats) = probeAll(sameByName.values.flatten())
+        logger.info("{}", stats)
+
+        val groups = mutableListOf<DuplicateGroup>()
+        val unsure = mutableListOf<UnsureGroup>()
+        sameByName.toSortedMap().forEach { (key, files) ->
+            val versions = files.mapNotNull { file -> infos[file]?.let { Version(file, it) } }
+            val unreadable = files.filter { infos[it] == null }
+            val reason = when {
+                unreadable.isNotEmpty() -> "ffprobe could not read ${unreadable.joinToString { "'${it.name}'" }}"
+                versions.any { it.info.durationSeconds == null } -> "the length of a version is not known"
+                differentLength(versions) -> "the versions are not equally long (${versions.joinToString(" / ") { formatDuration(it.info.durationSeconds!!) }})"
+                else -> null
             }
-            .sortedBy { it.key }
-            .toList()
+            if (reason != null) {
+                unsure.add(UnsureGroup(key, files, reason, versions))
+            } else {
+                val ranked = versions.sortedWith(BEST_FIRST)
+                groups.add(DuplicateGroup(key, ranked.first(), ranked.drop(1)))
+            }
+        }
+        return Result(groups, unsure, stats)
+    }
+
+    private fun differentLength(versions: List<Version>): Boolean {
+        val lengths = versions.map { it.info.durationSeconds!! }
+        return lengths.max() > lengths.min() * (1 + MAX_LENGTH_DIFFERENCE)
+    }
+
+    /** Reads all files with [probeThreads] threads at once, with the time ffprobe took. */
+    private fun probeAll(files: List<File>): Pair<Map<File, VideoInfo>, ProbeStats> {
+        val infos = ConcurrentHashMap<File, VideoInfo>()
+        val durations = Collections.synchronizedList(mutableListOf<Long>())
+        val done = AtomicInteger()
+        val start = System.nanoTime()
+        val executor = Executors.newFixedThreadPool(probeThreads.coerceAtLeast(1))
+        try {
+            executor.invokeAll(files.map { file ->
+                Callable {
+                    val begin = System.nanoTime()
+                    videoProbe.probe(file)?.let { infos[file] = it }
+                    val millis = (System.nanoTime() - begin) / 1_000_000
+                    if (millis > SLOW_PROBE_MILLIS) logger.warn("reading {} took {} ms", file, millis)
+                    durations.add(millis)
+                    val count = done.incrementAndGet()
+                    if (count % 500 == 0) logger.info("probed {} of {} files", count, files.size)
+                }
+            })
+        } finally {
+            executor.shutdown()
+        }
+        val wallMillis = (System.nanoTime() - start) / 1_000_000
+        return infos to ProbeStats(files.size, files.size - infos.size, probeThreads.coerceAtLeast(1), wallMillis, durations.toList())
     }
 
     private fun deleteVersion(keep: Version, loser: Version, isTestRun: Boolean, writer: BufferedWriter?) {
-        val sidecars = sidecarsOf(loser.file)
         val keepBaseName = keep.file.nameWithoutExtension
         val loserBaseName = loser.file.nameWithoutExtension
+        // versions with the same name and another extension (X.mkv, X.avi) share their subtitles, they stay
+        val sidecars = if (loserBaseName == keepBaseName && loser.file.parentFile == keep.file.parentFile) emptyList() else sidecarsOf(loser.file)
         writer?.write("DELETE '${loser.file.path}' (${loser.description()})${if (isTestRun) " [test run]" else ""}\n")
         if (!isTestRun) {
             loser.file.delete()
@@ -134,29 +228,45 @@ class DuplicateCleaner {
     }
 
     companion object {
-        private val BEST_FIRST = compareByDescending<Version> { it.height }
+        const val DEFAULT_PROBE_THREADS = 4
+
+        /** Reading a file which takes longer than this is written to the log (a slow disk, a damaged file). */
+        private const val SLOW_PROBE_MILLIS = 10_000
+
+        /** Versions which differ more in length are not the same content. */
+        private const val MAX_LENGTH_DIFFERENCE = 0.05
+
+        private val BEST_FIRST = compareByDescending<Version> { it.resolutionClass }
             .thenByDescending { it.codecRank }
+            .thenByDescending { it.bitrate }
             .thenByDescending { it.size }
             .thenBy { it.file.path }
 
-        private val episodePattern = "(?i)(?<![a-z0-9])S(\\d{1,3})E(\\d{1,4})(-E\\d{1,4}|[a-z])?(?![0-9a-z])".toRegex()
+        private val standardHeights = listOf(4320, 2160, 1440, 1080, 720, 576, 480, 360, 240)
 
-        /** 1080p -> 1080, 1080i -> 1080, 4k -> 2160, unknown -> 0 */
-        internal fun heightOf(resolution: String?): Int = when {
-            resolution == null -> 0
-            resolution.equals("2k", ignoreCase = true) -> 1080
-            resolution.equals("4k", ignoreCase = true) -> 2160
-            resolution.equals("8k", ignoreCase = true) -> 4320
-            else -> resolution.dropLast(1).toIntOrNull() ?: 0
+        /**
+         * The class of the picture (1080 for 1920x1080, but also for a cropped 1920x800): the picture is as high as a
+         * 16:9 picture of this width, or as it really is if that is more.
+         */
+        internal fun resolutionClassOf(info: VideoInfo): Int {
+            val height = maxOf(info.height ?: 0, ((info.width ?: 0) * 9 / 16))
+            return standardHeights.firstOrNull { height >= it * 0.9 } ?: if (height > 0) height else 0
         }
 
         /** The newer codecs are better at the same resolution. */
         internal fun codecRankOf(codec: String?): Int = when (codec?.lowercase()) {
-            "av1", "hevc", "x265", "h265" -> 3
-            "x264", "h264", "avc", "vp9" -> 2
-            "xvid", "divx" -> 1
+            "av1", "hevc" -> 3
+            "h264", "vp9" -> 2
+            "mpeg4", "msmpeg4v3", "wmv3", "vc1", "mpeg2video", "mpeg1video" -> 1
             else -> 0
         }
+
+        private fun formatDuration(seconds: Double): String {
+            val total = seconds.toLong()
+            return String.format(Locale.ROOT, "%d:%02d:%02d", total / 3600, total / 60 % 60, total % 60)
+        }
+
+        private val episodePattern = "(?i)(?<![a-z0-9])S(\\d{1,3})E(\\d{1,4})(-E\\d{1,4}|[a-z])?(?![0-9a-z])".toRegex()
 
         /**
          * What makes video files the same movie or episode, null for everything which is not compared: no video, no

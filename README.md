@@ -2,6 +2,21 @@
 
 the boat sails with wind
 
+## Requirements
+
+| What | For |
+|---|---|
+| Java 25 (JRE to run, JDK 25 to build; the Docker image is `eclipse-temurin:25-jre`) | boat itself |
+| MongoDB | users, transfers (`MONGO_URI`) |
+| [rclone](https://rclone.org) with a configured remote | the library (`RCLONEDIR`), uploads and listings; has to be in the `PATH` |
+| A multifilehoster account (Premiumize or Alldebrid) and its API key | downloads |
+| TMDB and TVDB API keys | looking up titles, years and seasons |
+| `wget` and `sha256sum` | `runBoat.sh` (updates and checks the jar) |
+| [ffmpeg](https://ffmpeg.org) (`ffprobe`) in the `PATH` | only for finding duplicates in the library (`DuplicateCleaner`), it reads the resolution, codec and length of the videos. The Docker image has it. |
+| `htpasswd` (`apache2-utils`) | optional, to create the password hash of the first user |
+| `tmux` | optional, the Docker image serves the library with `rclone serve webdav` in it |
+| certbot | optional, certificates for https |
+
 ## Setup
 
 Copy `boat.default.cfg` to `boat.cfg` and modify values accordingly. Copy `rclone.conf`
@@ -90,10 +105,23 @@ The search list accepts a url instead of titles. Only http(s) urls to public add
 redirects), at most 1 MB. Set `ALLOW_PRIVATE_URLS=true` in `boat.cfg` (or as environment variable) to allow
 addresses in the local network.
 
+## Duplicates in the library
+
+`boat.rename.DuplicateCleaner` finds the same movie or episode more than once in the renamed library (same
+`{tmdb-…}`/`{tvdb-…}` id, same season and episode) and deletes the worse versions. It needs `ffprobe` (see
+requirements): the version with the higher resolution wins, then the better codec (AV1/HEVC, H.264, older), then the
+higher bitrate. Versions which are not equally long (more than 5%) or can't be read are left alone and listed as
+`UNSURE`. The subtitles of a deleted version move to the version which stays.
+
+Start with a test run: the manual tests in `DuplicateCleanerIntegrationTest` (remove the `@Disabled`) write
+`duplicates.log` and delete nothing. The first line of the log tells how fast `ffprobe` was (files per second, average,
+median, 95th percentile and maximum per file). Look at the log, then run `deleteDuplicateMovies` or
+`deleteDuplicateSeries`.
+
 tested with:
 
 ```
-openjdk version "21.0.1 2023-10-17 LTS"
+openjdk version "25" 2025-09-16 LTS
 ```
 
 
