@@ -1,57 +1,67 @@
 package boat.utilities
 
-import org.apache.commons.io.IOUtils
 import org.slf4j.LoggerFactory
-import org.springframework.cache.annotation.Cacheable
 import org.springframework.stereotype.Service
-import java.io.BufferedReader
-import java.io.File
-import java.io.FileOutputStream
 import java.io.IOException
-import java.io.InputStreamReader
-import java.io.OutputStreamWriter
-import java.net.HttpURLConnection
+import java.net.InetAddress
+import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
-import java.time.Duration
-import java.net.InetAddress
-import java.net.URI
-import java.net.URLConnection
-import java.nio.channels.Channels
+import java.nio.charset.Charset
 import java.security.cert.X509Certificate
-import java.util.concurrent.TimeUnit
-import javax.net.ssl.HttpsURLConnection
+import java.time.Duration
 import javax.net.ssl.SSLContext
 import javax.net.ssl.SSLException
 import javax.net.ssl.TrustManager
 import javax.net.ssl.X509TrustManager
 
 private const val USER_AGENT_BROWSER = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0"
+private const val ACCEPT_HEADER =
+    "text/html,application/xhtml+xml,application/xml,application/json;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9"
 
+/**
+ * Fetches pages for the search engines, hosters and metadata services on top of [java.net.http.HttpClient].
+ * The page methods return an empty string if the page can't be read (the reason is logged, including the start of the
+ * answer of the server), [getBinary] and [getPublicPage] are for callers which need to tell failures apart.
+ * Certificates are verified, only torrent search sites fall back to an unverified connection ([mayFallBackToUnverifiedTls]).
+ * https uses HTTP/2 where the server supports it, plain http uses HTTP/1.1.
+ */
 @Service
 class HttpHelper {
-    fun getPage(url: String, params: List<String>?, cookies: String?): String {
-        return getPage(url, params, cookies, null, 30 * 1000)
-    }
 
-    fun getPageWithShortTimeout(url: String, params: List<String>?, cookies: String?): String {
-        return getPage(url, params, cookies, null, 10 * 1000)
-    }
+    class BinaryResponse(val status: Int, val body: ByteArray)
 
-    fun getPage(url: String, params: List<String>?, cookies: String?, body:String? = null, timeout: Int, headers: Map<String, String>? = null): String {
+    fun getPage(url: String): String = fetchPage(url, null, null, DEFAULT_TIMEOUT, null)
+
+    fun getPage(url: String, timeout: Int): String = fetchPage(url, null, null, timeout, null)
+
+    /** Sends [body] as POST if there is one. */
+    fun getPage(url: String, body: String?, headers: Map<String, String>? = null): String =
+        fetchPage(url, null, body, SHORT_TIMEOUT, headers)
+
+    fun getPageWithCookies(url: String, cookies: String, timeout: Int = DEFAULT_TIMEOUT): String =
+        fetchPage(url, cookies, null, timeout, null)
+
+    private fun fetchPage(url: String, cookies: String?, body: String?, timeout: Int, headers: Map<String, String>?): String {
         return try {
-            fetchPage(url, cookies, body, timeout, headers, trustAllCertificates = false)
+            readPage(url, send(verifiedClientFor(url), url, cookies, body, timeout, headers))
         } catch (exception: SSLException) {
             if (mayFallBackToUnverifiedTls(url)) {
                 log.warn("TLS verification failed for [{}], retrying without verification: {}", hostOf(url), redactSecrets(exception.message))
-                runCatching { fetchPage(url, cookies, body, timeout, headers, trustAllCertificates = true) }
-                    .onFailure { log.error("HttpHelper [{}]: {}", hostOf(url), redactSecrets(it.message)) }
-                    .getOrDefault("")
+                try {
+                    readPage(url, send(unverifiedClient, url, cookies, body, timeout, headers))
+                } catch (retryException: Exception) {
+                    log.error("HttpHelper [{}]: {}", hostOf(url), redactSecrets(retryException.message))
+                    ""
+                }
             } else {
                 log.error("TLS verification failed for [{}]: {}", hostOf(url), redactSecrets(exception.message))
                 ""
             }
+        } catch (exception: InterruptedException) {
+            Thread.currentThread().interrupt()
+            ""
         } catch (exception: Exception) {
             // no stack trace, the message of connection errors contains the url with its api key
             log.error("HttpHelper [{}]: {} {}", hostOf(url), exception.javaClass.simpleName, redactSecrets(exception.message))
@@ -59,104 +69,42 @@ class HttpHelper {
         }
     }
 
-    private fun fetchPage(url: String, cookies: String?, body: String?, timeout: Int, headers: Map<String, String>?, trustAllCertificates: Boolean): String {
-        val buildString = StringBuilder()
-        run {
-            val connection = URI.create(url).toURL().openConnection()
-            body?.let {
-                if (connection is HttpsURLConnection) {
-                    connection.requestMethod = "POST"
-                }
-                connection.doOutput = true
-                connection.doInput = true
+    private fun send(
+        client: HttpClient, url: String, cookies: String?, body: String?, timeout: Int, headers: Map<String, String>?
+    ): HttpResponse<ByteArray> {
+        val builder = HttpRequest.newBuilder(URI.create(url))
+            .timeout(Duration.ofMillis(timeout.toLong()))
+            .setHeader("User-Agent", USER_AGENT_BROWSER)
+            .setHeader("Accept-Charset", "UTF-8")
+            .setHeader("Accept", ACCEPT_HEADER)
+        cookies?.let { builder.setHeader("Cookie", it) }
+        headers?.forEach { (key, value) -> builder.setHeader(key, value) }
+        if (body != null) {
+            if (headers == null || headers.keys.none { it.equals("Content-Type", ignoreCase = true) }) {
+                builder.setHeader("Content-Type", "application/json")
             }
-            if (trustAllCertificates && connection is HttpsURLConnection) {
-                connection.sslSocketFactory = trustAllSocketFactory
-            }
-            connection.setRequestProperty("User-Agent", USER_AGENT_BROWSER)
-            connection.setRequestProperty("Accept-Charset", charset)
-            connection.setRequestProperty(
-                "Accept",
-                "text/html,application/xhtml+xml,application/xml,application/json;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9"
-            )
-            headers?.forEach { (key, value) ->
-                connection.setRequestProperty(key, value)
-            }
-            if (body != null && connection.getRequestProperty("Content-Type") == null) {
-                connection.setRequestProperty("Content-Type", "application/json")
-            }
-            connection.connectTimeout = timeout
-            connection.readTimeout = timeout
-            if (cookies != null) {
-                connection.setRequestProperty("Cookie", cookies)
-            }
-            body?.let {
-                val outputStream = connection.getOutputStream()
-                val outputStreamWriter = OutputStreamWriter(outputStream, "UTF-8")
-                outputStreamWriter.write(body)
-                outputStreamWriter.flush()
-                outputStreamWriter.close()
-                outputStream.close()
-            }
-
-            val response = connection.getInputStream()
-
-            val contentType = connection.getHeaderField("Content-Type")
-            var charset: String? = null
-            if (contentType != null) {
-                for (param in contentType.replace(" ", "").split(";".toRegex()).toTypedArray()) {
-                    if (param.startsWith("charset=")) {
-                        charset = param.split("=".toRegex(), 2).toTypedArray()[1]
-                        break
-                    }
-                }
-            }
-            if (charset == null) {
-                charset = "UTF-8"
-            }
-            BufferedReader(InputStreamReader(response, charset)).use { reader ->
-                var line: String?
-                while (reader.readLine().also { line = it } != null) {
-                    buildString.append(line).append(System.getProperty("line.separator"))
-                }
-            }
+            builder.POST(HttpRequest.BodyPublishers.ofString(body))
+        } else {
+            builder.GET()
         }
-        return buildString.toString()
+        return client.send(builder.build(), HttpResponse.BodyHandlers.ofByteArray())
     }
 
-    fun getRawPage(url: String, params: List<String?>?, cookies: String?, timeout: Int): ByteArray? {
-        return try {
-            fetchRawPage(url, cookies, timeout, trustAllCertificates = false)
-        } catch (exception: SSLException) {
-            if (mayFallBackToUnverifiedTls(url)) {
-                log.warn("TLS verification failed for [{}], retrying without verification: {}", hostOf(url), redactSecrets(exception.message))
-                runCatching { fetchRawPage(url, cookies, timeout, trustAllCertificates = true) }.getOrNull()
-            } else {
-                log.error("TLS verification failed for [{}]: {}", hostOf(url), redactSecrets(exception.message))
-                null
-            }
-        } catch (_: IOException) {
-            null
+    private fun readPage(url: String, response: HttpResponse<ByteArray>): String {
+        val text = String(response.body(), charsetOf(response))
+        if (response.statusCode() !in 200..299) {
+            // the answer often tells what is wrong (invalid key, blocked, rate limit)
+            log.warn("HttpHelper [{}]: HTTP {} {}", hostOf(url), response.statusCode(), redactSecrets(text.take(200).replace(Regex("\\s+"), " ")))
+            return ""
         }
+        return text
     }
 
-    private fun fetchRawPage(url: String, cookies: String?, timeout: Int, trustAllCertificates: Boolean): ByteArray {
-        val connection = URI.create(url).toURL().openConnection()
-        if (trustAllCertificates && connection is HttpsURLConnection) {
-            connection.sslSocketFactory = trustAllSocketFactory
-        }
-        connection.setRequestProperty("User-Agent", USER_AGENT_BROWSER)
-        connection.setRequestProperty("Accept-Charset", charset)
-        connection.setRequestProperty(
-            "Accept",
-            "text/html,application/xhtml+xml,application/xml,application/json;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9"
-        )
-        connection.connectTimeout = timeout
-        connection.readTimeout = timeout
-        if (cookies != null) {
-            connection.setRequestProperty("Cookie", cookies)
-        }
-        return IOUtils.toByteArray(connection.getInputStream())
+    private fun charsetOf(response: HttpResponse<ByteArray>): Charset {
+        val contentType = response.headers().firstValue("Content-Type").orElse("")
+        val name = contentType.replace(" ", "").split(";").firstOrNull { it.startsWith("charset=", ignoreCase = true) }
+            ?.substringAfter("=")?.trim('"')
+        return name?.let { runCatching { Charset.forName(it) }.getOrNull() } ?: Charsets.UTF_8
     }
 
     /**
@@ -164,7 +112,7 @@ class HttpHelper {
      * followed by hand so every hop is checked, and at most [maxBytes] are read. Returns null if the url is not
      * allowed or the page can't be read. Set `ALLOW_PRIVATE_URLS=true` to also allow addresses in the local network.
      */
-    fun getPublicPage(url: String, maxBytes: Int = 1024 * 1024, timeout: Int = 10 * 1000): String? {
+    fun getPublicPage(url: String, maxBytes: Int = 1024 * 1024, timeout: Int = SHORT_TIMEOUT): String? {
         val allowPrivate = PropertiesHelper.getProperty("ALLOW_PRIVATE_URLS") == "true"
         var currentUrl = url
         repeat(MAX_REDIRECTS + 1) {
@@ -173,24 +121,30 @@ class HttpHelper {
                 return null
             }
             try {
-                val connection = URI.create(currentUrl).toURL().openConnection() as HttpURLConnection
-                connection.instanceFollowRedirects = false
-                connection.connectTimeout = timeout
-                connection.readTimeout = timeout
-                connection.setRequestProperty("User-Agent", USER_AGENT_BROWSER)
-                val status = connection.responseCode
-                if (status in 300..399) {
-                    val location = connection.getHeaderField("Location") ?: return null
-                    currentUrl = URI.create(currentUrl).resolve(location).toString()
-                    return@repeat
+                val request = HttpRequest.newBuilder(URI.create(currentUrl))
+                    .timeout(Duration.ofMillis(timeout.toLong()))
+                    .setHeader("User-Agent", USER_AGENT_BROWSER)
+                    .GET()
+                    .build()
+                val response = noRedirectClientFor(currentUrl).send(request, HttpResponse.BodyHandlers.ofInputStream())
+                response.body().use { stream ->
+                    val status = response.statusCode()
+                    if (status in 300..399) {
+                        val location = response.headers().firstValue("Location").orElse(null) ?: return null
+                        currentUrl = URI.create(currentUrl).resolve(location).toString()
+                        return@repeat
+                    }
+                    if (status !in 200..299) return null
+                    val bytes = stream.readNBytes(maxBytes + 1)
+                    if (bytes.size > maxBytes) {
+                        log.warn("[{}] is larger than {} bytes, not reading it", hostOf(currentUrl), maxBytes)
+                        return null
+                    }
+                    return String(bytes, Charsets.UTF_8)
                 }
-                if (status !in 200..299) return null
-                val bytes = connection.inputStream.use { it.readNBytes(maxBytes + 1) }
-                if (bytes.size > maxBytes) {
-                    log.warn("[{}] is larger than {} bytes, not reading it", hostOf(currentUrl), maxBytes)
-                    return null
-                }
-                return String(bytes, Charsets.UTF_8)
+            } catch (exception: InterruptedException) {
+                Thread.currentThread().interrupt()
+                return null
             } catch (exception: Exception) {
                 log.error("HttpHelper [{}]: {} {}", hostOf(currentUrl), exception.javaClass.simpleName, redactSecrets(exception.message))
                 return null
@@ -200,22 +154,20 @@ class HttpHelper {
         return null
     }
 
-    class BinaryResponse(val status: Int, val body: ByteArray)
-
     /**
      * Fetches a url without decoding the answer, for binary content like tracker answers. Certificates are verified.
      * Unlike the page methods this doesn't hide failures: connection problems and timeouts are thrown as
      * [IOException], other status codes than 200 are returned.
      */
     @Throws(IOException::class)
-    fun getBinary(url: String, timeout: Int = 10 * 1000): BinaryResponse {
+    fun getBinary(url: String, timeout: Int = SHORT_TIMEOUT): BinaryResponse {
         val request = HttpRequest.newBuilder(URI.create(url))
             .timeout(Duration.ofMillis(timeout.toLong()))
             .header("User-Agent", USER_AGENT_BROWSER)
             .GET()
             .build()
         return try {
-            val response = httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray())
+            val response = verifiedClientFor(url).send(request, HttpResponse.BodyHandlers.ofByteArray())
             BinaryResponse(response.statusCode(), response.body())
         } catch (e: InterruptedException) {
             Thread.currentThread().interrupt()
@@ -223,32 +175,10 @@ class HttpHelper {
         }
     }
 
-    fun getPage(url: String): String {
-        return getPage(url, null, null, null, 30 * 1000)
-    }
-
-    fun getPage(url: String, body: String?, headers: Map<String, String>? = null): String {
-        return getPage(url, null, null, body, 10 * 1000, headers)
-    }
-
-    fun getPageWithShortTimeout(url: String): String {
-        return getPage(url, null, null, null, 10 * 1000)
-    }
-
-    fun getPage(url: String, timeout: Int): String {
-        return getPage(url, null, null, null, timeout)
-    }
-
-    fun getPage(url: String, params: List<String>?): String {
-        return getPage(url, params, null)
-    }
-
-    fun isWebsiteResponding(baseUrl: String, timeout: Int): Boolean {
-        return getPage(baseUrl, timeout).isNotEmpty()
-    }
-
     companion object {
-        private const val charset = "UTF-8" // Or in Java 7 and later, use the constant: java.nio.charset.StandardCharsets.UTF_8.name()
+        const val DEFAULT_TIMEOUT = 30 * 1000
+        const val SHORT_TIMEOUT = 10 * 1000
+        private const val MAX_REDIRECTS = 3
         private val log = LoggerFactory.getLogger(HttpHelper::class.java)
 
         // Calls to these hosts carry API keys or deliver the data we act on, they are never made without verification.
@@ -261,10 +191,34 @@ class HttpHelper {
         /** Hides the values of api keys and similar parameters, e.g. before an url ends up in a log. */
         fun redactSecrets(text: String?): String? = text?.replace(secretPattern) { it.groupValues[1] + "=***" }
 
-        private const val MAX_REDIRECTS = 3
-        private val httpClient: HttpClient by lazy {
-            HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).connectTimeout(Duration.ofSeconds(10))
-                .followRedirects(HttpClient.Redirect.NORMAL).build()
+        // https uses HTTP/2 where the server offers it (the JDK negotiates it with ALPN and falls back to HTTP/1.1), plain
+        // http stays on HTTP/1.1, so no HTTP/2 upgrade is attempted on it
+        private fun clientBuilder(version: HttpClient.Version) =
+            HttpClient.newBuilder().version(version).connectTimeout(Duration.ofSeconds(10))
+
+        private val httpsClient: HttpClient by lazy {
+            clientBuilder(HttpClient.Version.HTTP_2).followRedirects(HttpClient.Redirect.NORMAL).build()
+        }
+        private val plainClient: HttpClient by lazy {
+            clientBuilder(HttpClient.Version.HTTP_1_1).followRedirects(HttpClient.Redirect.NORMAL).build()
+        }
+        private val httpsClientWithoutRedirects: HttpClient by lazy {
+            clientBuilder(HttpClient.Version.HTTP_2).followRedirects(HttpClient.Redirect.NEVER).build()
+        }
+        private val plainClientWithoutRedirects: HttpClient by lazy {
+            clientBuilder(HttpClient.Version.HTTP_1_1).followRedirects(HttpClient.Redirect.NEVER).build()
+        }
+
+        private fun isHttps(url: String) = url.startsWith("https:", ignoreCase = true)
+
+        private fun verifiedClientFor(url: String) = if (isHttps(url)) httpsClient else plainClient
+
+        private fun noRedirectClientFor(url: String) = if (isHttps(url)) httpsClientWithoutRedirects else plainClientWithoutRedirects
+
+        // a plain X509TrustManager, so the host name is still checked, only expired or unknown certificates are accepted
+        private val unverifiedClient: HttpClient by lazy {
+            val sslContext = SSLContext.getInstance("TLS").apply { init(null, trustAllCerts, null) }
+            clientBuilder(HttpClient.Version.HTTP_2).sslContext(sslContext).followRedirects(HttpClient.Redirect.NORMAL).build()
         }
 
         /** http(s) url whose host only resolves to public addresses (unless [allowPrivate]). */
@@ -302,36 +256,14 @@ class HttpHelper {
             return !url.contains("apikey=", ignoreCase = true) && !url.contains("api_key=", ignoreCase = true)
         }
 
-        private val trustAllSocketFactory by lazy {
-            SSLContext.getInstance("TLS").apply { init(null, trustAllCerts, null) }.socketFactory
-        }
-
         private val trustAllCerts = arrayOf<TrustManager>(
             object : X509TrustManager {
-                override fun getAcceptedIssuers(): Array<X509Certificate> {
-                    return emptyArray()
-                }
+                override fun getAcceptedIssuers(): Array<X509Certificate> = emptyArray()
 
-                override fun checkClientTrusted(
-                    certs: Array<X509Certificate>,
-                    authType: String
-                ) {
-                }
+                override fun checkClientTrusted(certs: Array<X509Certificate>, authType: String) {}
 
-                override fun checkServerTrusted(
-                    certs: Array<X509Certificate>,
-                    authType: String
-                ) {
-                }
+                override fun checkServerTrusted(certs: Array<X509Certificate>, authType: String) {}
             }
         )
-
-        @Throws(IOException::class)
-        fun downloadFileToPath(fileURLFromTorrent: String, localPath: String) {
-            val remoteUrl = URI.create(fileURLFromTorrent).toURL()
-            val rbc = Channels.newChannel(remoteUrl.openStream())
-            val fos = FileOutputStream(localPath)
-            fos.channel.transferFrom(rbc, 0, Long.MAX_VALUE)
-        }
     }
 }
