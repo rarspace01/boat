@@ -130,3 +130,15 @@ Subtitles
 dual
 audio
 web
+vvc
+h266
+x266
+av1
+vp9
+avc
+vc1
+mpeg2
+dvd5
+dvd9
+mpeg1
+vcd
