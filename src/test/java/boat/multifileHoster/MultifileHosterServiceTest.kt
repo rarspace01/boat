@@ -60,7 +60,7 @@ internal class MultifileHosterServiceTest {
                 rcloneUploader
             )
         )
-        every { rcloneUploader.copyUrl(any(), any()) } returns true
+        every { rcloneUploader.copyUrl(any(), any(), any()) } returns true
     }
 
     @Test
@@ -390,7 +390,7 @@ internal class MultifileHosterServiceTest {
         every { cloudService.buildDestinationPath(any(), any()) } returns Pair("I", "/destination/Movies/I/")
         every { httpHelper.getPage(match { it.contains("folder/list") }) } returns
                 "{\"status\":\"success\",\"content\":[{\"id\":\"f1\",\"name\":\"Inception.mkv\",\"type\":\"file\",\"size\":1000,\"link\":\"http://premiumize.me/dl/inception.mkv\"}]}"
-        every { rcloneUploader.copyUrl(any(), any()) } returns false
+        every { rcloneUploader.copyUrl(any(), any(), any()) } returns false
 
         multifileHosterService.checkForDownloadableTorrentsAndDownloadTheFirst()
 
@@ -413,7 +413,7 @@ internal class MultifileHosterServiceTest {
                 "{\"id\":\"f1\",\"name\":\"Breaking.Bad.S01E01.mkv\",\"type\":\"file\",\"size\":1000,\"link\":\"http://premiumize.me/dl/bb01.mkv\"}," +
                 "{\"id\":\"f2\",\"name\":\"Breaking.Bad.S01E02.mkv\",\"type\":\"file\",\"size\":1000,\"link\":\"http://premiumize.me/dl/bb02.mkv\"}" +
                 "]}"
-        every { rcloneUploader.copyUrl("http://premiumize.me/dl/bb02.mkv", any()) } returns false
+        every { rcloneUploader.copyUrl("http://premiumize.me/dl/bb02.mkv", any(), any()) } returns false
 
         multifileHosterService.checkForDownloadableTorrentsAndDownloadTheFirst()
 
@@ -523,8 +523,29 @@ internal class MultifileHosterServiceTest {
 
         assertThat(transfer.transferStatus).isEqualTo(TransferStatus.UPLOAD_TO_DRIVE_FAILED)
         assertThat(transfer.feedbackMessage).contains("no files found")
-        verify(exactly = 0) { rcloneUploader.copyUrl(any(), any()) }
+        verify(exactly = 0) { rcloneUploader.copyUrl(any(), any(), any()) }
         verify(exactly = 0) { transferService.delete(any()) }
+    }
+
+    @Test
+    fun shouldTellTheUploaderTheSizeOfEachFile() {
+        val transfer = Transfer(
+            name = "Breaking.Bad.S01",
+            transferStatus = TransferStatus.READY_TO_BE_DOWNLOADED,
+            remoteId = "remote-123",
+            source = "Premiumize"
+        )
+        stubTransfers(listOf(transfer))
+        every { cloudService.buildDestinationPath(any(), any()) } returns Pair("B", "/destination/Series-Shows/B/Breaking.Bad/")
+        every { httpHelper.getPage(match { it.contains("folder/list") }) } returns "{\"status\":\"success\",\"content\":[" +
+                "{\"id\":\"f1\",\"name\":\"Breaking.Bad.S01E01.mkv\",\"type\":\"file\",\"size\":1000,\"link\":\"http://premiumize.me/dl/bb01.mkv\"}," +
+                "{\"id\":\"f2\",\"name\":\"Breaking.Bad.S01E02.mkv\",\"type\":\"file\",\"size\":2000,\"link\":\"http://premiumize.me/dl/bb02.mkv\"}" +
+                "]}"
+
+        multifileHosterService.checkForDownloadableTorrentsAndDownloadTheFirst()
+
+        verify(exactly = 1) { rcloneUploader.copyUrl("http://premiumize.me/dl/bb01.mkv", any(), 1000L) }
+        verify(exactly = 1) { rcloneUploader.copyUrl("http://premiumize.me/dl/bb02.mkv", any(), 2000L) }
     }
 
     @Test
@@ -539,7 +560,7 @@ internal class MultifileHosterServiceTest {
         every { cloudService.buildDestinationPath(any(), any()) } returns Pair("I", "/destination/Movies/I/")
         every { httpHelper.getPage(match { it.contains("folder/list") }) } returns
                 "{\"status\":\"success\",\"content\":[{\"id\":\"f1\",\"name\":\"Inception.mkv\",\"type\":\"file\",\"size\":1000,\"link\":\"http://premiumize.me/dl/inception.mkv\"}]}"
-        every { rcloneUploader.copyUrl(any(), any()) } returns false
+        every { rcloneUploader.copyUrl(any(), any(), any()) } returns false
 
         multifileHosterService.checkForDownloadableTorrentsAndDownloadTheFirst()
         assertThat(transfer.failedUploadsToDrive).isEqualTo(1)
@@ -563,7 +584,7 @@ internal class MultifileHosterServiceTest {
         every { cloudService.buildDestinationPath(any(), any()) } returns Pair("I", "/destination/Movies/I/")
         every { httpHelper.getPage(match { it.contains("folder/list") }) } returns
                 "{\"status\":\"success\",\"content\":[{\"id\":\"f1\",\"name\":\"Inception.mkv\",\"type\":\"file\",\"size\":1000,\"link\":\"http://premiumize.me/dl/inception.mkv\"}]}"
-        every { rcloneUploader.copyUrl(any(), any()) } returns false
+        every { rcloneUploader.copyUrl(any(), any(), any()) } returns false
 
         multifileHosterService.checkForDownloadableTorrentsAndDownloadTheFirst()
 
