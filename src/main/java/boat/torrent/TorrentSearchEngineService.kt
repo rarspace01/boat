@@ -68,7 +68,10 @@ class TorrentSearchEngineService(
             return allSearchEngines.filter { torrentSearchEngine: TorrentSearchEngine -> !currentActiveSearchEngines.contains(torrentSearchEngine) }
         }
 
-    fun searchTorrents(searchString: String): List<Torrent> {
+    /**
+     * @param season only the torrents which have this season of a series (see [SeasonFilter]), all if null
+     */
+    fun searchTorrents(searchString: String, season: Int? = null): List<Torrent> {
         val activeSearchEngines: List<TorrentSearchEngine> = getActiveSearchEngines()
         if (activeSearchEngines.isEmpty()) {
             logger.warn("no active search engines for [{}]", searchString)
@@ -109,7 +112,7 @@ class TorrentSearchEngineService(
                 logger.error("searchTorrents() terminated after timeout")
             }
         }
-        val returnResults: List<Torrent> = ArrayList(cleanDuplicates(prepareCandidates(combineResults, searchString)))
+        val returnResults: List<Torrent> = ArrayList(cleanDuplicates(prepareCandidates(combineResults, searchString, season)))
         val cacheStateOfTorrents = mutableListOf<Torrent>()
         cacheStateOfTorrents.addAll(multifileHosterService.getCachedStateOfTorrents(returnResults))
 
@@ -119,12 +122,13 @@ class TorrentSearchEngineService(
 
     /**
      * Drops what is never wanted (explicit content for this search, bad quality, no size or magnet) before the
-     * lookups at the multifilehosters and trackers, and rates the rest (the better of two duplicates is kept).
+     * lookups at the multifilehosters and trackers (and, for the search of a season, what has another season), and rates the rest (the better of two duplicates is kept).
      */
-    internal fun prepareCandidates(torrents: List<Torrent>, searchString: String): List<Torrent> =
+    internal fun prepareCandidates(torrents: List<Torrent>, searchString: String, season: Int? = null): List<Torrent> =
         torrents
             .filterNot { TorrentHelper.isExplicitContent(it, searchString) }
             .filter { TorrentHelper.isValidTorrent(it) }
+            .filter { season == null || SeasonFilter.matches(it.name, season) }
             .onEach { TorrentHelper.evaluateRating(it, searchString) }
 
     /**
