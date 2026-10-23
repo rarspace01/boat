@@ -9,9 +9,6 @@ Ordered by how much they matter, from the review of 2026-10-23 (on top of #581).
 
 ### Bugs and risks
 
-- [ ] The same queue entry can be searched and added twice: `checkForQueueEntries` runs every 30 s as `@Async`, the
-  entry is only removed after the torrent search, which can take longer. Guard it like the downloads
-  (`AtomicBoolean`) or remove the entry first.
 - [ ] A transfer the hoster rejects (`SERVER_ERROR`) is sent again every 30 s forever. Every try saves it, which
   renews `updated`, so the cleanup (`isTransferObsolete`) never removes it. Needs a retry limit or backoff like
   `MAX_UPLOAD_TO_DRIVE_RETRIES`.

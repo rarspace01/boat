@@ -27,6 +27,7 @@ import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import java.time.Instant
 import java.time.temporal.ChronoUnit
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.system.exitProcess
 
 @EnableAsync
@@ -43,6 +44,9 @@ class DownloadMonitor(
     private val httpHelper: HttpHelper,
     private val mediaProxyService: MediaProxyService
 ) {
+    /** A queue entry is only removed after its torrent search, which can take longer than the 30 s between two runs. */
+    private val isQueueCheckInProgress = AtomicBoolean(false)
+
     @Async
     @Scheduled(fixedRate = (SECONDS_BETWEEN_SEARCH_ENGINE_POLLING * 1000).toLong())
     fun refreshTorrentSearchEngines() {
@@ -135,9 +139,13 @@ class DownloadMonitor(
     @Async
     @Scheduled(fixedRate = (SECONDS_BETWEEN_QUEUE_POLLING * 1000).toLong())
     fun checkForQueueEntries() {
-        if (cloudService.isCloudTokenValid && configurationService.isSearchMode()) {
-            logger.info("checkForQueueEntryAndAddToTransfers")
-            checkForQueueEntryAndAddToTransfers()
+        if (cloudService.isCloudTokenValid && configurationService.isSearchMode() && isQueueCheckInProgress.compareAndSet(false, true)) {
+            try {
+                logger.info("checkForQueueEntryAndAddToTransfers")
+                checkForQueueEntryAndAddToTransfers()
+            } finally {
+                isQueueCheckInProgress.set(false)
+            }
         }
     }
 
