@@ -31,7 +31,7 @@ are in the git history (PRs #545 to #569), the settings are in the README.
   race between the check and the connection is possible, the endpoint needs a login.
 - Downloads: a transfer whose upload to the drive failed, or whose hoster returned no files, is retried
   `MAX_UPLOAD_TO_DRIVE_RETRIES` (2) times, then it is `UPLOAD_TO_DRIVE_FAILED` and the files stay on the hoster
-  (restart on the debug page). The torrent is only deleted at the hoster after all files are uploaded.
+  (restart on the info page). The torrent is only deleted at the hoster after all files are uploaded.
 - rclone `copyurl` skips a file which already exists with the size the hoster reports. The size doesn't prove identical
   content; a file of another size is replaced.
 - Media proxy cache: failed lookups are never cached; found entries live 90 days, not found 7 (`0` = forever).

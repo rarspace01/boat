@@ -87,7 +87,7 @@ class BoatController @Autowired constructor(
         }
 
         /**
-         * Restart and delete buttons of a transfer on the debug page, not while it is uploading to the drive.
+         * Restart and delete buttons of a transfer on the info page, not while it is uploading to the drive.
          */
         internal fun transferControls(transfer: Transfer): String {
             if (transfer.transferStatus == TransferStatus.UPLOADING_TO_DRIVE) return ""
@@ -100,7 +100,7 @@ class BoatController @Autowired constructor(
         }
     }
 
-    private val switchToProgress = "<a href=\"./debug\">Show Progress</a> "
+    private val switchToProgress = "<a href=\"./info\">Show Progress</a> "
     private val switchToSearchList = "<a href=\"./searchList\">Search a List</a> "
     private val switchToSearch = "<a href=\"./search\">Search a single Title</a> "
     private val switchToSearchOld = "<a href=\"./searchOld\">Old Search</a> "
@@ -377,8 +377,8 @@ $switchToSearchOld$switchToSearchList${switchToProgress.replace("..", "../boat")
         return HtmlUtils.htmlEscape(mediaProxyService.search(query).toString())
     }
 
-    @GetMapping("/boat/debug")
-    fun debugInfo(@RequestParam(value = "message", required = false) message: String?): String {
+    @GetMapping("/boat/info")
+    fun info(@RequestParam(value = "message", required = false) message: String?): String {
         multifileHosterService.refreshTorrents()
         val remoteTorrents: List<Torrent> = multifileHosterService.activeTorrents
         val runtimeBean = ManagementFactory.getRuntimeMXBean()
@@ -409,19 +409,27 @@ $switchToSearchOld$switchToSearchList${switchToProgress.replace("..", "../boat")
     @PostMapping("/boat/transferDelete")
     fun deleteTransfer(@RequestParam(value = "id") transferId: String): ResponseEntity<Void> {
         logger.info("delete transfer request received: {}", transferId)
-        return redirectToDebug(multifileHosterService.deleteTransfer(transferId))
+        return redirectToInfo(multifileHosterService.deleteTransfer(transferId))
     }
 
     @PostMapping("/boat/transferRestart")
     fun restartTransfer(@RequestParam(value = "id") transferId: String): ResponseEntity<Void> {
         logger.info("restart transfer request received: {}", transferId)
-        return redirectToDebug(multifileHosterService.restartTransfer(transferId))
+        return redirectToInfo(multifileHosterService.restartTransfer(transferId))
     }
 
-    // 303, so reloading the debug page doesn't send the form again
-    private fun redirectToDebug(message: String): ResponseEntity<Void> {
+    // 303, so reloading the info page doesn't send the form again
+    private fun redirectToInfo(message: String): ResponseEntity<Void> {
         return ResponseEntity.status(HttpStatus.SEE_OTHER)
-            .header(HttpHeaders.LOCATION, "./debug?message=" + urlEncode(message))
+            .header(HttpHeaders.LOCATION, "./info?message=" + urlEncode(message))
+            .build()
+    }
+
+    /** The former name of the info page, for bookmarks and links. */
+    @GetMapping("/boat/debug")
+    fun debugRedirect(@RequestParam(value = "message", required = false) message: String?): ResponseEntity<Void> {
+        return ResponseEntity.status(HttpStatus.MOVED_PERMANENTLY)
+            .header(HttpHeaders.LOCATION, "./info" + (message?.let { "?message=" + urlEncode(it) } ?: ""))
             .build()
     }
 
