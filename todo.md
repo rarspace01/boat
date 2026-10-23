@@ -9,7 +9,6 @@ are in the git history (PRs #545 to #569), the settings are in the README.
   of the list, trackers know different subsets).
 - [ ] Sign the release jar (or publish build attestations). The checksum next to `boat.jar` protects against corrupted
   or tampered downloads, not against a compromised GitHub release.
-- [ ] `TorrentSearchEngineService` still creates a `ForkJoinPool` per search, sized by the number of active engines.
 - [ ] Alldebrid: kept on purpose, but only Premiumize is registered in `MultifileHosterService`. Register it there to
   use it (the API key setting and the tests exist).
 - [ ] `BluRayComService`: kept for finding BD releases to download, not used by anything yet.

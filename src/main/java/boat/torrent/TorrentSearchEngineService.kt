@@ -4,12 +4,12 @@ import boat.multifileHoster.MultifileHosterService
 import boat.torrent.searchEngines.*
 import boat.utilities.HttpHelper
 import boat.utilities.LoggerDelegate
+import jakarta.annotation.PreDestroy
 import org.springframework.stereotype.Service
 import java.time.Instant
 import java.util.concurrent.Callable
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.ForkJoinPool
-import java.util.concurrent.TimeUnit
 import java.util.function.Consumer
 import java.util.stream.Collectors
 
@@ -27,7 +27,13 @@ class TorrentSearchEngineService(
 
         /** The most results a search returns, after everything is filtered and sorted. */
         const val MAX_SEARCH_RESULTS = 100
+
+        /** The engines search at once and some fetch the pages of their torrents in parallel (in the same pool). */
+        const val SEARCH_PARALLELISM = 32
     }
+
+    // one pool for all searches, the parallel streams of the engines run in it too instead of the small common pool
+    private val searchPool = ForkJoinPool(SEARCH_PARALLELISM)
 
     private val allSearchEngines: List<TorrentSearchEngine> = searchEngines ?: listOf<TorrentSearchEngine>(
         AnyBT(httpHelper),
@@ -51,11 +57,18 @@ class TorrentSearchEngineService(
     private var activeSearchEngines: List<TorrentSearchEngine> = allSearchEngines
 
     fun refreshTorrentSearchEngines() {
-        activeSearchEngines = allSearchEngines.parallelStream()
-            .filter { torrentSearchEngine: TorrentSearchEngine ->
-                runCatching { torrentSearchEngine.searchTorrents("blue").isNotEmpty() }.getOrDefault(false)
-            }
-            .collect(Collectors.toList())
+        activeSearchEngines = searchPool.submit(Callable {
+            allSearchEngines.parallelStream()
+                .filter { torrentSearchEngine: TorrentSearchEngine ->
+                    runCatching { torrentSearchEngine.searchTorrents("blue").isNotEmpty() }.getOrDefault(false)
+                }
+                .collect(Collectors.toList())
+        }).get()
+    }
+
+    @PreDestroy
+    fun shutdown() {
+        searchPool.shutdownNow()
     }
 
     fun getActiveSearchEngines(): List<TorrentSearchEngine> {
@@ -75,9 +88,8 @@ class TorrentSearchEngineService(
             return emptyList()
         }
         var combineResults: List<Torrent> = emptyList()
-        val forkJoinPool = ForkJoinPool(activeSearchEngines.size)
         try {
-            combineResults = forkJoinPool.submit(
+            combineResults = searchPool.submit(
                 Callable {
                     activeSearchEngines.parallelStream()
                         .map { torrentSearchEngine: TorrentSearchEngine ->
@@ -101,13 +113,6 @@ class TorrentSearchEngineService(
             logger.error("Parallel search execution failed", e)
         } catch (e: ExecutionException) {
             logger.error("Parallel search execution failed", e)
-        } finally {
-            forkJoinPool.shutdown()
-            val awaitTermination = forkJoinPool.awaitTermination(30, TimeUnit.SECONDS)
-            if (!awaitTermination) {
-                forkJoinPool.shutdownNow()
-                logger.error("searchTorrents() terminated after timeout")
-            }
         }
         val returnResults: List<Torrent> = ArrayList(cleanDuplicates(prepareCandidates(combineResults, searchString)))
         val cacheStateOfTorrents = mutableListOf<Torrent>()
