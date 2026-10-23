@@ -18,8 +18,6 @@ Ordered by how much they matter, from the review of 2026-10-23 (on top of #581).
 
 ### Performance
 
-- [ ] Queue polling asks the hoster for its transfers and the traffic every 30 s, also when the queue is empty.
-  Check the queue first.
 - [ ] `addTransfersToDownloadQueue` runs a full `updateTransferStatus` (transfer list of the hoster) after every
   added transfer.
 - [ ] `CloudService.buildDestinationPath` searches TMDB/TVDB only for a log line, once per file of a multi file

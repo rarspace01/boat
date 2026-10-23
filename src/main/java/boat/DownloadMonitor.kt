@@ -150,6 +150,8 @@ class DownloadMonitor(
     }
 
     private fun checkForQueueEntryAndAddToTransfers() {
+        // the hoster is only asked for its transfers and the traffic if there is something to add
+        if (queueService.getQueue().isEmpty()) return
         val remoteTorrents = multifileHosterService.remoteTorrents
         val numberOfActiveRemoteTorrents = remoteTorrents.count { torrent: Torrent -> torrent.remoteTransferStatus != TransferStatus.READY_TO_BE_DOWNLOADED }
         val numberOfTorrentsReadyToDownload = remoteTorrents.count { torrent: Torrent -> torrent.remoteTransferStatus == TransferStatus.READY_TO_BE_DOWNLOADED }

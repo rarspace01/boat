@@ -54,6 +54,16 @@ internal class DownloadMonitorTest {
     }
 
     @Test
+    fun shouldNotAskTheHosterIfTheQueueIsEmpty() {
+        every { queueService.getQueue() } returns emptyList()
+
+        downloadMonitor.checkForQueueEntries()
+
+        verify(exactly = 0) { multifileHosterService.remoteTorrents }
+        verify(exactly = 0) { multifileHosterService.getRemainingTrafficInMB() }
+    }
+
+    @Test
     fun shouldNotPickTheSameQueueEntryWhileItIsStillSearched() {
         val queueItem = MediaItem(title = "Avatar", year = 2009, type = MediaType.Movie, id = "{tmdb-19995}")
         val searching = java.util.concurrent.CountDownLatch(1)
