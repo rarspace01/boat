@@ -125,6 +125,8 @@ tasks.test {
     useJUnitPlatform {
         excludeTags("live")
     }
+    // the dummy settings of the offline tests, a boat.cfg of the developer is not used (environment variables still win)
+    systemProperty("boat.config", file("src/test/resources/boat.test.cfg").absolutePath)
     jvmArgs("-XX:+EnableDynamicAgentLoading", "-Xshare:off")
     testLogging {
         events("standardOut", "started", "passed", "skipped", "failed")

@@ -10,6 +10,7 @@ object PropertiesHelper {
     const val PROPERTIY_FILE: String = "boat.cfg"
     const val PROPERTIY_FILE_DEFAULT: String = "boat.default.cfg"
     const val VERSION_FILE: String = "version.properties"
+    const val CONFIG_FILE_PROPERTY: String = "boat.config"
 
     val version: String?
         get() = runCatching {
@@ -37,10 +38,10 @@ object PropertiesHelper {
         getProperty(propname)?.takeIf { it.isNotBlank() }
             ?: throw IllegalStateException("'$propname' is not set, set it in $PROPERTIY_FILE or as environment variable")
 
+    /**
+     * [PROPERTIY_FILE_DEFAULT] only documents the settings, its dummy values must not count as set. The system property
+     * `boat.config` names another file (the offline tests use their own).
+     */
     private val propertyFile: String?
-        get() = when {
-            File(PROPERTIY_FILE).isFile -> PROPERTIY_FILE
-            File(PROPERTIY_FILE_DEFAULT).isFile -> PROPERTIY_FILE_DEFAULT
-            else -> null
-        }
+        get() = (System.getProperty(CONFIG_FILE_PROPERTY) ?: PROPERTIY_FILE).takeIf { File(it).isFile }
 }

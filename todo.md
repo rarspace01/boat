@@ -12,9 +12,6 @@ Ordered by how much they matter, from the review of 2026-10-23 (on top of #581).
 - [ ] Uploads drop `'` from the target path (`RcloneUploader`, a leftover from the shell command), the renamer keeps
   it: "Oceans Eleven" against "Ocean's Eleven" in the library. To decide: keep the `'` (new downloads get another
   spelling than before) or drop it in the renamer too.
-- [ ] `boat.default.cfg` is the fallback for a missing `boat.cfg`, its dummy values (`123456`) count as set: the
-  startup check doesn't warn, requests are made with them. Use the defaults only for documentation, or treat
-  `123456` as not set.
 - [ ] `/boat/download`: an invalid `d` (Base64) answers with HTTP 500, the comma separated `dd` urls are not trimmed
   and blank ones become transfers.
 - [ ] `CloudService.isCloudTokenValid` lists `Movies/A` on every call (two jobs every 30 s and the info page), only

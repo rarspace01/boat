@@ -12,7 +12,7 @@ internal class TheTVDBServiceFailureTest {
 
     @Test
     fun shouldReturnNullIfTheLoginFails() {
-        // needs an api key to try the login, boat.default.cfg has one
+        // needs an api key to try the login, boat.test.cfg has one
         every { httpHelper.getPage(match { it.endsWith("/login") }, anyNullable<String>(), anyNullable<Map<String, String>>()) } returns ""
 
         assertThat(TheTVDBService(httpHelper).search("Dark")).isNull()

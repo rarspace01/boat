@@ -22,7 +22,8 @@ the boat sails with wind
 Copy `boat.default.cfg` to `boat.cfg` and modify values accordingly. Run `./runBoat.sh` to have an autoupdate of the
 newest version.
 
-Settings are read from `boat.cfg` (or `boat.default.cfg`) and can be overridden by environment variables:
+Settings are read from `boat.cfg` and can be overridden by environment variables. `boat.default.cfg` only lists them,
+its dummy values are not used:
 
 | Setting | Default | |
 |---|---|---|
