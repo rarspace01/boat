@@ -173,7 +173,7 @@ $BREAK_LINK_HTML  <input type="reset" value="Reset">
   <input type="submit" value="Download">
 </form>
 <br/>
-$switchToSearch$switchToSearchList${switchToProgress.replace("..", "../boat")}""" + htmlFooter
+$switchToSearch$switchToSearchList$switchToProgress""" + htmlFooter
     }
 
     @GetMapping("/boat/searchList")
@@ -237,7 +237,7 @@ $switchToSearch${switchToProgress}""" + htmlFooter
             .filter { mediaItem: MediaItem -> isNotAlreadyDownloaded(mediaItem) }
         queueService.addAll(listOfMediaItems)
         queueService.saveQueue()
-        return htmlHeader + (switchToProgress.replace("..", "../boat") + HtmlUtils.htmlEscape(listOfMediaItems.toString()).replace("\n", "<br/>")) + htmlFooter
+        return htmlHeader + (switchToProgress + HtmlUtils.htmlEscape(listOfMediaItems.toString()).replace("\n", "<br/>")) + htmlFooter
     }
 
     /**
@@ -273,7 +273,7 @@ $BREAK_LINK_HTML  <input type="reset" value="Reset">
   <input type="submit" value="Search">
 </form>
 <br/>
-$switchToSearchOld$switchToSearchList${switchToProgress.replace("..", "../boat")}""" + htmlFooter
+$switchToSearchOld$switchToSearchList$switchToProgress""" + htmlFooter
     }
 
     /**
