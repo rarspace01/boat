@@ -17,6 +17,14 @@ import java.util.stream.Collectors
 object TorrentHelper {
     private val badQualityRegex: Regex =
         Regex("(telesync|telecine|hdcam|tscam|\\.cam\\.| cam |cam-rip|camrip|tsrip|hqcam|hdts|hd-ts|\\.hdtc\\.|\\.ts\\.|\\[ts\\]|pdvd|predvdrip|workprint|hd ts)")
+
+    /**
+     * AI upscales of old releases ("Kung Fu Hustle 2004 4K.Ai.mkv"): a bootleg of a lower quality source, so they come
+     * after the real releases but are not filtered, they might be all there is. "AI" must be a word of its own.
+     */
+    private val aiUpscaleRegex: Regex = Regex("(?<![a-z0-9])ai(?![a-z0-9])|upscal|esrgan|topaz")
+    private val aiWordRegex: Regex = Regex("(?<![a-z0-9])a\\.?i\\.?(?![a-z0-9])")
+    const val AI_UPSCALE_RATING_FACTOR = 0.1
     const val REGEX_RELEASE_GROUP = "(-[A-Za-z\\s]+)"
     private val torrentService = TorrentService(null)
     const val SIZE_UPPER_LIMIT = 15000.0
@@ -148,8 +156,13 @@ object TorrentHelper {
         }
 
         // searchRatingNew Calc
-        tempTorrent.searchRating =
+        var searchRating =
             matchedScoreOfSearch * speedMultiplier * (matchedScoreOfTorrent + sizeRating + speedRating + additionalRating)
+        if (isAiUpscale(torrentName, searchName)) {
+            searchRating *= AI_UPSCALE_RATING_FACTOR
+            debugAdditional += "🤖"
+        }
+        tempTorrent.searchRating = searchRating
         tempTorrent.debugRating = String.format(
             "<!-- 🔍%.2f * 📶%.2f * (🔦%.2f + 📦%.2f + 🚄%.2f (%.2f) + 🧮%.2f - %s) -->",
             matchedScoreOfSearch,
@@ -214,6 +227,10 @@ object TorrentHelper {
     private val xxxWordRegex = Regex("(?<![a-z0-9])xxx(?![a-z0-9])")
     // leading release groups like "[ETRG] " are skipped
     private val startsWithXxxWordRegex = Regex("^(?:\\W*\\[[^]]*])*\\W*xxx(?![a-z0-9])")
+
+    /** Not if the search itself is about "AI" (A.I. Artificial Intelligence). */
+    internal fun isAiUpscale(torrentName: String, searchName: String): Boolean =
+        aiUpscaleRegex.containsMatchIn(torrentName.lowercase(Locale.ROOT)) && !aiWordRegex.containsMatchIn(searchName.lowercase(Locale.ROOT))
 
     private fun isBadQualityName(torrentNameLowerCased: String) =
         torrentNameLowerCased.contains(badQualityRegex)
