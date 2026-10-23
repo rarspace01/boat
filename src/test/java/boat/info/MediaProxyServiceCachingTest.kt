@@ -501,4 +501,20 @@ class MediaProxyServiceCachingTest {
 
         assertThat(service.cache.keys).containsExactlyInAnyOrder("search:Movie 16", "search:Movie 17", "search:Movie 18", "search:Movie 19", "search:Movie 20")
     }
+
+    @Test
+    fun `cache should drop a tenth more than needed once it is full`() {
+        var now = 1_000_000_000_000L
+        val service = service("unusedCacheFile") { now }
+        service.maxCacheEntries = 20
+        (1..21).forEach { index ->
+            every { tmdbService.search("Movie $index") } returns listOf(MediaItem("Movie $index", year = 2000, type = MediaType.Movie))
+            every { tvdbService.search("Movie $index") } returns emptyList()
+            now += 1000
+            service.search("Movie $index")
+        }
+
+        assertThat(service.cache).hasSize(18)
+        assertThat(service.cache.keys).doesNotContain("search:Movie 1", "search:Movie 2", "search:Movie 3").contains("search:Movie 21")
+    }
 }
