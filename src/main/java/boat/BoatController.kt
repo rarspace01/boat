@@ -338,42 +338,21 @@ $switchToSearchOld$switchToSearchList${switchToProgress.replace("..", "../boat")
         @RequestParam(value = "dd", required = false) directDownloadUri: String?,
         @RequestParam(value = "mid", required = false) remoteMediaId: String?,
         @RequestParam(value = "mt", required = false) mediaTypeString: String?,
-    ): String {
-        val torrentsToBeDownloaded: MutableList<Torrent> = ArrayList()
-        val decodedUri: String
-
-        if (Strings.isNotEmpty(downloadUri)) {
-            val magnetUri = Base64.getUrlDecoder().decode(downloadUri)
-            decodedUri = String(magnetUri, StandardCharsets.UTF_8)
-            torrentsToBeDownloaded.add(
-                Torrent.of(
-                    magnetUri = decodedUri,
-                )
-            )
-        } else if (Strings.isNotEmpty(directDownloadUri)) {
-            decodedUri = directDownloadUri ?: ""
-            if (!decodedUri.contains(",")) {
-                torrentsToBeDownloaded.add(
-                    Torrent.of(
-                        magnetUri = decodedUri,
-                    )
-                )
-            } else {
-                val uris = decodedUri.split(",".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
-                uris.forEach {
-                    torrentsToBeDownloaded.add(
-                        Torrent.of(
-                            magnetUri = it,
-                        )
-                    )
-                }
-            }
+    ): ResponseEntity<String> {
+        val uris = if (Strings.isNotEmpty(downloadUri)) {
+            val decoded = runCatching { String(Base64.getUrlDecoder().decode(downloadUri!!.trim()), StandardCharsets.UTF_8) }.getOrNull()
+                ?: return ResponseEntity.badRequest().contentType(MediaType.TEXT_PLAIN).body("d is not Base64")
+            listOf(decoded)
+        } else {
+            // a comma separated list of urls
+            directDownloadUri.orEmpty().split(",").map { it.trim() }
         }
+        val torrentsToBeDownloaded = uris.filter { it.isNotBlank() }.map { Torrent.of(magnetUri = it) }
         torrentsToBeDownloaded.forEach {
             multifileHosterService.addTorrentToTransfer(it, remoteMediaId?.ifBlank { null }, parseMediaType(mediaTypeString))
         }
         multifileHosterService.addTransfersToDownloadQueue()
-        return switchToProgress
+        return ResponseEntity.ok().contentType(MediaType.TEXT_HTML).body(switchToProgress)
     }
 
     @RequestMapping("/boat/tfdb")
