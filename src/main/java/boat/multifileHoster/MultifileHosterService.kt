@@ -10,6 +10,7 @@ import boat.mapper.TorrentMapper
 import boat.model.Transfer
 import boat.model.TransferStatus
 import boat.model.TransferType
+import boat.rename.ReleaseMatcher
 import boat.services.TransferService
 import boat.torrent.HttpUser
 import boat.torrent.Torrent
@@ -47,6 +48,7 @@ class MultifileHosterService(
         private val rcloneUploader: RcloneUploader = RcloneUploader(),
 ) : HttpUser(httpHelper) {
     private val isDownloadInProgress = AtomicBoolean(false)
+    private val releaseMatcher = ReleaseMatcher(mediaProxyService)
     private var isRcloneInstalled: Boolean? = null
     private val multifileHosterList: MutableList<MultifileHoster> = mutableListOf(Premiumize(httpHelper))
     private val multifileHosterListForDownloads: MutableList<MultifileHoster> = getEligibleMultifileHoster(httpHelper)
@@ -370,7 +372,8 @@ class MultifileHosterService(
                     mediaProxyService.findByRemoteMediaId(it, transferToBeDownloaded.hosterName(), transferToBeDownloaded.mediaType)
                 }
                     ?: transferToBeDownloaded.remoteMediaId?.let { mediaProxyService.search(it, transferToBeDownloaded.mediaType).firstOrNull() }
-                    ?: mediaProxyService.search(transferToBeDownloaded.hosterName(), transferToBeDownloaded.mediaType).firstOrNull())
+                    // without an id only a confident match of name and year, otherwise the download keeps its own name
+                    ?: releaseMatcher.match(transferToBeDownloaded.hosterName(), transferToBeDownloaded.mediaType))
 
                 val filesFromTorrent = getFilesFromTorrent(remoteTorrent)
                 if (filesFromTorrent.isEmpty()) {

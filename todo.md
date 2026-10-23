@@ -9,10 +9,6 @@ Ordered by how much they matter, from the review of 2026-10-23 (on top of #581).
 
 ### Bugs and risks
 
-- [ ] Downloads without a remote media id (old search, direct urls, unmatched queue entries) take
-  `mediaProxyService.search(<release name>).firstOrNull()` as the title, so a wrong first hit files the download
-  under the wrong title. Parse name and year first (`MediaNameParser`/`MovieMatcher` as the renamer does) or upload to
-  `transfer` when there is no confident match.
 - [ ] Without a matched title the target path is `<folder>/<torrent name>/<file name>` from the torrent, unchecked:
   a `../` in a name writes elsewhere in the remote. Sanitize the names like `LibraryPaths.getSafeTitle`.
 - [ ] Not escaped in html: the queue on the info page (`MediaItem.toString`, titles from TMDB/TVDB or a pasted list)
