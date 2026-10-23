@@ -12,7 +12,7 @@ internal class CloudServiceTokenTest {
 
     private val cloudFileService: CloudFileService = mockk(relaxed = true)
     private var now = 0L
-    private val cloudService = CloudService(cloudFileService, mockk(relaxed = true)) { now }
+    private val cloudService = CloudService(cloudFileService) { now }
 
     @Test
     fun shouldRememberAnInvalidTokenForAMinuteAndAValidOneForFive() {

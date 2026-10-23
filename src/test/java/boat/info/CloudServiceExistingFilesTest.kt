@@ -22,7 +22,7 @@ internal class CloudServiceExistingFilesTest {
     @BeforeEach
     fun setUp() {
         every { cloudFileService.getFilesInPath(any()) } returns emptyList()
-        cloudService = CloudService(cloudFileService, mockk(relaxed = true))
+        cloudService = CloudService(cloudFileService)
         val moviesPath = cloudService.buildDestinationPathWithTypeOfMediaWithoutSubFolders("I", TorrentType.MOVIES)
         every { cloudFileService.getFilesInPath(moviesPath) } returns existingMovies.map { moviesPath + it }
         every { cloudFileService.isCacheFilled } returns true

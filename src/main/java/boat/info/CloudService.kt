@@ -1,7 +1,6 @@
 package boat.info
 
 import boat.torrent.TorrentFile
-import boat.torrent.TorrentHelper
 import boat.torrent.TorrentHelper.determineTypeOfMedia
 import boat.torrent.TorrentHelper.prepareTorrentName
 import boat.torrent.TorrentType
@@ -21,11 +20,10 @@ import java.util.stream.Collectors
 @Service
 class CloudService internal constructor(
     private val cloudFileService: CloudFileService,
-    private val mediaProxyService: MediaProxyService,
     private val nanoTime: () -> Long,
 ) {
     @Autowired
-    constructor(cloudFileService: CloudFileService, mediaProxyService: MediaProxyService) : this(cloudFileService, mediaProxyService, System::nanoTime)
+    constructor(cloudFileService: CloudFileService) : this(cloudFileService, System::nanoTime)
 
     private class TokenCheck(val nanos: Long, val isValid: Boolean)
 
@@ -110,19 +108,9 @@ class CloudService internal constructor(
         }.flatten()
     }
 
-    fun buildDestinationPath(name: String?, filesFromTorrent: List<TorrentFile>): Pair<String, String> {
-        val spacedName = name?.replace(".", " ") ?: ""
-        val normalizedName = TorrentHelper.getNormalizedTorrentStringWithSpaces(spacedName)
-        val typeOfMedia = determineTypeOfMedia(normalizedName)
-        val mediaItems = mediaProxyService.search(normalizedName)
-        val torrentTypeFromFile: TorrentType = determineTypeOfMedia(filesFromTorrent)
-        logger.info("Deducted from Name: [$typeOfMedia] from Filename:[$torrentTypeFromFile] from TFDB:[$mediaItems]")
-//        return if (TorrentType.TRANSFER == typeOfMedia) {
-        return buildDestinationPathWithTypeOfMedia(name, torrentTypeFromFile)
-//        } else {
-//            buildDestinationPath(name)
-//        }
-    }
+    /** The folder of a download without a matched title, by the kind of files in it. */
+    fun buildDestinationPath(name: String?, filesFromTorrent: List<TorrentFile>): Pair<String, String> =
+        buildDestinationPathWithTypeOfMedia(name, determineTypeOfMedia(filesFromTorrent))
 
     private fun buildDestinationPathWithTypeOfMedia(name: String?, torrentType: TorrentType): Pair<String, String> {
         val basePath = PropertiesHelper.getProperty(RCLONE_DIR)
