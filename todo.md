@@ -93,8 +93,7 @@ Ordered by how much they matter, from the review of 2026-10-23 (on top of #581).
 - [ ] `createProperties` runs `git fetch --all --tags` on every build (network, slow offline);
   `subprojects { maxParallelForks }` has no effect (no subprojects).
 - [ ] README: the certbot part sets `chmod 7777` on the private key (readable and writable for everybody, use `600`
-  and the right owner), "copy `rclone.conf` for building the docker-image" is only true for `DockerfileTunnel`,
-  `/runBoat.sh` has a wrong leading `/`, typos (`rlcone`, `certifiactes`).
+  and the right owner), typo `certifiactes`.
 
 ### Features
 

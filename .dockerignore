@@ -1,4 +1,2 @@
-# the boat image downloads the released jar, only DockerfileTunnel copies the local rclone config and htpasswd
+# the image downloads the released jar, nothing of the repository is copied into it
 *
-!rclone.conf*
-!htpasswd*
