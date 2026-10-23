@@ -5,8 +5,6 @@ are in the git history (PRs #545 to #569), the settings are in the README.
 
 ## Open
 
-- [ ] `CloudFileService.getFilesInPath`: `waitFor(5s)` before reading the output always costs 5s on large listings (the
-  process blocks on the full pipe until the timeout). Read the output while waiting.
 - [ ] Ask a second tracker for the hashes the first one doesn't know (`TorrentInfoService` only asks the first tracker
   of the list, trackers know different subsets).
 - [ ] Sign the release jar (or publish build attestations). The checksum next to `boat.jar` protects against corrupted
