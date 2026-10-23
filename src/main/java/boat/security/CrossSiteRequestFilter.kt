@@ -41,6 +41,6 @@ class CrossSiteRequestFilter : OncePerRequestFilter() {
         private val ALLOWED_SITES = setOf("same-origin", "none")
         private val SAFE_METHODS = setOf("GET", "HEAD")
         // read only pages, everything changing state (e.g. /boat/download, /boat/clearMediaCache) stays same origin only
-        private val ENTRY_PAGES = setOf("/", "/search", "/boat/search", "/boat/searchOld", "/boat/searchList", "/boat/debug")
+        private val ENTRY_PAGES = setOf("/", "/search", "/boat/search", "/boat/searchOld", "/boat/searchList", "/boat/info", "/boat/debug")
     }
 }

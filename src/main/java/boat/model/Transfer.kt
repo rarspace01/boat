@@ -36,7 +36,7 @@ data class Transfer(
         )
     }
 
-    // the transfer is written into html (debug page), names come from search engines and hosters
+    // the transfer is written into html (info page), names come from search engines and hosters
     private fun esc(value: String?): String? = value?.let { HtmlUtils.htmlEscape(it) }
 
     /**

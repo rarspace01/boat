@@ -56,7 +56,7 @@ internal class CrossSiteRequestFilterTest {
     @Test
     fun shouldAllowOpeningEntryPagesFromLinksOfOtherSitesAndApps() {
         // e.g. a link to the search page sent via WhatsApp
-        listOf("/", "/search", "/boat/search", "/boat/searchOld", "/boat/searchList", "/boat/debug").forEach { path ->
+        listOf("/", "/search", "/boat/search", "/boat/searchOld", "/boat/searchList", "/boat/info", "/boat/debug").forEach { path ->
             val (response, chain) = call("GET", "cross-site", path, "navigate", "document")
             assertThat(response.status).describedAs(path).isEqualTo(200)
             assertThat(chain.request).describedAs(path).isNotNull
@@ -77,7 +77,7 @@ internal class CrossSiteRequestFilterTest {
         // loaded into a frame of another site
         assertThat(call("GET", "cross-site", "/boat/search", "navigate", "iframe").first.status).isEqualTo(403)
         // fetched by a script of another site
-        assertThat(call("GET", "cross-site", "/boat/debug", "cors", "empty").first.status).isEqualTo(403)
-        assertThat(call("GET", "cross-site", "/boat/debug").first.status).isEqualTo(403)
+        assertThat(call("GET", "cross-site", "/boat/info", "cors", "empty").first.status).isEqualTo(403)
+        assertThat(call("GET", "cross-site", "/boat/info").first.status).isEqualTo(403)
     }
 }

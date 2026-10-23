@@ -77,23 +77,23 @@ internal class BoatControllerTest {
     }
 
     @Test
-    fun shouldRedirectToDebugPageWithMessageAfterDelete() {
+    fun shouldRedirectToInfoPageWithMessageAfterDelete() {
         every { multifileHosterService.deleteTransfer("id-1") } returns "deleted Inception & co"
 
         val response = boatController.deleteTransfer("id-1")
 
         assertThat(response.statusCode).isEqualTo(HttpStatus.SEE_OTHER)
-        assertThat(response.headers.getFirst(HttpHeaders.LOCATION)).isEqualTo("./debug?message=deleted+Inception+%26+co")
+        assertThat(response.headers.getFirst(HttpHeaders.LOCATION)).isEqualTo("./info?message=deleted+Inception+%26+co")
     }
 
     @Test
-    fun shouldRedirectToDebugPageWithMessageAfterRestart() {
+    fun shouldRedirectToInfoPageWithMessageAfterRestart() {
         every { multifileHosterService.restartTransfer("id-1") } returns "restarted Inception"
 
         val response = boatController.restartTransfer("id-1")
 
         assertThat(response.statusCode).isEqualTo(HttpStatus.SEE_OTHER)
-        assertThat(response.headers.getFirst(HttpHeaders.LOCATION)).isEqualTo("./debug?message=restarted+Inception")
+        assertThat(response.headers.getFirst(HttpHeaders.LOCATION)).isEqualTo("./info?message=restarted+Inception")
     }
 
     @Test
@@ -114,5 +114,15 @@ internal class BoatControllerTest {
     fun shouldRejectEmptySearchList() {
         assertThat(boatController.queueList("")).contains("nothing to search")
         assertThat(boatController.queueList(null)).contains("nothing to search")
+    }
+
+    @Test
+    fun shouldRedirectTheFormerDebugPageToTheInfoPage() {
+        val response = boatController.debugRedirect(null)
+
+        assertThat(response.statusCode).isEqualTo(HttpStatus.MOVED_PERMANENTLY)
+        assertThat(response.headers.getFirst(HttpHeaders.LOCATION)).isEqualTo("./info")
+        assertThat(boatController.debugRedirect("deleted A & B").headers.getFirst(HttpHeaders.LOCATION))
+            .isEqualTo("./info?message=deleted+A+%26+B")
     }
 }
