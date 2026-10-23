@@ -159,12 +159,8 @@ class DownloadMonitor(
                 // items from the search list are already matched, older queue entries are matched now
                 val matchedMediaItem = if (isMatched(mediaItem)) {
                     mediaItem
-                } else if (mediaItem.year != null) {
-                    // the year might be part of the title (e.g. "Space 1999"), so fall back to the full name
-                    mediaProxyService.search(mediaItem.title, mediaItem.year).firstOrNull()
-                        ?: mediaProxyService.search("${mediaItem.title} ${mediaItem.year}").firstOrNull()
                 } else {
-                    mediaProxyService.search(mediaItem.title).firstOrNull()
+                    mediaProxyService.findBestMatch(mediaItem.title, mediaItem.year)
                 }
                 val selectedTitle = matchedMediaItem?.title ?: mediaItem.title
                 val selectedYear = if (matchedMediaItem != null) {

@@ -11,7 +11,6 @@ import boat.multifileHoster.MultifileHosterService
 import boat.services.ConfigurationService
 import boat.services.TransferService
 import boat.torrent.Torrent
-import boat.torrent.TorrentHelper.getSearchNameFrom
 import boat.torrent.TorrentHelper.humanReadableByteCountBinary
 import boat.torrent.TorrentHelper.removeSpecialCharacters
 import boat.torrent.TorrentSearchEngineService
@@ -65,15 +64,15 @@ class BoatController @Autowired constructor(
         private val trailingYearPattern = "^(.+?)[\\s.(\\[]+((?:19|20)[0-9]{2})[)\\]]?$".toRegex()
 
         /**
-         * Parses a line of the search list, a trailing year ("Dune 1984", "Dune (2021)") is used as year.
+         * Splits a line of the search list into title and year, a trailing year ("Dune 1984", "Dune (2021)") is used as
+         * year. Null for a blank line.
          */
-        internal fun parseSearchListEntry(line: String): MediaItem? {
+        internal fun splitSearchListEntry(line: String): Pair<String, Int?>? {
             val entry = line.trim()
             if (entry.isEmpty()) return null
             val match = trailingYearPattern.find(entry)
             val year = match?.groupValues?.get(2)?.toInt()?.takeIf { it <= Calendar.getInstance().get(Calendar.YEAR) + 1 }
-            val title = if (year != null) match.groupValues[1].trim() else entry
-            return MediaItem(title, title, year, boat.info.MediaType.Other)
+            return (if (year != null) match.groupValues[1].trim() else entry) to year
         }
 
         /** The page of a title at TMDB or TVDB, from its id like `{tmdb-27205}`. */
@@ -219,7 +218,7 @@ $switchToSearch${switchToProgress}""" + htmlFooter
         }
     }
 
-    /** Matches the entries of a list (one title per line, or the url of such a list) and adds them to the queue. */
+    /** Adds the entries of a list (one title per line, or the url of such a list) to the queue. */
     @PostMapping("/boat/queueList")
     fun queueList(@RequestParam(value = "qqq", required = false) luckySearchList: String?): String {
         if (luckySearchList.isNullOrEmpty()) return htmlHeader + "Error: nothing to search" + htmlFooter
@@ -232,9 +231,9 @@ $switchToSearch${switchToProgress}""" + htmlFooter
         }
         if (pageWithEntries.isEmpty()) return htmlHeader + "Error: nothing in remote url" + htmlFooter
         val titles = pageWithEntries.split("\n".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
-        val listOfMediaItems = titles.mapNotNull { parseSearchListEntry(it) }
-            .map { entry -> matchSearchListEntry(entry) }
-            .filter { mediaItem: MediaItem -> isNotAlreadyDownloaded(mediaItem) }
+        // no lookups here, the queue job matches an entry and checks for existing files when it is its turn
+        val listOfMediaItems = titles.mapNotNull { splitSearchListEntry(it) }
+            .map { (title, year) -> MediaItem(title, title, year, boat.info.MediaType.Other) }
         queueService.addAll(listOfMediaItems)
         return htmlHeader + (switchToProgress + HtmlUtils.htmlEscape(listOfMediaItems.toString()).replace("\n", "<br/>")) + htmlFooter
     }
@@ -430,19 +429,5 @@ $switchToSearchOld$switchToSearchList$switchToProgress""" + htmlFooter
         logger.info("clear media cache request received")
         val removedEntries = mediaProxyService.clearCache()
         return "cleared media cache, removed $removedEntries entries"
-    }
-
-    /** Replaces the parsed entry by its match from the media proxy, so the queue holds type and id already. */
-    private fun matchSearchListEntry(entry: MediaItem): MediaItem {
-        val match = runCatching { mediaProxyService.findBestMatch(entry.title, entry.year) }
-            .onFailure { logger.warn("no media match for [{}]: {}", entry.title, it.message) }
-            .getOrNull() ?: return entry
-        return match.copy(originalTitle = match.originalTitle ?: entry.originalTitle, year = match.year ?: entry.year)
-            .also { it.seasonCount = match.seasonCount }
-    }
-
-    private fun isNotAlreadyDownloaded(mediaItem: MediaItem): Boolean {
-        val existingFiles = cloudService.findExistingFiles(getSearchNameFrom(mediaItem))
-        return existingFiles.isEmpty()
     }
 }
