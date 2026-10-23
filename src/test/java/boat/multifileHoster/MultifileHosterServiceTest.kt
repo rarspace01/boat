@@ -439,6 +439,32 @@ internal class MultifileHosterServiceTest {
     }
 
     @Test
+    fun shouldNotWriteOutsideOfTheTargetFolderWithNamesFromTheTorrent() {
+        val transfer = Transfer(name = "../../Evil", transferStatus = TransferStatus.READY_TO_BE_DOWNLOADED, remoteId = "remote-789", source = "Premiumize")
+        stubTransfers(listOf(transfer))
+        every { cloudService.buildDestinationPath(any(), any()) } returns Pair("E", "/destination/Movies/E/")
+        every { httpHelper.getPage(match { it.contains("folder/list") }) } returns "{\"status\":\"success\",\"content\":[" +
+                "{\"id\":\"f1\",\"name\":\"../a.mkv\",\"type\":\"file\",\"size\":1000,\"link\":\"http://premiumize.me/dl/a.mkv\"}," +
+                "{\"id\":\"f2\",\"name\":\"Sub/../../b.mkv\",\"type\":\"file\",\"size\":1000,\"link\":\"http://premiumize.me/dl/b.mkv\"}" +
+                "]}"
+        val targets = mutableListOf<String>()
+        every { rcloneUploader.copyUrl(any(), capture(targets), any()) } returns true
+
+        multifileHosterService.checkForDownloadableTorrentsAndDownloadTheFirst()
+
+        assertThat(targets).hasSize(2).allMatch { it.startsWith("/destination/Movies/E/") && !it.contains("..") }
+        assertThat(targets).contains("/destination/Movies/E/Evil/a.mkv", "/destination/Movies/E/Evil/Sub/b.mkv")
+    }
+
+    @Test
+    fun shouldMakeNamesFromATorrentSafe() {
+        assertThat(boat.rename.LibraryPaths.getSafeName("../..")).isEqualTo("download")
+        assertThat(boat.rename.LibraryPaths.getSafeName("a/b:c")).isEqualTo("a bc")
+        assertThat(boat.rename.LibraryPaths.getSafeRelativePath("./Sub\\..\\x.mkv")).isEqualTo("Sub/x.mkv")
+        assertThat(boat.rename.LibraryPaths.getSafeRelativePath("..")).isEqualTo("download")
+    }
+
+    @Test
     fun shouldKeepTransferAndRemoteTorrentWhenOneFileOfMultiFileDownloadFails() {
         val transfer = Transfer(
             name = "Breaking.Bad.S01",

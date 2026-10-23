@@ -116,6 +116,18 @@ object LibraryPaths {
         return title.replace("//", " ").replace(invalidFileCharsPattern, "").trimStart('.', ' ')
     }
 
+    /**
+     * A name from a torrent or hoster as one file or folder name: no separators, no `..` and no leading dot, so it
+     * can't point anywhere else in the remote.
+     */
+    fun getSafeName(name: String, fallback: String = "download"): String =
+        getSafeTitle(name.replace('/', ' ').replace('\\', ' ')).trim().ifEmpty { fallback }
+
+    /** A relative path from a torrent ("Folder/Sub/File.mkv") with every part made safe, `.`, `..` and empty parts left out. */
+    fun getSafeRelativePath(path: String, fallback: String = "download"): String =
+        path.split('/', '\\').filter { it.isNotBlank() && it != "." && it != ".." }.map { getSafeName(it, fallback) }
+            .joinToString("/").ifEmpty { fallback }
+
     private fun getMediaTypeFolderString(mediaResult: MediaItem): String = when (mediaResult.type) {
         MediaType.Movie -> "Movies"
         MediaType.Series -> "Series-Shows"

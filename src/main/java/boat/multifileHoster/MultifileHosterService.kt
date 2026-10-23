@@ -10,6 +10,7 @@ import boat.mapper.TorrentMapper
 import boat.model.Transfer
 import boat.model.TransferStatus
 import boat.model.TransferType
+import boat.rename.LibraryPaths
 import boat.rename.ReleaseMatcher
 import boat.services.TransferService
 import boat.torrent.HttpUser
@@ -401,7 +402,7 @@ class MultifileHosterService(
                         indexLetter = mediaTarget.second
                     } else {
                         val destination = cloudService.buildDestinationPath(remoteTorrent.name, listOf(fileToDownload))
-                        targetFilePath = destination.second + DownloadFileNames.buildFilename(remoteTorrent.name, fileToDownload.url)
+                        targetFilePath = destination.second + LibraryPaths.getSafeName(DownloadFileNames.buildFilename(remoteTorrent.name, fileToDownload.url))
                         indexLetter = destination.first
                     }
 
@@ -427,10 +428,12 @@ class MultifileHosterService(
                         } else {
                             val destination = cloudService.buildDestinationPath(remoteTorrent.name, filesFromTorrent)
                             val destinationPath: String = destination.second
+                            // the names come from the torrent, a "../" in them must not write elsewhere in the remote
+                            val safeFileName = LibraryPaths.getSafeRelativePath(torrentFile.name ?: "", LibraryPaths.getSafeName(DownloadFileNames.extractFileNameFromUrl(torrentFile.url)))
                             targetFilePath = if (destinationPath.contains(TorrentType.SERIES_SHOWS.type)) {
-                                destinationPath + (torrentFile.name ?: "")
+                                destinationPath + safeFileName
                             } else {
-                                destinationPath + remoteTorrent.name + "/" + (torrentFile.name ?: "")
+                                destinationPath + LibraryPaths.getSafeName(remoteTorrent.name) + "/" + safeFileName
                             }
                             indexLetter = destination.first
                         }

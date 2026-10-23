@@ -9,8 +9,6 @@ Ordered by how much they matter, from the review of 2026-10-23 (on top of #581).
 
 ### Bugs and risks
 
-- [ ] Without a matched title the target path is `<folder>/<torrent name>/<file name>` from the torrent, unchecked:
-  a `../` in a name writes elsewhere in the remote. Sanitize the names like `LibraryPaths.getSafeTitle`.
 - [ ] Not escaped in html: the queue on the info page (`MediaItem.toString`, titles from TMDB/TVDB or a pasted list)
   and the `size` of torrents on the result page (text from the search sites).
 - [ ] Tracker scrape (`TorrentInfoService.scrape`): any answer that isn't a scrape (404, 5xx, a tracker without
