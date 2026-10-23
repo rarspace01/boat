@@ -129,7 +129,6 @@ internal class BoatControllerTest {
         every { mediaProxyService.findBestMatch("Dune", 1984) } returns matched
         every { cloudService.findExistingFiles(any()) } returns emptyList()
         every { queueService.addAll(any()) } returns Unit
-        every { queueService.saveQueue() } returns Unit
 
         val response = boatController.queueList("Dune 1984\n")
 
