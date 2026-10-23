@@ -5,24 +5,30 @@ are in the git history (PRs #545 to #569), the settings are in the README.
 
 ## Open
 
-- [ ] Ask a second tracker for the hashes the first one doesn't know (`TorrentInfoService` only asks the first tracker
-  of the list, trackers know different subsets).
-- [ ] Sign the release jar (or publish build attestations). The checksum next to `boat.jar` protects against corrupted
-  or tampered downloads, not against a compromised GitHub release.
 - [ ] Alldebrid: up to date with the API (v4/v4.1, checked against docs.alldebrid.com and the live API with its demo
   key), but only Premiumize is registered in `MultifileHosterService`. Register it there to use it. It can do all
   Premiumize does except the cache check, AllDebrid has none anymore (a cached magnet is `ready` right after the upload).
-- [ ] `BluRayComService`: kept for finding BD releases to download, not used by anything yet.
+- [ ] A scheduler that periodically checks the newest releases and whether they are already in the library: e.g.
+  once a day the releases of the current and the last month from `BluRayComService.getReleasesForMonthAndYear`
+  (kept for this, not used yet; the commented out `fillQueueWithMovies` in `DownloadMonitor` was a first try), each
+  looked up with `MediaProxyService` and checked with `CloudService.findExistingFiles` (title and remote media id),
+  the missing ones listed on the info page or added to the queue (`QueueService`). To decide: list only or queue,
+  filters (year, genre, rating), and which source besides blu-ray.com (e.g. TMDB "now playing"/digital releases).
 
 ## Decisions and known limits
 
+- Tracker stats are optional: `TorrentInfoService` only asks the first tracker of the list. Hashes it doesn't know get
+  no seeders from it, asking a second tracker isn't worth the longer search.
+- The release jar is not signed: the checksum next to `boat.jar` protects against corrupted or tampered downloads, not
+  against a compromised GitHub release. Accepted as is.
 - `/boat/shutdown` and `/` stay unauthenticated (`permitAll`): the deployment/Docker setup restarts the app through
   `/boat/shutdown`. Don't secure it without changing the deployment first.
 - All other endpoints need a login. Without users or without MongoDB nobody can log in, the first user is inserted by
   hand (README). A changed or removed user stays valid for up to 10 minutes (auth cache), users change 1-2 times a year.
 - CSRF has no tokens: `CrossSiteRequestFilter` rejects requests the browser marks as `cross-site`/`same-site`
   (`Sec-Fetch-Site`), clients without the header (curl, scripts) still work.
-- API keys travel in query strings, the hoster APIs require it. They are redacted in logs.
+- The Premiumize API key travels in query strings, its API requires it; it is redacted in logs. AllDebrid gets its key
+  in the `Authorization` header.
 - TLS is verified. Only torrent search sites fall back to an unverified connection (never hosters, TMDB/TVDB, GitHub or
   urls with an api key, the host name is still checked). rclone verifies unless `RCLONE_NO_CHECK_CERTIFICATE=true`.
 - Search list urls: only public addresses are fetched (`ALLOW_PRIVATE_URLS=true` to allow local ones). A DNS rebinding
