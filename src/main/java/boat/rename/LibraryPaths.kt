@@ -112,8 +112,8 @@ object LibraryPaths {
     }
 
     fun getSafeTitle(title: String): String {
-        // a leading dot like in ".hack//G.U. Trilogy" would make a hidden file
-        return title.replace("//", " ").replace(invalidFileCharsPattern, "").trimStart('.', ' ')
+        // a leading dot like in ".hack//G.U. Trilogy" would make a hidden file, the apostrophe is not part of a name in the library
+        return title.replace("//", " ").replace(invalidFileCharsPattern, "").replace("'", "").trimStart('.', ' ')
     }
 
     /**

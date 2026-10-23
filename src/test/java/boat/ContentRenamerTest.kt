@@ -287,6 +287,7 @@ class ContentRenamerTest {
         assertThat(contentRenamer.getSafeTitle(MediaItem("What If...?"))).isEqualTo("What If...")
         assertThat(contentRenamer.getSafeTitle(MediaItem("Back\\Slash"))).isEqualTo("BackSlash")
         assertThat(contentRenamer.getSafeTitle(MediaItem("Title*With\"Dangerous<Chars>And|Pipes"))).isEqualTo("TitleWithDangerousCharsAndPipes")
+        assertThat(contentRenamer.getSafeTitle(MediaItem("Ocean's Eleven"))).isEqualTo("Oceans Eleven")
         assertThat(contentRenamer.getSafeTitle(MediaItem("1000-lb Sisters (2020)"))).isEqualTo("1000-lb Sisters (2020)")
         assertThat(contentRenamer.getSafeTitle("Simple Title")).isEqualTo("Simple Title")
         assertThat(contentRenamer.getSafeTitle("This//Hack")).isEqualTo("This Hack")
