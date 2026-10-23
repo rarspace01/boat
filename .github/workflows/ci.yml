@@ -22,24 +22,13 @@ jobs:
         with:
           fetch-depth: 1
 
-      # Setup Java with built-in Gradle cache
+      # Setup Java with the Gradle cache (~/.gradle/caches and wrapper, keyed by the gradle files)
       - name: Set up JDK 25
         uses: actions/setup-java@v6
         with:
           java-version: '25'
           distribution: 'temurin'
           cache: gradle
-
-      # Extra Gradle cache layer (stronger caching)
-      - name: Cache Gradle files
-        uses: actions/cache@v6
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: |
-            gradle-${{ runner.os }}-
 
       - name: Grant execute permission
         run: chmod +x gradlew
