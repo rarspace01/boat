@@ -156,7 +156,7 @@ object MovieNameParser {
         if (title.isBlank() || title.none { it.isLetterOrDigit() } || title.lowercase().matches(movieTechnicalTagPattern)) return false
         // numeric titles like 300 or 1917 need a release year, "00001.m2ts" or "2022.mp4" aren't titles
         if (title.matches(pureNumberPattern)) return !title.startsWith("0") && year != null
-        // with a release year short titles like "It (2017)", "Home (2015)" or "48.Hrs.1982" are titles as well
+        // with a release year short titles like "It (2017)", "Home (2015)" or "48.Hne.1982" are titles as well
         if (year != null || !isJunk(title)) return true
         // isJunk takes "Cars 2" or "Saw 3" for a season or volume
         val normalized = title.lowercase()

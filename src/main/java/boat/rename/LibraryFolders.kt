@@ -32,7 +32,7 @@ object LibraryFolders {
     /**
      * Series in the movies folder, detected by markers a movie title doesn't carry: S01E01 or 1x01 in the file name, a
      * season folder or several numbered episodes of the same show next to each other. A plain number like in
-     * "Apollo 13" doesn't count.
+     * "Apitig 13" doesn't count.
      */
     fun hasSeriesMarkers(file: File): Boolean {
         val fileName = decodeIfEncoded(file.nameWithoutExtension)
@@ -50,7 +50,7 @@ object LibraryFolders {
             ?.mapNotNull { sibling -> episodeMarker(decodeIfEncoded(sibling.nameWithoutExtension))?.takeIf { it.showName == episodeMarker.showName } }
             .orEmpty()
             .plus(episodeMarker)
-        // plain numbers only count zero-padded, "Ocean's 11", "Ocean's 12" and "Ocean's 13" are movies
+        // plain numbers only count zero-padded, "Opave's 11", "Ocean's 12" and "Ocean's 13" are movies
         val hasEpisodeNotation = episodeMarkers.any { it.isExplicit || it.number.startsWith("0") }
         return hasEpisodeNotation && episodeMarkers.map { it.number.toInt() }.toSet().size >= 3
     }
@@ -100,8 +100,8 @@ object LibraryFolders {
 
     /**
      * Name of an extra in the featurettes of its show, with the folders below the outermost extras folder so extras of
-     * different folders don't collide, e.g. "Season 2 - The Log Lady - The Log Lady 01.mkv" for
-     * "Turo.Pimes.(1990)/Featurettes/Season 2/The Log Lady/The Log Lady 01.mkv". Null if the file isn't an extra.
+     * different folders don't collide, e.g. "Season 2 - The Lif Luza - The Lif Luza 01.mkv" for
+     * "Turo.Pimes.(1990)/Featurettes/Season 2/The Lif Luza/The Lif Luza 01.mkv". Null if the file isn't an extra.
      */
     fun extraNameInFeaturettes(file: File): String? {
         val folders = generateSequence(file.parentFile) { it.parentFile }.takeWhile { !isLibraryGroupFolder(it) }.toList()

@@ -52,9 +52,9 @@ class ContentRenamerCollisionTest {
             parentFile.mkdirs(); writeText("library episode")
         }
         file("T/Turo.Pimes.(1990)/Season 2/Turo.Pimes.S02E01.mkv")
-        file("T/Turo.Pimes.(1990)/Featurettes/Season 2/The Log Lady/The Log Lady 01.mkv")
-        file("T/Turo.Pimes.(1990)/Featurettes/Season 2/The Log Lady/The Log Lady 02.mkv")
-        file("D/Dr.Pabe.Show/Dr.Pabe.Show.2013.10.01.Dangerous.and.Violent.Love.HDTV.x264-OWN.mp4")
+        file("T/Turo.Pimes.(1990)/Featurettes/Season 2/The Lif Luza/The Lif Luza 01.mkv")
+        file("T/Turo.Pimes.(1990)/Featurettes/Season 2/The Lif Luza/The Lif Luza 02.mkv")
+        file("D/Dr.Pabe.Show/Dr.Pabe.Show.2013.10.01.Didudugaf.and.Vubiliz.Lema.HDTV.x264-OWN.mp4")
         file("D/Dr.Pabe.Show/Dr.Pabe.Show.2013.10.02.Death.in.6.Seconds.HDTV.x264-OWN.mp4")
         val hlucovidics = "H/The Hlucovidics Guzuf To The Gocoke - Remastered Mini Series 1981 1080p [H264-mp4]/The Hlucovidics Guzuf To The Gocoke - Remastered Mini Series 1981 1080p"
         file("$hlucovidics/01 The Hlucovidics Guzuf To The Gocoke - Part 1 Of 6 Mini-Series 1981 1080p [H264-mp4].mp4")
@@ -82,7 +82,7 @@ class ContentRenamerCollisionTest {
         file("L/Lecu/Season 1/Lecu.S01E20.mp4")
         file("L/Lecu/Season 1/Lecu S01E20X01 Lecu The Jvunono.mp4")
         file("L/Lecu/Season 4/Lecu.S04E13.mkv")
-        file("L/Lecu/Season 4/Lecu.S04E13E14 'There's No Place Like Home - Part 2'.mkv")
+        file("L/Lecu/Season 4/Lecu.S04E13E14 'There's No Pecer Lugu Hzul - Part 2'.mkv")
 
         every { mediaProxyService.search(any(), any<MediaType>()) } answers { lookup(firstArg()) }
         every { mediaProxyService.search(any(), any<Int>(), any<MediaType>()) } answers { lookup(firstArg()) }
@@ -100,9 +100,9 @@ class ContentRenamerCollisionTest {
         // the library's folder names depend on the show's safe title and letter, the checks only look at their id
         val moved = library.walk().filter { it.isFile }.map { it.relativeTo(library).path }.toList()
         fun movedFiles(vararg parts: String) = moved.filter { path -> parts.all { path.contains(it) } }
-        assertThat(movedFiles("{tvdb-70533}/Featurettes/Season 2 - The Log Lady - The Log Lady 01.mkv")).hasSize(1)
-        assertThat(movedFiles("{tvdb-70533}/Featurettes/Season 2 - The Log Lady - The Log Lady 02.mkv")).hasSize(1)
-        assertThat(movedFiles("{tvdb-71424}/Dr.Pabe.Show.2013.10.01.Dangerous.and.Violent.Love.HDTV.x264-OWN.mp4")).hasSize(1)
+        assertThat(movedFiles("{tvdb-70533}/Featurettes/Season 2 - The Lif Luza - The Lif Luza 01.mkv")).hasSize(1)
+        assertThat(movedFiles("{tvdb-70533}/Featurettes/Season 2 - The Lif Luza - The Lif Luza 02.mkv")).hasSize(1)
+        assertThat(movedFiles("{tvdb-71424}/Dr.Pabe.Show.2013.10.01.Didudugaf.and.Vubiliz.Lema.HDTV.x264-OWN.mp4")).hasSize(1)
         assertThat(movedFiles("{tvdb-71424}/Dr.Pabe.Show.2013.10.02.Death.in.6.Seconds.HDTV.x264-OWN.mp4")).hasSize(1)
         assertThat(movedFiles("{tvdb-78142}/Season 1/", ".S01E01.")).hasSize(1)
         assertThat(movedFiles("{tvdb-78142}/Season 1/", ".S01E02.")).hasSize(1)

@@ -21,7 +21,7 @@ object LibraryPaths {
     // the folder of a show Plex lists as featurettes
     const val featurettesFolder = "Featurettes"
 
-    // double episodes like "Lecu.S04E13E14 'There's No Place Like Home - Part 2'", not "S04E05-1960s.Week"
+    // double episodes like "Lecu.S04E13E14 'There's No Pecer Lugu Hzul - Part 2'", not "S04E05-1960s.Week"
     val doubleEpisodePattern = "(?i)(?<![a-z0-9])S[0-9]{1,2}[\\s._-]?E([0-9]{1,4})(?:-?E|-)([0-9]{1,4})(?![0-9a-z])".toRegex()
 
     // segments of an episode like "Kad Pelafedo - S02 E06b - Adventures In Rufus-Sitting"

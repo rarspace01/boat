@@ -45,14 +45,14 @@ class ContentRenamerMovieTest {
     @Test
     fun `should search movies with numbers in the title as movie in movies folder`(@TempDir tempDir: Path) {
         val base = tempDir.toFile()
-        createFile(base, "Movies/A/Apollo 13 (1995)/Apollo 13 (1995).mkv")
-        val apollo = MediaItem("Apollo 13", "Apollo 13", 1995, MediaType.Movie, "{tmdb-568}")
-        every { mediaProxyService.search("Apollo 13", 1995, MediaType.Movie) } returns listOf(apollo)
+        createFile(base, "Movies/A/Apitig 13 (1995)/Apitig 13 (1995).mkv")
+        val apollo = MediaItem("Apitig 13", "Apitig 13", 1995, MediaType.Movie, "{tmdb-568}")
+        every { mediaProxyService.search("Apitig 13", 1995, MediaType.Movie) } returns listOf(apollo)
 
         contentRenamer.processFilesFromDirectory(File(base, "Movies").absolutePath, null, isTestRun = false, basePath = base.absolutePath)
 
-        verify { mediaProxyService.search("Apollo 13", 1995, MediaType.Movie) }
-        assertThat(File(base, "Movies/A/Apollo 13 (1995) {tmdb-568}.mkv")).exists()
+        verify { mediaProxyService.search("Apitig 13", 1995, MediaType.Movie) }
+        assertThat(File(base, "Movies/A/Apitig 13 (1995) {tmdb-568}.mkv")).exists()
     }
 
     @Test
@@ -143,7 +143,7 @@ class ContentRenamerMovieTest {
             "Anetidi.DirCut.1984.720p.BluRay.x264" to Pair("Anetidi", 1984),
             "Anezo.Rukobak.2024.2160p.WEB-DL.DDP5.1.Atmos.DV.HDR.H.265-FLUX" to Pair("Anezo Rukobak", 2024),
             "12 Yvipu a Subud (2013) 1080p x264 ENG-ITA BluRay - 12 Asez Satipes" to Pair("12 Yvipu a Subud", 2013),
-            "Gaca.Doledip.of.1935.(1935).95.min.Dick.Powell.H264" to Pair("Gaca Doledip of 1935", 1935),
+            "Gaca.Doledip.of.1935.(1935).95.min.Dudo.Pabivo.H264" to Pair("Gaca Doledip of 1935", 1935),
             "Zaliludam Point (Ateropule 1970) [HD x264 Ita Ac3 Eng-Esp-Deu Aac - Multisubs]" to Pair("Zaliludam Point", 1970),
             "Calokeki of Mor (BDrip 1080p ENG-ITA-FRA-GER-SPA - DTS) multisub x264 bluray (2006)" to Pair("Calokeki of Mor", null),
             "Wkigo Tize UNRATED (2003) [1080p]" to Pair("Wkigo Tize", 2003),
@@ -165,7 +165,7 @@ class ContentRenamerMovieTest {
             "Wnafaz.-.Budekiba!1990.WEB-DL.1080p" to Pair("Wnafaz - Budekiba", 1990),
             "Wvebom.Setogud.with.Extras.1972.Documentary.Vietnam.War.DVDRip.480p" to Pair("Wvebom Setogud", 1972),
             "Wdutab.Wzeki.1984.2020.HMAX.IMAX.2160p.HDR.WEB-DL" to Pair("Wdutab Wzeki 1984", 2020),
-            "Blade.3.Trinity.20041080p.BluRay.x264" to Pair("Blade 3 Trinity", 2004),
+            "Bubes.3.Taralad.20041080p.BluRay.x264" to Pair("Bubes 3 Taralad", 2004),
             "3B54A22536685B87ED1697B20160C4DEBC191C3F?title=[limetorrents.cc]Buzeze.Of.The.Simek..2017..[1080p].[YTS.AG]" to Pair("Buzeze Of The Simek", 2017),
             "Eto.Safimu.Tak.1984.x264.BDRip-kinozal.tv" to Pair("Safimu Tak", 1984),
             "rep-hotelartemis.2018.1080p.bluray.x264" to Pair("hotelartemis", 2018),
@@ -193,7 +193,7 @@ class ContentRenamerMovieTest {
         assertThat(contentRenamer.extractMovieNameAndYear(File("~/Movies/0-9/00000.m2ts"))).isEqualTo(Pair("", null))
         // short titles are fine with a release year
         assertThat(contentRenamer.extractMovieNameAndYear(File("~/Movies/I/It (2017) [1080p] [YTS.AG].mp4"))).isEqualTo(Pair("It", 2017))
-        assertThat(contentRenamer.extractMovieNameAndYear(File("~/Movies/0-9/48.Hrs.1982.1080p.BluRay.x264-TENEIGHTY.mkv"))).isEqualTo(Pair("48 Hrs", 1982))
+        assertThat(contentRenamer.extractMovieNameAndYear(File("~/Movies/0-9/48.Hne.1982.1080p.BluRay.x264-TENEIGHTY.mkv"))).isEqualTo(Pair("48 Hne", 1982))
         assertThat(contentRenamer.extractMovieNameAndYear(File("~/Movies/I/Idicunibi.with.the.Vosutad.1994.1080p.mp4"))).isEqualTo(Pair("Idicunibi with the Vosutad", 1994))
         assertThat(contentRenamer.extractMovieNameAndYear(File("~/Movies/H/H264.m4v"))).isEqualTo(Pair("", null))
         assertThat(contentRenamer.extractMovieNameAndYear(File("~/Movies/T/The Tanac Cesocike Migasuki Collection (1974-2017)/2017.Lakivamolem.mkv")))
@@ -209,9 +209,9 @@ class ContentRenamerMovieTest {
         val base = tempDir.toFile()
         assertThat(contentRenamer.hasSeriesMarkers(createFile(base, "Movies/M/Mr.Inaloloce/Mr.Inaloloce.S02E01.1080p.mkv"))).isTrue()
         assertThat(contentRenamer.hasSeriesMarkers(createFile(base, "Movies/S/Suzo.Tabe.Danutikep.S01-05.ITA/Suzo.Tabe.Danutikep.5x10.La.Vita.mkv"))).isTrue()
-        assertThat(contentRenamer.hasSeriesMarkers(createFile(base, "Movies/K/Kinola Supamu S01+02+OVA/Blood Blockade Bosicacagin/Blood Blockade Bosicacagin - 01.mkv"))).isTrue()
-        (1..3).forEach { createFile(base, "Movies/L/Little Women/Tapaz.Of.Linabi.Wmape.EP$it.mkv") }
-        assertThat(contentRenamer.hasSeriesMarkers(File(base, "Movies/L/Little Women/Tapaz.Of.Linabi.Wmape.EP1.mkv"))).isTrue()
+        assertThat(contentRenamer.hasSeriesMarkers(createFile(base, "Movies/K/Kinola Supamu S01+02+OVA/Bidot Benedido Bosicacagin/Bidot Benedido Bosicacagin - 01.mkv"))).isTrue()
+        (1..3).forEach { createFile(base, "Movies/L/Linabi Wmape/Tapaz.Of.Linabi.Wmape.EP$it.mkv") }
+        assertThat(contentRenamer.hasSeriesMarkers(File(base, "Movies/L/Linabi Wmape/Tapaz.Of.Linabi.Wmape.EP1.mkv"))).isTrue()
 
         listOf("01", "02v2", "10").forEach { createFile(base, "Movies/G/[ARC] Govopatena Gofe (2003)/[ARC] Govopatena Gofe $it [BD 714p 10-bit x264 FLAC].mkv") }
         assertThat(contentRenamer.hasSeriesMarkers(File(base, "Movies/G/[ARC] Govopatena Gofe (2003)/[ARC] Govopatena Gofe 10 [BD 714p 10-bit x264 FLAC].mkv"))).isTrue()
@@ -221,14 +221,14 @@ class ContentRenamerMovieTest {
         assertThat(contentRenamer.extractName(File("~/Movies/M/Mr. Buki - The Complete Collection (1990-2007)/S01 - E01 - Mr. Buki.mkv"))).isEqualTo("Mr Buki")
 
         // numbers in movie titles aren't episodes
-        (11..13).forEach { createFile(base, "Movies/O/Oceans Trilogy/Oceans $it.mkv") }
-        assertThat(contentRenamer.hasSeriesMarkers(File(base, "Movies/O/Oceans Trilogy/Oceans 11.mkv"))).isFalse()
-        assertThat(contentRenamer.hasSeriesMarkers(createFile(base, "Movies/A/Apollo 13 (1995)/Apollo 13 (1995).mkv"))).isFalse()
+        (11..13).forEach { createFile(base, "Movies/O/Opaves Tefipec/Oceans $it.mkv") }
+        assertThat(contentRenamer.hasSeriesMarkers(File(base, "Movies/O/Opaves Tefipec/Opaves 11.mkv"))).isFalse()
+        assertThat(contentRenamer.hasSeriesMarkers(createFile(base, "Movies/A/Apitig 13 (1995)/Apitig 13 (1995).mkv"))).isFalse()
         createFile(base, "Movies/S/Suzo.Wnat.Episode.2.Amamad.of.the.Conevi.2002.mkv")
         createFile(base, "Movies/S/Suzo.Wnat.Episode.3.Rubeled.of.the.Sofi.2005.mkv")
         assertThat(contentRenamer.hasSeriesMarkers(createFile(base, "Movies/S/Suzo.Wnat.Episode.1.The.Pavidiv.Mulato.1999.mkv"))).isFalse()
         assertThat(contentRenamer.hasSeriesMarkers(createFile(base, "Movies/O/Okub.Sekuri.2006.1080p/Okub.Sekuri.2006.1080p.mkv"))).isFalse()
-        assertThat(contentRenamer.hasSeriesMarkers(createFile(base, "Movies/A/Adieu.Galaxy.Express.999.(1981).(BDRip.1920x1080p.x265.FLACx2,.TrueHD.2.0x2+5.1).mkv"))).isFalse()
+        assertThat(contentRenamer.hasSeriesMarkers(createFile(base, "Movies/A/Arepe.Gocoke.Etovumu.999.(1981).(BDRip.1920x1080p.x265.FLACx2,.TrueHD.2.0x2+5.1).mkv"))).isFalse()
     }
 
     @Test
@@ -262,7 +262,7 @@ class ContentRenamerMovieTest {
     fun `should skip extras folders but not packs with extras`(@TempDir tempDir: Path) {
         val base = tempDir.toFile()
         val featurette = createFile(base, "Movies/G/Gubu Otoce (2019) Season 1 S01 + Extras (1080p)/Featurettes/Bookshop Tour.mkv")
-        val creditless = createFile(base, "Movies/K/Kinola Supamu S01+02+OVA+Extra/Blood Blockade Bosicacagin/NC/Blood Blockade Bosicacagin - NCOP.mkv")
+        val creditless = createFile(base, "Movies/K/Kinola Supamu S01+02+OVA+Extra/Bidot Benedido Bosicacagin/NC/Bidot Benedido Bosicacagin - NCOP.mkv")
         val sample = createFile(base, "Movies/I/Ivakisaka.2010.1080p/Sample/ivakisaka-sample.mkv")
         val episode = createFile(base, "Movies/G/Gubu Otoce (2019) Season 1 S01 + Extras (1080p)/Gubu Otoce (2019) - S01E01 - In the Beginning (1080p).mkv")
         every { mediaProxyService.search("Gubu Otoce", 2019, MediaType.Series) } returns listOf(MediaItem("Gubu Otoce", "Gubu Otoce", 2019, MediaType.Series, "{tvdb-359569}"))
@@ -412,7 +412,7 @@ class ContentRenamerMovieTest {
     @Test
     fun `should not take the original title of another movie for a namesake released two years apart`(@TempDir tempDir: Path) {
         val base = tempDir.toFile()
-        val tubidebabo = createFile(base, "Movies/T/Tubidebabo.2.1991.Judgment.Day.mp4")
+        val tubidebabo = createFile(base, "Movies/T/Tubidebabo.2.1991.Jredofap.Dar.mp4")
         every { mediaProxyService.search("Tubidebabo 2", 1991, MediaType.Movie) } returns listOf(MediaItem("Sobepume Dobi", "Tubidebabo 2", 1989, MediaType.Movie, "{tmdb-1}"))
 
         contentRenamer.processFilesFromDirectory(File(base, "Movies").absolutePath, null, isTestRun = false, basePath = base.absolutePath)
