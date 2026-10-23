@@ -19,9 +19,7 @@ the boat sails with wind
 
 ## Setup
 
-Copy `boat.default.cfg` to `boat.cfg` and modify values accordingly. Copy `rclone.conf`
-from `~/.config/rlcone/rclone.conf` for building the docker-image.
-Run `/runBoat.sh` to have an autoupdate of the
+Copy `boat.default.cfg` to `boat.cfg` and modify values accordingly. Run `./runBoat.sh` to have an autoupdate of the
 newest version.
 
 Settings are read from `boat.cfg` (or `boat.default.cfg`) and can be overridden by environment variables:
