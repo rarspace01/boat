@@ -45,7 +45,7 @@ class CloudFileService(
         val basePath = PropertiesHelper.getProperty(CloudService.RCLONE_DIR)
         // no shell, so the path can't break out of the command
         val command = listOf("rclone") + RcloneUploader.certificateArguments() + listOf("about", basePath.toString(), "--json")
-        logger.info(command.joinToString(" "))
+        logger.debug(command.joinToString(" "))
         var output = ""
         var error = ""
         try {
@@ -77,9 +77,9 @@ class CloudFileService(
     fun getFilesInPathWithRetries(destinationPath: String, retriesLeft: Int): List<String> {
         val fileList: MutableList<String> = ArrayList()
         val startCounter = System.currentTimeMillis()
-        logger.info("Search in [$destinationPath]")
+        logger.debug("Search in [$destinationPath]")
         val command = buildLsjsonCommand(destinationPath)
-        logger.info(command.joinToString(" "))
+        logger.debug(command.joinToString(" "))
         var output = ""
         var error = ""
         try {

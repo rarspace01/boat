@@ -18,7 +18,6 @@ Ordered by how much they matter, from the review of 2026-10-23 (on top of #581).
 
 ### Performance
 
-- [ ] `CloudService.getAllFiles` logs an info line per folder for every existing files check.
 
 ### Cleanup
 
