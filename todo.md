@@ -24,8 +24,6 @@ Ordered by how much they matter, from the review of 2026-10-23 (on top of #581).
 
 ### Build, CI and docs
 
-- [ ] README: the certbot part sets `chmod 7777` on the private key (readable and writable for everybody, use `600`
-  and the right owner), typo `certifiactes`.
 
 ### Features
 
