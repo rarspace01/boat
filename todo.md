@@ -18,9 +18,6 @@ Ordered by how much they matter, from the review of 2026-10-23 (on top of #581).
 
 ### Performance
 
-- [ ] Rating builds its regexes on every call: `getRegexCleaned` and `removeReleaseTags` compile one per release tag
-  (143) per name, 2.9 s for 2000 torrents here, and every torrent is rated twice per search (`prepareCandidates` and
-  `rateResults`). Compile them once; escape the tags while at it (`5.1` and `DDP5.1` also match `5x1`).
 - [ ] `PropertiesHelper.getProperty` opens and parses `boat.cfg` on every call (every api key, path and hoster
   request). Cache it, re-read when the file changes.
 - [ ] Queue polling asks the hoster for its transfers and the traffic every 30 s, also when the queue is empty.

@@ -17,6 +17,13 @@ internal class TorrentHelperTest {
     }
 
     @Test
+    fun shouldTakeReleaseTagsAsTextNotAsPatterns() {
+        // "5.1" is a tag, "5x1" is not
+        Assertions.assertEquals("room5x12019", getNormalizedTorrentString("Room.5x1.2019.1080p.mkv"))
+        Assertions.assertEquals("room2019", getNormalizedTorrentString("Room.5.1.2019.1080p.mkv"))
+    }
+
+    @Test
     fun shouldCleanTorrentNameSecondMovie() {
         val resultString = getNormalizedTorrentString("Test.Movie.2.2019.HDRip.x264.AC3.mp3.-GROUP.mkv")
         Assertions.assertEquals("testmovie22019", resultString)
