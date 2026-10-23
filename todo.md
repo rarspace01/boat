@@ -9,9 +9,6 @@ Ordered by how much they matter, from the review of 2026-10-23 (on top of #581).
 
 ### Bugs and risks
 
-- [ ] The queue is not first in, first out: `QueueService` keeps it in `java.util.Properties` (a hash table), so the
-  entries of a list are picked in hash order. Reading it while a list is added can throw a
-  `ConcurrentModificationException`. A `LinkedHashMap` (plus a lock) and an ordered file would fix both.
 - [ ] Downloads without a remote media id (old search, direct urls, unmatched queue entries) take
   `mediaProxyService.search(<release name>).firstOrNull()` as the title, so a wrong first hit files the download
   under the wrong title. Parse name and year first (`MediaNameParser`/`MovieMatcher` as the renamer does) or upload to
