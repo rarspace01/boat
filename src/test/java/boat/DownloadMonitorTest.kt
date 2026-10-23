@@ -47,7 +47,7 @@ internal class DownloadMonitorTest {
             httpHelper,
             mediaProxyService
         )
-        every { cloudService.isCloudTokenValid } returns true
+        every { cloudService.isTargetFolderReady } returns true
         every { configurationService.isSearchMode() } returns true
         every { multifileHosterService.remoteTorrents } returns emptyList()
         every { multifileHosterService.getRemainingTrafficInMB() } returns 200_000.0

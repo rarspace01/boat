@@ -375,7 +375,7 @@ $switchToSearchOld$switchToSearchList$switchToProgress""" + htmlFooter
         return htmlHeader + (message?.takeIf { it.isNotBlank() }?.let { "<b>" + HtmlUtils.htmlEscape(it) + "</b><br/>" } ?: "") +
                 ("v:" + PropertiesHelper.version + " started: " + startDate
                 + "<br/>MODE: " + configurationService.getServiceMode()
-                + "<br/>cloud token: " + (if (cloudService.isCloudTokenValid) "✅" else "❌")
+                + "<br/>target folder: " + (if (cloudService.isTargetFolderReady) "✅" else "❌")
                 + "<br/>search Cache: " + (if (cloudFileService.isCacheFilled) "✅" else "❌")
                 + "<br/>ActiveSearchEngines: " + torrentSearchEngineService.getActiveSearchEngines()
                 + "<br/>InActiveSearchEngines: " + torrentSearchEngineService.inActiveSearchEngines

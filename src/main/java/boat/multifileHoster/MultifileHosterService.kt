@@ -345,7 +345,7 @@ class MultifileHosterService(
     }
 
     fun checkForDownloadableTorrentsAndDownload() {
-        if (isRcloneInstalled() && cloudService.isCloudTokenValid && isDownloadInProgress.compareAndSet(false, true)) {
+        if (isRcloneInstalled() && cloudService.isTargetFolderReady && isDownloadInProgress.compareAndSet(false, true)) {
             try {
                 checkForDownloadableTorrentsAndDownloadTheFirst()
             } finally {
