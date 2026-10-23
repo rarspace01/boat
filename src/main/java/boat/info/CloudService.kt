@@ -85,7 +85,6 @@ class CloudService internal constructor(
     }
 
     fun findExistingFiles(searchName: String): List<String> {
-        if (!cloudFileService.isCacheFilled) return emptyList()
         val start = Instant.now()
         // whole words only, otherwise short titles like "It" or "Up" match nearly every file and an empty search all
         val wordPatterns = searchName.split(Regex("\\s")).filter { it.isNotEmpty() }
