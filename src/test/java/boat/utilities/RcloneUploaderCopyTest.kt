@@ -53,6 +53,15 @@ internal class RcloneUploaderCopyTest {
     }
 
     @Test
+    fun shouldKeepAnApostropheInTheTargetPath() {
+        val target = File(dir, "Ocean's Eleven/Ocean's Eleven.mkv")
+
+        assertThat(uploader.copyUrl(url(), target.path, content.length.toLong())).isTrue
+        assertThat(target.readText()).isEqualTo(content)
+        assertThat(uploader.existingFileSize(target.path)).isEqualTo(content.length.toLong())
+    }
+
+    @Test
     fun shouldCopyAFileWhichIsNotThereYet() {
         val target = File(dir, "new.mkv")
 

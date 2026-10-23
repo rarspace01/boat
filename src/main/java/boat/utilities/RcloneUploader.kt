@@ -23,7 +23,7 @@ class RcloneUploader {
             return true
         }
         log.info("D>[{}]", destinationPath)
-        val command = listOf("rclone") + certificateArguments() + listOf("--retries", "1", "copyurl", url, destinationPath.replace("'", ""))
+        val command = listOf("rclone") + certificateArguments() + listOf("--retries", "1", "copyurl", url, destinationPath)
         log.info(command.joinToString(" "))
         val exitCode = try {
             val process = ProcessBuilder(command)
@@ -53,7 +53,7 @@ class RcloneUploader {
 
     /** The size of the file at [path], null if there is no file (or rclone can't tell). */
     internal fun existingFileSize(path: String): Long? {
-        val command = listOf("rclone") + certificateArguments() + listOf("lsjson", "--stat", path.replace("'", ""))
+        val command = listOf("rclone") + certificateArguments() + listOf("lsjson", "--stat", path)
         return try {
             val process = ProcessBuilder(command)
                 .directory(File(System.getProperty("user.home")))
