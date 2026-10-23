@@ -54,8 +54,8 @@ internal class CloudServiceExistingFilesTest {
     }
 
     @Test
-    fun shouldFindNoFilesIfCacheIsNotFilled() {
+    fun shouldListTheFilesIfCacheIsNotFilledYet() {
         every { cloudFileService.isCacheFilled } returns false
-        assertThat(cloudService.findExistingFiles("It")).isEmpty()
+        assertThat(cloudService.findExistingFiles("It")).hasSize(1)
     }
 }
