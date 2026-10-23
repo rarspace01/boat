@@ -17,6 +17,9 @@ class TorrentProject internal constructor(httpHelper: HttpHelper) : HttpUser(htt
 
     companion object {
         private val logger by LoggerDelegate()
+
+        /** The most torrent pages read per search, each one is a request for a magnet uri. */
+        internal const val MAX_DETAIL_PAGES = 10
     }
 
     override fun searchTorrents(searchName: String): List<Torrent> {
@@ -62,18 +65,25 @@ class TorrentProject internal constructor(httpHelper: HttpHelper) : HttpUser(htt
         } catch (exception: Exception) {
             logger.error("[{}] couldn't parse search results", this, exception)
         }
-        //retrieve magneturis for torrents worth looking at
-        torrentList.parallelStream()
+        // retrieve the magnet uris of the best seeded torrents, one page after the other: the site answers many requests
+        // at once with a bot check (HTTP 404), and once it does the other pages fail too, so the rest is skipped
+        val candidates = torrentList
             .filter { torrent: Torrent -> torrent.seeder > 0 && torrent.sizeInMB > 0 && torrent.remoteUrl.isNotBlank() }
-            .forEach { torrent: Torrent ->
-                torrent.magnetUri = retrieveMagnetUri(torrent)
-                torrent.remoteUrl = ""
+            .sortedByDescending { torrent: Torrent -> torrent.seeder }
+            .take(MAX_DETAIL_PAGES)
+        for (torrent in candidates) {
+            val pageContent = httpHelper.getPage(baseUrl + torrent.remoteUrl)
+            if (pageContent.isEmpty()) {
+                logger.info("[{}] couldn't read a torrent page, skipping the other ones for [{}]", this, searchName)
+                break
             }
+            torrent.magnetUri = parseMagnetUri(pageContent)
+        }
+        torrentList.forEach { torrent: Torrent -> torrent.remoteUrl = "" }
         return torrentList
     }
 
-    private fun retrieveMagnetUri(torrent: Torrent): String {
-        val pageContent = httpHelper.getPage(baseUrl + torrent.remoteUrl)
+    private fun parseMagnetUri(pageContent: String): String {
         // the magnet link is wrapped in a redirect like https://mylink.cx/?url=magnet%3A...
         return Jsoup.parse(pageContent).select("#download a[href]")
             .map { element: Element -> TorrentHelper.urlDecode(element.attr("href").substringAfter("?url=")).trim { it <= ' ' } }
