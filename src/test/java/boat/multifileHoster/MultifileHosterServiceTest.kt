@@ -88,6 +88,20 @@ internal class MultifileHosterServiceTest {
     }
 
     @Test
+    fun shouldUploadAgainWhatARestartInterrupted() {
+        val interrupted = Transfer(name = "Facing.El.Chapo.2026.mkv", transferStatus = TransferStatus.UPLOADING_TO_DRIVE, progressInPercentage = 0.4)
+        val waiting = Transfer(name = "Other", transferStatus = TransferStatus.ADDED)
+        stubTransfers(listOf(interrupted, waiting))
+
+        multifileHosterService.resumeInterruptedUploads()
+
+        assertThat(interrupted.transferStatus).isEqualTo(TransferStatus.READY_TO_BE_DOWNLOADED)
+        assertThat(interrupted.progressInPercentage).isZero()
+        assertThat(waiting.transferStatus).isEqualTo(TransferStatus.ADDED)
+        verify(exactly = 1) { transferService.save(interrupted) }
+    }
+
+    @Test
     fun shouldUpdateTheTransferStatusOnceForAllAddedTransfers() {
         val transfers = (1..3).map { Transfer(source = "Premiumize", uri = "magnet:?xt=urn:btih:12345678$it", transferStatus = TransferStatus.ADDED) }
         stubTransfers(transfers)

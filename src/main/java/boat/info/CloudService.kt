@@ -94,17 +94,17 @@ class CloudService internal constructor(
         return basePath + "/" + typeOfMedia.type + "/" + firstTorrentLetter + "/"
     }
 
+    /** The files of the library for a name, whole words only, otherwise short titles like "It" or "Up" match nearly every file. */
     fun findExistingFiles(searchName: String): List<String> {
         val start = Instant.now()
-        // whole words only, otherwise short titles like "It" or "Up" match nearly every file and an empty search all
-        val wordPatterns = searchName.split(Regex("\\s")).filter { it.isNotEmpty() }
-            .map { Regex("(?iu)(?<![\\p{L}\\p{N}])" + Regex.escape(it) + "(?![\\p{L}\\p{N}])") }
-        if (wordPatterns.isEmpty()) return emptyList()
-        return getAllFiles().filter { fileString: String ->
-            wordPatterns.all { it.containsMatchIn(fileString) }
-        }.also {
-            logger.info("Find files took: ${Duration.between(start, Instant.now())}")
-        }.map { fileString: String -> fileString.replace(PropertiesHelper.getProperty(RCLONE_DIR) ?: "", "") }
+        val words = searchName.split(Regex("\\s")).filter { it.isNotEmpty() }
+        if (words.isEmpty()) return emptyList()
+        val wordPatterns = words.map { Regex("(?iu)(?<![\\p{L}\\p{N}])" + Regex.escape(it) + "(?![\\p{L}\\p{N}])") }
+        val basePath = PropertiesHelper.getProperty(RCLONE_DIR) ?: ""
+        // the plain contains rules out nearly all files before the slower whole word patterns
+        return getAllFiles().filter { file -> words.all { file.contains(it, ignoreCase = true) } && wordPatterns.all { it.containsMatchIn(file) } }
+            .map { it.replace(basePath, "") }
+            .also { logger.info("Find files took: {}", Duration.between(start, Instant.now())) }
     }
 
     fun getAllFiles(): List<String> {

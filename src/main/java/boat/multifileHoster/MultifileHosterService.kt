@@ -24,6 +24,7 @@ import boat.utilities.ProcessUtil
 import boat.utilities.RcloneUploader
 import boat.utilities.PropertiesHelper
 import boat.utilities.StringUtil
+import jakarta.annotation.PostConstruct
 import org.apache.logging.log4j.util.Strings
 import org.springframework.cache.CacheManager
 import org.springframework.stereotype.Service
@@ -108,6 +109,24 @@ class MultifileHosterService(
             return TransferType.TORRENT
         }
         return TransferType.URL
+    }
+
+    /**
+     * A new process uploads nothing: a transfer still marked as uploading was interrupted by a restart (e.g. the
+     * deployment calls `/boat/shutdown`). Without this it would never be uploaded nor matched again.
+     */
+    @PostConstruct
+    fun resumeInterruptedUploads() {
+        runCatching {
+            transferService.getAll().filter { it.transferStatus == TransferStatus.UPLOADING_TO_DRIVE }.forEach { transfer ->
+                log.warn("upload interrupted by a restart, uploading again: {}", transfer)
+                transfer.transferStatus = TransferStatus.READY_TO_BE_DOWNLOADED
+                transfer.progressInPercentage = 0.0
+                transfer.eta = Duration.ZERO
+                transfer.feedbackMessage = "upload interrupted by a restart"
+                transferService.save(transfer)
+            }
+        }.onFailure { log.error("could not check for interrupted uploads: {}", it.message) }
     }
 
     @Synchronized
@@ -305,6 +324,12 @@ class MultifileHosterService(
                 } ?: also {
                     log.warn("no transfer for torrent found after name match: {}", torrent)
                 }
+            }
+        }
+        unmatchedTorrents().forEach { torrent ->
+            // the transfers which are left out on purpose, so the log tells why a torrent has none
+            transferService.getAll().filter { it !in transfers && it.remoteId != null && it.remoteId == torrent.remoteId }.forEach {
+                log.warn("torrent {} belongs to transfer {} in status {}", torrent.name, it.name, it.transferStatus)
             }
         }
         if (unmatchedTransfers().isNotEmpty() || unmatchedTorrents().isNotEmpty()) {
