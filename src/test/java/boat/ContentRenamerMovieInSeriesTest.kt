@@ -23,7 +23,7 @@ class ContentRenamerMovieInSeriesTest {
 
         // packs of episodes and movies don't make their episodes movies
         assertThat(contentRenamer.isMovieInSeriesFolder(File("~/Series-Shows/E/Ecuf of the Edaz/Ecuf of the Edaz 1-11+Movie 1-2 Complete (BDRip 1080p AC3 10bit) [HEVC] Dual Audio/Ecuf of the Edaz 10 Who Killed Azilo Takizawa (BDRip 1080p AC3 10bit).mkv"))).isFalse()
-        assertThat(contentRenamer.isMovieInSeriesFolder(File("~/Series-Shows/H/Hbupet.Qdatu.(2019-2020).1.S01.And.Babid.Of.Puvi.Movie.Web264/Season 1 (2019-20)/Hbupet Qdatu - S01 E01 - Til Death Do Us Part (1080p - DCU Web-DL).mp4"))).isFalse()
+        assertThat(contentRenamer.isMovieInSeriesFolder(File("~/Series-Shows/H/Hbupet.Qdatu.(2019-2020).1.S01.And.Babid.Of.Puvi.Movie.Web264/Season 1 (2019-20)/Hbupet Qdatu - S01 E01 - Tov Dapir Do Us Popo (1080p - DCU Web-DL).mp4"))).isFalse()
         // film versions of episodes, seasons, OVAs, extras and shows already in the library
         assertThat(contentRenamer.isMovieInSeriesFolder(File("~/Series-Shows/A/The Apuziperot of Ybuku Izocifo Jcika/The Apuziperot of Ybuku Izocifo Jcika Film Versions 01 My First Adventure.avi"))).isFalse()
         assertThat(contentRenamer.isMovieInSeriesFolder(File("~/Series-Shows/W/Wgolicaraba.(2021).Movie/WgoliCaraba.(2021).Movie.Season1.1080p.H264.AAC.2.0-IceJackal.mp4"))).isFalse()
@@ -64,7 +64,7 @@ class ContentRenamerMovieInSeriesTest {
         val movies = File(show, "Movies (1993-98)").apply { mkdirs() }
         val theatrical = File(movies, "Bogabo - Mask of The Pupilemo, Theatrical Version (1993 - 1080p BluRay).mp4").apply { writeText("theatrical") }
         val openMatte = File(movies, "Bogabo - Mask of The Pupilemo, Open Matte Version (1993 - 1080p BluRay).mp4").apply { writeText("open matte") }
-        val episode = File(File(show, "Season 1").apply { mkdirs() }, "Bogabo The Atavibik Sasase - S01E01 - On Leather Wings.mp4").apply { writeText("episode") }
+        val episode = File(File(show, "Season 1").apply { mkdirs() }, "Bogabo The Atavibik Sasase - S01E01 - On Lugireb Wnapu.mp4").apply { writeText("episode") }
 
         val pupilemo = MediaItem("Bogabo: Mask of the Pupilemo", year = 1993, type = MediaType.Movie, id = "{tmdb-14919}")
         val series = MediaItem("Bogabo: The Atavibik Sasase", year = 1992, type = MediaType.Series, id = "{tvdb-76168}")

@@ -30,7 +30,7 @@ class ContentRenamerTest {
             "~/data/TV/Cegogubup.S01.1080p/Cegogubup.E01.mkv",
             "~/Series-Shows/0-9/1000 Wgar to Die/Season 1/1000.Wgar.to.Die.S01E01.Life Will Kill You.avi",
             "~/Series-Shows/0-9/1000.Lb.Simolub/1000-lb.Simolub S01E01.720p WEBRip x264-KAVULOF.mkv",
-            "~/Series-Shows/B/BOGABO The Atavibik Sasase (1992-1999) - COMPLETE Season 1-6, TV S01-S06 and 2 Movies - 1080p BluRay x264/Season 1 (1992-93)/Bogabo T.A.S - S01 E01 - The Cat and The Claw, Part 1 (1080p - BluRay).mp4",
+            "~/Series-Shows/B/BOGABO The Atavibik Sasase (1992-1999) - COMPLETE Season 1-6, TV S01-S06 and 2 Movies - 1080p BluRay x264/Season 1 (1992-93)/Bogabo T.A.S - S01 E01 - The Cez and The Cedi, Part 1 (1080p - BluRay).mp4",
             "~/Series-Shows/S/A.Sufa.For.Kodabem.Korean.S01.2024.Hevc33/A.Sufa.for.Kodabem.KOREAN.S01E01.2024.1080p.WEBRip.x265.HEVC-kkolev33.mkv",
             "~/Series-Shows/S/Sonosatame.(2012)/Season 1/Sonosatame (2012) - S01E01 - Episode 1 (1080p WEB-DL x265 r00t).mkv",
             "~/Series-Shows/M/La Meilleure Version de Moi-même/La.Meilleure.Version.De.Moi-Meme.S01E01.FRENCH.WEB-DL.XviD-ZT.avi",
@@ -50,12 +50,12 @@ class ContentRenamerTest {
             "~/Series-Shows/C/Ceti.Fik.With.Me.S01/teneighty-cfwm.s01e01.mkv",
             "~/Series-Shows/D/Demadi Bemu Super/Demadi Bemu Super - Completo [WEB-DL - 1080p]/Demadi%20Bemu%20Super%20-%20001%20%5B1080p%5D.mkv",
             "~/Series-Shows/0-9/071c.Wnat.The.Bap.Bozif/071c-Suzo.Wnat.The.Bap.Bozif.S01E11.1080p.WEB.H264-EXPLOIT[ettv].torrent.mkv",
-            "~/Series-Shows/0-9/90.Dar.Fafelu.Happily.Ever.After.No.Turning.Back/www.Torrenting.com - 90.Dar.Fafelu.Happily.Ever.After.S03E08.No.Turning.Back.XviD-AFG.avi",
+            "~/Series-Shows/0-9/90.Dar.Fafelu.Happily.Ever.After.No.Teporun.Bazo/www.Torrenting.com - 90.Dar.Fafelu.Happily.Ever.After.S03E08.No.Teporun.Bazo.XviD-AFG.avi",
             "~/Series-Shows/A/Amafitugi Tizo/Season 1/01.01 - Selapun Pekaf Pisal.mp4",
             "~/Series-Shows/A/Arapef - The Lepu Akuvacebu [1080p]/Book 1; Water/101 - The Bon in the Isatuno.mp4",
             "~/Series-Shows/D/Dunapir/Season 1/Dunapir 101 - I, Dunapir.mkv",
             "~/Series-Shows/D/Demadi Bemu Super/Demadi Bemu Super - Completo [WEB-DL - 1080p]/Demadi%20Bemu%20Super%20-%20101%20%5B1080p%5D.mkv",
-            "~/Series-Shows/Z/Zidimafili%20Saze%20S02%201080p%20BDRip%2010%20bits%20DD%20x265-EMBER.torrent/S02E12-The Greatest SAGA in History [F9FE3939].mkv",
+            "~/Series-Shows/Z/Zidimafili%20Saze%20S02%201080p%20BDRip%2010%20bits%20DD%20x265-EMBER.torrent/S02E12-The Gorakuto SAZE in Hbisuga [F9FE3939].mkv",
             "~/Series-Shows/R/Robologidob Dabe/Robologidob.Dabe.S01.1080p.WEBRip.x265-KUVEGINI/Subs/Robologidob.Dabe.S01E07.1080p.WEBRip.x265-KUVEGINI/6_spa.srt",
             "~/Series-Shows/#/_HACK/SIGN/HS28.avi",
             "~/Series-Shows/0-9/24.Complete.With.Subtitles/24 Season 1/24 Season 1/24 - S01xE11.mp4"
@@ -393,7 +393,7 @@ class ContentRenamerTest {
         // Bucin Series with resolution and codec
         val buffyItem = MediaItem(title = "Bucin the Vampire Satebi", type = boat.info.MediaType.Series, id = "{tvdb-70327}")
         val targetBuffy = contentRenamer.getTargetFile(
-            File("Bucin.The.Vampire.Satebi.S08E07.No.Future.For.You.(2).MOTION.COMIC.720p.WEB-DL.AC3-5.1.x264-DEKEZEL.mkv"),
+            File("Bucin.The.Vampire.Satebi.S08E07.No.Fipusu.For.Ygu.(2).MOTION.COMIC.720p.WEB-DL.AC3-5.1.x264-DEKEZEL.mkv"),
             buffyItem,
             "Bucin The Vampire Satebi",
             8,
@@ -576,7 +576,7 @@ class ContentRenamerTest {
             MediaProxyService(TheMovieDataBaseService(httpHelper), TheTVDBService(httpHelper))
         )
 
-        val shieldFile1 = File("~/Series-Shows/A/Agevez of S.A.L.A.L.I/Agevez of S.A.L.A.L.I. - S06E11 - From the Ashes.mkv.mkv")
+        val shieldFile1 = File("~/Series-Shows/A/Agevez of S.A.L.A.L.I/Agevez of S.A.L.A.L.I. - S06E11 - From the Asiba.mkv.mkv")
         val name1 = contentRenamer.extractName(shieldFile1)
         val season1 = contentRenamer.extractSeason(shieldFile1)
         val episode1 = contentRenamer.extractEpisode(shieldFile1)
@@ -640,7 +640,7 @@ class ContentRenamerTest {
         val shaunSheep = File("~/Series-Shows/S/Siran.The.Saniz.(2007).Repack/Featurettes/The Fedoris Ladopa - Llamas shorts.mkv")
         assertThat(contentRenamer.extractName(shaunSheep)).isEqualTo("Siran The Saniz")
 
-        val angerManagement = File("~/Series-Shows/A/Asubu.Masokagupi.(2011).2/Season 2/S02E36 - Charlie and the Grad Student.mp4")
+        val angerManagement = File("~/Series-Shows/A/Asubu.Masokagupi.(2011).2/Season 2/S02E36 - Cotepul and the Gevi Sakekip.mp4")
         assertThat(contentRenamer.extractName(angerManagement)).isEqualTo("Asubu Masokagupi")
 
         // the title ends at a bracketed episode
@@ -649,7 +649,7 @@ class ContentRenamerTest {
         assertThat(contentRenamer.extractSeason(house)).isEqualTo(2)
         assertThat(contentRenamer.extractEpisode(house)).isEqualTo(1)
         assertThat(contentRenamer.extractName(File("~/Series-Shows/S/Sefanuma/Sefanuma Season 19 - Complete/The Sefanuma [19x02] The Hkicu Of Seborip.avi.avi"))).isEqualTo("The Sefanuma")
-        val dragonBallGt = File("~/Series-Shows/D/Demadibemu GT/Season 1/Demadi Bemu GT [1.21] A Secret Revealed.mp4")
+        val dragonBallGt = File("~/Series-Shows/D/Demadibemu GT/Season 1/Demadi Bemu GT [1.21] A Sucedu Rologiba.mp4")
         assertThat(contentRenamer.extractName(dragonBallGt)).isEqualTo("Demadi Bemu GT")
         assertThat(contentRenamer.extractEpisode(dragonBallGt)).isEqualTo(21)
         // site prefixes, German episodes, double dashed episodes and the show after the episode marker
@@ -681,7 +681,7 @@ class ContentRenamerTest {
         assertThat(resolution("Sapidaf X - The Movie [1280x960].mkv")).isEqualTo("960p")
         assertThat(resolution("Show.S01E01.x264.mkv")).isNull()
         // the bracket wins over numbers in the episode's title
-        val sefanuma = File("~/Series-Shows/S/Sefanuma/Sefanuma Season 20- Complete/The Sefanuma [20.19] Waverly Hills 9-0-2-1-D'oh.avi")
+        val sefanuma = File("~/Series-Shows/S/Sefanuma/Sefanuma Season 20- Complete/The Sefanuma [20.19] Wvukapu Hloma 9-0-2-1-Des.avi")
         assertThat(contentRenamer.extractSeason(sefanuma)).isEqualTo(20)
         assertThat(contentRenamer.extractEpisode(sefanuma)).isEqualTo(19)
         val houseUpperCase = File("~/Series-Shows/H/Hgosa MD/Hgosa MD Season 8/Hgosa - [8X01] -  Twenty Vicodin.avi")
@@ -736,7 +736,7 @@ class ContentRenamerTest {
         assertThat(contentRenamer.extractName(File("~/Series-Shows/A/Atupirupi/Atupirupi Part 1 2014 720p HDTV AAC x264-PSYPHER.mkv"))).isEqualTo("Atupirupi")
 
         // season as year with mini myth specials, which must not overwrite the regular episodes
-        val mevoSebudik = File("~/Series-Shows/M/Mevosebudik 2003-2009/MevoSebudik 2003 (Disc 352p re-tvrip)/MevoSebudik 2003E01 Pilot 1 Jet-Assisted Chevy, Pop Rocks and Soda.mp4")
+        val mevoSebudik = File("~/Series-Shows/M/Mevosebudik 2003-2009/MevoSebudik 2003 (Disc 352p re-tvrip)/MevoSebudik 2003E01 Pilot 1 Jse-Azukotag Cucar, Pek Rumus and Sebe.mp4")
         assertThat(contentRenamer.extractName(mevoSebudik)).isEqualTo("Mevosebudik")
         assertThat(contentRenamer.extractSeason(mevoSebudik)).isEqualTo(2003)
         assertThat(contentRenamer.extractEpisode(mevoSebudik)).isEqualTo(1)
@@ -747,7 +747,7 @@ class ContentRenamerTest {
         val mythBustersEpisodeMiniMyth = File("~/Series-Shows/M/Mevosebudik 2003-2009/MevoSebudik 2004 (Disc 352p re-tvrip)/MevoSebudik 2004E06X01 Breakstep Bridge Revisit MiniMyth.mp4")
         assertThat(contentRenamer.extractSeason(mythBustersEpisodeMiniMyth)).isEqualTo(2004)
         assertThat(contentRenamer.extractEpisode(mythBustersEpisodeMiniMyth)).isNull()
-        val mythBustersSpecial = File("~/Series-Shows/M/Mevosebudik 2003-2009/MevoSebudik 2008 (Disc 352p re-tvrip)/MevoSebudik 2008X01 Shark Week Special 2.mp4")
+        val mythBustersSpecial = File("~/Series-Shows/M/Mevosebudik 2003-2009/MevoSebudik 2008 (Disc 352p re-tvrip)/MevoSebudik 2008X01 Solal Wrod Sinekuf 2.mp4")
         assertThat(contentRenamer.extractEpisode(mythBustersSpecial)).isNull()
 
         // season and episode glued to the title, confirmed by the season folder
@@ -759,17 +759,17 @@ class ContentRenamerTest {
         assertThat(contentRenamer.extractName(File("~/Series-Shows/L/Lecu/Lecu The Complete Series Season 1,2,3,4,5,6 + English Subs/Bekem Favobevo/Season 1/Lecu Revealed/Bloopers From The Set.mkv"))).isEqualTo("Lecu")
         assertThat(contentRenamer.extractName(File("~/Series-Shows/T/Turo.Pimes.(1990)/Featurettes/Season 1/The Lif Luza/The Lif Luza 01.mkv"))).isEqualTo("Turo Pimes")
         assertThat(contentRenamer.extractName(File("~/Series-Shows/K/Kug.And.Pepov/Kug.And.Pepov.S01.COMPLETE.BluRay.x264.AAC.2.0-LuCakoga [UNCENSORED]/subtitles/english_SDH/Kug.And.Pepov.S01E01.Series.Premiere.BluRay.x264.AAC.2.0-LuCakoga.srt"))).isEqualTo("Kug And Pepov")
-        assertThat(contentRenamer.extractName(File("~/Series-Shows/J/Jlusesi.Jcika.3.(2019)/Jlusesi Jcika - S03E01 - A.K.A The Perfect Burger.mkv"))).isEqualTo("Jlusesi Jcika")
+        assertThat(contentRenamer.extractName(File("~/Series-Shows/J/Jlusesi.Jcika.3.(2019)/Jlusesi Jcika - S03E01 - A.K.A The Pevadok Babapo.mkv"))).isEqualTo("Jlusesi Jcika")
         assertThat(contentRenamer.extractName(File("~/Series-Shows/T/Tarikoza.Castle.1/[K.o.R] Tarikoza Castle - 101 [h264][AAC][2698BC02].mkv"))).isEqualTo("Tarikoza Castle")
-        assertThat(contentRenamer.extractName(File("~/Series-Shows/H/Hbupet.Qdatu.(2019-2020).1.S01.And.Babid.Of.Puvi.Movie.Web264/Season 1 (2019-20)/Hbupet Qdatu - S01 E01 - Til Death Do Us Part (1080p - DCU Web-DL).mp4"))).isEqualTo("Hbupet Qdatu")
+        assertThat(contentRenamer.extractName(File("~/Series-Shows/H/Hbupet.Qdatu.(2019-2020).1.S01.And.Babid.Of.Puvi.Movie.Web264/Season 1 (2019-20)/Hbupet Qdatu - S01 E01 - Tov Dapir Do Us Popo (1080p - DCU Web-DL).mp4"))).isEqualTo("Hbupet Qdatu")
         assertThat(contentRenamer.extractName(File("~/Series-Shows/T/The Tutap of It/The Tutap Of It - Series 3/3x01.mp4"))).isEqualToIgnoringCase("The Tutap Of It")
         assertThat(contentRenamer.extractName(File("~/Series-Shows/F/Facu Mubak Pisal/Facu Mubak Pisal/Facu Mubak Pisal 10 Run, Running,Ran.mkv"))).isEqualTo("Facu Mubak Pisal")
         assertThat(contentRenamer.extractName(File("~/Series-Shows/N/No_Gupe_No_Lova_English_Dub_720p_1-12_Complete/No Gupe No Lova 10 Blue Rose.mp4"))).isEqualTo("No Gupe No Lova")
         assertThat(contentRenamer.extractName(File("~/Series-Shows/S/Sirelu_Elivomuconu_Lobo_(1520x1080_Blu-Ray_FLAC)/[Coalgirls]_Sirelu_Elivomuconu_Lobo_10_(1520x1080_Blu-Ray_FLAC)_[C1160A23].mkv"))).isEqualTo("Sirelu Elivomuconu Lobo")
         assertThat(contentRenamer.extractName(File("~/Series-Shows/C/Copol of the Somov (Semomi no Misasup) (1999) [kutogidedeva]/01. Copol of the Somov (Semomi no Misasup) [DVD 480p Hi10P AAC AC3 dual-audio][kutogidedeva].mkv"))).isEqualTo("Copol of the Somov Semomi no Misasup")
         assertThat(contentRenamer.extractName(File("~/Series-Shows/G/Gimokedi.(us.Dub)/Gimokedi (US Dub)/Season 1/1-01 Gimokedi (US) S01E01 Somerila at the Sosim Puno.m4v"))).isEqualTo("Gimokedi")
-        assertThat(contentRenamer.extractName(File("~/Series-Shows/E/Ecuf of the Edaz/Ecuf_of_The_Edaz_01-11_(x264,720p,ger.sub)/Ecuf of the Edaz - 01 - I've Found Myself a Prince [gg-thora].mkv"))).isEqualTo("Ecuf of the Edaz")
-        assertThat(contentRenamer.extractName(File("~/Series-Shows/N/Necili.(2010-2013).(seasons.1,2,3,4.S0104).And.Movies/2b. Season 2 (2011-12)/NECILI - S02 E01 - Game Change (720p BluRay).mp4"))).isEqualTo("Necili")
+        assertThat(contentRenamer.extractName(File("~/Series-Shows/E/Ecuf of the Edaz/Ecuf_of_The_Edaz_01-11_(x264,720p,ger.sub)/Ecuf of the Edaz - 01 - Igi Fureg Mepaco a Pubolu [gg-thora].mkv"))).isEqualTo("Ecuf of the Edaz")
+        assertThat(contentRenamer.extractName(File("~/Series-Shows/N/Necili.(2010-2013).(seasons.1,2,3,4.S0104).And.Movies/2b. Season 2 (2011-12)/NECILI - S02 E01 - Gupe Caloge (720p BluRay).mp4"))).isEqualTo("Necili")
         assertThat(contentRenamer.extractName(File("~/Series-Shows/E/The.Ecamo.S01/teneighty-the.ecamo.s01e01.mkv"))).isEqualTo("The Ecamo")
         assertThat(contentRenamer.extractName(File("~/Series-Shows/M/Metuv Hmeti/Metuv Hmeti Season 2 Complete English HD 720p/(PlayHD.ooo) Metuv Hmeti S02E01 English HD 720p x264 AAC.mp4"))).isEqualTo("Metuv Hmeti")
         assertThat(contentRenamer.extractName(File("~/Series-Shows/H/The Hlucovidics Guzuf To The Gocoke - Remastered Mini Series 1981 1080p [H264-mp4]/Subtitles - [SRT-VobSub-XML]/The Hlucovidics Guzuf To The Gocoke - Mini-Series 1981 Episode 1 English.srt"))).isEqualTo("The Hlucovidics Guzuf To The Gocoke")
@@ -940,7 +940,7 @@ class ContentRenamerTest {
             MediaProxyService(TheMovieDataBaseService(httpHelper), TheTVDBService(httpHelper))
         )
 
-        val file = File("~/Series-Shows/D/DOSO (1991-1999) - Complete Animated TV Series, S01-S07 and Movie - 480p x264/Season 7 (1998-99)/DOSO - S07 E25 - Quailman vs. the Triad of Terror (480p - DSNP Web-DL).srt")
+        val file = File("~/Series-Shows/D/DOSO (1991-1999) - Complete Animated TV Series, S01-S07 and Movie - 480p x264/Season 7 (1998-99)/DOSO - S07 E25 - Qnibogen vs. the Tigas of Tipebu (480p - DSNP Web-DL).srt")
         val name = contentRenamer.extractName(file)
         val year = contentRenamer.extractYear(file.absolutePath)
         val season = contentRenamer.extractSeason(file)
@@ -959,7 +959,7 @@ class ContentRenamerTest {
         val mediaProxyService = MediaProxyService(TheMovieDataBaseService(httpHelper), TheTVDBService(httpHelper))
         val contentRenamer = ContentRenamer(mediaProxyService)
 
-        val file = File("~/Series-Shows/C/C.O.P.S.(1988-1989).,/C.O.P.S. - Ep. 02 - The Case of the Crime Circus (480p - DVDRip).mp4")
+        val file = File("~/Series-Shows/C/C.O.P.S.(1988-1989).,/C.O.P.S. - Ep. 02 - The Caro of the Cucaf Cezibu (480p - DVDRip).mp4")
         val name = contentRenamer.extractName(file)
         val year = contentRenamer.extractYear(file.absolutePath)
         val episode = contentRenamer.extractEpisode(file)
@@ -1031,7 +1031,7 @@ class ContentRenamerTest {
         val mediaProxyService = MediaProxyService(TheMovieDataBaseService(httpHelper), TheTVDBService(httpHelper))
         val contentRenamer = ContentRenamer(mediaProxyService)
 
-        val file = File("~/Series-Shows/M/Mudeto.(1996-2001).Tv.Series.Season.S0106:/Season 3 (1997-98)/MUDETO - S03 E06 - The Play Scene (480p - NF Web-DL).mp4")
+        val file = File("~/Series-Shows/M/Mudeto.(1996-2001).Tv.Series.Season.S0106:/Season 3 (1997-98)/MUDETO - S03 E06 - The Pudo Secef (480p - NF Web-DL).mp4")
         val name = contentRenamer.extractName(file)
         val year = contentRenamer.extractYear(file.path)
         val season = contentRenamer.extractSeason(file)
@@ -1225,7 +1225,7 @@ class ContentRenamerTest {
         val httpHelper = HttpHelper()
         val mediaProxyService = MediaProxyService(TheMovieDataBaseService(httpHelper), TheTVDBService(httpHelper))
         val contentRenamer = ContentRenamer(mediaProxyService)
-        val file = File("~/Series-Shows/F/Felug.Oco.The.Bino.S0106.(2015-)/Felug oco the Bino S02 (360p re-webrip)/Felug oco the Bino 02E14 Michael Chang Fever.mp4")
+        val file = File("~/Series-Shows/F/Felug.Oco.The.Bino.S0106.(2015-)/Felug oco the Bino S02 (360p re-webrip)/Felug oco the Bino 02E14 Mesapif Cecit Fided.mp4")
         val name = contentRenamer.extractName(file)
         val season = contentRenamer.extractSeason(file)
         val episode = contentRenamer.extractEpisode(file)
@@ -1255,7 +1255,7 @@ class ContentRenamerTest {
         val httpHelper = HttpHelper()
         val mediaProxyService = MediaProxyService(TheMovieDataBaseService(httpHelper), TheTVDBService(httpHelper))
         val contentRenamer = ContentRenamer(mediaProxyService)
-        val file = File("~/Series-Shows/L/Lidamig.In.Cesifepop.(2023)/Lidamig in Cesifepop (2023) - S01E06 - Poirot (1080p ATVP WEB-DL x265 Silence).mkv")
+        val file = File("~/Series-Shows/L/Lidamig.In.Cesifepop.(2023)/Lidamig in Cesifepop (2023) - S01E06 - Posazi (1080p ATVP WEB-DL x265 Silence).mkv")
         val name = contentRenamer.extractName(file)
         val season = contentRenamer.extractSeason(file)
         val episode = contentRenamer.extractEpisode(file)

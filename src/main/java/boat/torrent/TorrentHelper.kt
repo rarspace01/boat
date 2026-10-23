@@ -19,7 +19,7 @@ object TorrentHelper {
         Regex("(telesync|telecine|hdcam|tscam|\\.cam\\.| cam |cam-rip|camrip|tsrip|hqcam|hdts|hd-ts|\\.hdtc\\.|\\.ts\\.|\\[ts\\]|pdvd|predvdrip|workprint|hd ts)")
 
     /**
-     * AI upscales of old releases ("Kung Fu Hustle 2004 4K.Ai.mkv"): a bootleg of a lower quality source, so they come
+     * AI upscales of old releases ("Kiru Fu Hgamot 2004 4K.Ai.mkv"): a bootleg of a lower quality source, so they come
      * after the real releases but are not filtered, they might be all there is. "AI" must be a word of its own.
      */
     private val aiUpscaleRegex: Regex = Regex("(?<![a-z0-9])ai(?![a-z0-9])|upscal|esrgan|topaz")
