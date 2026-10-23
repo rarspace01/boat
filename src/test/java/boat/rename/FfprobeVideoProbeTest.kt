@@ -43,12 +43,23 @@ internal class FfprobeVideoProbeTest {
     }
 
     @Test
-    fun `should return null if the program or the file is not there`(@TempDir tempDir: Path) {
-        assertThat(FfprobeVideoProbe("ffprobe-which-does-not-exist").probe(File(tempDir.toFile(), "a.mkv"))).isNull()
+    fun `should tell a file ffprobe rejects from one it could not read`(@TempDir tempDir: Path) {
+        assertThat(FfprobeVideoProbe("ffprobe-which-does-not-exist").probe(File(tempDir.toFile(), "a.mkv"))).isInstanceOf(ProbeResult.Failed::class.java)
         assumeTrue(isInstalled("ffprobe"), "ffprobe is not installed")
-        assertThat(FfprobeVideoProbe().probe(File(tempDir.toFile(), "missing.mkv"))).isNull()
+        assertThat(FfprobeVideoProbe().probe(File(tempDir.toFile(), "missing.mkv"))).isInstanceOf(ProbeResult.Failed::class.java)
         val notAVideo = File(tempDir.toFile(), "text.mkv").apply { writeText("this is not a video") }
-        assertThat(FfprobeVideoProbe().probe(notAVideo)).isNull()
+        assertThat(FfprobeVideoProbe().probe(notAVideo)).isInstanceOf(ProbeResult.Broken::class.java)
+    }
+
+    @Test
+    fun `should only count a rejection by ffprobe as broken`() {
+        assertThat(FfprobeVideoProbe.classify(1, "{}", "[mov @ 0x1] moov atom not found\na.mp4: Invalid data found when processing input\n"))
+            .isEqualTo(ProbeResult.Broken("a.mp4: Invalid data found when processing input"))
+        assertThat(FfprobeVideoProbe.classify(1, "{}", "a.mkv: Input/output error\n")).isInstanceOf(ProbeResult.Failed::class.java)
+        assertThat(FfprobeVideoProbe.classify(0, """{"streams":[],"format":{"duration":"10"}}""", "")).isEqualTo(ProbeResult.Broken("no video stream"))
+        assertThat(FfprobeVideoProbe.classify(0, "", "")).isInstanceOf(ProbeResult.Failed::class.java)
+        assertThat(FfprobeVideoProbe.classify(0, """{"streams":[{"codec_name":"h264"}],"format":{}}""", ""))
+            .isEqualTo(ProbeResult.Read(VideoInfo("h264", null, null, null, null)))
     }
 
     @Test
@@ -60,9 +71,9 @@ internal class FfprobeVideoProbeTest {
         }
         val start = System.nanoTime()
 
-        val info = FfprobeVideoProbe(hanging.path, timeoutSeconds = 1).probe(File(tempDir.toFile(), "a.mkv"))
+        val result = FfprobeVideoProbe(hanging.path, timeoutSeconds = 1).probe(File(tempDir.toFile(), "a.mkv"))
 
-        assertThat(info).isNull()
+        assertThat(result).isInstanceOf(ProbeResult.Failed::class.java)
         assertThat((System.nanoTime() - start) / 1_000_000).isLessThan(5_000)
     }
 
@@ -75,7 +86,7 @@ internal class FfprobeVideoProbeTest {
         ).redirectErrorStream(true).start().waitFor()
         assumeTrue(created == 0 && video.exists(), "ffmpeg could not create the test video (no libx264?)")
 
-        val info = FfprobeVideoProbe().probe(video)
+        val info = (FfprobeVideoProbe().probe(video) as? ProbeResult.Read)?.info
 
         assertThat(info?.codec).isEqualTo("h264")
         assertThat(info?.width).isEqualTo(640)
