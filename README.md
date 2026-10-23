@@ -35,7 +35,7 @@ its dummy values are not used:
 | `MEDIA_CACHE_TTL_DAYS` | `90` | how long TMDB/TVDB results are cached, `0` keeps them forever (e.g. for local rename test runs) |
 | `MEDIA_CACHE_NOT_FOUND_TTL_DAYS` | `7` | same for searches without a result |
 | `SEARCH_MAX_RESULTS_PER_ENGINE` | `500` | how many results a search engine is asked for (paged where the engine has pages); the search itself shows the best 100 after filtering and sorting |
-| `QUEUE_FILE` | `/tmp/boat/queue.list` | where the queue is stored |
+| `QUEUE_FILE` | `/tmp/boat/queue.list` | the queue is stored in MongoDB; a queue file of an older version is imported from here once and renamed to `.imported` |
 | `HTPASSWD_FILE` | `/tmp/htpasswd` | where the users are written for a reverse proxy |
 | `ALLOW_PRIVATE_URLS` | `false` | allow local addresses in search list urls |
 | `RCLONE_NO_CHECK_CERTIFICATE` | `false` | pass `--no-check-certificate` to rclone |

@@ -103,7 +103,6 @@ internal class DownloadMonitorTest {
         verify(exactly = 1) { torrentSearchEngineService.searchTorrents("Avatar 2009") }
         verify(exactly = 1) { multifileHosterService.addTorrentToTransfer(torrent, "{tmdb-19995}", MediaType.Movie) }
         verify(exactly = 1) { queueService.remove(queueItem) }
-        verify(exactly = 1) { queueService.saveQueue() }
     }
 
     @Test
@@ -123,7 +122,6 @@ internal class DownloadMonitorTest {
         verify(exactly = 1) { torrentSearchEngineService.searchTorrents("Breaking Bad Season 1") }
         verify(exactly = 1) { multifileHosterService.addTorrentToTransfer(torrent, "{tvdb-81189}", MediaType.Series) }
         verify(exactly = 1) { queueService.remove(queueItem) }
-        verify(exactly = 1) { queueService.saveQueue() }
     }
 
     @Test
@@ -141,7 +139,6 @@ internal class DownloadMonitorTest {
         verify(exactly = 0) { torrentSearchEngineService.searchTorrents(any()) }
         verify(exactly = 0) { multifileHosterService.addTorrentToTransfer(any(), any(), any()) }
         verify(exactly = 1) { queueService.remove(queueItem) }
-        verify(exactly = 1) { queueService.saveQueue() }
     }
 
     @Test
@@ -178,7 +175,6 @@ internal class DownloadMonitorTest {
         verify(exactly = 1) { torrentSearchEngineService.searchTorrents("Custom Show 2021") }
         verify(exactly = 1) { multifileHosterService.addTorrentToTransfer(torrent, "{custom-id}", null) }
         verify(exactly = 1) { queueService.remove(queueItem) }
-        verify(exactly = 1) { queueService.saveQueue() }
     }
 
     @Test

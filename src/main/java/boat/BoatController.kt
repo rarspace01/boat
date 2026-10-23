@@ -236,7 +236,6 @@ $switchToSearch${switchToProgress}""" + htmlFooter
             .map { entry -> matchSearchListEntry(entry) }
             .filter { mediaItem: MediaItem -> isNotAlreadyDownloaded(mediaItem) }
         queueService.addAll(listOfMediaItems)
-        queueService.saveQueue()
         return htmlHeader + (switchToProgress + HtmlUtils.htmlEscape(listOfMediaItems.toString()).replace("\n", "<br/>")) + htmlFooter
     }
 

@@ -192,7 +192,6 @@ class DownloadMonitor(
 
     private fun removeFromQueue(mediaItem: MediaItem) {
         queueService.remove(mediaItem)
-        queueService.saveQueue()
     }
 
     @Scheduled(fixedRate = (SECONDS_BETWEEN_CLEAR_TRANSFER_POLLING * 1000).toLong())
