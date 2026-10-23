@@ -22,15 +22,26 @@ object PropertiesHelper {
     fun getProperty(propname: String, default: String? = null): String? {
         System.getenv(propname)?.let { return it }
 
-        val value = propertyFile?.let { path ->
-            runCatching {
-                FileInputStream(path).use { inputStream ->
-                    Properties().apply { load(inputStream) }.getProperty(propname)
-                }
-            }.getOrNull()
-        }
+        val value = propertyFile?.let { path -> loadedProperties(File(path))?.getProperty(propname) }
         if (value == null) logger.debug("'{}' not found, using '{}'", propname, default)
         return value ?: default
+    }
+
+    /** The file as read last time, read again when it changed (path, time or size). */
+    private class LoadedFile(val path: String, val lastModified: Long, val length: Long, val properties: Properties)
+
+    @Volatile
+    private var loaded: LoadedFile? = null
+
+    private fun loadedProperties(file: File): Properties? {
+        val current = loaded
+        val path = file.absolutePath
+        val lastModified = file.lastModified()
+        val length = file.length()
+        if (current != null && current.path == path && current.lastModified == lastModified && current.length == length) return current.properties
+        return runCatching { FileInputStream(file).use { Properties().apply { load(it) } } }
+            .onSuccess { loaded = LoadedFile(path, lastModified, length, it) }
+            .getOrNull()
     }
 
     /** For settings the application can't work without, so a missing one fails at startup with a clear message. */

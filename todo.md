@@ -18,8 +18,6 @@ Ordered by how much they matter, from the review of 2026-10-23 (on top of #581).
 
 ### Performance
 
-- [ ] `PropertiesHelper.getProperty` opens and parses `boat.cfg` on every call (every api key, path and hoster
-  request). Cache it, re-read when the file changes.
 - [ ] Queue polling asks the hoster for its transfers and the traffic every 30 s, also when the queue is empty.
   Check the queue first.
 - [ ] `addTransfersToDownloadQueue` runs a full `updateTransferStatus` (transfer list of the hoster) after every
