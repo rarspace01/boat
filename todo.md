@@ -18,8 +18,6 @@ Ordered by how much they matter, from the review of 2026-10-23 (on top of #581).
 
 ### Performance
 
-- [ ] `addTransfersToDownloadQueue` runs a full `updateTransferStatus` (transfer list of the hoster) after every
-  added transfer.
 - [ ] `CloudService.buildDestinationPath` searches TMDB/TVDB only for a log line, once per file of a multi file
   download.
 - [ ] All `@Async` jobs and the scheduler share `taskExecutor` (cores, at least 2 threads); an upload holds one for

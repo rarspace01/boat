@@ -88,6 +88,17 @@ internal class MultifileHosterServiceTest {
     }
 
     @Test
+    fun shouldUpdateTheTransferStatusOnceForAllAddedTransfers() {
+        val transfers = (1..3).map { Transfer(source = "Premiumize", uri = "magnet:?xt=urn:btih:12345678$it", transferStatus = TransferStatus.ADDED) }
+        stubTransfers(transfers)
+        every { httpHelper.getPage(match { it.contains("transfer/create") }) } returns "{\"status\":\"error\",\"message\":\"server error\"}"
+
+        multifileHosterService.addTransfersToDownloadQueue()
+
+        verify(exactly = 1) { multifileHosterService.updateTransferStatus() }
+    }
+
+    @Test
     fun shouldWaitLongerAfterEveryRejection() {
         val now = java.time.Instant.parse("2026-10-23T12:00:00Z")
         fun rejected(times: Int, minutesAgo: Long) = Transfer(

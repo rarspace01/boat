@@ -133,9 +133,10 @@ class MultifileHosterService(
                     transfer.transferStatus = TransferStatus.ADDED_TO_MULTIHOSTER
                 }
                 transferService.save(transfer)
-                updateTransferStatus()
             }
         }
+        // once for all added transfers, it asks the hoster for its whole list
+        if (transfersToBeDownloaded.isNotEmpty()) updateTransferStatus()
     }
 
     fun extractRemoteIdFromMessage(transfer: Transfer): String? {
