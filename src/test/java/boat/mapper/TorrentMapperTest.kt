@@ -14,13 +14,13 @@ internal class TorrentMapperTest {
         assertThat(TorrentMapper.mapRemoteStatus(2)).isEqualTo(TransferStatus.UPLOADING_TO_MULTIHOSTER)
         assertThat(TorrentMapper.mapRemoteStatus(3)).isEqualTo(TransferStatus.UPLOADING_TO_MULTIHOSTER)
         assertThat(TorrentMapper.mapRemoteStatus(4)).isEqualTo(TransferStatus.READY_TO_BE_DOWNLOADED)
-        (5..11).forEach { assertThat(TorrentMapper.mapRemoteStatus(it)).isEqualTo(TransferStatus.ERROR) }
+        (5..15).forEach { assertThat(TorrentMapper.mapRemoteStatus(it)).isEqualTo(TransferStatus.ERROR) }
     }
 
     @Test
     fun shouldMapUnknownRemoteStatusCodes() {
         assertThat(TorrentMapper.mapRemoteStatus(-1)).isEqualTo(TransferStatus.UNKNOWN)
-        assertThat(TorrentMapper.mapRemoteStatus(12)).isEqualTo(TransferStatus.UNKNOWN)
+        assertThat(TorrentMapper.mapRemoteStatus(16)).isEqualTo(TransferStatus.UNKNOWN)
         assertThat(TorrentMapper.mapRemoteStatus(null as Int?)).isEqualTo(TransferStatus.UNKNOWN)
     }
 

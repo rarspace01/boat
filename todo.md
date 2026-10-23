@@ -9,8 +9,9 @@ are in the git history (PRs #545 to #569), the settings are in the README.
   of the list, trackers know different subsets).
 - [ ] Sign the release jar (or publish build attestations). The checksum next to `boat.jar` protects against corrupted
   or tampered downloads, not against a compromised GitHub release.
-- [ ] Alldebrid: kept on purpose, but only Premiumize is registered in `MultifileHosterService`. Register it there to
-  use it (the API key setting and the tests exist).
+- [ ] Alldebrid: up to date with the API (v4/v4.1, checked against docs.alldebrid.com and the live API with its demo
+  key), but only Premiumize is registered in `MultifileHosterService`. Register it there to use it. It can do all
+  Premiumize does except the cache check, AllDebrid has none anymore (a cached magnet is `ready` right after the upload).
 - [ ] `BluRayComService`: kept for finding BD releases to download, not used by anything yet.
 
 ## Decisions and known limits
