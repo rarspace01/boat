@@ -118,14 +118,14 @@ internal class TorrentHelperTest {
     fun shouldRateTorrentNameShouldNotReportInfinityCloseness() {
         // Given
         val torrent1 = Torrent("Test")
-        torrent1.name = "[FileTracker.pl] Planeta Ziemia - Planet Earth 2006 miniserial [720p.HDDVD.x264.AC3-ESiR][Narrator PL][Alusia]"
+        torrent1.name = "[FileTracker.pl] Poleraf Zudofi - Pipadu Eseve 2006 miniserial [720p.HDDVD.x264.AC3-ESiR][Narrator PL][Alusia]"
         torrent1.seeder = 1
         torrent1.leecher = 1
         torrent1.sizeInMB = 1000.0
 
 
         // When
-        evaluateRating(torrent1, "planet earth 2006")
+        evaluateRating(torrent1, "pipadu eseve 2006")
         // Then
         Assertions.assertTrue(torrent1.searchRating > 0)
     }
@@ -135,7 +135,7 @@ internal class TorrentHelperTest {
     fun shouldRateTorrentNameShouldDetectAllWordsIncludingYear() {
         // Given
         val torrent1 = Torrent("Test")
-        torrent1.name = "Movie.Title.2020.2160p.AMZN.WEB-DL.x265.10bit.HDR10plus.DDP5.1-SWTYBLZ"
+        torrent1.name = "Movie.Title.2020.2160p.AMZN.WEB-DL.x265.10bit.HDR10plus.DDP5.1-SAZOGER"
         torrent1.seeder = 1
         torrent1.leecher = 1
         torrent1.sizeInMB = 1000.0
@@ -167,7 +167,7 @@ internal class TorrentHelperTest {
     fun shouldRateTorrentNameShouldDetectAllWordsWithoutYear() {
         // Given
         val torrent1 = Torrent("Test")
-        torrent1.name = "Movie.Title.2160p.AMZN.WEB-DL.x265.10bit.HDR10plus.DDP5.1-SWTYBLZ"
+        torrent1.name = "Movie.Title.2160p.AMZN.WEB-DL.x265.10bit.HDR10plus.DDP5.1-SAZOGER"
         torrent1.seeder = 1
         torrent1.leecher = 1
         torrent1.sizeInMB = 1000.0
@@ -221,8 +221,8 @@ internal class TorrentHelperTest {
         // Given
         val torrent1 = Torrent("Test")
         val torrent2 = Torrent("Test")
-        torrent1.name = "Test Title S03E01 720p WEBRip x264-WAKETHEFUP [eztv]"
-        torrent2.name = "Test Title S03E01 1080p WEBRip x264-WAKETHEFUP[rarbg]"
+        torrent1.name = "Test Title S03E01 720p WEBRip x264-WSUSOPUCOT [eztv]"
+        torrent2.name = "Test Title S03E01 1080p WEBRip x264-WSUSOPUCOT[rarbg]"
         // When
         evaluateRating(torrent1, "Test Title S03E01")
         evaluateRating(torrent2, "Test Title S03E01")
@@ -234,7 +234,7 @@ internal class TorrentHelperTest {
     @Test
     fun shouldCleanTorrentNameAnimeSeries() {
         val resultString = getNormalizedTorrentStringWithSpaces("Bla Blub (2004) (1080p FUNI Dual Audio WEB-DL KaiDubs)")
-        Assertions.assertEquals("Paranoia Agent 2004", resultString)
+        Assertions.assertEquals("Pagedupu Aleti 2004", resultString)
     }
 
     @Test
@@ -249,8 +249,8 @@ internal class TorrentHelperTest {
 
     @Test
     fun shouldRemoveSpecialCharactersFromTitle() {
-        assertThat(TorrentHelper.removeSpecialCharacters("Mission: Impossible - Fallout")).isEqualTo("Mission Impossible Fallout")
-        assertThat(TorrentHelper.removeSpecialCharacters("Ocean's Eleven")).isEqualTo("Oceans Eleven")
+        assertThat(TorrentHelper.removeSpecialCharacters("Mikizac: Ipamiraruk - Fuvavod")).isEqualTo("Mikizac Ipamiraruk Fuvavod")
+        assertThat(TorrentHelper.removeSpecialCharacters("Opave's Etifan")).isEqualTo("Opaves Etifan")
         assertThat(TorrentHelper.removeSpecialCharacters("Die Ärzte: Live")).isEqualTo("Die Ärzte Live")
     }
 
@@ -304,7 +304,7 @@ internal class TorrentHelperTest {
         Assertions.assertTrue(TorrentHelper.isMagnetUriLike(" MAGNET:?xt=urn:btih:10e93389d579ba4538c68b8d297268a81620fae2"))
         Assertions.assertTrue(TorrentHelper.isMagnetUriLike("xt=urn:btih:10e93389d579ba4538c68b8d297268a81620fae2"))
         Assertions.assertFalse(TorrentHelper.isMagnetUriLike("Some.Movie.2020.1080p"))
-        Assertions.assertFalse(TorrentHelper.isMagnetUriLike("Magnetic.Fields.2020"))
+        Assertions.assertFalse(TorrentHelper.isMagnetUriLike("Munufama.Felife.2020"))
         Assertions.assertFalse(TorrentHelper.isMagnetUriLike(null))
     }
 
@@ -411,7 +411,7 @@ internal class TorrentHelperTest {
         Assertions.assertFalse(TorrentHelper.isExplicitContent(Torrent("Test").apply { name = "xXx.2002.1080p.BluRay.x264" }, "xxx 2002"))
         Assertions.assertFalse(TorrentHelper.isExplicitContent(Torrent("Test").apply { name = "XXX (2002) [1080p]" }, "xXx"))
         Assertions.assertFalse(TorrentHelper.isExplicitContent(Torrent("Test").apply { name = "xXx.State.of.the.Union.2005.720p" }, "xxx state of the union"))
-        Assertions.assertFalse(TorrentHelper.isExplicitContent(Torrent("Test").apply { name = "[ETRG] xXx Return of Xander Cage 2017" }, "xxx return of xander cage"))
+        Assertions.assertFalse(TorrentHelper.isExplicitContent(Torrent("Test").apply { name = "[ETRG] xXx Return of Xpotuz Cage 2017" }, "xxx return of xpotuz cage"))
     }
 
     @Test
@@ -426,8 +426,8 @@ internal class TorrentHelperTest {
     @Test
     fun shouldKeepGoodTorrentsContainingBadQualityLetters() {
         Assertions.assertTrue(TorrentHelper.isValidTorrent(withName("Movie.2020.1080p.BluRay.x264")))
-        Assertions.assertTrue(TorrentHelper.isValidTorrent(withName("Scam.2020.1080p.WEB")))
-        Assertions.assertTrue(TorrentHelper.isValidTorrent(withName("Cats.2019.1080p.WEB")))
+        Assertions.assertTrue(TorrentHelper.isValidTorrent(withName("Sika.2020.1080p.WEB")))
+        Assertions.assertTrue(TorrentHelper.isValidTorrent(withName("Cuvi.2019.1080p.WEB")))
     }
 
     @Test
@@ -482,8 +482,8 @@ internal class TorrentHelperTest {
 
     @Test
     fun shouldNotDetermineNamesEndingLikeAnExtensionAsMedia() {
-        Assertions.assertEquals(TorrentType.TRANSFER, TorrentHelper.determineTypeOfMedia("Cats"))
-        Assertions.assertEquals(TorrentType.TRANSFER, TorrentHelper.determineTypeOfMedia("Looney Tunes Shorts"))
+        Assertions.assertEquals(TorrentType.TRANSFER, TorrentHelper.determineTypeOfMedia("Cuvi"))
+        Assertions.assertEquals(TorrentType.TRANSFER, TorrentHelper.determineTypeOfMedia("Lofupa Tekod Shorts"))
         Assertions.assertEquals(TorrentType.TRANSFER, TorrentHelper.determineTypeOfMedia("Remov"))
         Assertions.assertEquals(TorrentType.TRANSFER, TorrentHelper.determineTypeOfMedia("Notes.txt"))
     }

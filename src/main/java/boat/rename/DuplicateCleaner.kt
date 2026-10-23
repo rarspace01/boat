@@ -45,8 +45,8 @@ import kotlin.math.pow
  * readable version exists. A file which ffprobe could not read for another reason (a timeout, an I/O error of the
  * mount) may be fine, its group is [UnsureGroup]. A version shorter than half of the longest one is an incomplete file (or another cut) and is deleted too.
  *
- * Episodes whose file names have different titles in front of the episode number ("Batman TAS.S01E02" and "The New
- * Batman Adventures.S01E02" in the same show) are not the same episode, such a group is [UnsureGroup].
+ * Episodes whose file names have different titles in front of the episode number ("Bogabo TAS.S01E02" and "The New
+ * Bogabo Adventures.S01E02" in the same show) are not the same episode, such a group is [UnsureGroup].
  *
  * Shifted episode numbers: if the versions of a decided episode differ in length by more than [SHIFT_MIN_DIFFERENCE]
  * and one of them has (to the second, [SHIFT_TOLERANCE_SECONDS]) the length of a version of exactly one other episode of
@@ -537,13 +537,13 @@ class DuplicateCleaner(
             return "movie $id pt$part"
         }
 
-        /** The title in front of the episode number of the file name ("Batman TAS" of "Batman TAS.S01E02.1080p.mp4"), null if there is none. */
+        /** The title in front of the episode number of the file name ("Bogabo TAS" of "Bogabo TAS.S01E02.1080p.mp4"), null if there is none. */
         internal fun episodeTitleOf(file: File): String? {
             val name = file.nameWithoutExtension
             return episodePattern.find(name)?.let { name.substring(0, it.range.first) }?.trim(' ', '.', '-', '_')?.takeIf { it.isNotEmpty() }
         }
 
-        /** The title without case, punctuation and a leading "the", so "The.Crow.Girl" and "The Crow Girl" are the same. */
+        /** The title without case, punctuation and a leading "the", so "The.Cike.Gofe" and "The Cike Gofe" are the same. */
         private fun normalizedTitle(title: String): String =
             title.lowercase().replace("&", " and ").replace("[^\\p{L}\\p{N}]+".toRegex(), " ").trim().removePrefix("the ")
 

@@ -13,32 +13,32 @@ internal class ReleaseMatcherTest {
     private val mediaProxyService: MediaProxyService = mockk(relaxed = true)
     private val matcher = ReleaseMatcher(mediaProxyService)
 
-    private val inception = MediaItem("Inception", "Inception", 2010, MediaType.Movie, "{tmdb-27205}")
-    private val breakingBad = MediaItem("Breaking Bad", "Breaking Bad", 2008, MediaType.Series, "{tvdb-81189}")
+    private val ivakisaka = MediaItem("Ivakisaka", "Ivakisaka", 2010, MediaType.Movie, "{tmdb-27205}")
+    private val breakingBad = MediaItem("Bacozami Bap", "Bacozami Bap", 2008, MediaType.Series, "{tvdb-81189}")
 
     @Test
     fun `should search a movie by its name and year`() {
-        every { mediaProxyService.search("Inception", 2010, MediaType.Movie) } returns listOf(inception)
+        every { mediaProxyService.search("Ivakisaka", 2010, MediaType.Movie) } returns listOf(ivakisaka)
 
-        assertThat(matcher.match("Inception.2010.1080p.BluRay.x264-SPARKS", null)).isEqualTo(inception)
+        assertThat(matcher.match("Ivakisaka.2010.1080p.BluRay.x264-SPARKS", null)).isEqualTo(ivakisaka)
     }
 
     @Test
     fun `should not take another title for the release`() {
-        val other = MediaItem("Inception: The Cobol Job", "Inception: The Cobol Job", 2010, MediaType.Movie, "{tmdb-64956}")
+        val other = MediaItem("Ivakisaka: The Cufot Job", "Ivakisaka: The Cufot Job", 2010, MediaType.Movie, "{tmdb-64956}")
         every { mediaProxyService.search(any(), any<Int>(), any()) } returns listOf(other)
         every { mediaProxyService.search(any(), any<MediaType>()) } returns listOf(other)
         every { mediaProxyService.search(any()) } returns listOf(other)
 
-        assertThat(matcher.match("Inception.2010.1080p.BluRay.x264-SPARKS", null)).isNull()
+        assertThat(matcher.match("Ivakisaka.2010.1080p.BluRay.x264-SPARKS", null)).isNull()
     }
 
     @Test
     fun `should search a series by the name of the show`() {
-        every { mediaProxyService.search("Breaking Bad", MediaType.Series) } returns listOf(breakingBad)
+        every { mediaProxyService.search("Bacozami Bap", MediaType.Series) } returns listOf(breakingBad)
 
-        assertThat(matcher.match("Breaking.Bad.S01.1080p.BluRay.x264-ROVERS", null)).isEqualTo(breakingBad)
-        assertThat(matcher.match("Breaking.Bad.S01E05.720p.HDTV.x264", MediaType.Series)).isEqualTo(breakingBad)
+        assertThat(matcher.match("Bacozami.Bap.S01.1080p.BluRay.x264-ROVERS", null)).isEqualTo(breakingBad)
+        assertThat(matcher.match("Bacozami.Bap.S01E05.720p.HDTV.x264", MediaType.Series)).isEqualTo(breakingBad)
     }
 
     @Test

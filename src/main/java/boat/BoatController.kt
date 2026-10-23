@@ -64,7 +64,7 @@ class BoatController @Autowired constructor(
         private val trailingYearPattern = "^(.+?)[\\s.(\\[]+((?:19|20)[0-9]{2})[)\\]]?$".toRegex()
 
         /**
-         * Splits a line of the search list into title and year, a trailing year ("Dune 1984", "Dune (2021)") is used as
+         * Splits a line of the search list into title and year, a trailing year ("Daca 1984", "Daca (2021)") is used as
          * year. Null for a blank line.
          */
         internal fun splitSearchListEntry(line: String): Pair<String, Int?>? {

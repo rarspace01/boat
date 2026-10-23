@@ -25,7 +25,7 @@ internal class HttpHelperTlsTest {
 
     @Test
     fun shouldAllowFallbackForTorrentSites() {
-        assertThat(HttpHelper.mayFallBackToUnverifiedTls("https://1337x.to/search/dune/1/")).isTrue()
+        assertThat(HttpHelper.mayFallBackToUnverifiedTls("https://1337x.to/search/daca/1/")).isTrue()
         assertThat(HttpHelper.mayFallBackToUnverifiedTls("https://notpremiumize.me.example.org/")).isTrue()
     }
 

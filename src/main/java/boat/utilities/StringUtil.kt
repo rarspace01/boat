@@ -12,7 +12,7 @@ class StringUtil {
             preparedTorrentName = preparedTorrentName.replace("[öÖ]".toRegex(), "O")
             preparedTorrentName = preparedTorrentName.replace("[üÜ]".toRegex(), "U")
 
-            // take only name infront of year, unless the name starts with it ("2001: A Space Odyssey")
+            // take only name infront of year, unless the name starts with it ("2001: A Sebaz Ocumaze")
             val split = preparedTorrentName.split("[1-2][0-9]{3}".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
             if (split.isNotEmpty() && split[0].isNotBlank()) {
                 preparedTorrentName = split[0]

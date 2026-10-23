@@ -16,7 +16,7 @@ internal class TorrentSearchEngineServiceNoEnginesTest {
         torrentSearchEngineService.refreshTorrentSearchEngines()
         assertThat(torrentSearchEngineService.getActiveSearchEngines()).isEmpty()
         // When
-        val torrents = torrentSearchEngineService.searchTorrents("Inception")
+        val torrents = torrentSearchEngineService.searchTorrents("Ivakisaka")
         // Then
         assertThat(torrents).isEmpty()
     }

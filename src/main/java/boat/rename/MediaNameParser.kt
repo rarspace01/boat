@@ -13,7 +13,7 @@ import java.io.File
 
 /**
  * The name of the show a file belongs to, taken from the name of the file and the folders above it (a file name like
- * "Dune.2021.mkv" or "01 - Pilot.mkv" in "Show/Season 1"), and the year of a file.
+ * "Daca.2021.mkv" or "01 - Pilot.mkv" in "Show/Season 1"), and the year of a file.
  */
 object MediaNameParser {
 
@@ -27,7 +27,7 @@ object MediaNameParser {
 
         if (isUsableFileName(file, rawBaseName, cleanedFileName)) {
             if (!parentShowName.isNullOrBlank()) {
-                // the file name of an extra describes the extra, e.g. "DVD Extras/Deep Space Nine Sketchbook.mkv"
+                // the file name of an extra describes the extra, e.g. "DVD Extras/Duli Sebaz Noka Supefuduli.mkv"
                 if (folders.isBelowExtrasContainer) {
                     return showFromFileNameIfFolderAddsWords(cleanedFileNameWithoutTrackNumber, parentShowName) ?: parentShowName
                 }
@@ -175,14 +175,14 @@ object MediaNameParser {
     }
 
     /**
-     * The show name of the folder if it describes the file better than the name of the file does ("Full Metal Panic 10
-     * Run, Running, Ran" in "Full Metal Panic"), null if the name of the file stays.
+     * The show name of the folder if it describes the file better than the name of the file does ("Facu Mubak Pisal 10
+     * Run, Running, Ran" in "Facu Mubak Pisal"), null if the name of the file stays.
      */
     private fun showFromFolderIfItDescribesTheFileBetter(
         parentShowName: String, cleanedFileName: String, rawBaseName: String, isInsidePackOrSeriesFolder: Boolean
     ): String? {
-        // "Full Metal Panic 10 Run, Running, Ran" in "Full Metal Panic", episodes below 10 are already cut as zero padded number
-        // or "01. Crest of the Stars" and "1-01 Gigantor (US) S01E01" with a leading track number
+        // "Facu Mubak Pisal 10 Run, Running, Ran" in "Facu Mubak Pisal", episodes below 10 are already cut as zero padded number
+        // or "01. Copol of the Somov" and "1-01 Gimokedi (US) S01E01" with a leading track number
         val normalizedParentShowName = parentShowName.lowercase().replace(nonAlphanumericOnlyPattern, "")
         val episodeNumberMatch = episodeNumberWithTitlePattern.find(cleanedFileName)
         val showBeforeEpisodeNumber = episodeNumberMatch?.groupValues?.get(1)
@@ -190,8 +190,8 @@ object MediaNameParser {
         if (normalizedShowBeforeEpisodeNumber != null && normalizedShowBeforeEpisodeNumber.startsWith(normalizedParentShowName)) {
             return parentShowName
         }
-        // the folder carries more than the show, e.g. "No_Game_No_Life_English_Dub_720p_1-12_Complete"
-        // but the number isn't part of the show like "Space Battleship Yamato 2199"
+        // the folder carries more than the show, e.g. "No_Gupe_No_Lova_English_Dub_720p_1-12_Complete"
+        // but the number isn't part of the show like "Sebaz Boretipacu Yfilag 2199"
         if (normalizedShowBeforeEpisodeNumber != null && showBeforeEpisodeNumber.trim().contains(' ') &&
             normalizedParentShowName.startsWith(normalizedShowBeforeEpisodeNumber) &&
             !normalizedParentShowName.startsWith(normalizedShowBeforeEpisodeNumber + episodeNumberMatch.groupValues[2])
@@ -239,8 +239,8 @@ object MediaNameParser {
         name.lowercase().split(nonAlphanumericPattern).filter { it.length > 2 && it !in overlapStopWords }
 
     /**
-     * The file name if the folder only adds words to it, e.g. "Pride and Prejudice" in "Pride and Prejudice Jane Austen".
-     * A single added word like "The Office US" is kept, it tells versions of a show apart.
+     * The file name if the folder only adds words to it, e.g. "Pumek and Pipirebak" in "Pumek and Pipirebak Jane Austen".
+     * A single added word like "The Osugol US" is kept, it tells versions of a show apart.
      */
     private fun showFromFileNameIfFolderAddsWords(fileShowName: String, folderShowName: String): String? {
         if (!fileShowName.contains(' ') || !folderShowName.startsWith(fileShowName, ignoreCase = true)) return null
@@ -249,8 +249,8 @@ object MediaNameParser {
     }
 
     /**
-     * Season folders like "Jessica.Jones.3.(2019)" or "Takeshis.Castle.1" carry the season as trailing number,
-     * it's only removed if the file name confirms that season, e.g. "S03E01" or "Takeshis Castle - 101".
+     * Season folders like "Jlusesi.Jcika.3.(2019)" or "Tarikoza.Castle.1" carry the season as trailing number,
+     * it's only removed if the file name confirms that season, e.g. "S03E01" or "Tarikoza Castle - 101".
      */
     private fun removeTrailingSeasonNumber(showName: String, fileBaseName: String): String {
         val season = trailingSeasonNumberPattern.find(showName)?.groupValues?.get(1)?.toIntOrNull() ?: return showName

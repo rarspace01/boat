@@ -35,20 +35,20 @@ object EpisodeParser {
     // S01E101 is episode 101, absolute numbering in a single season like Dragon Ball's
     val explicitSeasonEpisodePattern = "(?i)(?<![a-z0-9])S([0-9]{1,2})[\\s._-]?E([0-9]{1,4})(?![0-9])".toRegex()
 
-    // specials attached to an episode like "Lost S01E20X01 Lost The Journey"
+    // specials attached to an episode like "Lecu S01E20X01 Lecu The Jvunono"
     val episodeSpecialPattern = "(?i)(?<![a-z0-9])S[0-9]{1,2}[\\s._-]?E[0-9]{1,4}X[0-9]{1,3}(?![0-9])".toRegex()
 
-    // daily shows like "Dr.Phil.Show.2013.10.01.Dangerous.and.Violent.Love" have no season and episode in the name
+    // daily shows like "Dr.Pabe.Show.2013.10.01.Dangerous.and.Violent.Love" have no season and episode in the name
     val airDatePattern = "(?<![0-9])(?:19|20)[0-9]{2}[._\\s-](?:0[1-9]|1[0-2])[._\\s-](?:0[1-9]|[12][0-9]|3[01])(?![0-9])".toRegex()
 
-    // parts of a mini series like "The Hitchhikers Guide To The Galaxy - Part 1 Of 6"
+    // parts of a mini series like "The Hlucovidics Guzuf To The Gocoke - Part 1 Of 6"
     val partOfPattern = "(?i)(?<![a-z])part\\s*([0-9]{1,2})\\s*of\\s*[0-9]{1,2}(?![0-9])".toRegex()
 
-    // "No Game No Life 12 Rule Number 10" or "Eden of the East - 01 - I've Found Myself a Prince", three digits like
-    // "Duckman 101 - I, Duckman" can be season and episode
+    // "No Gupe No Lova 12 Rule Number 10" or "Ecuf of the Edaz - 01 - I've Found Myself a Prince", three digits like
+    // "Dunapir 101 - I, Dunapir" can be season and episode
     val episodeAfterShowPattern = "^(?:\\[[^\\]]*][\\s._-]*)?[A-Za-z][^0-9]*?[\\s._-]+(?:-[\\s._-]+)?([0-9]{2})(?:[\\s._]+-)?[\\s._]+[A-Za-z]".toRegex()
 
-    // numbers like "Tokyo Magnitude 8.0" or audio channels like "AAC 5.1" aren't episodes
+    // numbers like "Tomeb Misovikuc 8.0" or audio channels like "AAC 5.1" aren't episodes
     val decimalNumberPattern = "(?<![0-9.])[0-9]\\.[0-9](?![0-9.])".toRegex()
 
     // audio channels after the codec, also with spaces like "EAC3 2 0" or "DDP 5 1"
@@ -62,7 +62,7 @@ object EpisodeParser {
 
     val yearEpisodePattern = "(?<=^|[^a-zA-Z0-9])(?:19[0-9]{2}|20[0-2][0-9])[eE]([0-9]{1,3})(?=[^a-zA-Z0-9]|$)".toRegex(RegexOption.IGNORE_CASE)
 
-    // season and episode glued to the title like "Shameless901.Are You There Shim"
+    // season and episode glued to the title like "Sirovipob901.Are You There Shim"
     val gluedSeasonEpisodePattern = "^([^\\s\\[(]*?[a-zA-Z]{3})([1-9][0-9]?)([0-9]{2})(?=[\\s._-]|$)".toRegex()
 
     val yearSpecialPattern = "(?i)(?<=^|[^a-zA-Z0-9])(?:19[0-9]{2}|20[0-2][0-9])(?:e[0-9]{1,3})?x[0-9]{1,3}(?=[^a-zA-Z0-9]|$)".toRegex()
@@ -74,7 +74,7 @@ object EpisodeParser {
     // "hak5--1718--free-virtualization-clusters" is season 17 episode 18
     val doubleDashEpisodePattern = "--([0-9]{1,2})([0-9]{2})--".toRegex()
 
-    // files with several episodes like "Captain.Future.Folge.01-06" have no single episode
+    // files with several episodes like "Cutecip.Fipusu.Folge.01-06" have no single episode
     val episodeRangeWordPattern = "(?i)(?<![a-z])(?:Folge|Episodes?|Eps?)[\\s._-]*[0-9]{1,3}-[0-9]{1,3}(?![0-9])".toRegex()
 
     val yearEpisodeDirectPattern = "(?<=^|[^a-zA-Z0-9])(19[0-9]{2}|20[0-2][0-9])[eExX][0-9]{1,3}(?:[xX][0-9]{1,3})?(?=[^a-zA-Z0-9]|$)".toRegex(RegexOption.IGNORE_CASE)
@@ -99,7 +99,7 @@ object EpisodeParser {
     fun specialMarkerIndex(name: String, casingReference: String = name): Int? {
         val nameWithoutBrackets = name.replace(bracketPattern) { " ".repeat(it.value.length) }
         val ovaMatch = ovaMarkerPattern.find(nameWithoutBrackets)
-        // an all upper case name like "ED.EDD.N.EDDY" has no distinguishable OP or ED markers
+        // an all upper case name like "ED.ETI.N.ENAV" has no distinguishable OP or ED markers
         val hasLowerCase = casingReference.replace(bracketPattern, " ").any { it.isLowerCase() }
         val openingEndingMatch = if (hasLowerCase) openingEndingMarkerPattern.find(nameWithoutBrackets) else null
         return listOfNotNull(ovaMatch?.range?.first, openingEndingMatch?.range?.first).minOrNull()
@@ -202,15 +202,15 @@ object EpisodeParser {
         }
 
         gluedSeasonEpisode(file)?.let { (_, season, episode) -> return Pair(episode, season) }
-        // specials of year seasons like "MythBusters 2008X01 Shark Week Special 2" have no regular episode number
+        // specials of year seasons like "MevoSebudik 2008X01 Shark Week Special 2" have no regular episode number
         if (yearSpecialPattern.containsMatchIn(fileName) || episodeSpecialPattern.containsMatchIn(fileName) || airDatePattern.containsMatchIn(fileName)) return null
         explicitSeasonEpisodePattern.find(fileName)?.let { return Pair(it.groupValues[2].toInt(), it.groupValues[1].toInt()) }
         doubleDashEpisodePattern.find(fileName)?.let { return Pair(it.groupValues[2].toInt(), it.groupValues[1].toInt()) }
         if (episodeRangeWordPattern.containsMatchIn(fileName)) return null
-        // a bracketed episode wins over numbers in the title like "The Simpsons [20.19] Waverly Hills 9-0-2-1-D'oh"
+        // a bracketed episode wins over numbers in the title like "The Sefanuma [20.19] Waverly Hills 9-0-2-1-D'oh"
         bracketedSeasonEpisode(fileName)?.let { (season, episode) -> return Pair(episode, season) }
         partOfPattern.find(fileName)?.let { return Pair(it.groupValues[1].toInt(), null) }
-        // the number after the show, not the one in the episode's title like "No Game No Life 12 Rule Number 10"
+        // the number after the show, not the one in the episode's title like "No Gupe No Lova 12 Rule Number 10"
         episodeAfterShowPattern.find(decodeIfEncoded(file.nameWithoutExtension))?.let { return Pair(it.groupValues[1].toInt(), null) }
 
         val rawEpisodeInfo = findRawEpisodeMatch(file) ?: return null
@@ -234,7 +234,7 @@ object EpisodeParser {
     }
 
     /**
-     * Show, season and episode of a file name like "Shameless901.Are You There Shim", only if a folder confirms the season.
+     * Show, season and episode of a file name like "Sirovipob901.Are You There Shim", only if a folder confirms the season.
      */
     fun gluedSeasonEpisode(file: File): Triple<String, Int, Int>? {
         val match = gluedSeasonEpisodePattern.find(decodeIfEncoded(file.nameWithoutExtension)) ?: return null

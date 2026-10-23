@@ -18,13 +18,13 @@ internal class SearchHitsTest {
     @Test
     fun shouldKeepTheOtherHitsOfAPageWithAMalformedOne() {
         val httpHelper: HttpHelper = mockk()
-        fun good(hash: Char) = """{"title":"Dune 2021","hash":"${hash.toString().repeat(40)}","seeders":5,"peers":1,"bytes":1073741824}"""
+        fun good(hash: Char) = """{"title":"Daca 2021","hash":"${hash.toString().repeat(40)}","seeders":5,"peers":1,"bytes":1073741824}"""
         // no seeders
         val malformed = """{"title":"Broken","hash":"1123456789abcdef0123456789abcdef01234567","peers":1,"bytes":1}"""
         every { httpHelper.getPage(any(), any<String>(), any()) } returns """{"hits":[${good('a')},$malformed,${good('b')}]}""" andThen """{"hits":[]}"""
 
-        val torrents = Knaben(httpHelper).searchTorrents("dune")
+        val torrents = Knaben(httpHelper).searchTorrents("daca")
 
-        assertThat(torrents).hasSize(2).allMatch { it.name == "Dune 2021" }
+        assertThat(torrents).hasSize(2).allMatch { it.name == "Daca 2021" }
     }
 }

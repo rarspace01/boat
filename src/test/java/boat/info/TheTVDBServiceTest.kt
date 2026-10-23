@@ -30,12 +30,12 @@ internal class TheTVDBServiceTest {
               "status": "success",
               "data": [
                 {
-                  "name": "Breaking Bad",
+                  "name": "Bacozami Bap",
                   "type": "series",
                   "year": "2008"
                 },
                 {
-                  "name": "Breaking Bad: Original Soundtrack",
+                  "name": "Bacozami Bap: Original Soundtrack",
                   "type": "album",
                   "year": "2010"
                 }
@@ -49,7 +49,7 @@ internal class TheTVDBServiceTest {
         // Then
         assertThat(items).isNotNull
         assertThat(items).hasSize(2)
-        assertThat(items!![0].title).isEqualTo("Breaking Bad")
+        assertThat(items!![0].title).isEqualTo("Bacozami Bap")
         assertThat(items[0].type).isEqualTo(MediaType.Series)
         assertThat(items[0].year).isEqualTo(2008)
     }
@@ -73,7 +73,7 @@ internal class TheTVDBServiceTest {
                 },
                 {
                   "name": "進撃の巨人",
-                  "secondary_name": "Attack on Titan",
+                  "secondary_name": "Amamad on Tilav",
                   "type": "series",
                   "year": "2013",
                   "tvdb_id": "267440"
@@ -81,7 +81,7 @@ internal class TheTVDBServiceTest {
                 {
                   "name": "鬼滅の刃",
                   "aliases": [
-                    "Demon Slayer: Kimetsu no Yaiba"
+                    "Dozam Satebi: Kugunor no Ydamo"
                   ],
                   "type": "series",
                   "year": "2019",
@@ -105,12 +105,12 @@ internal class TheTVDBServiceTest {
         assertThat(items[0].id).isEqualTo("{tvdb-457327}")
 
         // Item 2: from secondary_name
-        assertThat(items[1].title).isEqualTo("Attack on Titan")
+        assertThat(items[1].title).isEqualTo("Amamad on Tilav")
         assertThat(items[1].originalTitle).isEqualTo("進撃の巨人")
         assertThat(items[1].type).isEqualTo(MediaType.Series)
 
         // Item 3: from aliases (ASCII fallback)
-        assertThat(items[2].title).isEqualTo("Demon Slayer: Kimetsu no Yaiba")
+        assertThat(items[2].title).isEqualTo("Dozam Satebi: Kugunor no Ydamo")
         assertThat(items[2].originalTitle).isEqualTo("鬼滅の刃")
         assertThat(items[2].type).isEqualTo(MediaType.Series)
     }
@@ -123,34 +123,34 @@ internal class TheTVDBServiceTest {
               "status": "success",
               "data": [
                 {
-                  "name": "Dark",
+                  "name": "Dobi",
                   "primary_language": "deu",
                   "translations": {
-                    "eng": "Dark",
-                    "deu": "Dark"
+                    "eng": "Dobi",
+                    "deu": "Dobi"
                   },
                   "type": "series",
                   "year": "2017",
                   "tvdb_id": "334824"
                 },
                 {
-                  "name": "Babylon Berlin",
+                  "name": "Beredic Bapevo",
                   "primary_language": "deu",
-                  "secondary_name": "Babylon Berlin",
+                  "secondary_name": "Beredic Bapevo",
                   "translations": {
-                    "eng": "Babylon Berlin (EN)",
-                    "deu": "Babylon Berlin"
+                    "eng": "Beredic Bapevo (EN)",
+                    "deu": "Beredic Bapevo"
                   },
                   "type": "series",
                   "year": "2017",
                   "tvdb_id": "334825"
                 },
                 {
-                  "name": "Das Boot",
+                  "name": "Das Bibo",
                   "original_language": "ger",
                   "translations": {
                     "eng": "The Boat",
-                    "deu": "Das Boot"
+                    "deu": "Das Bibo"
                   },
                   "type": "movie",
                   "year": "1981",
@@ -167,12 +167,12 @@ internal class TheTVDBServiceTest {
                   "year": "2019"
                 },
                 {
-                  "name": "La Casa de Papel",
+                  "name": "La Cepi de Pafag",
                   "primary_language": "spa",
                   "translations": {
-                    "eng": "Money Heist",
-                    "deu": "Haus des Geldes",
-                    "spa": "La Casa de Papel"
+                    "eng": "Metuv Hmeti",
+                    "deu": "Hmud des Gifamo",
+                    "spa": "La Cepi de Pafag"
                   },
                   "type": "series",
                   "year": "2017"
@@ -189,19 +189,19 @@ internal class TheTVDBServiceTest {
         assertThat(items).hasSize(5)
 
         // Item 1: German original series
-        assertThat(items!![0].title).isEqualTo("Dark")
+        assertThat(items!![0].title).isEqualTo("Dobi")
 
         // Item 2: German original series with different English translation
-        assertThat(items[1].title).isEqualTo("Babylon Berlin")
+        assertThat(items[1].title).isEqualTo("Beredic Bapevo")
 
         // Item 3: German original movie with English translation 'The Boat'
-        assertThat(items[2].title).isEqualTo("Das Boot")
+        assertThat(items[2].title).isEqualTo("Das Bibo")
         assertThat(items[2].type).isEqualTo(MediaType.Movie)
 
         // Item 4: German primary_country
         assertThat(items[3].title).isEqualTo("How to Sell Drugs Online (Fast)")
 
-        // Item 5: Spanish original series (non-German) -> sticks with English name 'Money Heist'
-        assertThat(items[4].title).isEqualTo("Money Heist")
+        // Item 5: Spanish original series (non-German) -> sticks with English name 'Metuv Hmeti'
+        assertThat(items[4].title).isEqualTo("Metuv Hmeti")
     }
 }

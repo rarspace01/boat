@@ -65,7 +65,7 @@ internal class SearchPagingTest {
     private fun knabenPage(from: Int, count: Int, lastSeeders: Int = 5): String =
         "{\"hits\":[" + (0 until count).joinToString(",") { i ->
             val seeders = if (i == count - 1) lastSeeders else 50
-            "{\"title\":\"Dune.${from + i}\",\"magnetUrl\":\"magnet:?xt=urn:btih:${hash(from + i)}\",\"seeders\":$seeders,\"peers\":1,\"bytes\":1048576000}"
+            "{\"title\":\"Daca.${from + i}\",\"magnetUrl\":\"magnet:?xt=urn:btih:${hash(from + i)}\",\"seeders\":$seeders,\"peers\":1,\"bytes\":1048576000}"
         } + "]}"
 
     @Test
@@ -80,7 +80,7 @@ internal class SearchPagingTest {
             knabenPage(from, if (from < 600) 300 else 100)
         }
 
-        val torrents = Knaben(httpHelper).searchTorrents("Dune")
+        val torrents = Knaben(httpHelper).searchTorrents("Daca")
 
         // 600 hits are more than the 500 which are kept per engine
         assertThat(offsets).containsExactly(0, 300)
@@ -97,7 +97,7 @@ internal class SearchPagingTest {
             knabenPage(from, 300, lastSeeders = 0)
         }
 
-        val torrents = Knaben(httpHelper).searchTorrents("Dune")
+        val torrents = Knaben(httpHelper).searchTorrents("Daca")
 
         assertThat(offsets).containsExactly(0)
         assertThat(torrents).hasSize(300)
@@ -125,12 +125,12 @@ internal class SearchPagingTest {
         // a CAM release and a torrent without seeders: the service decides what is shown
         every { httpHelper.getPage(any(), anyNullable<String>(), anyNullable<Map<String, String>>()) } returns
                 "{\"hits\":[" +
-                "{\"title\":\"Dune 2021 HDCAM\",\"magnetUrl\":\"magnet:?xt=urn:btih:${hash(1)}\",\"seeders\":0,\"peers\":0,\"bytes\":1048576000}," +
-                "{\"title\":\"Dune 2021 1080p\",\"magnetUrl\":\"magnet:?xt=urn:btih:${hash(2)}\",\"seeders\":0,\"peers\":0,\"bytes\":1048576000}" +
+                "{\"title\":\"Daca 2021 HDCAM\",\"magnetUrl\":\"magnet:?xt=urn:btih:${hash(1)}\",\"seeders\":0,\"peers\":0,\"bytes\":1048576000}," +
+                "{\"title\":\"Daca 2021 1080p\",\"magnetUrl\":\"magnet:?xt=urn:btih:${hash(2)}\",\"seeders\":0,\"peers\":0,\"bytes\":1048576000}" +
                 "]}"
 
-        val torrents = Knaben(httpHelper).searchTorrents("Dune 2021")
+        val torrents = Knaben(httpHelper).searchTorrents("Daca 2021")
 
-        assertThat(torrents.map { it.name }).containsExactly("Dune 2021 HDCAM", "Dune 2021 1080p")
+        assertThat(torrents.map { it.name }).containsExactly("Daca 2021 HDCAM", "Daca 2021 1080p")
     }
 }

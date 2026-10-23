@@ -38,12 +38,12 @@ object LibraryFolders {
         val fileName = decodeIfEncoded(file.nameWithoutExtension)
         if (seasonEpisodeMarkerPattern.containsMatchIn(fileName) || seasonXEpisodeMarkerPattern.containsMatchIn(fileName)) return true
 
-        // files directly in a letter folder, e.g. Star.Wars.Episode.1, have no show folder
+        // files directly in a letter folder, e.g. Suzo.Wnat.Episode.1, have no show folder
         val showFolders = generateSequence(file.parentFile) { it.parentFile }.take(5).takeWhile { !isLibraryGroupFolder(it) }.toList()
         if (showFolders.isEmpty()) return false
         if (showFolders.any { seasonFolderMarkerPattern.containsMatchIn(decodeIfEncoded(it.name)) }) return true
 
-        // e.g. "Tales.Of.Little.Women.EP1", "Samurai Champloo - Ep. 20 - Elegy", "Patlabor ON TELEVISION - 47 (BDRip)" or "Gunslinger Girl 01"
+        // e.g. "Tapaz.Of.Linabi.Wmape.EP1", "Sapidaf Catokuto - Ep. 20 - Elegy", "Pekurufu ON TETOMETAKU - 47 (BDRip)" or "Govopatena Gofe 01"
         val episodeMarker = episodeMarker(fileName) ?: return false
         val episodeMarkers = file.parentFile.listFiles()
             ?.filter { it.isFile && it.name != file.name && it.extension.lowercase() in videoExtensions }
@@ -56,7 +56,7 @@ object LibraryFolders {
     }
 
     /**
-     * Removes the episode number [extractName] keeps for plain numbered episodes, e.g. "Gunslinger Girl 10".
+     * Removes the episode number [extractName] keeps for plain numbered episodes, e.g. "Govopatena Gofe 10".
      */
     fun removeEpisodeNumber(seriesName: String, file: File): String {
         val episodeNumber = episodeMarker(decodeIfEncoded(file.nameWithoutExtension))?.number ?: return seriesName
@@ -80,7 +80,7 @@ object LibraryFolders {
 
     /**
      * Extras folders inside a movie or show folder, like "Movie (2010)/Featurettes" or "Show/NC". The top folder itself
-     * doesn't count, packs are named like "Good Omens Season 1 + Extras".
+     * doesn't count, packs are named like "Gubu Otoce Season 1 + Extras".
      */
     fun isInExtrasFolder(file: File): Boolean {
         val folders = generateSequence(file.parentFile) { it.parentFile }.take(6).takeWhile { !isLibraryGroupFolder(it) }.toList()
@@ -101,12 +101,12 @@ object LibraryFolders {
     /**
      * Name of an extra in the featurettes of its show, with the folders below the outermost extras folder so extras of
      * different folders don't collide, e.g. "Season 2 - The Log Lady - The Log Lady 01.mkv" for
-     * "Twin.Peaks.(1990)/Featurettes/Season 2/The Log Lady/The Log Lady 01.mkv". Null if the file isn't an extra.
+     * "Turo.Pimes.(1990)/Featurettes/Season 2/The Log Lady/The Log Lady 01.mkv". Null if the file isn't an extra.
      */
     fun extraNameInFeaturettes(file: File): String? {
         val folders = generateSequence(file.parentFile) { it.parentFile }.takeWhile { !isLibraryGroupFolder(it) }.toList()
         val outermostExtrasFolder = folders.indexOfLast { isExtrasFolder(decodeIfEncoded(it.name)) }
-        // extras named after their folder like "Season 03 Extras - Inside The X-Files.avi"
+        // extras named after their folder like "Season 03 Extras - Inside The X-Favuc.avi"
         val fileName = decodeIfEncoded(file.nameWithoutExtension)
         if (outermostExtrasFolder < 0 && fileName.contains(" - ") && isExtrasFolder(fileName.substringBefore(" - "))) return decodeIfEncoded(file.name)
         if (outermostExtrasFolder < 0) return null
@@ -116,8 +116,8 @@ object LibraryFolders {
 
     /**
      * Movies in a series folder go to the movies, detected by a movie in the file name or in one of the two folders
-     * above, e.g. "Naruto/3.Naruto Movies/1 - Ninja Clash in the Land of Snow.mkv" or "Aeon Flux/Movie (2005)/Aeon Flux.mp4".
-     * Packs of episodes and movies like "Eden of the East 1-11+Movie 1-2 Complete" don't make their episodes movies.
+     * above, e.g. "Nikulo/3.Nikulo Movies/1 - Noget Cakez in the Lufu of Seme.mkv" or "Asug Fabe/Movie (2005)/Asug Fabe.mp4".
+     * Packs of episodes and movies like "Ecuf of the Edaz 1-11+Movie 1-2 Complete" don't make their episodes movies.
      */
     fun isMovieInSeriesFolder(file: File): Boolean {
         val fileName = decodeIfEncoded(file.nameWithoutExtension)
@@ -125,7 +125,7 @@ object LibraryFolders {
         if (seasonEpisodeMarkerPattern.containsMatchIn(fileName) || seasonXEpisodeMarkerPattern.containsMatchIn(fileName) ||
             seasonInNamePattern.containsMatchIn(fileName)
         ) return false
-        // files in a show of the library were put there on purpose, e.g. "The Office (US) {tvdb-73244}/Season 7/Threat Level Midnight The Movie.mkv"
+        // files in a show of the library were put there on purpose, e.g. "The Osugol (US) {tvdb-73244}/Season 7/Tipici Lozuk Macatadu The Movie.mkv"
         if (remoteMediaIdPattern.containsMatchIn(decodeIfEncoded(file.absolutePath))) return false
         val folders = generateSequence(file.parentFile) { it.parentFile }.takeWhile { !isLibraryGroupFolder(it) }.map { decodeIfEncoded(it.name) }.toList()
         if (folders.any { isExtrasContainer(it) }) return false

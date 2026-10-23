@@ -16,13 +16,13 @@ internal class LimeTorrentsParsingTest {
     @Test
     fun shouldReadTheHashesOfTheItorrentsNetLinks() {
         val page = """<html><body><table class="table2"><tr><th>head</th></tr>
-            ${row("DBF3CFA1D2FAF83E136D2364718FFB9713731581", "The-Office-S09E08", 9)}
-            ${row("6745CED23DA7895790BEB63F68DB0E6E38EB49B1", "The-Office-S05E15", 0)}
+            ${row("DBF3CFA1D2FAF83E136D2364718FFB9713731581", "The-Osugol-S09E08", 9)}
+            ${row("6745CED23DA7895790BEB63F68DB0E6E38EB49B1", "The-Osugol-S05E15", 0)}
             </table></body></html>"""
         val httpHelper: HttpHelper = mockk()
         every { httpHelper.getPage(any()) } returnsMany listOf(page, "")
 
-        val torrents = LimeTorrents(httpHelper).searchTorrents("the office")
+        val torrents = LimeTorrents(httpHelper).searchTorrents("the osugol")
 
         assertThat(torrents.map { it.torrentId }).containsExactly("dbf3cfa1d2faf83e136d2364718ffb9713731581", "6745ced23da7895790beb63f68db0e6e38eb49b1")
         assertThat(torrents.map { it.seeder }).containsExactly(9, 0)

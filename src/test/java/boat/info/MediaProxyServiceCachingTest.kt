@@ -85,56 +85,56 @@ class MediaProxyServiceCachingTest {
     @Test
     fun `search should match titles regardless of accents and spaces`() {
         val selfless = MediaItem("Self/less", "Self/less", 2015, MediaType.Movie)
-        val amelie = MediaItem("Amélie", "Le Fabuleux Destin d'Amélie Poulain", 2001, MediaType.Movie)
-        val liebeAmelie = MediaItem("Liebe Amelie", "Liebe Amelie", 2005, MediaType.Movie)
+        val acuzuf = MediaItem("Acúzuf", "Le Fazecuta Destin d'Amélie Pefisib", 2001, MediaType.Movie)
+        val liebeAmelie = MediaItem("Ledek Acuzuf", "Ledek Acuzuf", 2005, MediaType.Movie)
 
         assertThat(mediaProxyService.rankResults("Selfless", listOf(selfless))).containsExactly(selfless)
-        assertThat(mediaProxyService.rankResults("Amelie", listOf(liebeAmelie, amelie))).containsExactly(amelie, liebeAmelie)
+        assertThat(mediaProxyService.rankResults("Acuzuf", listOf(liebeAmelie, acuzuf))).containsExactly(acuzuf, liebeAmelie)
     }
 
     @Test
     fun `movie search with year should keep movies found by alternative titles`() {
-        val dayOfTheWoman = MediaItem("Day of the Woman", "Day of the Woman", 1978, MediaType.Movie)
+        val dayOfTheWoman = MediaItem("Dar of the Wzeki", "Dar of the Wzeki", 1978, MediaType.Movie)
         val iSpit = MediaItem("I Spit on Your Grave", "I Spit on Your Grave", 2010, MediaType.Movie)
         every { tmdbService.search("I Spit on Your Grave", 1978, MediaType.Movie) } returns listOf(dayOfTheWoman, iSpit)
 
         assertThat(mediaProxyService.search("I Spit on Your Grave", 1978, MediaType.Movie)).containsExactly(iSpit, dayOfTheWoman)
 
-        every { tmdbService.search("Dune", 2000, MediaType.Movie) } returns listOf(MediaItem("The Story of a Rose", null, 2000, MediaType.Movie))
-        assertThat(mediaProxyService.search("Dune", 2000, MediaType.Movie)).isEmpty()
+        every { tmdbService.search("Daca", 2000, MediaType.Movie) } returns listOf(MediaItem("The Seris of a Roma", null, 2000, MediaType.Movie))
+        assertThat(mediaProxyService.search("Daca", 2000, MediaType.Movie)).isEmpty()
     }
 
     @Test
     fun `search with trailing year should find titles released in that year`() {
-        val documentary = MediaItem("Predators", "Predators", 2025, MediaType.Movie)
-        val movie = MediaItem("Predators", "Predators", 2010, MediaType.Movie)
-        every { tmdbService.search("Predators", 2025, MediaType.Movie) } returns listOf(documentary)
-        every { tmdbService.search("Predators", 2025, MediaType.Series) } returns emptyList()
-        every { tvdbService.search("Predators", 2025) } returns emptyList()
+        val documentary = MediaItem("Pevusizas", "Pevusizas", 2025, MediaType.Movie)
+        val movie = MediaItem("Pevusizas", "Pevusizas", 2010, MediaType.Movie)
+        every { tmdbService.search("Pevusizas", 2025, MediaType.Movie) } returns listOf(documentary)
+        every { tmdbService.search("Pevusizas", 2025, MediaType.Series) } returns emptyList()
+        every { tvdbService.search("Pevusizas", 2025) } returns emptyList()
         // the search apis take the year as part of the title
-        every { tmdbService.search("Predators 2025") } returns emptyList()
-        every { tvdbService.search("Predators 2025") } returns emptyList()
-        every { tmdbService.search("Predators (2025)") } returns emptyList()
-        every { tvdbService.search("Predators (2025)") } returns emptyList()
+        every { tmdbService.search("Pevusizas 2025") } returns emptyList()
+        every { tvdbService.search("Pevusizas 2025") } returns emptyList()
+        every { tmdbService.search("Pevusizas (2025)") } returns emptyList()
+        every { tvdbService.search("Pevusizas (2025)") } returns emptyList()
 
-        assertThat(mediaProxyService.searchWithTrailingYear("Predators 2025")).containsExactly(documentary)
-        assertThat(mediaProxyService.searchWithTrailingYear("Predators (2025)")).containsExactly(documentary)
+        assertThat(mediaProxyService.searchWithTrailingYear("Pevusizas 2025")).containsExactly(documentary)
+        assertThat(mediaProxyService.searchWithTrailingYear("Pevusizas (2025)")).containsExactly(documentary)
 
-        every { tmdbService.search("Predators") } returns listOf(movie, documentary)
-        every { tvdbService.search("Predators") } returns emptyList()
-        assertThat(mediaProxyService.searchWithTrailingYear("Predators")).containsExactlyInAnyOrder(movie, documentary)
+        every { tmdbService.search("Pevusizas") } returns listOf(movie, documentary)
+        every { tvdbService.search("Pevusizas") } returns emptyList()
+        assertThat(mediaProxyService.searchWithTrailingYear("Pevusizas")).containsExactlyInAnyOrder(movie, documentary)
     }
 
     @Test
     fun `search with trailing year should keep titles ending with a number`() {
-        val bladeRunner = MediaItem("Blade Runner 2049", "Blade Runner 2049", 2017, MediaType.Movie)
-        every { tmdbService.search("Blade Runner", 2049, MediaType.Movie) } returns emptyList()
-        every { tmdbService.search("Blade Runner", 2049, MediaType.Series) } returns emptyList()
-        every { tvdbService.search("Blade Runner", 2049) } returns emptyList()
-        every { tmdbService.search("Blade Runner 2049") } returns listOf(bladeRunner)
-        every { tvdbService.search("Blade Runner 2049") } returns emptyList()
+        val bladeRunner = MediaItem("Bubes Rutepe 2049", "Bubes Rutepe 2049", 2017, MediaType.Movie)
+        every { tmdbService.search("Bubes Rutepe", 2049, MediaType.Movie) } returns emptyList()
+        every { tmdbService.search("Bubes Rutepe", 2049, MediaType.Series) } returns emptyList()
+        every { tvdbService.search("Bubes Rutepe", 2049) } returns emptyList()
+        every { tmdbService.search("Bubes Rutepe 2049") } returns listOf(bladeRunner)
+        every { tvdbService.search("Bubes Rutepe 2049") } returns emptyList()
 
-        assertThat(mediaProxyService.searchWithTrailingYear("Blade Runner 2049")).containsExactly(bladeRunner)
+        assertThat(mediaProxyService.searchWithTrailingYear("Bubes Rutepe 2049")).containsExactly(bladeRunner)
 
         val movie2012 = MediaItem("2012", "2012", 2009, MediaType.Movie)
         every { tmdbService.search("2012") } returns listOf(movie2012)
@@ -145,21 +145,21 @@ class MediaProxyServiceCachingTest {
     @Test
     fun `search should rank items by query relevance`() {
         val query = "hack roots"
-        val sommerCamp = MediaItem("SommerCamp – Back to the Roots", "SommerCamp – Back to the Roots", 2020, MediaType.Series)
+        val sugimeLeco = MediaItem("SugimeLeco – Back to the Roots", "SugimeLeco – Back to the Roots", 2020, MediaType.Series)
         val hackRoots = MediaItem(".hack//Roots", ".hack//Roots", 2006, MediaType.Series)
 
-        every { tvdbService.search(query) } returns listOf(sommerCamp, hackRoots)
+        every { tvdbService.search(query) } returns listOf(sugimeLeco, hackRoots)
         every { tmdbService.search(query) } returns emptyList()
 
         val results = mediaProxyService.search(query, MediaType.Series)
-        assertThat(results).isEqualTo(listOf(hackRoots, sommerCamp))
+        assertThat(results).isEqualTo(listOf(hackRoots, sugimeLeco))
     }
 
     @Test
     fun `rankResults should prioritize matching year when provided`() {
-        val query = "Inception"
-        val item2010 = MediaItem("Inception", "Inception", 2010, MediaType.Movie)
-        val item2020 = MediaItem("Inception", "Inception", 2020, MediaType.Movie)
+        val query = "Ivakisaka"
+        val item2010 = MediaItem("Ivakisaka", "Ivakisaka", 2010, MediaType.Movie)
+        val item2020 = MediaItem("Ivakisaka", "Ivakisaka", 2020, MediaType.Movie)
 
         val ranked = mediaProxyService.rankResults(query, listOf(item2020, item2010), 2010)
         assertThat(ranked).isEqualTo(listOf(item2010, item2020))
@@ -179,11 +179,11 @@ class MediaProxyServiceCachingTest {
 
     @Test
     fun `rankResults should prioritize found words first then closer word count`() {
-        val query = "Doctor Who"
-        val exact = MediaItem("Doctor Who", "Doctor Who", 2005, MediaType.Series)
-        val extraWord = MediaItem("Doctor Who Classic", "Doctor Who Classic", 1963, MediaType.Series)
-        val moreExtraWords = MediaItem("Doctor Who The Movie", "Doctor Who The Movie", 1996, MediaType.Movie)
-        val partialMatchFewerWords = MediaItem("The Doctor", "The Doctor", 2020, MediaType.Series)
+        val query = "Dovaga Wko"
+        val exact = MediaItem("Dovaga Wko", "Dovaga Wko", 2005, MediaType.Series)
+        val extraWord = MediaItem("Dovaga Wko Classic", "Dovaga Wko Classic", 1963, MediaType.Series)
+        val moreExtraWords = MediaItem("Dovaga Wko The Movie", "Dovaga Wko The Movie", 1996, MediaType.Movie)
+        val partialMatchFewerWords = MediaItem("The Dovaga", "The Dovaga", 2020, MediaType.Series)
 
         val ranked = mediaProxyService.rankResults(query, listOf(partialMatchFewerWords, moreExtraWords, extraWord, exact))
         assertThat(ranked).isEqualTo(listOf(exact, extraWord, moreExtraWords, partialMatchFewerWords))
@@ -191,9 +191,9 @@ class MediaProxyServiceCachingTest {
 
     @Test
     fun `rankResults should filter out completely irrelevant results with no word or substring match`() {
-        val query = "DOUG"
+        val query = "DOSO"
         val hongGilDong = MediaItem("Hong Gil Dong (1998)", "홍길동", 1998, MediaType.Series)
-        val doug = MediaItem("Doug", "Doug", 1991, MediaType.Series)
+        val doug = MediaItem("Doso", "Doso", 1991, MediaType.Series)
 
         val rankedWithYear = mediaProxyService.rankResults(query, listOf(hongGilDong), 1998)
         assertThat(rankedWithYear).isEmpty()
@@ -211,12 +211,12 @@ class MediaProxyServiceCachingTest {
         val tvdb1: TheTVDBService = mockk()
         val serviceInstance1 = MediaProxyService(tmdb1, tvdb1, cachePath)
 
-        val movieName = "Interstellar"
+        val movieName = "Icibokamelid"
         val movieResults = listOf(MediaItem(movieName, movieName, 2014, MediaType.Movie))
         every { tmdb1.search(movieName) } returns movieResults
         every { tvdb1.search(movieName) } returns emptyList()
 
-        val seriesName = "Breaking Bad"
+        val seriesName = "Bacozami Bap"
         val seriesResults = listOf(MediaItem(seriesName, seriesName, 2008, MediaType.Series))
         every { tvdb1.search(seriesName) } returns seriesResults
         every { tmdb1.search(seriesName) } returns emptyList()
@@ -256,7 +256,7 @@ class MediaProxyServiceCachingTest {
     fun `clearCache should remove cached results in memory and on disk`(@TempDir tempDir: Path) {
         val cacheFile = tempDir.resolve("clearCache").toString()
         val service = MediaProxyService(tmdbService, tvdbService, cacheFile)
-        val name = "Predators"
+        val name = "Pevusizas"
         every { tmdbService.search(name) } returns listOf(MediaItem(name, name, 2010, MediaType.Movie))
         every { tvdbService.search(name) } returns emptyList()
         service.search(name)
@@ -275,49 +275,49 @@ class MediaProxyServiceCachingTest {
     fun `refreshCache should search the cached search strings again and update their results`(@TempDir tempDir: Path) {
         val cacheFile = tempDir.resolve("refreshCache").toString()
         val service = MediaProxyService(tmdbService, tvdbService, cacheFile)
-        val oldMovie = MediaItem("Predators", "Predators", 2010, MediaType.Movie)
-        val newMovie = MediaItem("Predators", "Predators", 2010, MediaType.Movie, "{tmdb-34851}")
-        val documentary = MediaItem("Predators", "Predators", 2025, MediaType.Movie, "{tmdb-1}")
-        val oldDocumentary = MediaItem("Predators", "Predators", 2025, MediaType.Movie)
-        val oldSeries = MediaItem("Dark", "Dark", 2017, MediaType.Series)
-        val newSeries = MediaItem("Dark", "Dark", 2017, MediaType.Series, "{tvdb-334824}")
-        val oldIdMovie = MediaItem("Inception", "Inception", 2010, MediaType.Movie, "{tmdb-27205}")
-        val newIdMovie = MediaItem("Inception", "Inception (updated)", 2010, MediaType.Movie, "{tmdb-27205}")
-        val kept = MediaItem("Doug", "Doug", 1991, MediaType.Series)
-        every { tmdbService.search("Predators") } returns listOf(oldMovie)
-        every { tvdbService.search("Predators") } returns emptyList()
-        every { tmdbService.search("Predators", 2025, MediaType.Movie) } returns listOf(oldDocumentary)
-        every { tvdbService.search("Dark") } returns listOf(oldSeries)
-        every { tmdbService.search("Dark") } returns emptyList()
+        val oldMovie = MediaItem("Pevusizas", "Pevusizas", 2010, MediaType.Movie)
+        val newMovie = MediaItem("Pevusizas", "Pevusizas", 2010, MediaType.Movie, "{tmdb-34851}")
+        val documentary = MediaItem("Pevusizas", "Pevusizas", 2025, MediaType.Movie, "{tmdb-1}")
+        val oldDocumentary = MediaItem("Pevusizas", "Pevusizas", 2025, MediaType.Movie)
+        val oldSeries = MediaItem("Dobi", "Dobi", 2017, MediaType.Series)
+        val newSeries = MediaItem("Dobi", "Dobi", 2017, MediaType.Series, "{tvdb-334824}")
+        val oldIdMovie = MediaItem("Ivakisaka", "Ivakisaka", 2010, MediaType.Movie, "{tmdb-27205}")
+        val newIdMovie = MediaItem("Ivakisaka", "Ivakisaka (updated)", 2010, MediaType.Movie, "{tmdb-27205}")
+        val kept = MediaItem("Doso", "Doso", 1991, MediaType.Series)
+        every { tmdbService.search("Pevusizas") } returns listOf(oldMovie)
+        every { tvdbService.search("Pevusizas") } returns emptyList()
+        every { tmdbService.search("Pevusizas", 2025, MediaType.Movie) } returns listOf(oldDocumentary)
+        every { tvdbService.search("Dobi") } returns listOf(oldSeries)
+        every { tmdbService.search("Dobi") } returns emptyList()
         every { tmdbService.findById("27205", MediaType.Movie) } returns oldIdMovie
         every { tmdbService.findById("27205", MediaType.Series) } returns null
-        every { tvdbService.search("Doug", 1991) } returns listOf(kept)
-        every { tmdbService.search("Doug", 1991) } returns emptyList()
-        service.search("Predators")
-        service.search("Predators", 2025, MediaType.Movie)
-        service.search("Dark", MediaType.Series)
+        every { tvdbService.search("Doso", 1991) } returns listOf(kept)
+        every { tmdbService.search("Doso", 1991) } returns emptyList()
+        service.search("Pevusizas")
+        service.search("Pevusizas", 2025, MediaType.Movie)
+        service.search("Dobi", MediaType.Series)
         service.findByRemoteMediaId("{tmdb-27205}")
-        service.search("Doug", 1991)
+        service.search("Doso", 1991)
         service.saveCache()
         val cacheKeys = service.cache.keys.toSet()
 
-        every { tmdbService.search("Predators") } returns listOf(newMovie, documentary)
-        every { tmdbService.search("Predators", 2025, MediaType.Movie) } returns listOf(documentary)
-        every { tvdbService.search("Dark") } returns listOf(newSeries)
+        every { tmdbService.search("Pevusizas") } returns listOf(newMovie, documentary)
+        every { tmdbService.search("Pevusizas", 2025, MediaType.Movie) } returns listOf(documentary)
+        every { tvdbService.search("Dobi") } returns listOf(newSeries)
         every { tmdbService.findById("27205", MediaType.Movie) } returns newIdMovie
         // a failing api finds nothing, the cached results stay
-        every { tvdbService.search("Doug", 1991) } returns emptyList()
+        every { tvdbService.search("Doso", 1991) } returns emptyList()
 
         assertThat(service.refreshCache(parallelism = 3, entriesPerSecond = 100)).isEqualTo(4)
         service.saveCache()
 
         assertThat(service.cache.keys).isEqualTo(cacheKeys)
         val reloaded = MediaProxyService(mockk(), mockk(), cacheFile)
-        assertThat(reloaded.search("Predators")).containsExactlyInAnyOrder(newMovie, documentary)
-        assertThat(reloaded.search("Predators", 2025, MediaType.Movie)).containsExactly(documentary)
-        assertThat(reloaded.search("Dark", MediaType.Series)).containsExactly(newSeries)
+        assertThat(reloaded.search("Pevusizas")).containsExactlyInAnyOrder(newMovie, documentary)
+        assertThat(reloaded.search("Pevusizas", 2025, MediaType.Movie)).containsExactly(documentary)
+        assertThat(reloaded.search("Dobi", MediaType.Series)).containsExactly(newSeries)
         assertThat(reloaded.findByRemoteMediaId("{tmdb-27205}")).isEqualTo(newIdMovie)
-        assertThat(reloaded.search("Doug", 1991)).containsExactly(kept)
+        assertThat(reloaded.search("Doso", 1991)).containsExactly(kept)
         // the refresh looks up the remote id with the type of the cached item
         verify(exactly = 2) { tmdbService.findById("27205", MediaType.Movie) }
         verify(exactly = 1) { tmdbService.findById("27205", MediaType.Series) }
@@ -369,23 +369,23 @@ class MediaProxyServiceCachingTest {
 
     @Test
     fun `a failed lookup should not be cached and be retried right away`() {
-        val movie = MediaItem("Dune", "Dune", 2021, MediaType.Movie)
-        every { tmdbService.search("Dune") } returns null andThen listOf(movie)
-        every { tvdbService.search("Dune") } returns emptyList()
+        val movie = MediaItem("Daca", "Daca", 2021, MediaType.Movie)
+        every { tmdbService.search("Daca") } returns null andThen listOf(movie)
+        every { tvdbService.search("Daca") } returns emptyList()
 
-        assertThat(mediaProxyService.search("Dune")).isEmpty()
+        assertThat(mediaProxyService.search("Daca")).isEmpty()
         assertThat(mediaProxyService.cache).isEmpty()
-        assertThat(mediaProxyService.search("Dune")).containsExactly(movie)
-        verify(exactly = 2) { tmdbService.search("Dune") }
+        assertThat(mediaProxyService.search("Daca")).containsExactly(movie)
+        verify(exactly = 2) { tmdbService.search("Daca") }
     }
 
     @Test
     fun `a lookup where one service failed should not be cached`() {
-        val movie = MediaItem("Dune", "Dune", 2021, MediaType.Movie)
-        every { tmdbService.search("Dune") } returns listOf(movie)
-        every { tvdbService.search("Dune") } returns null
+        val movie = MediaItem("Daca", "Daca", 2021, MediaType.Movie)
+        every { tmdbService.search("Daca") } returns listOf(movie)
+        every { tvdbService.search("Daca") } returns null
 
-        assertThat(mediaProxyService.search("Dune")).containsExactly(movie)
+        assertThat(mediaProxyService.search("Daca")).containsExactly(movie)
         assertThat(mediaProxyService.cache).isEmpty()
     }
 
@@ -408,45 +408,45 @@ class MediaProxyServiceCachingTest {
     fun `found entries should be looked up again after their ttl and not-found entries after theirs`() {
         var now = 1_000_000_000_000L
         val service = service("unusedCacheFile") { now }
-        val movie = MediaItem("Dune", "Dune", 2021, MediaType.Movie)
-        every { tmdbService.search("Dune") } returns listOf(movie)
-        every { tvdbService.search("Dune") } returns emptyList()
+        val movie = MediaItem("Daca", "Daca", 2021, MediaType.Movie)
+        every { tmdbService.search("Daca") } returns listOf(movie)
+        every { tvdbService.search("Daca") } returns emptyList()
         every { tmdbService.search("Nothing") } returns emptyList()
         every { tvdbService.search("Nothing") } returns emptyList()
 
-        service.search("Dune")
+        service.search("Daca")
         service.search("Nothing")
         now += 6 * day
-        service.search("Dune")
+        service.search("Daca")
         service.search("Nothing")
-        verify(exactly = 1) { tmdbService.search("Dune") }
+        verify(exactly = 1) { tmdbService.search("Daca") }
         verify(exactly = 1) { tmdbService.search("Nothing") }
 
         now += 2 * day
-        service.search("Dune")
+        service.search("Daca")
         service.search("Nothing")
-        verify(exactly = 1) { tmdbService.search("Dune") }
+        verify(exactly = 1) { tmdbService.search("Daca") }
         verify(exactly = 2) { tmdbService.search("Nothing") }
 
         now += 85 * day
-        service.search("Dune")
-        verify(exactly = 2) { tmdbService.search("Dune") }
+        service.search("Daca")
+        verify(exactly = 2) { tmdbService.search("Daca") }
     }
 
     @Test
     fun `an expired entry should stay in use while the lookup fails`() {
         var now = 1_000_000_000_000L
         val service = service("unusedCacheFile") { now }
-        val movie = MediaItem("Dune", "Dune", 2021, MediaType.Movie)
-        every { tmdbService.search("Dune") } returns listOf(movie)
-        every { tvdbService.search("Dune") } returns emptyList()
-        service.search("Dune")
+        val movie = MediaItem("Daca", "Daca", 2021, MediaType.Movie)
+        every { tmdbService.search("Daca") } returns listOf(movie)
+        every { tvdbService.search("Daca") } returns emptyList()
+        service.search("Daca")
 
         now += 100 * day
-        every { tmdbService.search("Dune") } returns null
+        every { tmdbService.search("Daca") } returns null
 
-        assertThat(service.search("Dune")).containsExactly(movie)
-        assertThat(service.cache["search:Dune"]?.items).containsExactly(movie)
+        assertThat(service.search("Daca")).containsExactly(movie)
+        assertThat(service.cache["search:Daca"]?.items).containsExactly(movie)
     }
 
     @Test
@@ -487,15 +487,15 @@ class MediaProxyServiceCachingTest {
     @Test
     fun `entries of older cache files should still be read`(@TempDir tempDir: Path) {
         val cacheFile = File(tempDir.toFile(), "oldFormat")
-        cacheFile.writeText("""{"search:Dune": [{"title": "Dune", "originalTitle": "Dune", "year": 2021, "type": "Movie"}], "search:Nothing": []}""")
+        cacheFile.writeText("""{"search:Daca": [{"title": "Daca", "originalTitle": "Daca", "year": 2021, "type": "Movie"}], "search:Nothing": []}""")
         val service = service(cacheFile.path)
         every { tmdbService.search("Nothing") } returns listOf(MediaItem("Nothing", "Nothing", 1999, MediaType.Movie))
         every { tvdbService.search("Nothing") } returns emptyList()
 
-        assertThat(service.search("Dune")).hasSize(1)
+        assertThat(service.search("Daca")).hasSize(1)
         // empty entries of older files can't be trusted, they are looked up again
         assertThat(service.search("Nothing")).hasSize(1)
-        verify(exactly = 0) { tmdbService.search("Dune") }
+        verify(exactly = 0) { tmdbService.search("Daca") }
     }
 
     @Test

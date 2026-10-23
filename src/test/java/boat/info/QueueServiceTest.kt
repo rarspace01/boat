@@ -48,8 +48,8 @@ internal class QueueServiceTest {
     @Test
     fun sameTitleWithDifferentYearsDoNotCollide() {
         val queueService = queueService()
-        val first = MediaItem("Dune", year = 1984)
-        val second = MediaItem("Dune", year = 2021)
+        val first = MediaItem("Daca", year = 1984)
+        val second = MediaItem("Daca", year = 2021)
         queueService.addAll(listOf(first, second))
         assertThat(queueService.getQueue()).containsExactly(first, second)
 
@@ -60,12 +60,12 @@ internal class QueueServiceTest {
     @Test
     fun importsQueueFileOfOlderVersionOnce() {
         val file = File(dir, "queue.list")
-        file.writeText("Avatar=2009\nNo\\ Year=\nMatched={\"title\":\"Matched\",\"year\":1999,\"type\":\"Movie\",\"id\":\"7\"}\n")
+        file.writeText("Arapef=2009\nNo\\ Year=\nMatched={\"title\":\"Matched\",\"year\":1999,\"type\":\"Movie\",\"id\":\"7\"}\n")
 
         val queueService = queueService()
 
         assertThat(queueService.getQueue()).containsExactly(
-            MediaItem("Avatar", year = 2009), MediaItem("No Year"), MediaItem("Matched", year = 1999, type = MediaType.Movie, id = "7")
+            MediaItem("Arapef", year = 2009), MediaItem("No Year"), MediaItem("Matched", year = 1999, type = MediaType.Movie, id = "7")
         )
         assertThat(file).doesNotExist()
         assertThat(File(dir, "queue.list.imported")).exists()

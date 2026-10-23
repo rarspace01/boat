@@ -18,7 +18,7 @@ internal class TorrentSearchEngineServicePipelineTest {
 
     private fun hash(index: Int) = String.format("%040x", index.toLong() + 1)
 
-    private fun torrent(index: Int, name: String = "Dune.2021.$index.1080p.BluRay.x264", seeders: Int = 10, sizeInMB: Double = 4000.0) =
+    private fun torrent(index: Int, name: String = "Daca.2021.$index.1080p.BluRay.x264", seeders: Int = 10, sizeInMB: Double = 4000.0) =
         Torrent("E").apply {
             this.name = name
             magnetUri = "magnet:?xt=urn:btih:" + hash(index)
@@ -46,7 +46,7 @@ internal class TorrentSearchEngineServicePipelineTest {
         val torrents = (1..300).map { torrent(it, seeders = (it * 7) % 61 + 1, sizeInMB = 700.0 + (it * 13) % 9000) }
         val service = service(engine { torrents })
 
-        val results = service.searchTorrents("Dune 2021")
+        val results = service.searchTorrents("Daca 2021")
 
         assertThat(results).hasSize(TorrentSearchEngineService.MAX_SEARCH_RESULTS)
         // sorted by the final rating, and what was cut has a rating which is not better than anything that is shown
@@ -63,7 +63,7 @@ internal class TorrentSearchEngineServicePipelineTest {
         val checked = slot<List<Torrent>>()
         every { multifileHosterService.getCachedStateOfTorrents(capture(checked)) } answers { firstArg() }
 
-        service.searchTorrents("Dune 2021")
+        service.searchTorrents("Daca 2021")
 
         assertThat(checked.captured).hasSize(250)
     }
@@ -71,15 +71,15 @@ internal class TorrentSearchEngineServicePipelineTest {
     @Test
     fun shouldDropBadQualityExplicitAndEmptyTorrentsBeforeTheLookups() {
         val good = torrent(1)
-        val cam = torrent(2, name = "Dune.2021.HDCAM.x264")
+        val cam = torrent(2, name = "Daca.2021.HDCAM.x264")
         val noMagnet = torrent(3).apply { magnetUri = "" }
         val noSize = torrent(4, sizeInMB = 0.0)
-        val explicit = torrent(5, name = "Dune.2021.porn.1080p")
+        val explicit = torrent(5, name = "Daca.2021.porn.1080p")
         val checked = slot<List<Torrent>>()
         val service = service(engine { listOf(good, cam, noMagnet, noSize, explicit) })
         every { multifileHosterService.getCachedStateOfTorrents(capture(checked)) } answers { firstArg() }
 
-        val results = service.searchTorrents("Dune 2021")
+        val results = service.searchTorrents("Daca 2021")
 
         assertThat(checked.captured).containsExactly(good)
         assertThat(results).containsExactly(good)
@@ -93,15 +93,15 @@ internal class TorrentSearchEngineServicePipelineTest {
         val service = service(engine { listOf(dead, alive, cachedWithoutSeeders) })
         every { multifileHosterService.getCachedStateOfTorrents(any()) } answers { firstArg() }
 
-        val results = service.searchTorrents("Dune 2021")
+        val results = service.searchTorrents("Daca 2021")
 
         assertThat(results).containsExactlyInAnyOrder(alive, cachedWithoutSeeders)
     }
 
     @Test
     fun shouldKeepTheBetterRatedOfDuplicatesFromSeveralEngines() {
-        val weak = torrent(1, name = "Dune.2021.1080p").apply { searchRating = 1.0 }
-        val strong = torrent(1, name = "Dune.2021.1080p.BluRay.x264").apply { searchRating = 9.0 }
+        val weak = torrent(1, name = "Daca.2021.1080p").apply { searchRating = 1.0 }
+        val strong = torrent(1, name = "Daca.2021.1080p.BluRay.x264").apply { searchRating = 9.0 }
 
         assertThat(TorrentSearchEngineService(HttpHelper(), multifileHosterService, torrentInfoService, emptyList())
             .cleanDuplicates(listOf(weak, strong))).containsExactly(strong)
@@ -111,7 +111,7 @@ internal class TorrentSearchEngineServicePipelineTest {
     fun shouldSurviveAnEngineWhichFails() {
         val service = service(engine { throw IllegalStateException("down") }, engine { listOf(torrent(1)) })
 
-        assertThat(service.searchTorrents("Dune 2021")).hasSize(1)
+        assertThat(service.searchTorrents("Daca 2021")).hasSize(1)
     }
 
     @Test
@@ -124,8 +124,8 @@ internal class TorrentSearchEngineServicePipelineTest {
         }
         val service = service(parallelEngine, engine { listOf(torrent(2)) })
 
-        service.searchTorrents("Dune 2021")
-        service.searchTorrents("Dune 2021")
+        service.searchTorrents("Daca 2021")
+        service.searchTorrents("Daca 2021")
 
         assertThat(pools).hasSize(40)
         assertThat(pools.toSet()).hasSize(1)

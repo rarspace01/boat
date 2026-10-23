@@ -21,7 +21,7 @@ internal class CloudServiceTest {
     fun searchForFilesWithYear() {
         // Given
         // When
-        val files = cloudService!!.findExistingFiles("Plan 9 1959")
+        val files = cloudService!!.findExistingFiles("Pino 9 1959")
         // Then
         assertThat(files).isNotEmpty()
     }
@@ -31,7 +31,7 @@ internal class CloudServiceTest {
     fun searchForFiles() {
         // Given
         // When
-        val files = cloudService!!.findExistingFiles("Plan 9")
+        val files = cloudService!!.findExistingFiles("Pino 9")
         // Then
         assertThat(files).isNotEmpty()
     }

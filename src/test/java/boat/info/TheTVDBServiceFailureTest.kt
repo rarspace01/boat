@@ -15,7 +15,7 @@ internal class TheTVDBServiceFailureTest {
         // needs an api key to try the login, boat.test.cfg has one
         every { httpHelper.getPage(match { it.endsWith("/login") }, anyNullable<String>(), anyNullable<Map<String, String>>()) } returns ""
 
-        assertThat(TheTVDBService(httpHelper).search("Dark")).isNull()
+        assertThat(TheTVDBService(httpHelper).search("Dobi")).isNull()
     }
 
     @Test
@@ -24,8 +24,8 @@ internal class TheTVDBServiceFailureTest {
         every { httpHelper.getPage(match { it.contains("/search?") }, anyNullable<String>(), anyNullable<Map<String, String>>()) } returns ""
         val service = TheTVDBService(httpHelper)
 
-        assertThat(service.search("Dark")).isNull()
-        assertThat(service.search("Dark")).isNull()
+        assertThat(service.search("Dobi")).isNull()
+        assertThat(service.search("Dobi")).isNull()
 
         io.mockk.verify(exactly = 2) { httpHelper.getPage(match { it.endsWith("/login") }, anyNullable<String>(), anyNullable<Map<String, String>>()) }
     }
@@ -37,18 +37,18 @@ internal class TheTVDBServiceFailureTest {
         val service = TheTVDBService(httpHelper) { now }
         fun noSearches() = io.mockk.verify(exactly = 0) { httpHelper.getPage(match { it.contains("/search?") }, anyNullable<String>(), anyNullable<Map<String, String>>()) }
 
-        repeat(3) { assertThat(service.search("Dark")).isNull() }
+        repeat(3) { assertThat(service.search("Dobi")).isNull() }
         now += java.util.concurrent.TimeUnit.SECONDS.toNanos(59)
-        assertThat(service.search("Dark")).isNull()
+        assertThat(service.search("Dobi")).isNull()
         io.mockk.verify(exactly = 1) { httpHelper.getPage(match { it.endsWith("/login") }, anyNullable<String>(), anyNullable<Map<String, String>>()) }
 
         now += java.util.concurrent.TimeUnit.SECONDS.toNanos(1)
-        assertThat(service.search("Dark")).isNull()
+        assertThat(service.search("Dobi")).isNull()
         io.mockk.verify(exactly = 2) { httpHelper.getPage(match { it.endsWith("/login") }, anyNullable<String>(), anyNullable<Map<String, String>>()) }
 
         // the second pause is two minutes
         now += java.util.concurrent.TimeUnit.SECONDS.toNanos(119)
-        assertThat(service.search("Dark")).isNull()
+        assertThat(service.search("Dobi")).isNull()
         io.mockk.verify(exactly = 2) { httpHelper.getPage(match { it.endsWith("/login") }, anyNullable<String>(), anyNullable<Map<String, String>>()) }
         noSearches()
     }
@@ -71,6 +71,6 @@ internal class TheTVDBServiceFailureTest {
         every { httpHelper.getPage(match { it.endsWith("/login") }, anyNullable<String>(), anyNullable<Map<String, String>>()) } returns """{"data":{"token":"t"}}"""
         every { httpHelper.getPage(match { it.contains("/search?") }, anyNullable<String>(), anyNullable<Map<String, String>>()) } returns """{"data":[]}"""
 
-        assertThat(TheTVDBService(httpHelper).search("Dark")).isEmpty()
+        assertThat(TheTVDBService(httpHelper).search("Dobi")).isEmpty()
     }
 }

@@ -10,7 +10,7 @@ internal class TheTVDBServiceSeasonsTest {
     private val service = TheTVDBService(mockk<HttpHelper>())
 
     private fun series(seasons: String) =
-        """{"data":{"id":334824,"name":"Dark","year":"2017","seasons":$seasons}}"""
+        """{"data":{"id":334824,"name":"Dobi","year":"2017","seasons":$seasons}}"""
 
     @Test
     fun shouldCountTheOfficialSeasonsWithoutSpecialsAndOtherOrders() {

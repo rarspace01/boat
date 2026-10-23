@@ -15,7 +15,7 @@ internal class TransferServiceTest {
 
     @Test
     fun shouldFindATransferById() {
-        val transfer = Transfer(id = "abc", name = "Dune")
+        val transfer = Transfer(id = "abc", name = "Daca")
         every { repository.findById("abc") } returns Optional.of(transfer)
         every { repository.findById("missing") } returns Optional.empty()
 

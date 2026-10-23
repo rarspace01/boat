@@ -17,7 +17,7 @@ import boat.rename.EpisodeParser.versionPattern
 object NameCleaner {
 
     /**
-     * Removes known release groups attached with "-", e.g. "sparks-inception" or "Inception.2010.x264-SPARKS".
+     * Removes known release groups attached with "-", e.g. "sparks-ivakisaka" or "Ivakisaka.2010.x264-SPARKS".
      */
     fun removeReleaseGroups(name: String): String {
         if (releaseGroups.isEmpty()) return name
@@ -42,7 +42,7 @@ object NameCleaner {
         // Normalize unicode and foreign characters, remove backslash escape characters
         var name = inputName.replace("：", " ").replace("?", " ").replace("\\", "")
 
-        // the title ends at a bracketed episode like "House - [2x01] - Acceptance" or "Dragon Ball GT [1.21] A Secret Revealed"
+        // the title ends at a bracketed episode like "Hgosa - [2x01] - Acceptance" or "Demadi Bemu GT [1.21] A Secret Revealed"
         val bracketedEpisode = bracketedEpisodePattern.find(name)
         if (bracketedEpisode != null && bracketedEpisode.range.first > 0) {
             name = name.substring(0, bracketedEpisode.range.first)
@@ -196,7 +196,7 @@ object NameCleaner {
         if (trailingMatch != null) {
             return name.substring(0, trailingMatch.range.first).trim()
         }
-        // If name has a number followed by space and another number (e.g. Golgo 13 20), truncate the trailing episode
+        // If name has a number followed by space and another number (e.g. Gufil 13 20), truncate the trailing episode
         val multiMatch = multiNumberTrailingPattern.find(name)
         if (multiMatch != null) {
             return name.substring(0, multiMatch.range.first).trim()

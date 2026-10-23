@@ -1,4 +1,4 @@
-# Release groups / sites removed from file names when attached with "-" (e.g. "sparks-inception", "Movie.2010.x264-SPARKS").
+# Release groups / sites removed from file names when attached with "-" (e.g. "sparks-ivakisaka", "Movie.2010.x264-SPARKS").
 # One per line, case-insensitive. Avoid groups that are common words, they could be part of a title.
 AAF
 AMIABLE
