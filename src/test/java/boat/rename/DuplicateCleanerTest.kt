@@ -305,7 +305,7 @@ internal class DuplicateCleanerTest {
         val base = tempDir.toFile()
         val a = file(base, "Series-Shows/D/Dark {tvdb-334824}/Season 1/Dark.S01E01.mkv", video(height = 1080, seconds = 2800.0))
         val b = file(base, "Series-Shows/D/Dark {tvdb-334824}/Season 1/Dark.S01E01.mp4", video(height = 720, seconds = 2700.0))
-        val c = file(base, "Series-Shows/D/Dark {tvdb-334824}/Season 1/Dark.S01E02.mkv", video(height = 1080, seconds = 2800.0))
+        val c = file(base, "Series-Shows/D/Dark {tvdb-334824}/Season 1/Dark.S01E02.mkv", video(height = 1080, seconds = 2900.0))
         val d = file(base, "Series-Shows/D/Dark {tvdb-334824}/Season 1/Dark.S01E02.mp4", video(height = 720, seconds = 2500.0))
 
         val result = run(base)
@@ -316,6 +316,56 @@ internal class DuplicateCleanerTest {
         assertThat(b).doesNotExist()
         assertThat(c).exists()
         assertThat(d).exists()
+    }
+
+    @Test
+    fun `should not decide episodes whose numbering is shifted against another release`(@TempDir tempDir: Path) {
+        val base = tempDir.toFile()
+        val dir = "Series-Shows/C/Community {tvdb-94571}/Season 6"
+        // the x264 release has the episodes in another order: its E01 is the E02 of the other release
+        val mkv1 = file(base, "$dir/Community.S06E01.mkv", video(codec = "hevc", seconds = 1650.0))
+        val x2641 = file(base, "$dir/Community.S06E01.1080p.x264.mkv", video(seconds = 1710.0))
+        val mkv2 = file(base, "$dir/Community.S06E02.mkv", video(codec = "hevc", seconds = 1710.0))
+        val x2642 = file(base, "$dir/Community.S06E02.1080p.x264.mkv", video(seconds = 1650.0))
+
+        val result = run(base)
+
+        assertThat(result.groups).isEmpty()
+        assertThat(result.unsureGroups.map { it.key }).containsExactlyInAnyOrder("series {tvdb-94571} S06E01", "series {tvdb-94571} S06E02")
+        assertThat(result.unsureGroups.first().reason).contains("numbering is probably shifted")
+        listOf(mkv1, x2641, mkv2, x2642).forEach { assertThat(it).exists() }
+    }
+
+    @Test
+    fun `should not take equally long episodes or truncated files for shifted numbering`(@TempDir tempDir: Path) {
+        val base = tempDir.toFile()
+        val dir = "Series-Shows/F/Futurama {tvdb-73871}/Season 2"
+        // a cartoon: every episode is about 22:32, the avi is a PAL version
+        (1..3).forEach { file(base, "$dir/Futurama.S02E0$it.1080p.x264.mkv", video(seconds = 1352.0 + it)) }
+        (1..3).forEach { file(base, "$dir/Futurama.S02E0$it.avi", video(codec = "mpeg4", height = 480, seconds = 1295.0)) }
+        val full = file(base, "$dir/Futurama.S02E04.mkv", video(seconds = 1300.0))
+        val sample = file(base, "$dir/Futurama.S02E04.mp4", video(seconds = 129.0))
+        file(base, "$dir/Futurama.S02E05.mkv", video(seconds = 1300.0))
+        file(base, "$dir/Futurama.S02E05.mp4", video(seconds = 129.0))
+
+        val result = run(base)
+
+        assertThat(result.unsureGroups.filter { it.reason.contains("shifted") }).isEmpty()
+        assertThat(result.groups.map { it.key }).contains("series {tvdb-73871} S02E04", "series {tvdb-73871} S02E05")
+        assertThat(full).exists()
+        assertThat(sample).doesNotExist()
+    }
+
+    @Test
+    fun `should treat Rick & Morty and Rick and Morty as the same title`(@TempDir tempDir: Path) {
+        val base = tempDir.toFile()
+        file(base, "Series-Shows/R/Rick and Morty {tvdb-275274}/Season 1/Rick & Morty.S01E01.mkv", video(height = 1080))
+        val sd = file(base, "Series-Shows/R/Rick and Morty {tvdb-275274}/Season 1/Rick and Morty.S01E01.mp4", video(height = 480))
+
+        val result = run(base)
+
+        assertThat(result.groups).hasSize(1)
+        assertThat(sd).doesNotExist()
     }
 
     @Test
