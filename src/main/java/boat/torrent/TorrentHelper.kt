@@ -199,11 +199,6 @@ object TorrentHelper {
         return value.replace(",".toRegex(), "")
     }
 
-    fun isBlocklisted(torrent: Torrent, searchName: String = ""): Boolean {
-        val torrentNameLowerCased = torrent.name.lowercase(Locale.getDefault())
-        return isBadQualityName(torrentNameLowerCased) || isExplicitContent(torrent, searchName)
-    }
-
     /**
      * Adult releases carry "XXX" as a tag after their title. The movies "xXx" (2002, 2005, 2017) start with it, so
      * when the search itself is for "xxx", torrents named after the movie are kept.

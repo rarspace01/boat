@@ -21,10 +21,6 @@ Ordered by how much they matter, from the review of 2026-10-23 (on top of #581).
 
 ### Cleanup
 
-- [ ] Unused: `StreamGobbler`, `LimitedInputStream`, `ByteRange`, `CloudFileService.getFreeSpaceInMegaBytes`,
-  `TransferService.get(..)`, `QueueService.addAndSave`, `TheMovieDataBaseService.determineMediaType(Torrent)`,
-  `MediaProxyService.refreshCache` (or schedule it), `TorrentHelper.isBlocklisted` and
-  `TorrentInfoService.refreshSeedAndLeecherFromTracker` (only tests), the commented out `fillQueueWithMovies`.
 - [ ] The search engines `Zooqle` (not registered) and `LeetxTo` (commented out): remove or bring back.
 - [ ] `switchToProgress.replace("..", "../boat")` in `BoatController` does nothing (the string has no `..`).
 - [ ] `MultifileHosterService`: `isRcloneInstalled` is checked once (missing at start = no downloads until a
@@ -50,7 +46,7 @@ Ordered by how much they matter, from the review of 2026-10-23 (on top of #581).
   Premiumize does except the cache check, AllDebrid has none anymore (a cached magnet is `ready` right after the upload).
 - [ ] A scheduler that periodically checks the newest releases and whether they are already in the library: e.g.
   once a day the releases of the current and the last month from `BluRayComService.getReleasesForMonthAndYear`
-  (kept for this, not used yet; the commented out `fillQueueWithMovies` in `DownloadMonitor` was a first try), each
+  (kept for this, not used yet; a first try, `fillQueueWithMovies` in `DownloadMonitor`, is in the git history), each
   looked up with `MediaProxyService` and checked with `CloudService.findExistingFiles` (title and remote media id),
   the missing ones listed on the info page or added to the queue (`QueueService`). To decide: list only or queue,
   filters (year, genre, rating), and which source besides blu-ray.com (e.g. TMDB "now playing"/digital releases).
@@ -82,7 +78,8 @@ Ordered by how much they matter, from the review of 2026-10-23 (on top of #581).
   rejects (`SERVER_ERROR`) is sent again after 5, 10, 20, 40 and 80 minutes, then it is `ERROR` and the cleanup removes it.
 - rclone `copyurl` skips a file which already exists with the size the hoster reports. The size doesn't prove identical
   content; a file of another size is replaced.
-- Media proxy cache: failed lookups are never cached; found entries live 90 days, not found 7 (`0` = forever).
+- Media proxy cache: `MediaProxyService.refreshCache` is only used by the manual `refreshLocalMediaProxyCache` test (refreshes
+  the cache file of an installation), the entries are refreshed one by one when asked for after their ttl. Failed lookups are never cached; found entries live 90 days, not found 7 (`0` = forever).
 - `ContentRenamer.processFilesFromDirectory` skips files which already have a `{tmdb-…}`/`{tvdb-…}` id. A file whose
   first pass name was imperfect is therefore not corrected by a later run, pass `skipFilesWithRemoteId = false` to check
   them again. Without a base path it defaults to `~/pfdb/PFDB`.

@@ -1,7 +1,5 @@
 package boat.info
 
-import boat.torrent.Torrent
-import boat.torrent.TorrentHelper.getNormalizedTorrentStringWithSpaces
 import boat.torrent.TorrentHelper.urlEncode
 import boat.utilities.HttpHelper
 import boat.utilities.PropertiesHelper
@@ -16,7 +14,6 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 import java.util.function.Consumer
-import java.util.regex.Pattern
 
 @Service
 class TheMovieDataBaseService @Autowired constructor(private val httpHelper: HttpHelper) {
@@ -184,33 +181,4 @@ class TheMovieDataBaseService @Autowired constructor(private val httpHelper: Htt
         }
     }
 
-    fun determineMediaType(remoteTorrent: Torrent): MediaType? {
-        val yearOfRelease = extractYearInTorrent(remoteTorrent.name)
-        val mediaItems: MutableList<MediaItem> = ArrayList()
-        if (yearOfRelease != null) {
-            mediaItems.addAll(
-                search(
-                    getNormalizedTorrentStringWithSpaces(remoteTorrent.name).replace(yearOfRelease.toString().toRegex(), "").trim { it <= ' ' },
-                    yearOfRelease
-                )!!
-            )
-        } else {
-            mediaItems.addAll(search(getNormalizedTorrentStringWithSpaces(remoteTorrent.name).trim { it <= ' ' })!!)
-        }
-        val mediaItem = mediaItems.stream().findFirst()
-        return mediaItem.map(MediaItem::type).orElse(null)
-    }
-
-    private fun extractYearInTorrent(torrentName: String): Int? {
-        val pattern = Pattern.compile("([0-9]{4})[^\\w]")
-        val matcher = pattern.matcher(torrentName)
-        while (matcher.find()) {
-            // Get the group matched using group() method
-            val group = matcher.group(1)
-            if (group != null) {
-                return group.toInt()
-            }
-        }
-        return null
-    }
 }

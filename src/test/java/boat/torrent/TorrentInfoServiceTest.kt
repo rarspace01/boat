@@ -9,47 +9,6 @@ internal class TorrentInfoServiceTest {
 
     @Tag("live")
     @Test
-    fun getSeedAndLeecherFromTracker() {
-        // Given
-        val torrentInfoService = TorrentInfoService(HttpHelper())
-        val torrent = Torrent("test")
-        torrent.magnetUri = "btih:4a3f5e08bcef825718eda30637230585e3330599&"
-        val torrentList = mutableListOf(
-            torrent
-        )
-        // When
-        torrentInfoService.refreshSeedAndLeecherFromTracker(
-            TorrentService(HttpHelper()).trackerUrls.first(), torrentList
-        )
-        // Then
-        assertThat(torrentList[0].leecher).isGreaterThan(-1)
-        assertThat(torrentList[0].seeder).isGreaterThan(-1)
-
-    }
-
-    @Tag("live")
-    @Test
-    fun getSeedAndLeechersFromTracker() {
-        // Given
-        val torrentInfoService = TorrentInfoService(HttpHelper())
-        val torrent = Torrent("test")
-        val torrent2 = Torrent("test2")
-        torrent.magnetUri = "btih:4a3f5e08bcef825718eda30637230585e3330599&"
-        torrent2.magnetUri = "btih:41e6cd50ccec55cd5704c5e3d176e7b59317a3fb&"
-        val torrentList = mutableListOf(
-            torrent, torrent2
-        )
-        // When
-        torrentInfoService.refreshSeedAndLeecherFromTracker(
-            TorrentService(HttpHelper()).trackerUrls.first(), torrentList
-        )
-        // Then
-        assertThat(torrentList[1].leecher).isGreaterThan(-1)
-        assertThat(torrentList[1].seeder).isGreaterThan(-1)
-    }
-
-    @Tag("live")
-    @Test
     fun resfreshSeederAndLeechersFromTracker() {
         // Given
         val torrentInfoService = TorrentInfoService(HttpHelper())

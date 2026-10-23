@@ -71,23 +71,6 @@ class DownloadMonitor(
         }
     }
 
-    //    @Scheduled(fixedRate = SECONDS_BETWEEN_FILE_CACHE_REFRESH * 1000)
-    //    public void fillQueueWithMovies() {
-    //        logger.info("fillQueueWithMovies()");
-    //        final List<MediaItem> completeList = new java.util.ArrayList<>(Collections.emptyList());
-    //        IntStream.rangeClosed(2006,2021)
-    //            .parallel()
-    //            .forEach(year -> {
-    //                IntStream.rangeClosed(1,12)
-    //                    .parallel()
-    //                    .forEach(month -> {
-    //                        logger.info("adding Queue for {}/{}", month, year);
-    //                        completeList.addAll(bluRayComService.getReleasesForMonthAndYear(month, year));
-    //                        logger.info("Queue Size: {}",completeList.size());
-    //                    });
-    //            });
-    //        queueService.addAll(completeList);
-    //    }
     @Async
     @Scheduled(fixedRate = (SECONDS_BETWEEN_FILE_CACHE_REFRESH * 1000).toLong())
     fun refreshCloudFileServiceCache() {

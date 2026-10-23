@@ -48,12 +48,6 @@ class QueueService internal constructor(private val queueFile: File) {
     }
 
     @Synchronized
-    fun addAndSave(mediaItem: MediaItem) {
-        add(mediaItem)
-        saveQueue()
-    }
-
-    @Synchronized
     fun remove(mediaItem: MediaItem) {
         entries.remove(keyOf(mediaItem))
         // entries of older queue files are keyed by the title only

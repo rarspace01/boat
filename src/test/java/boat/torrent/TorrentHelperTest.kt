@@ -1,6 +1,5 @@
 package boat.torrent
 
-import boat.info.MediaType
 import boat.torrent.TorrentHelper.evaluateRating
 import boat.torrent.TorrentHelper.getNormalizedTorrentString
 import boat.torrent.TorrentHelper.getNormalizedTorrentStringWithSpaces
@@ -386,12 +385,18 @@ internal class TorrentHelperTest {
             .isEqualTo("D: 2days 3hrs 4min 5sec")
     }
 
+    private fun withName(name: String) = Torrent("Test").apply {
+        this.name = name
+        sizeInMB = 1000.0
+        magnetUri = "magnet:?xt=urn:btih:abc"
+    }
+
     @Test
-    fun shouldBlocklistBadQualityAndExplicitTorrents() {
-        Assertions.assertTrue(TorrentHelper.isBlocklisted(Torrent("Test").apply { name = "Movie.2020.HDCAM.x264" }))
-        Assertions.assertTrue(TorrentHelper.isBlocklisted(Torrent("Test").apply { name = "Movie.2020.TS.x264" }))
-        Assertions.assertTrue(TorrentHelper.isBlocklisted(Torrent("Test").apply { name = "Movie 2020 TELESYNC" }))
-        Assertions.assertTrue(TorrentHelper.isBlocklisted(Torrent("Test").apply { name = "Some XXX title" }))
+    fun shouldDropBadQualityAndExplicitTorrents() {
+        Assertions.assertFalse(TorrentHelper.isValidTorrent(withName("Movie.2020.HDCAM.x264")))
+        Assertions.assertFalse(TorrentHelper.isValidTorrent(withName("Movie.2020.TS.x264")))
+        Assertions.assertFalse(TorrentHelper.isValidTorrent(withName("Movie 2020 TELESYNC")))
+        Assertions.assertTrue(TorrentHelper.isExplicitContent(withName("Some XXX title"), ""))
     }
 
     @Test
@@ -419,10 +424,10 @@ internal class TorrentHelperTest {
     }
 
     @Test
-    fun shouldNotBlocklistGoodTorrentsContainingBadQualityLetters() {
-        Assertions.assertFalse(TorrentHelper.isBlocklisted(Torrent("Test").apply { name = "Movie.2020.1080p.BluRay.x264" }))
-        Assertions.assertFalse(TorrentHelper.isBlocklisted(Torrent("Test").apply { name = "Scam.2020.1080p.WEB" }))
-        Assertions.assertFalse(TorrentHelper.isBlocklisted(Torrent("Test").apply { name = "Cats.2019.1080p.WEB" }))
+    fun shouldKeepGoodTorrentsContainingBadQualityLetters() {
+        Assertions.assertTrue(TorrentHelper.isValidTorrent(withName("Movie.2020.1080p.BluRay.x264")))
+        Assertions.assertTrue(TorrentHelper.isValidTorrent(withName("Scam.2020.1080p.WEB")))
+        Assertions.assertTrue(TorrentHelper.isValidTorrent(withName("Cats.2019.1080p.WEB")))
     }
 
     @Test

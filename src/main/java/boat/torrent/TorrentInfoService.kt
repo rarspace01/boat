@@ -79,13 +79,6 @@ class TorrentInfoService(httpHelper: HttpHelper) :
         executor.shutdownNow()
     }
 
-    fun refreshSeedAndLeecherFromTracker(trackerUrl: String, torrentList: List<Torrent>) {
-        val torrentsByHash = torrentList.groupByHash()
-        torrentsByHash.keys.chunked(BATCH_SIZE).forEach { hashes ->
-            applyStats(scrape(trackerUrl, hashes), torrentsByHash)
-        }
-    }
-
     private fun List<Torrent>.groupByHash(): Map<String, List<Torrent>> =
         filter { torrent -> torrent.torrentId.matches(HASH_PATTERN) }.groupBy { torrent -> torrent.torrentId.lowercase() }
 
