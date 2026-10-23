@@ -5,7 +5,6 @@ import boat.torrent.Torrent
 import boat.torrent.TorrentHelper
 import boat.torrent.TorrentSearchEngine
 import boat.utilities.HttpHelper
-import boat.utilities.LoggerDelegate
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 import java.net.URLEncoder
@@ -14,10 +13,6 @@ import java.util.function.Consumer
 import java.util.stream.Collectors
 
 class NyaaSi internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper), TorrentSearchEngine {
-
-    companion object {
-        private val logger by LoggerDelegate()
-    }
 
     override fun searchTorrents(searchName: String): List<Torrent> {
         return SearchPaging.collect { page -> parseTorrentsOnResultPage(httpHelper.getPage(buildSearchUrl(searchName, page)), searchName) }
@@ -36,42 +31,45 @@ class NyaaSi internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper)
 
     private fun parseTorrentsOnResultPage(pageContent: String, searchName: String): List<Torrent> {
         val torrentList = ArrayList<Torrent>()
-        val doc = Jsoup.parse(pageContent)
-        val torrentListOnPage = doc.select(".torrent-list > tbody > tr")
-        if (torrentListOnPage.isNotEmpty()) {
-            for (torrent in torrentListOnPage) {
-                val tempTorrent = Torrent(toString())
-                val attributesOnTableRecord = torrent.attributes()
-                if (torrent.childNodeSize() > 0) {
-                    torrent.children().forEach(Consumer { element: Element ->
-                        if (element.getElementsByTag("a").isNotEmpty()
-                            && getTorrentTitle(element).isNotEmpty()
-                        ) {
-                            //extract name
-                            tempTorrent.name = getTorrentTitle(element)
-                        }
-                        if (attributesOnTableRecord.size() > 0 && "success" == attributesOnTableRecord["class"]) {
-                            tempTorrent.isVerified = true
-                        }
-                        if (elementContainsMagnetUri(element)) {
-                            //extract magneturi
-                            tempTorrent.magnetUri = getMagnetUri(element)
-                        }
-                        if (element.text().contains("MiB") || element.text().contains("GiB")) {
-                            tempTorrent.size = TorrentHelper.cleanNumberString(element.text().trim { it <= ' ' })
-                            tempTorrent.sizeInMB = TorrentHelper.extractTorrentSizeFromString(tempTorrent)
-                        }
-                    })
-                }
-                val index = torrent.children().size - 3
-                if (index > 0) {
-                    tempTorrent.seeder = TorrentHelper.cleanNumberString(torrent.children()[index].text()).toInt()
-                    tempTorrent.leecher = TorrentHelper.cleanNumberString(torrent.children()[index + 1].text()).toInt()
-                }
+        try {
+            val doc = Jsoup.parse(pageContent)
+            val torrentListOnPage = doc.select(".torrent-list > tbody > tr")
+            if (torrentListOnPage.isNotEmpty()) {
+                torrentList += SearchHits.parseEach(this, torrentListOnPage) { torrent ->
+                    val tempTorrent = Torrent(toString())
+                    val attributesOnTableRecord = torrent.attributes()
+                    if (torrent.childNodeSize() > 0) {
+                        torrent.children().forEach(Consumer { element: Element ->
+                            if (element.getElementsByTag("a").isNotEmpty()
+                                && getTorrentTitle(element).isNotEmpty()
+                            ) {
+                                //extract name
+                                tempTorrent.name = getTorrentTitle(element)
+                            }
+                            if (attributesOnTableRecord.size() > 0 && "success" == attributesOnTableRecord["class"]) {
+                                tempTorrent.isVerified = true
+                            }
+                            if (elementContainsMagnetUri(element)) {
+                                //extract magneturi
+                                tempTorrent.magnetUri = getMagnetUri(element)
+                            }
+                            if (element.text().contains("MiB") || element.text().contains("GiB")) {
+                                tempTorrent.size = TorrentHelper.cleanNumberString(element.text().trim { it <= ' ' })
+                                tempTorrent.sizeInMB = TorrentHelper.extractTorrentSizeFromString(tempTorrent)
+                            }
+                        })
+                    }
+                    val index = torrent.children().size - 3
+                    if (index > 0) {
+                        tempTorrent.seeder = TorrentHelper.cleanNumberString(torrent.children()[index].text()).toInt()
+                        tempTorrent.leecher = TorrentHelper.cleanNumberString(torrent.children()[index + 1].text()).toInt()
+                    }
 
-                // evaluate result
-                torrentList.add(tempTorrent)
+                    tempTorrent
+                }
             }
+        } catch (exception: Exception) {
+            SearchHits.logUnreadablePage(this, pageContent, exception)
         }
         return torrentList
     }
