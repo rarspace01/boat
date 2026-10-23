@@ -136,5 +136,3 @@ openjdk version "25" 2025-09-16 LTS
 Build Status:
 
 [![Java CI with Gradle](https://github.com/rarspace01/boat/actions/workflows/ci.yml/badge.svg)](https://github.com/rarspace01/boat/actions/workflows/ci.yml)
-[![Coveralls](https://github.com/rarspace01/boat/actions/workflows/coveralls.yml/badge.svg)](https://github.com/rarspace01/boat/actions/workflows/coveralls.yml)
-[![Coverage Status](https://coveralls.io/repos/github/rarspace01/boat/badge.svg?branch=main)](https://coveralls.io/github/rarspace01/boat?branch=main)
