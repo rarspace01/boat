@@ -7,13 +7,14 @@ import boat.torrent.TorrentHelper
 
 class TorrentMapper {
     companion object {
+        /** The `statusCode` of AllDebrid: 0-3 processing, 4 ready, 5-15 errors. */
         fun mapRemoteStatus(remoteStatusCode: Int?): TransferStatus {
             return when (remoteStatusCode) {
                 0 -> TransferStatus.ADDED_TO_MULTIHOSTER
                 1 -> TransferStatus.DOWNLOADING_TO_MULTIHOSTER
                 2, 3 -> TransferStatus.UPLOADING_TO_MULTIHOSTER
                 4 -> TransferStatus.READY_TO_BE_DOWNLOADED
-                in 5..11 -> TransferStatus.ERROR
+                in 5..15 -> TransferStatus.ERROR
                 else -> TransferStatus.UNKNOWN
             }
         }

@@ -113,4 +113,24 @@ internal class TorrentSearchEngineServicePipelineTest {
 
         assertThat(service.searchTorrents("Dune 2021")).hasSize(1)
     }
+
+    @Test
+    fun shouldSearchInOnePoolWhichAlsoRunsTheParallelStreamsOfTheEngines() {
+        val pools = java.util.concurrent.ConcurrentLinkedQueue<java.util.concurrent.ForkJoinPool?>()
+        // like the engines which fetch the pages of their torrents with a parallel stream
+        val parallelEngine = engine {
+            (1..20).toList().parallelStream().forEach { pools.add(java.util.concurrent.ForkJoinTask.getPool()) }
+            listOf(torrent(1))
+        }
+        val service = service(parallelEngine, engine { listOf(torrent(2)) })
+
+        service.searchTorrents("Dune 2021")
+        service.searchTorrents("Dune 2021")
+
+        assertThat(pools).hasSize(40)
+        assertThat(pools.toSet()).hasSize(1)
+        assertThat(pools.first()).isNotSameAs(java.util.concurrent.ForkJoinPool.commonPool())
+        assertThat(pools.first()!!.parallelism).isEqualTo(TorrentSearchEngineService.SEARCH_PARALLELISM)
+        service.shutdown()
+    }
 }
