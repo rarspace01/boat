@@ -124,27 +124,17 @@ internal class BoatControllerTest {
     }
 
     @Test
-    fun shouldQueueMatchedEntriesOfTheSearchList() {
-        val matched = MediaItem("Dune", "Dune", 1984, MediaType.Movie, "{tmdb-841}")
-        every { mediaProxyService.findBestMatch("Dune", 1984) } returns matched
-        every { cloudService.findExistingFiles(any()) } returns emptyList()
+    fun shouldQueuePlainEntriesOfTheSearchListWithoutLookups() {
         every { queueService.addAll(any()) } returns Unit
 
-        val response = boatController.queueList("Dune 1984\n")
+        val response = boatController.queueList("Dune 1984\nInception\n\n")
 
-        verify(exactly = 1) { queueService.addAll(listOf(matched)) }
-        assertThat(response).contains("{tmdb-841}")
-    }
-
-    @Test
-    fun shouldQueuePlainEntryIfSearchListEntryHasNoMatch() {
-        every { mediaProxyService.findBestMatch("Unknown", 2020) } returns null
-        every { cloudService.findExistingFiles(any()) } returns emptyList()
-        every { queueService.addAll(any()) } returns Unit
-
-        boatController.queueList("Unknown (2020)\n")
-
-        verify(exactly = 1) { queueService.addAll(listOf(MediaItem("Unknown", "Unknown", 2020, MediaType.Other))) }
+        verify(exactly = 1) {
+            queueService.addAll(listOf(MediaItem("Dune", "Dune", 1984, MediaType.Other), MediaItem("Inception", "Inception", null, MediaType.Other)))
+        }
+        verify(exactly = 0) { mediaProxyService.findBestMatch(any(), any()) }
+        verify(exactly = 0) { cloudService.findExistingFiles(any()) }
+        assertThat(response).contains("Dune")
     }
 
     @Test
