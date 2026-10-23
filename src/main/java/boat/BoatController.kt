@@ -55,6 +55,10 @@ class BoatController @Autowired constructor(
 ) {
 
     companion object {
+        /** The titles come from TMDB/TVDB or a pasted list. */
+        internal fun queueHtml(queue: List<MediaItem>): String =
+            String.format("<br/>Queue [%d]: %s", queue.size, HtmlUtils.htmlEscape(queue.toString()))
+
         private val logger by LoggerDelegate()
         const val BREAK_LINK_HTML = "  <br>\n"
         private val trailingYearPattern = "^(.+?)[\\s.(\\[]+((?:19|20)[0-9]{2})[)\\]]?$".toRegex()
@@ -399,11 +403,7 @@ $switchToSearchOld$switchToSearchList${switchToProgress.replace("..", "../boat")
             "<br/>Transfers [%d]: %s",
             transfers.size,
             transfers.joinToString(separator = ", ", prefix = "[", postfix = "]") { it.toString() + transferControls(it) }
-        ) + String.format("<br/><!-- D [%d]: %s -->", remoteTorrents.size, remoteTorrents) + String.format(
-            "<br/>Queue [%d]: %s",
-            queueService.getQueue().size,
-            queueService.getQueue()
-        )) + htmlFooter
+        ) + String.format("<br/><!-- D [%d]: %s -->", remoteTorrents.size, remoteTorrents) + queueHtml(queueService.getQueue())) + htmlFooter
     }
 
     @PostMapping("/boat/transferDelete")

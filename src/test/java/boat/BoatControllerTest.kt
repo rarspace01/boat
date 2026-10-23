@@ -61,6 +61,13 @@ internal class BoatControllerTest {
     }
 
     @Test
+    fun shouldEscapeTheQueueOnTheInfoPage() {
+        val html = BoatController.queueHtml(listOf(boat.info.MediaItem("<script>alert(1)</script>", year = 2000)))
+
+        assertThat(html).doesNotContain("<script>").contains("Queue [1]", "&lt;script&gt;")
+    }
+
+    @Test
     fun shouldShowRestartAndDeleteControlsForTransfer() {
         val transfer = Transfer(id = "id-1", name = "Inception", transferStatus = TransferStatus.UPLOAD_TO_DRIVE_FAILED)
 
