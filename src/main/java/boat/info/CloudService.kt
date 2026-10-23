@@ -94,18 +94,25 @@ class CloudService internal constructor(
         return basePath + "/" + typeOfMedia.type + "/" + firstTorrentLetter + "/"
     }
 
-    /** The files of the library for a name, whole words only, otherwise short titles like "It" or "Up" match nearly every file. */
+    /**
+     * The files of the library for a name, whole words only, otherwise short titles like "It" or "Up" match nearly every
+     * file. The library has no apostrophes in its names, so "Ocean's Eleven" finds "Oceans Eleven" (and the other way round).
+     */
     fun findExistingFiles(searchName: String): List<String> {
         val start = Instant.now()
-        val words = searchName.split(Regex("\\s")).filter { it.isNotEmpty() }
+        val words = withoutApostrophes(searchName).split(Regex("\\s")).filter { it.isNotEmpty() }
         if (words.isEmpty()) return emptyList()
         val wordPatterns = words.map { Regex("(?iu)(?<![\\p{L}\\p{N}])" + Regex.escape(it) + "(?![\\p{L}\\p{N}])") }
         val basePath = PropertiesHelper.getProperty(RCLONE_DIR) ?: ""
         // the plain contains rules out nearly all files before the slower whole word patterns
-        return getAllFiles().filter { file -> words.all { file.contains(it, ignoreCase = true) } && wordPatterns.all { it.containsMatchIn(file) } }
-            .map { it.replace(basePath, "") }
+        return getAllFiles().filter { file ->
+            val name = withoutApostrophes(file)
+            words.all { name.contains(it, ignoreCase = true) } && wordPatterns.all { it.containsMatchIn(name) }
+        }.map { it.replace(basePath, "") }
             .also { logger.info("Find files took: {}", Duration.between(start, Instant.now())) }
     }
+
+    private fun withoutApostrophes(value: String) = value.replace("'", "")
 
     fun getAllFiles(): List<String> {
         return "abcdefghijklmnopqrstuvwxyz+0".split(Regex("")).filter { it.isNotEmpty() }.map { searchName: String ->

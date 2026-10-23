@@ -17,6 +17,8 @@ internal class CloudServiceExistingFilesTest {
         "Hitman.2007.720p.mkv",
         "It.2017.1080p.mkv",
         "Inception {tmdb-27205}.mkv",
+        "Im Still Here {tmdb-1}.mkv",
+        "Ive Seen Memento {tmdb-2}.mkv",
     )
 
     @BeforeEach
@@ -45,6 +47,24 @@ internal class CloudServiceExistingFilesTest {
     @Test
     fun shouldMatchCaseInsensitive() {
         assertThat(cloudService.findExistingFiles("italian JOB")).hasSize(1)
+    }
+
+    @Test
+    fun shouldFindTitlesWithApostropheWithoutOneInTheLibrary() {
+        assertThat(cloudService.findExistingFiles("I'm Still Here")).hasSize(1)
+        assertThat(cloudService.findExistingFiles("Im Still Here")).hasSize(1)
+        assertThat(cloudService.findExistingFiles("I've Seen Memento")).hasSize(1)
+    }
+
+    @Test
+    fun shouldFindFilesWithApostropheForASearchWithout() {
+        val moviesPath = cloudService.buildDestinationPathWithTypeOfMediaWithoutSubFolders("D", TorrentType.MOVIES)
+        every { cloudFileService.getFilesInPath(moviesPath) } returns listOf(moviesPath + "Don't Look Up {tmdb-3}.mkv")
+
+        val found = cloudService.findExistingFiles("Dont Look Up")
+
+        assertThat(found).hasSize(1)
+        assertThat(found.single()).contains("Don't Look Up")
     }
 
     @Test
