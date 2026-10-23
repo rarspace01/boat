@@ -127,7 +127,7 @@ internal class BoatControllerTest {
     fun shouldQueueMatchedEntriesOfTheSearchList() {
         val matched = MediaItem("Dune", "Dune", 1984, MediaType.Movie, "{tmdb-841}")
         every { mediaProxyService.findBestMatch("Dune", 1984) } returns matched
-        every { cloudService.findExistingFiles(any()) } returns emptyList()
+        every { cloudService.findExistingFilesForEach(any()) } answers { firstArg<List<String>>().map { emptyList() } }
         every { queueService.addAll(any()) } returns Unit
         every { queueService.saveQueue() } returns Unit
 

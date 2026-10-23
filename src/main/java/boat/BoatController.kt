@@ -232,9 +232,10 @@ $switchToSearch${switchToProgress}""" + htmlFooter
         }
         if (pageWithEntries.isEmpty()) return htmlHeader + "Error: nothing in remote url" + htmlFooter
         val titles = pageWithEntries.split("\n".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
-        val listOfMediaItems = titles.mapNotNull { parseSearchListEntry(it) }
-            .map { entry -> matchSearchListEntry(entry) }
-            .filter { mediaItem: MediaItem -> isNotAlreadyDownloaded(mediaItem) }
+        val matchedItems = titles.mapNotNull { parseSearchListEntry(it) }.map { entry -> matchSearchListEntry(entry) }
+        // one listing of the library for all entries
+        val existingFiles = cloudService.findExistingFilesForEach(matchedItems.map { getSearchNameFrom(it) })
+        val listOfMediaItems = matchedItems.filterIndexed { index, _ -> existingFiles[index].isEmpty() }
         queueService.addAll(listOfMediaItems)
         queueService.saveQueue()
         return htmlHeader + (switchToProgress + HtmlUtils.htmlEscape(listOfMediaItems.toString()).replace("\n", "<br/>")) + htmlFooter
@@ -440,10 +441,5 @@ $switchToSearchOld$switchToSearchList$switchToProgress""" + htmlFooter
             .getOrNull() ?: return entry
         return match.copy(originalTitle = match.originalTitle ?: entry.originalTitle, year = match.year ?: entry.year)
             .also { it.seasonCount = match.seasonCount }
-    }
-
-    private fun isNotAlreadyDownloaded(mediaItem: MediaItem): Boolean {
-        val existingFiles = cloudService.findExistingFiles(getSearchNameFrom(mediaItem))
-        return existingFiles.isEmpty()
     }
 }

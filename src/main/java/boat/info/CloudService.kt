@@ -84,18 +84,27 @@ class CloudService internal constructor(
         return basePath + "/" + typeOfMedia.type + "/" + firstTorrentLetter + "/"
     }
 
-    fun findExistingFiles(searchName: String): List<String> {
-        if (!cloudFileService.isCacheFilled) return emptyList()
+    fun findExistingFiles(searchName: String): List<String> = findExistingFilesForEach(listOf(searchName)).single()
+
+    /**
+     * The files of the library for each of [searchNames], all of them against one listing (a pasted list has
+     * hundreds of entries). Whole words only, otherwise short titles like "It" or "Up" match nearly every file.
+     */
+    fun findExistingFilesForEach(searchNames: List<String>): List<List<String>> {
+        if (!cloudFileService.isCacheFilled) return searchNames.map { emptyList() }
         val start = Instant.now()
-        // whole words only, otherwise short titles like "It" or "Up" match nearly every file and an empty search all
-        val wordPatterns = searchName.split(Regex("\\s")).filter { it.isNotEmpty() }
-            .map { Regex("(?iu)(?<![\\p{L}\\p{N}])" + Regex.escape(it) + "(?![\\p{L}\\p{N}])") }
-        if (wordPatterns.isEmpty()) return emptyList()
-        return getAllFiles().filter { fileString: String ->
-            wordPatterns.all { it.containsMatchIn(fileString) }
+        val allFiles by lazy { getAllFiles() }
+        val basePath = PropertiesHelper.getProperty(RCLONE_DIR) ?: ""
+        return searchNames.map { searchName ->
+            val words = searchName.split(Regex("\\s")).filter { it.isNotEmpty() }
+            if (words.isEmpty()) return@map emptyList()
+            val wordPatterns = words.map { Regex("(?iu)(?<![\\p{L}\\p{N}])" + Regex.escape(it) + "(?![\\p{L}\\p{N}])") }
+            // the plain contains rules out nearly all files before the slower whole word patterns
+            allFiles.filter { file -> words.all { file.contains(it, ignoreCase = true) } && wordPatterns.all { it.containsMatchIn(file) } }
+                .map { it.replace(basePath, "") }
         }.also {
-            logger.info("Find files took: ${Duration.between(start, Instant.now())}")
-        }.map { fileString: String -> fileString.replace(PropertiesHelper.getProperty(RCLONE_DIR) ?: "", "") }
+            logger.info("Find files for {} names took: {}", searchNames.size, Duration.between(start, Instant.now()))
+        }
     }
 
     fun getAllFiles(): List<String> {
