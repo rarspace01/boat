@@ -113,12 +113,14 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
     }
 
     /**
-     * [assignedTargets] are the targets of this run, a test run reports the files which would collide as well.
+     * [assignedTargets] are the targets of this run, a test run reports the files which would collide as well. True if
+     * a file was moved out of [path] (or a folder below it); a folder which is empty afterwards is removed.
      */
     private fun processFilesFromDirectoryInternal(
         path: String, logWriter: BufferedWriter?, isTestRun: Boolean, basePath: String?, assignedTargets: MutableSet<String>,
         skipFilesWithRemoteId: Boolean
-    ) {
+    ): Boolean {
+        var movedAny = false
         val files = File(path).listFiles()
         files?.let { fileList ->
             for (file in fileList) {
@@ -213,6 +215,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
                             // Then move and rename
                             try {
                                 file.toPath().moveTo(newFile.toPath(), overwrite = false)
+                                movedAny = true
                                 logWriter?.write("Moved:\n'$file'\n'$newFile'\n")
                             } catch (e:Exception) {
                                 logger.error("Error moving file [{}]: {}", file, e.message)
@@ -223,10 +226,15 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
                     }
                     logWriter?.write(logLine + "\n")
                 } else {
-                    processFilesFromDirectoryInternal(file.absolutePath, logWriter, isTestRun, basePath, assignedTargets, skipFilesWithRemoteId)
+                    if (processFilesFromDirectoryInternal(file.absolutePath, logWriter, isTestRun, basePath, assignedTargets, skipFilesWithRemoteId)) {
+                        movedAny = true
+                        // only folders the run emptied, not the empty letter folders of the library
+                        if (file.listFiles()?.isEmpty() == true && file.delete()) logWriter?.write("Removed empty folder '$file'\n")
+                    }
                     logger.debug("Processed directory: {}", file)
                 }
             }
         }
+        return movedAny
     }
 }
