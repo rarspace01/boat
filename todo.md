@@ -1,9 +1,102 @@
 # TODO
 
 What is left from the code review of `src/main/java/boat` and the decisions that were made on the way. The fixed findings
-are in the git history (PRs #545 to #569), the settings are in the README.
+are in the git history (PRs #545 to #581), the settings are in the README.
 
 ## Open
+
+Ordered by how much they matter, from the review of 2026-10-23 (on top of #581).
+
+### Bugs and risks
+
+- [ ] `DuplicateCleaner` deletes a version as "broken file, not readable" whenever `FfprobeVideoProbe.probe` returns
+  null and another version is readable. Null also comes from a timeout (60 s, e.g. a stalled rclone mount), a failed
+  read on the mount (ffprobe exits with an error) and the output reader on the common pool not starting within 5 s.
+  A good file, possibly the better version, can go because of a hiccup. Only delete files ffprobe really rejects
+  (e.g. "Invalid data found", tell timeouts and I/O errors apart), probe a failed file again before deleting it or put
+  such groups to `UNSURE`, and read the output on its own thread like `CloudFileService` does.
+- [ ] `DuplicateCleaner.deleteVersion` ignores the result of `delete()`: if it fails, the log still says DELETE and
+  the subtitles of the file which is still there are moved or deleted.
+- [ ] The same queue entry can be searched and added twice: `checkForQueueEntries` runs every 30 s as `@Async`, the
+  entry is only removed after the torrent search, which can take longer. Guard it like the downloads
+  (`AtomicBoolean`) or remove the entry first.
+- [ ] A transfer the hoster rejects (`SERVER_ERROR`) is sent again every 30 s forever. Every try saves it, which
+  renews `updated`, so the cleanup (`isTransferObsolete`) never removes it. Needs a retry limit or backoff like
+  `MAX_UPLOAD_TO_DRIVE_RETRIES`.
+- [ ] The queue is not first in, first out: `QueueService` keeps it in `java.util.Properties` (a hash table), so the
+  entries of a list are picked in hash order. Reading it while a list is added can throw a
+  `ConcurrentModificationException`. A `LinkedHashMap` (plus a lock) and an ordered file would fix both.
+- [ ] Downloads without a remote media id (old search, direct urls, unmatched queue entries) take
+  `mediaProxyService.search(<release name>).firstOrNull()` as the title, so a wrong first hit files the download
+  under the wrong title. Parse name and year first (`MediaNameParser`/`MovieMatcher` as the renamer does) or upload to
+  `transfer` when there is no confident match.
+- [ ] Without a matched title the target path is `<folder>/<torrent name>/<file name>` from the torrent, unchecked:
+  a `../` in a name writes elsewhere in the remote. Sanitize the names like `LibraryPaths.getSafeTitle`.
+- [ ] Not escaped in html: the queue on the info page (`MediaItem.toString`, titles from TMDB/TVDB or a pasted list)
+  and the `size` of torrents on the result page (text from the search sites).
+- [ ] Tracker scrape (`TorrentInfoService.scrape`): any answer that isn't a scrape (404, 5xx, a tracker without
+  scrape) splits the batch in halves down to single hashes, up to 79 requests per batch of 40. Only split when the
+  tracker refuses the url as too long (e.g. 414).
+- [ ] Uploads drop `'` from the target path (`RcloneUploader`, a leftover from the shell command), the renamer keeps
+  it: "Oceans Eleven" against "Ocean's Eleven" in the library. To decide: keep the `'` (new downloads get another
+  spelling than before) or drop it in the renamer too.
+- [ ] TVDB: a failing login is tried again on every lookup (no backoff), and `findById`/`episodeRuntimes` don't reset
+  an expired token (only `search` does).
+- [ ] `boat.default.cfg` is the fallback for a missing `boat.cfg`, its dummy values (`123456`) count as set: the
+  startup check doesn't warn, requests are made with them. Use the defaults only for documentation, or treat
+  `123456` as not set.
+- [ ] `/boat/download`: an invalid `d` (Base64) answers with HTTP 500, the comma separated `dd` urls are not trimmed
+  and blank ones become transfers.
+- [ ] `CloudService.isCloudTokenValid` lists `Movies/A` on every call (two jobs every 30 s and the info page), only
+  a non-empty listing is cached: with a hanging remote every check waits up to the listing timeout (5 min).
+- [ ] Renamer: files logged as "unsure, title differs" are still moved, and the source folders stay behind empty.
+
+### Performance
+
+- [ ] Rating builds its regexes on every call: `getRegexCleaned` and `removeReleaseTags` compile one per release tag
+  (143) per name, 2.9 s for 2000 torrents here, and every torrent is rated twice per search (`prepareCandidates` and
+  `rateResults`). Compile them once; escape the tags while at it (`5.1` and `DDP5.1` also match `5x1`).
+- [ ] `PropertiesHelper.getProperty` opens and parses `boat.cfg` on every call (every api key, path and hoster
+  request). Cache it, re-read when the file changes.
+- [ ] Queue polling asks the hoster for its transfers and the traffic every 30 s, also when the queue is empty.
+  Check the queue first.
+- [ ] `addTransfersToDownloadQueue` runs a full `updateTransferStatus` (transfer list of the hoster) after every
+  added transfer.
+- [ ] `CloudService.buildDestinationPath` searches TMDB/TVDB only for a log line, once per file of a multi file
+  download.
+- [ ] All `@Async` jobs and the scheduler share `taskExecutor` (cores, at least 2 threads); an upload holds one for
+  hours. Give the long jobs their own threads (or drop `@Async` where a run must not overlap).
+- [ ] `FfprobeVideoProbe` and the season counts of the title list (`BoatController`, `parallelStream`) block on the
+  common pool (cores - 1 threads).
+- [ ] `MediaProxyService.putInCache` sorts all 20 000 entries on every put once the cache is full.
+- [ ] `CloudService.getAllFiles` logs an info line per folder for every existing files check.
+
+### Cleanup
+
+- [ ] Unused: `StreamGobbler`, `LimitedInputStream`, `ByteRange`, `CloudFileService.getFreeSpaceInMegaBytes`,
+  `TransferService.get(..)`, `QueueService.addAndSave`, `TheMovieDataBaseService.determineMediaType(Torrent)`,
+  `MediaProxyService.refreshCache` (or schedule it), `TorrentHelper.isBlocklisted` and
+  `TorrentInfoService.refreshSeedAndLeecherFromTracker` (only tests), the commented out `fillQueueWithMovies`.
+- [ ] The search engines `Zooqle` (not registered) and `LeetxTo` (commented out): remove or bring back.
+- [ ] `switchToProgress.replace("..", "../boat")` in `BoatController` does nothing (the string has no `..`).
+- [ ] `MultifileHosterService`: `isRcloneInstalled` is checked once (missing at start = no downloads until a
+  restart), `localStatusStorage` never removes the entries by remote id.
+- [ ] Search engines: one malformed hit ends the parsing of its page (Knaben, TorrentsCSV, YTS log the whole page),
+  NyaaSi and LeetxTo have no error handling of their own.
+
+### Build, CI and docs
+
+- [ ] The CI build (`ci.yml`) gets the production secrets (`MONGO_URI`, hoster and TMDB/TVDB keys), the offline tests
+  don't need them. Only the live tests should get them.
+- [ ] The Coveralls workflow is broken: JDK 21 against the Java 25 toolchain, and there is no jacoco plugin for
+  `jacocoTestReport`. Fix or remove it and its README badge.
+- [ ] `createProperties` runs `git fetch --all --tags` on every build (network, slow offline);
+  `subprojects { maxParallelForks }` has no effect (no subprojects).
+- [ ] README: the certbot part sets `chmod 7777` on the private key (readable and writable for everybody, use `600`
+  and the right owner), "copy `rclone.conf` for building the docker-image" is only true for `DockerfileTunnel`,
+  `/runBoat.sh` has a wrong leading `/`, typos (`rlcone`, `certifiactes`).
+
+### Features
 
 - [ ] Alldebrid: up to date with the API (v4/v4.1, checked against docs.alldebrid.com and the live API with its demo
   key), but only Premiumize is registered in `MultifileHosterService`. Register it there to use it. It can do all
@@ -14,6 +107,9 @@ are in the git history (PRs #545 to #569), the settings are in the README.
   looked up with `MediaProxyService` and checked with `CloudService.findExistingFiles` (title and remote media id),
   the missing ones listed on the info page or added to the queue (`QueueService`). To decide: list only or queue,
   filters (year, genre, rating), and which source besides blu-ray.com (e.g. TMDB "now playing"/digital releases).
+- [ ] Run the renamer and the duplicate cleaner from the app (endpoint or schedule, test run first), today only the
+  manual integration tests do.
+- [ ] AllDebrid tells right after the upload if a magnet was cached (`ready`), it could be shown on the info page.
 
 ## Decisions and known limits
 
