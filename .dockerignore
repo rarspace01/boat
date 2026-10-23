@@ -1,0 +1,4 @@
+# the images download the released jar, only nonintel.Dockerfile copies the local config
+*
+!boat.cfg*
+!rclone.conf*
