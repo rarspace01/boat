@@ -18,8 +18,6 @@ Ordered by how much they matter, from the review of 2026-10-23 (on top of #581).
 
 ### Performance
 
-- [ ] `FfprobeVideoProbe` and the season counts of the title list (`BoatController`, `parallelStream`) block on the
-  common pool (cores - 1 threads).
 - [ ] `MediaProxyService.putInCache` sorts all 20 000 entries on every put once the cache is full.
 - [ ] `CloudService.getAllFiles` logs an info line per folder for every existing files check.
 

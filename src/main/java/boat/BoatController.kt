@@ -38,6 +38,7 @@ import java.lang.management.ManagementFactory
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.util.*
+import java.util.concurrent.Executors
 import kotlin.concurrent.thread
 import kotlin.system.exitProcess
 
@@ -321,7 +322,10 @@ $switchToSearchOld$switchToSearchList${switchToProgress.replace("..", "../boat")
                 mediaSearchString, mediaItems.size
             )
             // the searches don't tell the number of seasons of a series, its details do
-            val seasonCounts = mediaItems.parallelStream().map { mediaProxyService.seasonCountOf(it) }.toList()
+            // in parallel on threads of their own, not on the common pool (cores - 1 threads, the requests only wait)
+            val seasonCounts = Executors.newVirtualThreadPerTaskExecutor().use { executor ->
+                mediaItems.map { executor.submit<Int?> { mediaProxyService.seasonCountOf(it) } }.map { it.get() }
+            }
             val mediaList = mediaItems.indices.joinToString(separator = "") { index -> mediaItemLine(mediaItems[index], seasonCounts[index]) }
             htmlHeader + (if (mediaItems.isEmpty()) "No media found.<br/>" else "Select a title:<br/>$mediaList") +
                     htmlFooter
