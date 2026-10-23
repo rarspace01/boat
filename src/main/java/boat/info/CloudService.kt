@@ -8,28 +8,56 @@ import boat.torrent.TorrentType
 import boat.utilities.LoggerDelegate
 import boat.utilities.PropertiesHelper
 import boat.utilities.StringUtil
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import org.springframework.util.StringUtils
 import java.time.Duration
 import java.time.Instant
 import java.util.*
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.locks.ReentrantLock
 import java.util.stream.Collectors
 
 @Service
 class CloudService internal constructor(
     private val cloudFileService: CloudFileService,
-    private val mediaProxyService: MediaProxyService
+    private val mediaProxyService: MediaProxyService,
+    private val nanoTime: () -> Long,
 ) {
+    @Autowired
+    constructor(cloudFileService: CloudFileService, mediaProxyService: MediaProxyService) : this(cloudFileService, mediaProxyService, System::nanoTime)
+
+    private class TokenCheck(val nanos: Long, val isValid: Boolean)
+
+    @Volatile
+    private var lastTokenCheck: TokenCheck? = null
+    private val tokenCheckLock = ReentrantLock()
 
     companion object {
         private val logger by LoggerDelegate()
         const val RCLONE_DIR = "RCLONEDIR"
+        private val VALID_TOKEN_CHECK_NANOS = TimeUnit.MINUTES.toNanos(5)
+        private val INVALID_TOKEN_CHECK_NANOS = TimeUnit.MINUTES.toNanos(1)
     }
 
-    /** Checked on every access (the listing is only cached when it is not empty), so an expired or late-ready token is noticed. */
+    /**
+     * A listing of the library, remembered for a minute (a valid token for 5), so an expired or late-ready token is still
+     * noticed soon. Only one check runs at a time, while it waits for a hanging remote the others get the last answer.
+     */
     val isCloudTokenValid: Boolean
-        get() = cloudFileService.getFilesInPath(buildDestinationPathWithTypeOfMediaWithoutSubFolders("A", TorrentType.MOVIES))
-            .isNotEmpty()
+        get() {
+            val last = lastTokenCheck
+            val now = nanoTime()
+            if (last != null && now - last.nanos < (if (last.isValid) VALID_TOKEN_CHECK_NANOS else INVALID_TOKEN_CHECK_NANOS)) return last.isValid
+            if (!tokenCheckLock.tryLock()) return last?.isValid ?: false
+            try {
+                val isValid = cloudFileService.getFilesInPath(buildDestinationPathWithTypeOfMediaWithoutSubFolders("A", TorrentType.MOVIES)).isNotEmpty()
+                lastTokenCheck = TokenCheck(nanoTime(), isValid)
+                return isValid
+            } finally {
+                tokenCheckLock.unlock()
+            }
+        }
 
     private fun deductSeriesNameFrom(preparedTorrentName: String): String {
         return Arrays.stream(

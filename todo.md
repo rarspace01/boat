@@ -12,8 +12,6 @@ Ordered by how much they matter, from the review of 2026-10-23 (on top of #581).
 - [ ] Uploads drop `'` from the target path (`RcloneUploader`, a leftover from the shell command), the renamer keeps
   it: "Oceans Eleven" against "Ocean's Eleven" in the library. To decide: keep the `'` (new downloads get another
   spelling than before) or drop it in the renamer too.
-- [ ] `CloudService.isCloudTokenValid` lists `Movies/A` on every call (two jobs every 30 s and the info page), only
-  a non-empty listing is cached: with a hanging remote every check waits up to the listing timeout (5 min).
 - [ ] Renamer: files logged as "unsure, title differs" are still moved, and the source folders stay behind empty.
 
 ### Performance
