@@ -424,6 +424,32 @@ internal class TorrentHelperTest {
     }
 
     @Test
+    fun shouldDetectAiUpscales() {
+        Assertions.assertTrue(TorrentHelper.isAiUpscale("Kung Fu Hustle 2004 4K.Ai.mkv", "Kung Fu Hustle 2004"))
+        Assertions.assertTrue(TorrentHelper.isAiUpscale("Movie.1995.2160p.AI.Upscaled.x265", "Movie"))
+        Assertions.assertTrue(TorrentHelper.isAiUpscale("Movie.1995.4K.Upscale.HEVC", "Movie"))
+        Assertions.assertTrue(TorrentHelper.isAiUpscale("Movie (1995) [AI] 4K", "Movie"))
+        Assertions.assertFalse(TorrentHelper.isAiUpscale("Kung Fu Hustle 2004 1080p BluRay x264", "Kung Fu Hustle 2004"))
+        Assertions.assertFalse(TorrentHelper.isAiUpscale("A.I.Artificial.Intelligence.2001.1080p.BluRay", "Artificial Intelligence"))
+        Assertions.assertFalse(TorrentHelper.isAiUpscale("Chain.2020.1080p.WEB", "Chain"))
+        Assertions.assertFalse(TorrentHelper.isAiUpscale("Ai.Weiwei.Never.Sorry.2012.1080p", "Ai Weiwei"))
+        Assertions.assertFalse(TorrentHelper.isAiUpscale("A.I.Artificial.Intelligence.4K.AI", "A.I. Artificial Intelligence"))
+    }
+
+    @Test
+    fun shouldRateAiUpscalesBehindRealReleases() {
+        val upscale = Torrent("Test").apply { name = "Kung.Fu.Hustle.2004.4K.Ai.mkv"; seeder = 50; leecher = 1; sizeInMB = 14000.0 }
+        val release = Torrent("Test").apply { name = "Kung.Fu.Hustle.2004.1080p.BluRay.x264-GRP.mkv"; seeder = 10; leecher = 1; sizeInMB = 2000.0 }
+
+        evaluateRating(upscale, "Kung Fu Hustle 2004")
+        evaluateRating(release, "Kung Fu Hustle 2004")
+
+        Assertions.assertTrue(upscale.searchRating < release.searchRating)
+        Assertions.assertTrue(upscale.debugRating.contains("🤖"))
+        Assertions.assertFalse(release.debugRating.contains("🤖"))
+    }
+
+    @Test
     fun shouldKeepGoodTorrentsContainingBadQualityLetters() {
         Assertions.assertTrue(TorrentHelper.isValidTorrent(withName("Movie.2020.1080p.BluRay.x264")))
         Assertions.assertTrue(TorrentHelper.isValidTorrent(withName("Scam.2020.1080p.WEB")))
