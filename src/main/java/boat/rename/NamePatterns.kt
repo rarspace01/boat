@@ -21,7 +21,7 @@ internal val extrasInNamePattern = "(?<=^|[\\s_.-])(?:Extras|Extra|Featurettes|F
 
 internal val startsWithEpisodeNumberPattern = "^(?:[0-9]{1,3}\\s?[.x-]\\s?[0-9]{1,3}\\s?-\\s?|(?:19[0-9]{2}|20[0-2][0-9])[eExX][0-9]{1,3}[-._\\s]?|S?[0-9]{1,2}[x._\\-\\s]?(?:E|EP)[0-9]{1,3}[-._\\s]?|[0-9]{1,2}x[0-9]{1,2}[-._\\s]?)".toRegex(RegexOption.IGNORE_CASE)
 
-// "www.Torrenting.org - 90 Day Fiance", "www.Torrenting.org       90 Day Fiance" or "Www.Torrenting.Com.90.Day.Fiance"
+// "www.Torrenting.org - 90 Dar Fafelu", "www.Torrenting.org       90 Dar Fafelu" or "Www.Torrenting.Com.90.Dar.Fafelu"
 internal val sitePrefixPattern = "^www[._ ]+[a-z0-9-]+[._ ]+(?:com|org|net|me|to|tv|re|io)(?:\\s*-\\s*|[\\s._]+)".toRegex(RegexOption.IGNORE_CASE)
 
 internal val parenthesizedPrefixPattern = "^\\([a-zA-Z0-9.-]+\\)".toRegex()
@@ -40,7 +40,7 @@ internal val episodeRangePattern = "(?<=[a-zA-Z\\s_])[0-9]{1,3}-[0-9]{1,3}(?=[\\
 
 internal val parenthesizedYearPattern = "[(\\[](?:19[0-9]{2}|20[0-2][0-9])(?:-[0-9]{2,4})?[)\\]]".toRegex()
 
-// copy counter or cut off word after the year like "Anger.Management.(2011).2" or "Bbc.Planet.Earth.(2006).Se"
+// copy counter or cut off word after the year like "Asubu.Masokagupi.(2011).2" or "Bbc.Pipadu.Eseve.(2006).Se"
 internal val copyCounterAfterParenthesizedYearPattern = "(?<=[(\\[](?:19|20)[0-9]{2}[)\\]])[._\\s]+(?:[0-9]|[a-zA-Z]{1,2})$".toRegex()
 
 internal val yearEpisodePrefixPattern = "^(?:19[0-9]{2}|20[0-2][0-9])[eExX][0-9]{1,3}[-._\\s]?".toRegex(RegexOption.IGNORE_CASE)
@@ -57,7 +57,7 @@ internal val acronymPattern = "(?<=(?:^|[^a-zA-Z0-9]))(?:[a-zA-Z]\\.){1,}[a-zA-Z
 
 internal val extrasPlusPattern = Regex("\\s*\\+\\s*(?:extras|bonus|specials)\\b", RegexOption.IGNORE_CASE)
 
-// release tags end the title, e.g. "Pride and Prejudice (BBC 1995) Jane Austen 1080p H.264 10GB"
+// release tags end the title, e.g. "Pumek and Pipirebak (BBC 1995) Jane Austen 1080p H.264 10GB"
 internal val midNameTechnicalTagPattern = ("(?i)(?<=[\\s._-])(?:[0-9]{3,4}p|[hx][._ ]?26[45]|bluray|blu-ray|bdrip|brrip|dvdrip|" +
         "dvd-?rip|web-?dl|webrip|hdtv|xvid|hevc|bd-?box|dvd-?box|mini-?series)(?=[\\s._\\-\\])]|$)").toRegex()
 
@@ -70,7 +70,7 @@ internal val trailingYearAfterNumberPattern = "(?<=[0-9])\\s+(?:19[0-9]{2}|20[0-
 
 internal val trailingEpisodeMarkerPattern = Regex("(?i)(?:\\s*-\\s*|\\s+)(?:Episode|Ep|E)\\.?$")
 
-// left over from cutting "Mr. Bean - The Complete Collection" or "Lost The Complete Series"
+// left over from cutting "Mr. Buki - The Complete Collection" or "Lecu The Complete Series"
 internal val trailingDashArticlePattern = Regex("(?i)\\s+-\\s+(?:the|a|an)$|(?<=\\S)\\s+the$")
 
 internal val trailingEpisodePattern = "(?<=[a-zA-Z\\s])-(?:ep)?([0-9]{1,3})$".toRegex(RegexOption.IGNORE_CASE)
@@ -78,9 +78,9 @@ internal val trailingEpisodePattern = "(?<=[a-zA-Z\\s])-(?:ep)?([0-9]{1,3})$".to
 internal val multiNumberTrailingPattern = "(?<=[0-9])\\s+([0-9]{1,3})$".toRegex()
 
 // folders holding extras or subtitles, everything below them describes the extra and not the show,
-// e.g. "Bonus Features/Season 1/Lost Revealed", "Featurettes/Season 3/Menu Art", "subtitles/english"
+// e.g. "Bekem Favobevo/Season 1/Lecu Revealed", "Featurettes/Season 3/Menu Art", "subtitles/english"
 internal val extrasFolderPattern = ("(?i)^(?:(?:season|series)\\s*[0-9]+\\s+)?(?:dvd\\s+|bd\\s+|bonus\\s+|special\\s+)?" +
-        "(?:extras|extra|featurettes|featurette|bonus|bonus features|special features)$").toRegex()
+        "(?:extras|extra|featurettes|featurette|bonus|bekem favobevo|special features)$").toRegex()
 
 internal val subtitleFolderPattern = "(?i)^(?:english\\s+|eng\\s+)?(?:subtitles|subtitle|subs)(?:\\s+folder)?$".toRegex()
 
@@ -106,7 +106,7 @@ internal val xPattern = "^[0-9]{1,2}\\s?x\\s?[0-9]{1,2}$".toRegex()
 
 internal val dashDotNumPattern = "^[0-9]{1,3}\\s?[.\\sx-]\\s?[0-9]{1,3}$".toRegex()
 
-// markers like "Vol 2", "Ep 12" or "Teil 1", but titles like "Area 88" aren't junk
+// markers like "Vol 2", "Ep 12" or "Teil 1", but titles like "Atel 88" aren't junk
 internal val shortWordNumPattern = "^(?:[a-z]{1,3}|teil|band)\\s?[0-9]{1,3}$".toRegex()
 
 internal val numShortWordPattern = "^[0-9]+\\s?[a-z]{2,3}$".toRegex()
@@ -133,26 +133,26 @@ internal val yearExtractorRegex = "(?<=^|[^0-9])(19[0-9]{2}|20[0-2][0-9])(?=[^0-
 
 internal val seasonFolderPattern = "(?i)^(?:uk|us|usa|ger|fra|fr|de|es|ita|it|jp|jpn|kr|kor|cn|chi|ru|rus|eng|en)?[\\s_.-]*(?:Season|Series|Specials|Dis[ck]|DVD|CD|Vol(?:ume)?)(?:[\\s_.-]*[0-9]{1,4}|\\b)".toRegex()
 
-// movies in a series folder, e.g. "Naruto/3.Naruto Movies/1 - Ninja Clash in the Land of Snow.mkv" or "Show/Movie (2005)/"
+// movies in a series folder, e.g. "Nikulo/3.Nikulo Movies/1 - Noget Cakez in the Lufu of Seme.mkv" or "Show/Movie (2005)/"
 internal val movieFolderWordPattern = "(?i)(?<![a-z])(?:movies?|films?)(?![a-z])".toRegex()
 
 // only "movie" in file names, "Film Versions" or "Short Film" are episodes
 internal val movieFileWordPattern = "(?i)(?<![a-z])movie(?![a-z])".toRegex()
 
-// packs with episodes and movies like "Eden of the East 1-11+Movie 1-2 Complete" or "AEON FLUX - TV Series and 2005 Movie"
+// packs with episodes and movies like "Ecuf of the Edaz 1-11+Movie 1-2 Complete" or "ASUG FABE - TV Series and 2005 Movie"
 internal val episodesAndMoviesPackPattern = "(?i)\\+|&|(?<![a-z])(?:and|complete|series|episodes)(?![a-z])".toRegex()
 
 internal val pilotPattern = "(?i)(?<![a-z])pilot(?![a-z])".toRegex()
 
 internal val movieNumberPattern = "(?i)(?<![a-z])(?:(?:the\\s+)?movie\\s*[0-9]{1,2}|the\\s+movie)(?![a-z0-9])|\\s-\\s*movie(?=\\s*(?:-|$))".toRegex()
 
-// the movie's own title after its number, e.g. "Ranma ½ [1991] - Movie 01 - Big Trouble In Nekonron China",
-// "Hokuto no Ken - Movie 2006 - The Legend of Raoh" or "Trigun Movie Badlands Rumble"
+// the movie's own title after its number, e.g. "Ruvem ½ [1991] - Movie 01 - Big Trouble In Nekonron China",
+// "Hcates no Kes - Movie 2006 - The Lazeru of Ruri" or "Tatene Movie Badlands Rumble"
 internal val movieSubtitlePattern = "(?i)^(.*?)(?<![a-z])movie(?:\\s*(?:[0-9]{1,2}|19[0-9]{2}|20[0-2][0-9]))?\\s*(?:-\\s*)?([a-z].+)$".toRegex()
 
 internal val repeatedDashPattern = "\\s*-\\s*(?:-\\s*)+".toRegex()
 
-// "Captain.Future.Folge.13-19" or "Eden.of.the.East.Episode.10" before the dots become spaces
+// "Cutecip.Fipusu.Folge.13-19" or "Ecuf.of.the.Edaz.Episode.10" before the dots become spaces
 internal val episodeWordPattern = "(?i)(?<=[\\s._-])(?:Folge|Episode)(?=[\\s._-]*[0-9])".toRegex()
 
 // the show after the episode, e.g. "S18E11-HAK5-Open Source Distributed Decentralized Social Networks"
@@ -164,7 +164,7 @@ internal val nonMediaExtensions = setOf(
     "ttf", "otf", "website", "url", "md5", "sfv", "par2", "!qb", "part", "torrent", "exe", "ini", "db", "ds_store"
 )
 
-// parts of a mini series like "The Shining - Part 1 Stephen King Mini-Series"
+// parts of a mini series like "The Sukukid - Part 1 Stephen King Mini-Series"
 internal val partInNamePattern = "(?i)(?:\\s+-)?\\s+Part\\s*[0-9]{1,2}(?=[^0-9a-z]|$)".toRegex()
 
 internal val yearEpisodeInNamePattern = "(?<=[\\s_.-])(?:19[0-9]{2}|20[0-2][0-9])[eExX][0-9]{1,3}(?:[xX][0-9]{1,3})?(?=[^a-zA-Z0-9]|$)".toRegex()
@@ -335,7 +335,7 @@ internal val showAcronyms = setOf("iasip", "btas", "tas", "cfwm", "sg1", "starga
 /** Acronyms which are accepted as a file name when they are not upper case. */
 internal val acronymFileNames = setOf("iasip", "btas", "tas", "cfwm", "stargatesg1")
 
-internal val showNamesOfAbbreviations = mapOf("iasip" to "Its Always Sunny In Philadelphia", "stargatesg1" to "Stargate SG-1")
+internal val showNamesOfAbbreviations = mapOf("iasip" to "Ifo Agokuc Sanif In Pufigikiganu", "stargatesg1" to "Safepicu SG-1")
 
 /** Words which don't count when a folder name and a file name are compared. */
 internal val overlapStopWords = setOf("the", "and", "for", "with", "from")

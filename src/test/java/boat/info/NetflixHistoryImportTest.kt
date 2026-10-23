@@ -25,7 +25,7 @@ internal class NetflixHistoryImportTest {
     @Tag("live")
     @Test
     fun writeMoviesOfViewingHistory() {
-        val csvPath = System.getenv("NETFLIX_CSV")
+        val csvPath = System.getenv("NETFLIX_CSV") ?: "~/Downloads/NetflixViewingHistory.csv"
         assumeTrue(!csvPath.isNullOrBlank(), "NETFLIX_CSV is not set")
         val titles = parseTitles(File(csvPath.replaceFirst("~", System.getProperty("user.home"))).readText())
 

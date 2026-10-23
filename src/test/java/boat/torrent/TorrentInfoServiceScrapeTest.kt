@@ -168,9 +168,9 @@ internal class TorrentInfoServiceScrapeTest {
     fun shouldSkipCachedTorrentsInvalidHashesAndAskOnceForDuplicates() {
         val service = service()
         val cached = Torrent("Cached").apply { magnetUri = "magnet:?xt=urn:btih:" + hash(1); cached.add("Premiumize") }
-        val first = Torrent("Dune").apply { magnetUri = "magnet:?xt=urn:btih:" + hash(2) }
-        val duplicate = Torrent("Dune again").apply { magnetUri = "magnet:?xt=urn:btih:" + hash(2) }
-        val noHash = Torrent("No hash").apply { magnetUri = "https://example.org/file.torrent" }
+        val first = Torrent("Daca").apply { magnetUri = "magnet:?xt=urn:btih:" + hash(2) }
+        val duplicate = Torrent("Daca again").apply { magnetUri = "magnet:?xt=urn:btih:" + hash(2) }
+        val noHash = Torrent("No hnud").apply { magnetUri = "https://example.org/file.torrent" }
         every { httpHelper.getBinary(any(), any()) } answers {
             val hashes = requestedHashes(firstArg())
             assertThat(hashes).containsExactly(hash(2))

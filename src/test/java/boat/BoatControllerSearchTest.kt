@@ -28,9 +28,9 @@ internal class BoatControllerSearchTest {
         mockk<QueueService>(), mockk<CloudFileService>(), mockk<TransferService>(), mockk<ConfigurationService>()
     )
 
-    private val dune = MediaItem("Dune", "Dune", 2021, MediaType.Movie, "{tmdb-438631}")
-    private val dark = MediaItem("Dark", "Dark", 2017, MediaType.Series, "{tvdb-334824}")
-    private val office = MediaItem("The Office", "The Office", 2005, MediaType.Series, "{tmdb-2316}")
+    private val daca = MediaItem("Daca", "Daca", 2021, MediaType.Movie, "{tmdb-438631}")
+    private val dark = MediaItem("Dobi", "Dobi", 2017, MediaType.Series, "{tvdb-334824}")
+    private val office = MediaItem("The Osugol", "The Osugol", 2005, MediaType.Series, "{tmdb-2316}")
 
     private fun search(items: List<MediaItem>, seasons: Map<MediaItem, Int?> = emptyMap()): String {
         every { mediaProxyService.searchWithTrailingYear("x") } returns items
@@ -40,24 +40,24 @@ internal class BoatControllerSearchTest {
 
     @Test
     fun shouldLinkTheTitlesToTmdbAndTvdbToCheckThem() {
-        val html = search(listOf(dune, dark, office))
+        val html = search(listOf(daca, dark, office))
 
         assertThat(html).contains("href=\"https://www.themoviedb.org/movie/438631\"")
         assertThat(html).contains("href=\"https://thetvdb.com/dereferrer/series/334824\"")
         assertThat(html).contains("href=\"https://www.themoviedb.org/tv/2316\"")
         // after the title, which still starts a normal search
-        assertThat(html).contains("<a href=\"?t=Dune&y=2021&mid=%7Btmdb-438631%7D&mt=Movie\">Dune (2021) [Movie] {tmdb-438631}</a> <a href=\"https://www.themoviedb.org/movie/438631\"")
+        assertThat(html).contains("<a href=\"?t=Daca&y=2021&mid=%7Btmdb-438631%7D&mt=Movie\">Daca (2021) [Movie] {tmdb-438631}</a> <a href=\"https://www.themoviedb.org/movie/438631\"")
     }
 
     @Test
     fun shouldOfferTheSeasonsOfASeries() {
-        val html = search(listOf(dark, dune), mapOf(dark to 3))
+        val html = search(listOf(dark, daca), mapOf(dark to 3))
 
-        assertThat(html).contains("</a> <a href=\"https://thetvdb.com/dereferrer/series/334824\" target=\"_blank\" rel=\"noopener noreferrer\">TVDB</a> <a href=\"?t=Dark&mid=%7Btvdb-334824%7D&mt=Series&s=1\">S1</a> <a href=\"?t=Dark&mid=%7Btvdb-334824%7D&mt=Series&s=2\">S2</a> <a href=\"?t=Dark&mid=%7Btvdb-334824%7D&mt=Series&s=3\">S3</a>")
+        assertThat(html).contains("</a> <a href=\"https://thetvdb.com/dereferrer/series/334824\" target=\"_blank\" rel=\"noopener noreferrer\">TVDB</a> <a href=\"?t=Dobi&mid=%7Btvdb-334824%7D&mt=Series&s=1\">S1</a> <a href=\"?t=Dobi&mid=%7Btvdb-334824%7D&mt=Series&s=2\">S2</a> <a href=\"?t=Dobi&mid=%7Btvdb-334824%7D&mt=Series&s=3\">S3</a>")
         assertThat(html).doesNotContain("s=4")
         // the title itself searches the whole series, movies have no seasons
-        assertThat(html).contains("<a href=\"?t=Dark&mid=%7Btvdb-334824%7D&mt=Series\">Dark (2017) [Series] {tvdb-334824}</a>")
-        assertThat(html.substringAfter("Dune").substringBefore("<br/>")).doesNotContain(">S1<")
+        assertThat(html).contains("<a href=\"?t=Dobi&mid=%7Btvdb-334824%7D&mt=Series\">Dobi (2017) [Series] {tvdb-334824}</a>")
+        assertThat(html.substringAfter("Daca").substringBefore("<br/>")).doesNotContain(">S1<")
     }
 
     @Test
@@ -80,31 +80,31 @@ internal class BoatControllerSearchTest {
     @Test
     fun shouldSearchTheTorrentsOfASeasonWithTheSeasonInTheSearchString() {
         every { cloudService.findExistingFiles(any()) } returns emptyList()
-        every { torrentSearchEngineService.searchTorrents("Dark S02") } returns emptyList()
+        every { torrentSearchEngineService.searchTorrents("Dobi S02") } returns emptyList()
 
-        controller.searchTorrents(null, "Dark", null, null, "{tvdb-334824}", "Series", 2)
+        controller.searchTorrents(null, "Dobi", null, null, "{tvdb-334824}", "Series", 2)
 
         // the search engines search for the season, what they find is not filtered by season afterwards
-        verify(exactly = 1) { torrentSearchEngineService.searchTorrents("Dark S02") }
+        verify(exactly = 1) { torrentSearchEngineService.searchTorrents("Dobi S02") }
     }
 
     @Test
     fun shouldSearchTheWholeSeriesWithoutASeason() {
         every { cloudService.findExistingFiles(any()) } returns emptyList()
-        every { torrentSearchEngineService.searchTorrents("Dark") } returns emptyList()
+        every { torrentSearchEngineService.searchTorrents("Dobi") } returns emptyList()
 
-        controller.searchTorrents(null, "Dark", null, null, "{tvdb-334824}", "Series", null)
+        controller.searchTorrents(null, "Dobi", null, null, "{tvdb-334824}", "Series", null)
 
-        verify(exactly = 1) { torrentSearchEngineService.searchTorrents("Dark") }
+        verify(exactly = 1) { torrentSearchEngineService.searchTorrents("Dobi") }
     }
 
     @Test
     fun shouldSearchForTheSeasonWhenSearchingAgainDespiteExistingFiles() {
-        every { cloudService.findExistingFiles(any()) } returns listOf("remote:Series-Shows/D/Dark/Season 1/Dark.S01E01.mkv")
+        every { cloudService.findExistingFiles(any()) } returns listOf("remote:Series-Shows/D/Dobi/Season 1/Dobi.S01E01.mkv")
 
-        val html = controller.searchTorrents(null, "Dark", null, null, "{tvdb-334824}", "Series", 3)
+        val html = controller.searchTorrents(null, "Dobi", null, null, "{tvdb-334824}", "Series", 3)
 
-        assertThat(html).contains("?q=Dark+S03&mid=%7Btvdb-334824%7D&mt=Series\"")
+        assertThat(html).contains("?q=Dobi+S03&mid=%7Btvdb-334824%7D&mt=Series\"")
     }
 
     @Test

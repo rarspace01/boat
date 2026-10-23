@@ -50,7 +50,7 @@ internal class TorrentMapperTest {
     fun shouldMapTransferToTorrent() {
         // Given
         val transfer = Transfer(
-            name = "Inception | Inception.2010.1080p",
+            name = "Ivakisaka | Ivakisaka.2010.1080p",
             remoteId = "remote-1",
             remoteMediaId = "{tmdb-27205}",
             source = "Premiumize",
@@ -62,7 +62,7 @@ internal class TorrentMapperTest {
         // When
         val torrent = TorrentMapper.mapTransferToTorrent(transfer)
         // Then
-        assertThat(torrent.name).isEqualTo("Inception.2010.1080p")
+        assertThat(torrent.name).isEqualTo("Ivakisaka.2010.1080p")
         assertThat(torrent.source).isEqualTo("Premiumize")
         assertThat(torrent.magnetUri).isEqualTo("magnet:?xt=urn:btih:abc")
         assertThat(torrent.remoteId).isEqualTo("remote-1")

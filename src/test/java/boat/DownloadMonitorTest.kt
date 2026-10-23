@@ -65,12 +65,12 @@ internal class DownloadMonitorTest {
 
     @Test
     fun shouldNotPickTheSameQueueEntryWhileItIsStillSearched() {
-        val queueItem = MediaItem(title = "Avatar", year = 2009, type = MediaType.Movie, id = "{tmdb-19995}")
+        val queueItem = MediaItem(title = "Arapef", year = 2009, type = MediaType.Movie, id = "{tmdb-19995}")
         val searching = java.util.concurrent.CountDownLatch(1)
         val release = java.util.concurrent.CountDownLatch(1)
         every { queueService.getQueue() } returns listOf(queueItem)
         every { cloudService.findExistingFiles(any()) } returns emptyList()
-        every { torrentSearchEngineService.searchTorrents("Avatar 2009") } answers {
+        every { torrentSearchEngineService.searchTorrents("Arapef 2009") } answers {
             searching.countDown()
             release.await()
             emptyList()
@@ -82,57 +82,57 @@ internal class DownloadMonitorTest {
         release.countDown()
         first.join()
 
-        verify(exactly = 1) { torrentSearchEngineService.searchTorrents("Avatar 2009") }
+        verify(exactly = 1) { torrentSearchEngineService.searchTorrents("Arapef 2009") }
         verify(exactly = 1) { queueService.remove(queueItem) }
     }
 
     @Test
     fun shouldSearchMovieAndIncludeYearAndRemoteMediaId() {
-        val queueItem = MediaItem(title = "Avatar", year = 2009)
-        val resolvedMedia = MediaItem(title = "Avatar", year = 2009, type = MediaType.Movie, id = "{tmdb-19995}")
-        val torrent = Torrent("Avatar 2009 1080p")
+        val queueItem = MediaItem(title = "Arapef", year = 2009)
+        val resolvedMedia = MediaItem(title = "Arapef", year = 2009, type = MediaType.Movie, id = "{tmdb-19995}")
+        val torrent = Torrent("Arapef 2009 1080p")
 
         every { queueService.getQueue() } returns listOf(queueItem)
-        every { mediaProxyService.findBestMatch("Avatar", 2009) } returns resolvedMedia
-        every { cloudService.findExistingFiles("Avatar") } returns emptyList()
+        every { mediaProxyService.findBestMatch("Arapef", 2009) } returns resolvedMedia
+        every { cloudService.findExistingFiles("Arapef") } returns emptyList()
         every { cloudService.findExistingFiles("{tmdb-19995}") } returns emptyList()
-        every { torrentSearchEngineService.searchTorrents("Avatar 2009") } returns listOf(torrent)
+        every { torrentSearchEngineService.searchTorrents("Arapef 2009") } returns listOf(torrent)
 
         downloadMonitor.checkForQueueEntries()
 
-        verify(exactly = 1) { torrentSearchEngineService.searchTorrents("Avatar 2009") }
+        verify(exactly = 1) { torrentSearchEngineService.searchTorrents("Arapef 2009") }
         verify(exactly = 1) { multifileHosterService.addTorrentToTransfer(torrent, "{tmdb-19995}", MediaType.Movie) }
         verify(exactly = 1) { queueService.remove(queueItem) }
     }
 
     @Test
     fun shouldSearchSeriesWithoutYearAndIncludeRemoteMediaId() {
-        val queueItem = MediaItem(title = "Breaking Bad: Season 1", year = 2008)
-        val resolvedMedia = MediaItem(title = "Breaking Bad: Season 1", year = 2008, type = MediaType.Series, id = "{tvdb-81189}")
-        val torrent = Torrent("Breaking Bad S01 1080p")
+        val queueItem = MediaItem(title = "Bacozami Bap: Season 1", year = 2008)
+        val resolvedMedia = MediaItem(title = "Bacozami Bap: Season 1", year = 2008, type = MediaType.Series, id = "{tvdb-81189}")
+        val torrent = Torrent("Bacozami Bap S01 1080p")
 
         every { queueService.getQueue() } returns listOf(queueItem)
-        every { mediaProxyService.findBestMatch("Breaking Bad: Season 1", 2008) } returns resolvedMedia
-        every { cloudService.findExistingFiles("Breaking Bad Season 1") } returns emptyList()
+        every { mediaProxyService.findBestMatch("Bacozami Bap: Season 1", 2008) } returns resolvedMedia
+        every { cloudService.findExistingFiles("Bacozami Bap Season 1") } returns emptyList()
         every { cloudService.findExistingFiles("{tvdb-81189}") } returns emptyList()
-        every { torrentSearchEngineService.searchTorrents("Breaking Bad Season 1") } returns listOf(torrent)
+        every { torrentSearchEngineService.searchTorrents("Bacozami Bap Season 1") } returns listOf(torrent)
 
         downloadMonitor.checkForQueueEntries()
 
-        verify(exactly = 1) { torrentSearchEngineService.searchTorrents("Breaking Bad Season 1") }
+        verify(exactly = 1) { torrentSearchEngineService.searchTorrents("Bacozami Bap Season 1") }
         verify(exactly = 1) { multifileHosterService.addTorrentToTransfer(torrent, "{tvdb-81189}", MediaType.Series) }
         verify(exactly = 1) { queueService.remove(queueItem) }
     }
 
     @Test
     fun shouldSkipDownloadIfFilesAlreadyExistByRemoteMediaId() {
-        val queueItem = MediaItem(title = "Avatar", year = 2009)
-        val resolvedMedia = MediaItem(title = "Avatar", year = 2009, type = MediaType.Movie, id = "{tmdb-19995}")
+        val queueItem = MediaItem(title = "Arapef", year = 2009)
+        val resolvedMedia = MediaItem(title = "Arapef", year = 2009, type = MediaType.Movie, id = "{tmdb-19995}")
 
         every { queueService.getQueue() } returns listOf(queueItem)
-        every { mediaProxyService.findBestMatch("Avatar", 2009) } returns resolvedMedia
-        every { cloudService.findExistingFiles("Avatar") } returns emptyList()
-        every { cloudService.findExistingFiles("{tmdb-19995}") } returns listOf("Avatar (2009) {tmdb-19995}.mkv")
+        every { mediaProxyService.findBestMatch("Arapef", 2009) } returns resolvedMedia
+        every { cloudService.findExistingFiles("Arapef") } returns emptyList()
+        every { cloudService.findExistingFiles("{tmdb-19995}") } returns listOf("Arapef (2009) {tmdb-19995}.mkv")
 
         downloadMonitor.checkForQueueEntries()
 
@@ -143,13 +143,13 @@ internal class DownloadMonitorTest {
 
     @Test
     fun shouldUseAlreadyMatchedQueueItemWithoutSearchingTheMediaProxy() {
-        val queueItem = MediaItem(title = "Avatar", year = 2009, type = MediaType.Movie, id = "{tmdb-19995}")
-        val torrent = Torrent("Avatar 2009 1080p")
+        val queueItem = MediaItem(title = "Arapef", year = 2009, type = MediaType.Movie, id = "{tmdb-19995}")
+        val torrent = Torrent("Arapef 2009 1080p")
 
         every { queueService.getQueue() } returns listOf(queueItem)
-        every { cloudService.findExistingFiles("Avatar") } returns emptyList()
+        every { cloudService.findExistingFiles("Arapef") } returns emptyList()
         every { cloudService.findExistingFiles("{tmdb-19995}") } returns emptyList()
-        every { torrentSearchEngineService.searchTorrents("Avatar 2009") } returns listOf(torrent)
+        every { torrentSearchEngineService.searchTorrents("Arapef 2009") } returns listOf(torrent)
 
         downloadMonitor.checkForQueueEntries()
 

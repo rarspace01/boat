@@ -47,8 +47,8 @@ internal class DuplicateCleanerTest {
     fun `should decide by the real resolution and not by the name`(@TempDir tempDir: Path) {
         val base = tempDir.toFile()
         // no resolution in the names, the file with the bigger size is the one with the lower resolution
-        val hd = file(base, "Series-Shows/D/Dark {tvdb-334824}/Season 1/Dark.S01E01.mkv", video(height = 1080), bytes = 100)
-        val sd = file(base, "Series-Shows/D/Dark {tvdb-334824}/Season 1/Dark.S01E01.mp4", video(height = 480), bytes = 300)
+        val hd = file(base, "Series-Shows/D/Dobi {tvdb-334824}/Season 1/Dobi.S01E01.mkv", video(height = 1080), bytes = 100)
+        val sd = file(base, "Series-Shows/D/Dobi {tvdb-334824}/Season 1/Dobi.S01E01.mp4", video(height = 480), bytes = 300)
 
         val result = run(base)
 
@@ -61,8 +61,8 @@ internal class DuplicateCleanerTest {
     @Test
     fun `should not trust a resolution in the name that the video does not have`(@TempDir tempDir: Path) {
         val base = tempDir.toFile()
-        val fake1080 = file(base, "Movies/I/Inception (2010) {tmdb-27205}.1080p.x265.mkv", video(codec = "hevc", height = 480))
-        val real720 = file(base, "Movies/I/Inception (2010) {tmdb-27205}.720p.x264.mkv", video(codec = "h264", height = 720))
+        val fake1080 = file(base, "Movies/I/Ivakisaka (2010) {tmdb-27205}.1080p.x265.mkv", video(codec = "hevc", height = 480))
+        val real720 = file(base, "Movies/I/Ivakisaka (2010) {tmdb-27205}.720p.x264.mkv", video(codec = "h264", height = 720))
 
         run(base)
 
@@ -84,8 +84,8 @@ internal class DuplicateCleanerTest {
 
     private fun keptOf(tempDir: Path, weight: Int, margin: Int, a: VideoInfo, b: VideoInfo): String {
         val base = File(tempDir.toFile(), "case${System.nanoTime()}")
-        val first = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mkv", a)
-        val second = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mp4", b)
+        val first = file(base, "Movies/I/Ivakisaka (2010) {tmdb-27205}.mkv", a)
+        val second = file(base, "Movies/I/Ivakisaka (2010) {tmdb-27205}.mp4", b)
         DuplicateCleaner(probe, 2, weight, margin).processFilesFromDirectory(base.absolutePath, null, false)
         return when {
             first.exists() && !second.exists() -> "first"
@@ -153,9 +153,9 @@ internal class DuplicateCleanerTest {
     @Test
     fun `the order of several versions is consistent`(@TempDir tempDir: Path) {
         val base = tempDir.toFile()
-        val hevc = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mkv", video(codec = "hevc", bitrate = 3_000_000))
-        val h264 = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mp4", video(codec = "h264", bitrate = 5_500_000))
-        val mpeg4 = file(base, "Movies/I/Inception (2010) {tmdb-27205}.avi", video(codec = "mpeg4", bitrate = 8_000_000))
+        val hevc = file(base, "Movies/I/Ivakisaka (2010) {tmdb-27205}.mkv", video(codec = "hevc", bitrate = 3_000_000))
+        val h264 = file(base, "Movies/I/Ivakisaka (2010) {tmdb-27205}.mp4", video(codec = "h264", bitrate = 5_500_000))
+        val mpeg4 = file(base, "Movies/I/Ivakisaka (2010) {tmdb-27205}.avi", video(codec = "mpeg4", bitrate = 8_000_000))
 
         val result = run(base)
 
@@ -167,8 +167,8 @@ internal class DuplicateCleanerTest {
     @Test
     fun `should not decide groups with a codec it does not know`(@TempDir tempDir: Path) {
         val base = tempDir.toFile()
-        val known = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mkv", video(codec = "h264"))
-        val odd = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mp4", video(codec = "prores"))
+        val known = file(base, "Movies/I/Ivakisaka (2010) {tmdb-27205}.mkv", video(codec = "h264"))
+        val odd = file(base, "Movies/I/Ivakisaka (2010) {tmdb-27205}.mp4", video(codec = "prores"))
 
         val result = run(base)
 
@@ -228,8 +228,8 @@ internal class DuplicateCleanerTest {
     fun `the resolution counts before bitrate and codec`(@TempDir tempDir: Path) {
         listOf(0, 50, 100).forEach { weight ->
             val base = File(tempDir.toFile(), "weight$weight")
-            val hd = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mkv", video(height = 1080, codec = "h264", bitrate = 1_000_000))
-            val sd = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mp4", video(height = 480, codec = "hevc", bitrate = 9_000_000))
+            val hd = file(base, "Movies/I/Ivakisaka (2010) {tmdb-27205}.mkv", video(height = 1080, codec = "h264", bitrate = 1_000_000))
+            val sd = file(base, "Movies/I/Ivakisaka (2010) {tmdb-27205}.mp4", video(height = 480, codec = "hevc", bitrate = 9_000_000))
 
             DuplicateCleaner(probe, 2, weight, 20).processFilesFromDirectory(base.absolutePath, null, false)
 
@@ -241,8 +241,8 @@ internal class DuplicateCleanerTest {
     @Test
     fun `should keep exactly one of identical versions`(@TempDir tempDir: Path) {
         val base = tempDir.toFile()
-        val first = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mkv")
-        val second = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mp4")
+        val first = file(base, "Movies/I/Ivakisaka (2010) {tmdb-27205}.mkv")
+        val second = file(base, "Movies/I/Ivakisaka (2010) {tmdb-27205}.mp4")
 
         run(base)
 
@@ -254,8 +254,8 @@ internal class DuplicateCleanerTest {
     @Test
     fun `should not decide groups with versions of different length`(@TempDir tempDir: Path) {
         val base = tempDir.toFile()
-        val full = file(base, "Series-Shows/D/Dark {tvdb-334824}/Season 1/Dark.S01E01.mkv", video(seconds = 3000.0))
-        val cut = file(base, "Series-Shows/D/Dark {tvdb-334824}/Season 1/Dark.S01E01.mp4", video(height = 480, seconds = 1500.0))
+        val full = file(base, "Series-Shows/D/Dobi {tvdb-334824}/Season 1/Dobi.S01E01.mkv", video(seconds = 3000.0))
+        val cut = file(base, "Series-Shows/D/Dobi {tvdb-334824}/Season 1/Dobi.S01E01.mp4", video(height = 480, seconds = 1500.0))
         val log = File(base, "duplicates.log")
 
         val result = run(base, logFile = log)
@@ -272,8 +272,8 @@ internal class DuplicateCleanerTest {
     fun `should decide versions which differ in length by a few percent`(@TempDir tempDir: Path) {
         val base = tempDir.toFile()
         // 24 and 25 frames per second
-        val a = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mkv", video(height = 1080, seconds = 8880.0))
-        val b = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mp4", video(height = 720, seconds = 8520.0))
+        val a = file(base, "Movies/I/Ivakisaka (2010) {tmdb-27205}.mkv", video(height = 1080, seconds = 8880.0))
+        val b = file(base, "Movies/I/Ivakisaka (2010) {tmdb-27205}.mp4", video(height = 720, seconds = 8520.0))
 
         val result = run(base)
 
@@ -285,8 +285,8 @@ internal class DuplicateCleanerTest {
     @Test
     fun `should read every file and not keep a version by its size`(@TempDir tempDir: Path) {
         val base = tempDir.toFile()
-        val big = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mkv", video(height = 480), bytes = 400)
-        val small = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mp4", video(height = 1080), bytes = 100)
+        val big = file(base, "Movies/I/Ivakisaka (2010) {tmdb-27205}.mkv", video(height = 480), bytes = 400)
+        val small = file(base, "Movies/I/Ivakisaka (2010) {tmdb-27205}.mp4", video(height = 1080), bytes = 100)
 
         val result = run(base)
 
@@ -299,10 +299,10 @@ internal class DuplicateCleanerTest {
     @Test
     fun `should not decide episodes with different titles`(@TempDir tempDir: Path) {
         val base = tempDir.toFile()
-        val a = file(base, "Series-Shows/B/Batman {tvdb-77084}/Season 1/Batman TAS.S01E02.1080p.mp4", video(height = 1080))
-        val b = file(base, "Series-Shows/B/Batman {tvdb-77084}/Season 1/The New Batman Adventures.S01E02.1080p.mp4", video(height = 720))
-        val c = file(base, "Series-Shows/C/The Crow Girl {tvdb-447357}/Season 1/The.Crow.Girl.S01E01.mkv", video(height = 1080))
-        val d = file(base, "Series-Shows/C/The Crow Girl {tvdb-447357}/Season 1/Crow Girl.S01E01.mp4", video(height = 720))
+        val a = file(base, "Series-Shows/B/Bogabo {tvdb-77084}/Season 1/Bogabo TAS.S01E02.1080p.mp4", video(height = 1080))
+        val b = file(base, "Series-Shows/B/Bogabo {tvdb-77084}/Season 1/The Nuk Bogabo Apuziperot.S01E02.1080p.mp4", video(height = 720))
+        val c = file(base, "Series-Shows/C/The Cike Gofe {tvdb-447357}/Season 1/The.Cike.Gofe.S01E01.mkv", video(height = 1080))
+        val d = file(base, "Series-Shows/C/The Cike Gofe {tvdb-447357}/Season 1/Cike Gofe.S01E01.mp4", video(height = 720))
 
         val result = run(base)
 
@@ -317,10 +317,10 @@ internal class DuplicateCleanerTest {
     @Test
     fun `should decide versions which differ in length by up to 5 percent but not by more`(@TempDir tempDir: Path) {
         val base = tempDir.toFile()
-        val a = file(base, "Series-Shows/D/Dark {tvdb-334824}/Season 1/Dark.S01E01.mkv", video(height = 1080, seconds = 2800.0))
-        val b = file(base, "Series-Shows/D/Dark {tvdb-334824}/Season 1/Dark.S01E01.mp4", video(height = 720, seconds = 2700.0))
-        val c = file(base, "Series-Shows/D/Dark {tvdb-334824}/Season 1/Dark.S01E02.mkv", video(height = 1080, seconds = 2900.0))
-        val d = file(base, "Series-Shows/D/Dark {tvdb-334824}/Season 1/Dark.S01E02.mp4", video(height = 720, seconds = 2500.0))
+        val a = file(base, "Series-Shows/D/Dobi {tvdb-334824}/Season 1/Dobi.S01E01.mkv", video(height = 1080, seconds = 2800.0))
+        val b = file(base, "Series-Shows/D/Dobi {tvdb-334824}/Season 1/Dobi.S01E01.mp4", video(height = 720, seconds = 2700.0))
+        val c = file(base, "Series-Shows/D/Dobi {tvdb-334824}/Season 1/Dobi.S01E02.mkv", video(height = 1080, seconds = 2900.0))
+        val d = file(base, "Series-Shows/D/Dobi {tvdb-334824}/Season 1/Dobi.S01E02.mp4", video(height = 720, seconds = 2500.0))
 
         val result = run(base)
 
@@ -335,12 +335,12 @@ internal class DuplicateCleanerTest {
     @Test
     fun `should not decide episodes whose numbering is shifted against another release`(@TempDir tempDir: Path) {
         val base = tempDir.toFile()
-        val dir = "Series-Shows/C/Community {tvdb-94571}/Season 6"
+        val dir = "Series-Shows/C/Cotobebuf {tvdb-94571}/Season 6"
         // the x264 release has the episodes in another order: its E01 is the E02 of the other release
-        val mkv1 = file(base, "$dir/Community.S06E01.mkv", video(codec = "hevc", seconds = 1650.0))
-        val x2641 = file(base, "$dir/Community.S06E01.1080p.x264.mkv", video(seconds = 1710.0))
-        val mkv2 = file(base, "$dir/Community.S06E02.mkv", video(codec = "hevc", seconds = 1710.0))
-        val x2642 = file(base, "$dir/Community.S06E02.1080p.x264.mkv", video(seconds = 1650.0))
+        val mkv1 = file(base, "$dir/Cotobebuf.S06E01.mkv", video(codec = "hevc", seconds = 1650.0))
+        val x2641 = file(base, "$dir/Cotobebuf.S06E01.1080p.x264.mkv", video(seconds = 1710.0))
+        val mkv2 = file(base, "$dir/Cotobebuf.S06E02.mkv", video(codec = "hevc", seconds = 1710.0))
+        val x2642 = file(base, "$dir/Cotobebuf.S06E02.1080p.x264.mkv", video(seconds = 1650.0))
 
         val result = run(base)
 
@@ -353,14 +353,14 @@ internal class DuplicateCleanerTest {
     @Test
     fun `should not take equally long episodes or truncated files for shifted numbering`(@TempDir tempDir: Path) {
         val base = tempDir.toFile()
-        val dir = "Series-Shows/F/Futurama {tvdb-73871}/Season 2"
+        val dir = "Series-Shows/F/Fecorisu {tvdb-73871}/Season 2"
         // a cartoon: every episode is about 22:32, the avi is a PAL version
-        (1..3).forEach { file(base, "$dir/Futurama.S02E0$it.1080p.x264.mkv", video(seconds = 1352.0 + it)) }
-        (1..3).forEach { file(base, "$dir/Futurama.S02E0$it.avi", video(codec = "mpeg4", height = 480, seconds = 1295.0)) }
-        val full = file(base, "$dir/Futurama.S02E04.mkv", video(seconds = 1300.0))
-        val sample = file(base, "$dir/Futurama.S02E04.mp4", video(seconds = 129.0))
-        file(base, "$dir/Futurama.S02E05.mkv", video(seconds = 1300.0))
-        file(base, "$dir/Futurama.S02E05.mp4", video(seconds = 129.0))
+        (1..3).forEach { file(base, "$dir/Fecorisu.S02E0$it.1080p.x264.mkv", video(seconds = 1352.0 + it)) }
+        (1..3).forEach { file(base, "$dir/Fecorisu.S02E0$it.avi", video(codec = "mpeg4", height = 480, seconds = 1295.0)) }
+        val full = file(base, "$dir/Fecorisu.S02E04.mkv", video(seconds = 1300.0))
+        val sample = file(base, "$dir/Fecorisu.S02E04.mp4", video(seconds = 129.0))
+        file(base, "$dir/Fecorisu.S02E05.mkv", video(seconds = 1300.0))
+        file(base, "$dir/Fecorisu.S02E05.mp4", video(seconds = 129.0))
 
         val result = run(base)
 
@@ -371,10 +371,10 @@ internal class DuplicateCleanerTest {
     }
 
     @Test
-    fun `should treat Rick & Morty and Rick and Morty as the same title`(@TempDir tempDir: Path) {
+    fun `should treat Reki & Mugol and Reki and Mugol as the same title`(@TempDir tempDir: Path) {
         val base = tempDir.toFile()
-        file(base, "Series-Shows/R/Rick and Morty {tvdb-275274}/Season 1/Rick & Morty.S01E01.mkv", video(height = 1080))
-        val sd = file(base, "Series-Shows/R/Rick and Morty {tvdb-275274}/Season 1/Rick and Morty.S01E01.mp4", video(height = 480))
+        file(base, "Series-Shows/R/Reki and Mugol {tvdb-275274}/Season 1/Reki & Mugol.S01E01.mkv", video(height = 1080))
+        val sd = file(base, "Series-Shows/R/Reki and Mugol {tvdb-275274}/Season 1/Reki and Mugol.S01E01.mp4", video(height = 480))
 
         val result = run(base)
 
@@ -385,9 +385,9 @@ internal class DuplicateCleanerTest {
     @Test
     fun `should delete a broken file which ffprobe cannot read and a version shorter than half`(@TempDir tempDir: Path) {
         val base = tempDir.toFile()
-        val good = file(base, "Series-Shows/D/Dark {tvdb-334824}/Season 1/Dark.S01E01.mkv", video(seconds = 3000.0))
-        val partial = file(base, "Series-Shows/D/Dark {tvdb-334824}/Season 1/Dark.S01E01.mp4", video(seconds = 1400.0))
-        val stub = file(base, "Series-Shows/D/Dark {tvdb-334824}/Season 1/Dark.S01E01.avi", null, bytes = 265)
+        val good = file(base, "Series-Shows/D/Dobi {tvdb-334824}/Season 1/Dobi.S01E01.mkv", video(seconds = 3000.0))
+        val partial = file(base, "Series-Shows/D/Dobi {tvdb-334824}/Season 1/Dobi.S01E01.mp4", video(seconds = 1400.0))
+        val stub = file(base, "Series-Shows/D/Dobi {tvdb-334824}/Season 1/Dobi.S01E01.avi", null, bytes = 265)
         val log = File(base, "duplicates.log")
 
         val result = run(base, logFile = log)
@@ -402,8 +402,8 @@ internal class DuplicateCleanerTest {
     @Test
     fun `should not delete broken files if nothing else is readable`(@TempDir tempDir: Path) {
         val base = tempDir.toFile()
-        val a = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mkv", null, bytes = 200)
-        val b = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mp4", null, bytes = 200)
+        val a = file(base, "Movies/I/Ivakisaka (2010) {tmdb-27205}.mkv", null, bytes = 200)
+        val b = file(base, "Movies/I/Ivakisaka (2010) {tmdb-27205}.mp4", null, bytes = 200)
 
         val result = run(base)
 
@@ -416,8 +416,8 @@ internal class DuplicateCleanerTest {
     @Test
     fun `should not delete a file which ffprobe could not read because of a timeout or an I-O error`(@TempDir tempDir: Path) {
         val base = tempDir.toFile()
-        val a = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mkv", video(height = 1080))
-        val b = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mp4", video(height = 2160))
+        val a = file(base, "Movies/I/Ivakisaka (2010) {tmdb-27205}.mkv", video(height = 1080))
+        val b = file(base, "Movies/I/Ivakisaka (2010) {tmdb-27205}.mp4", video(height = 2160))
         failing[b.name] = 2
 
         val result = run(base)
@@ -431,8 +431,8 @@ internal class DuplicateCleanerTest {
     @Test
     fun `should read a file once more which could not be read the first time`(@TempDir tempDir: Path) {
         val base = tempDir.toFile()
-        val a = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mkv", video(height = 1080))
-        val b = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mp4", video(height = 2160))
+        val a = file(base, "Movies/I/Ivakisaka (2010) {tmdb-27205}.mkv", video(height = 1080))
+        val b = file(base, "Movies/I/Ivakisaka (2010) {tmdb-27205}.mp4", video(height = 2160))
         failing[b.name] = 1
 
         val result = run(base)
@@ -446,8 +446,8 @@ internal class DuplicateCleanerTest {
     @Test
     fun `should only delete a file as broken which ffprobe rejects both times`(@TempDir tempDir: Path) {
         val base = tempDir.toFile()
-        val good = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mkv", video())
-        val broken = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mp4", null)
+        val good = file(base, "Movies/I/Ivakisaka (2010) {tmdb-27205}.mkv", video())
+        val broken = file(base, "Movies/I/Ivakisaka (2010) {tmdb-27205}.mp4", null)
         // a timeout first, then rejected: once is not enough
         failing[broken.name] = 1
 
@@ -467,8 +467,8 @@ internal class DuplicateCleanerTest {
     @Test
     fun `should decide versions which differ in length if both match the official runtime`(@TempDir tempDir: Path) {
         val base = tempDir.toFile()
-        val a = file(base, "Series-Shows/H/Heroes {tvdb-79501}/Season 3/Heroes.S03E15.1080p.x265.mkv", video(codec = "hevc", seconds = 2489.0))
-        val b = file(base, "Series-Shows/H/Heroes {tvdb-79501}/Season 3/Heroes.S03E15.xvid.avi", video(codec = "mpeg4", height = 360, seconds = 2369.0))
+        val a = file(base, "Series-Shows/H/Hrefib {tvdb-79501}/Season 3/Hrefib.S03E15.1080p.x265.mkv", video(codec = "hevc", seconds = 2489.0))
+        val b = file(base, "Series-Shows/H/Hrefib {tvdb-79501}/Season 3/Hrefib.S03E15.xvid.avi", video(codec = "mpeg4", height = 360, seconds = 2369.0))
 
         val result = withRuntime("tvdb-79501 S3 E15" to 41.0).processFilesFromDirectory(base.path, null, false)
 
@@ -479,8 +479,8 @@ internal class DuplicateCleanerTest {
     @Test
     fun `should delete the version shorter than the official runtime`(@TempDir tempDir: Path) {
         val base = tempDir.toFile()
-        val good = file(base, "Series-Shows/H/Heroes {tvdb-79501}/Season 1/Heroes.S01E01.mkv", video(seconds = 2600.0))
-        val partial = file(base, "Series-Shows/H/Heroes {tvdb-79501}/Season 1/Heroes.S01E01.mp4", video(seconds = 1500.0))
+        val good = file(base, "Series-Shows/H/Hrefib {tvdb-79501}/Season 1/Hrefib.S01E01.mkv", video(seconds = 2600.0))
+        val partial = file(base, "Series-Shows/H/Hrefib {tvdb-79501}/Season 1/Hrefib.S01E01.mp4", video(seconds = 1500.0))
 
         withRuntime("tvdb-79501 S1 E1" to 43.0).processFilesFromDirectory(base.path, null, false)
 
@@ -491,8 +491,8 @@ internal class DuplicateCleanerTest {
     @Test
     fun `should not decide if a version is longer than the official runtime`(@TempDir tempDir: Path) {
         val base = tempDir.toFile()
-        val episode = file(base, "Series-Shows/N/Naruto {tvdb-78857}/Season 1/Naruto.S01E28.avi", video(seconds = 1329.0))
-        val merged = file(base, "Series-Shows/N/Naruto {tvdb-78857}/Season 1/Naruto.S01E28.mkv", video(seconds = 7602.0))
+        val episode = file(base, "Series-Shows/N/Nikulo {tvdb-78857}/Season 1/Nikulo.S01E28.avi", video(seconds = 1329.0))
+        val merged = file(base, "Series-Shows/N/Nikulo {tvdb-78857}/Season 1/Nikulo.S01E28.mkv", video(seconds = 7602.0))
 
         val result = withRuntime("tvdb-78857 S1 E28" to 22.0).processFilesFromDirectory(base.path, null, false)
 
@@ -504,8 +504,8 @@ internal class DuplicateCleanerTest {
     @Test
     fun `should fall back to the lengths without a runtime or if no version matches it`(@TempDir tempDir: Path) {
         val base = tempDir.toFile()
-        file(base, "Movies/I/Inception (2010) {tmdb-27205}.mkv", video(seconds = 8880.0))
-        file(base, "Movies/I/Inception (2010) {tmdb-27205}.mp4", video(seconds = 6000.0))
+        file(base, "Movies/I/Ivakisaka (2010) {tmdb-27205}.mkv", video(seconds = 8880.0))
+        file(base, "Movies/I/Ivakisaka (2010) {tmdb-27205}.mp4", video(seconds = 6000.0))
 
         val unknown = withRuntime().processFilesFromDirectory(base.path, null, true)
         val noMatch = withRuntime("tmdb-27205 Snull Enull" to 60.0).processFilesFromDirectory(base.path, null, true)
@@ -517,8 +517,8 @@ internal class DuplicateCleanerTest {
     @Test
     fun `should delete a large file which ffprobe cannot read if a version is readable`(@TempDir tempDir: Path) {
         val base = tempDir.toFile()
-        val good = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mkv", video(), bytes = 1_500_000)
-        val broken = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mp4", null, bytes = 2_000_000)
+        val good = file(base, "Movies/I/Ivakisaka (2010) {tmdb-27205}.mkv", video(), bytes = 1_500_000)
+        val broken = file(base, "Movies/I/Ivakisaka (2010) {tmdb-27205}.mp4", null, bytes = 2_000_000)
         val log = File(base, "duplicates.log")
 
         val result = run(base, logFile = log)
@@ -534,8 +534,8 @@ internal class DuplicateCleanerTest {
     @Test
     fun `should not decide groups if the length is not known`(@TempDir tempDir: Path) {
         val base = tempDir.toFile()
-        val a = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mkv", video())
-        val b = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mp4", VideoInfo("h264", 1920, 1080, 1_000_000, null))
+        val a = file(base, "Movies/I/Ivakisaka (2010) {tmdb-27205}.mkv", video())
+        val b = file(base, "Movies/I/Ivakisaka (2010) {tmdb-27205}.mp4", VideoInfo("h264", 1920, 1080, 1_000_000, null))
 
         val result = run(base)
 
@@ -549,19 +549,19 @@ internal class DuplicateCleanerTest {
     fun `should not touch other movies parts extras files without id and files which are no video`(@TempDir tempDir: Path) {
         val base = tempDir.toFile()
         val files = listOf(
-            file(base, "Movies/I/Inception (2010) {tmdb-27205}.1080p.x264.mkv"),
-            file(base, "Movies/D/Dune (2021) {tmdb-438631}.720p.x264.mkv"),
+            file(base, "Movies/I/Ivakisaka (2010) {tmdb-27205}.1080p.x264.mkv"),
+            file(base, "Movies/D/Daca (2021) {tmdb-438631}.720p.x264.mkv"),
             // two parts of one movie are two files
-            file(base, "Movies/K/Kill Bill (2003) {tmdb-24}.1080p.x264 - pt1.mkv"),
-            file(base, "Movies/K/Kill Bill (2003) {tmdb-24}.720p.x264 - pt2.mkv"),
+            file(base, "Movies/K/Kofo Bubi (2003) {tmdb-24}.1080p.x264 - pt1.mkv"),
+            file(base, "Movies/K/Kofo Bubi (2003) {tmdb-24}.720p.x264 - pt2.mkv"),
             // not renamed, no id
-            file(base, "Movies/M/Matrix.1999.1080p.mkv"),
-            file(base, "Movies/M/Matrix.1999.720p.mkv"),
+            file(base, "Movies/M/Minuzu.1999.1080p.mkv"),
+            file(base, "Movies/M/Minuzu.1999.720p.mkv"),
             // extras and samples keep their names
-            file(base, "Movies/I/Inception (2010) {tmdb-27205}.sample.mkv"),
+            file(base, "Movies/I/Ivakisaka (2010) {tmdb-27205}.sample.mkv"),
             // no video
-            file(base, "Movies/I/Inception (2010) {tmdb-27205}.1080p.x264.nfo"),
-            file(base, "Movies/I/Inception (2010) {tmdb-27205}.720p.x264.srt"),
+            file(base, "Movies/I/Ivakisaka (2010) {tmdb-27205}.1080p.x264.nfo"),
+            file(base, "Movies/I/Ivakisaka (2010) {tmdb-27205}.720p.x264.srt"),
         )
 
         val result = run(base)
@@ -576,8 +576,8 @@ internal class DuplicateCleanerTest {
     @Test
     fun `should find duplicates in different folders of the movies`(@TempDir tempDir: Path) {
         val base = tempDir.toFile()
-        val a = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mkv", video(height = 1080))
-        val b = file(base, "Movies/Old/Inception (2010) {tmdb-27205}.avi", video(height = 480, codec = "mpeg4"))
+        val a = file(base, "Movies/I/Ivakisaka (2010) {tmdb-27205}.mkv", video(height = 1080))
+        val b = file(base, "Movies/Old/Ivakisaka (2010) {tmdb-27205}.avi", video(height = 480, codec = "mpeg4"))
 
         run(base)
 
@@ -588,12 +588,12 @@ internal class DuplicateCleanerTest {
     @Test
     fun `should keep the best version of every episode`(@TempDir tempDir: Path) {
         val base = tempDir.toFile()
-        val show = "Series-Shows/D/Dark {tvdb-334824}/Season 1"
-        val e1hd = file(base, "$show/Dark.S01E01.mkv", video(codec = "hevc"))
-        val e1sd = file(base, "$show/Dark.S01E01.mp4", video(height = 720))
-        val e2 = file(base, "$show/Dark.S01E02.mkv", video(height = 720))
-        val e3a = file(base, "$show/Dark.S01E03.mkv", video(bitrate = 4_000_000))
-        val e3b = file(base, "$show/Dark.S01E03.mp4", video(bitrate = 6_000_000))
+        val show = "Series-Shows/D/Dobi {tvdb-334824}/Season 1"
+        val e1hd = file(base, "$show/Dobi.S01E01.mkv", video(codec = "hevc"))
+        val e1sd = file(base, "$show/Dobi.S01E01.mp4", video(height = 720))
+        val e2 = file(base, "$show/Dobi.S01E02.mkv", video(height = 720))
+        val e3a = file(base, "$show/Dobi.S01E03.mkv", video(bitrate = 4_000_000))
+        val e3b = file(base, "$show/Dobi.S01E03.mp4", video(bitrate = 6_000_000))
 
         val result = run(base)
 
@@ -609,14 +609,14 @@ internal class DuplicateCleanerTest {
     fun `should not mix up shows seasons double episodes and parts`(@TempDir tempDir: Path) {
         val base = tempDir.toFile()
         val files = listOf(
-            file(base, "Series-Shows/D/Dark {tvdb-334824}/Season 1/Dark.S01E01.1080p.x264.mkv"),
-            file(base, "Series-Shows/D/Dark {tvdb-334824}/Season 2/Dark.S02E01.720p.x264.mkv"),
+            file(base, "Series-Shows/D/Dobi {tvdb-334824}/Season 1/Dobi.S01E01.1080p.x264.mkv"),
+            file(base, "Series-Shows/D/Dobi {tvdb-334824}/Season 2/Dobi.S02E01.720p.x264.mkv"),
             file(base, "Series-Shows/O/Other {tvdb-1}/Season 1/Other.S01E01.720p.x264.mkv"),
-            file(base, "Series-Shows/L/Lost {tvdb-73739}/Season 4/Lost.S04E13.1080p.mkv"),
-            file(base, "Series-Shows/L/Lost {tvdb-73739}/Season 4/Lost.S04E13-E14.720p.mkv"),
+            file(base, "Series-Shows/L/Lecu {tvdb-73739}/Season 4/Lecu.S04E13.1080p.mkv"),
+            file(base, "Series-Shows/L/Lecu {tvdb-73739}/Season 4/Lecu.S04E13-E14.720p.mkv"),
             file(base, "Series-Shows/K/Kim {tvdb-78259}/Season 2/Kim.S02E06.1080p.mp4"),
             file(base, "Series-Shows/K/Kim {tvdb-78259}/Season 2/Kim.S02E06b.720p.mp4"),
-            file(base, "Series-Shows/D/Dark {tvdb-334824}/Featurettes/Making of.1080p.mkv"),
+            file(base, "Series-Shows/D/Dobi {tvdb-334824}/Featurettes/Making of.1080p.mkv"),
             file(base, "Series-Shows/N/NoId/Season 1/NoId.S01E01.1080p.mkv"),
             file(base, "Series-Shows/N/NoId/Season 1/NoId.S01E01.720p.mkv"),
         )
@@ -630,9 +630,9 @@ internal class DuplicateCleanerTest {
     @Test
     fun `a test run only writes to the log and tells how fast ffprobe was`(@TempDir tempDir: Path) {
         val base = tempDir.toFile()
-        val hd = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mkv", video(codec = "hevc", bitrate = 3_000_000, seconds = 8880.0))
-        val sd = file(base, "Movies/I/Inception (2010) {tmdb-27205}.avi", video(codec = "mpeg4", height = 480, bitrate = 1_000_000, seconds = 8880.0))
-        val subtitle = file(base, "Movies/I/Inception (2010) {tmdb-27205}.en.srt")
+        val hd = file(base, "Movies/I/Ivakisaka (2010) {tmdb-27205}.mkv", video(codec = "hevc", bitrate = 3_000_000, seconds = 8880.0))
+        val sd = file(base, "Movies/I/Ivakisaka (2010) {tmdb-27205}.avi", video(codec = "mpeg4", height = 480, bitrate = 1_000_000, seconds = 8880.0))
+        val subtitle = file(base, "Movies/I/Ivakisaka (2010) {tmdb-27205}.en.srt")
         val log = File(base, "duplicates.log")
 
         val result = run(base, isTestRun = true, logFile = log)
@@ -650,9 +650,9 @@ internal class DuplicateCleanerTest {
     @Test
     fun `should keep the subtitles which versions with the same name share`(@TempDir tempDir: Path) {
         val base = tempDir.toFile()
-        val hd = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mkv", video(height = 1080))
-        val sd = file(base, "Movies/I/Inception (2010) {tmdb-27205}.avi", video(height = 480))
-        val subtitle = file(base, "Movies/I/Inception (2010) {tmdb-27205}.en.srt")
+        val hd = file(base, "Movies/I/Ivakisaka (2010) {tmdb-27205}.mkv", video(height = 1080))
+        val sd = file(base, "Movies/I/Ivakisaka (2010) {tmdb-27205}.avi", video(height = 480))
+        val subtitle = file(base, "Movies/I/Ivakisaka (2010) {tmdb-27205}.en.srt")
 
         run(base)
 
@@ -686,27 +686,27 @@ internal class DuplicateCleanerTest {
     @Test
     fun `should move the subtitles of the deleted version to the one which stays and delete the ones it already has`(@TempDir tempDir: Path) {
         val base = tempDir.toFile()
-        val hd = file(base, "Movies/I/Inception (2010) {tmdb-27205}.1080p.x264.mkv", video(height = 1080))
-        val hdEnglish = file(base, "Movies/I/Inception (2010) {tmdb-27205}.1080p.x264.en.srt")
-        val sd = file(base, "Movies/I/Inception (2010) {tmdb-27205}.720p.x264.mkv", video(height = 720))
-        val sdEnglish = file(base, "Movies/I/Inception (2010) {tmdb-27205}.720p.x264.en.srt")
-        val sdGerman = file(base, "Movies/I/Inception (2010) {tmdb-27205}.720p.x264.de.srt")
-        val sdNfo = file(base, "Movies/I/Inception (2010) {tmdb-27205}.720p.x264.nfo")
+        val hd = file(base, "Movies/I/Ivakisaka (2010) {tmdb-27205}.1080p.x264.mkv", video(height = 1080))
+        val hdEnglish = file(base, "Movies/I/Ivakisaka (2010) {tmdb-27205}.1080p.x264.en.srt")
+        val sd = file(base, "Movies/I/Ivakisaka (2010) {tmdb-27205}.720p.x264.mkv", video(height = 720))
+        val sdEnglish = file(base, "Movies/I/Ivakisaka (2010) {tmdb-27205}.720p.x264.en.srt")
+        val sdGerman = file(base, "Movies/I/Ivakisaka (2010) {tmdb-27205}.720p.x264.de.srt")
+        val sdNfo = file(base, "Movies/I/Ivakisaka (2010) {tmdb-27205}.720p.x264.nfo")
 
         run(base)
 
         assertThat(hd).exists()
         assertThat(hdEnglish).exists()
-        assertThat(File(base, "Movies/I/Inception (2010) {tmdb-27205}.1080p.x264.de.srt")).exists()
+        assertThat(File(base, "Movies/I/Ivakisaka (2010) {tmdb-27205}.1080p.x264.de.srt")).exists()
         assertThat(listOf(sd, sdEnglish, sdGerman, sdNfo)).noneMatch { it.exists() }
     }
 
     @Test
     fun `should leave the subtitles alone and log it if a version can't be deleted`(@TempDir tempDir: Path) {
         val base = tempDir.toFile()
-        file(base, "Movies/I/Inception (2010) {tmdb-27205}.1080p.x264.mkv", video(height = 1080))
-        val sd = file(base, "Movies/I/Inception (2010) {tmdb-27205}.720p.x264.mkv", video(height = 720))
-        val sdEnglish = file(base, "Movies/I/Inception (2010) {tmdb-27205}.720p.x264.en.srt")
+        file(base, "Movies/I/Ivakisaka (2010) {tmdb-27205}.1080p.x264.mkv", video(height = 1080))
+        val sd = file(base, "Movies/I/Ivakisaka (2010) {tmdb-27205}.720p.x264.mkv", video(height = 720))
+        val sdEnglish = file(base, "Movies/I/Ivakisaka (2010) {tmdb-27205}.720p.x264.en.srt")
         val log = File(base, "duplicates.log")
         // gone after it was read: deleting it fails
         val cleaner = DuplicateCleaner({ file -> probe.probe(file).also { if (file == sd) file.delete() } }, probeThreads = 1)
@@ -714,16 +714,16 @@ internal class DuplicateCleanerTest {
         cleaner.processFilesFromDirectory(base.absolutePath, log, isTestRun = false)
 
         assertThat(sdEnglish).exists()
-        assertThat(File(base, "Movies/I/Inception (2010) {tmdb-27205}.1080p.x264.en.srt")).doesNotExist()
+        assertThat(File(base, "Movies/I/Ivakisaka (2010) {tmdb-27205}.1080p.x264.en.srt")).doesNotExist()
         assertThat(log.readText()).contains("FAILED to delete '${sd.path}'").doesNotContain("DELETE '${sd.path}'").doesNotContain("MOVE")
     }
 
     @Test
     fun `should not take the subtitles of the better version for those of a version with a shorter name`(@TempDir tempDir: Path) {
         val base = tempDir.toFile()
-        val shortName = file(base, "Movies/I/Inception (2010) {tmdb-27205}.1080p.mkv", video(height = 720))
-        val longName = file(base, "Movies/I/Inception (2010) {tmdb-27205}.1080p.x264.mkv", video(height = 1080))
-        val longNameSubtitle = file(base, "Movies/I/Inception (2010) {tmdb-27205}.1080p.x264.en.srt")
+        val shortName = file(base, "Movies/I/Ivakisaka (2010) {tmdb-27205}.1080p.mkv", video(height = 720))
+        val longName = file(base, "Movies/I/Ivakisaka (2010) {tmdb-27205}.1080p.x264.mkv", video(height = 1080))
+        val longNameSubtitle = file(base, "Movies/I/Ivakisaka (2010) {tmdb-27205}.1080p.x264.en.srt")
 
         run(base)
 
@@ -735,8 +735,8 @@ internal class DuplicateCleanerTest {
     @Test
     fun `should remove folders which are empty afterwards but keep the library folders`(@TempDir tempDir: Path) {
         val base = tempDir.toFile()
-        val hd = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mkv", video(height = 1080))
-        val sd = file(base, "Movies/Old/Sub/Inception (2010) {tmdb-27205}.avi", video(height = 480))
+        val hd = file(base, "Movies/I/Ivakisaka (2010) {tmdb-27205}.mkv", video(height = 1080))
+        val sd = file(base, "Movies/Old/Sub/Ivakisaka (2010) {tmdb-27205}.avi", video(height = 480))
 
         run(base)
 

@@ -58,7 +58,7 @@ class MediaProxyService(
             val withoutAcronymDelimiters = input.replace(ACRONYM_PATTERN) { matchResult ->
                 matchResult.value.replace("*", "").replace(".", "")
             }
-            // strip accents, so Amelie matches Amélie
+            // strip accents, so Acuzuf matches Acúzuf
             return Normalizer.normalize(withoutAcronymDelimiters.replace("¢", "c").replace("²", "2").replace("³", "3"), Normalizer.Form.NFD)
                 .replace(DIACRITICS_PATTERN, "")
                 .lowercase()
@@ -301,9 +301,9 @@ class MediaProxyService(
         combine(theMovieDataBaseService.search(name), theTVDBService.search(name))
 
     /**
-     * Searches user input like "Predators 2025". TMDB and TVDB treat a year in the query as part of the title, so a
+     * Searches user input like "Pevusizas 2025". TMDB and TVDB treat a year in the query as part of the title, so a
      * trailing year is also searched as release year of the name before it. The input as typed is still searched, for
-     * titles like "Blade Runner 2049".
+     * titles like "Bubes Rutepe 2049".
      */
     fun searchWithTrailingYear(query: String?): List<MediaItem> {
         if (query.isNullOrBlank()) return emptyList()
@@ -416,8 +416,8 @@ class MediaProxyService(
         val cacheKey = "yearSearch:$name:$year:$type"
         val results = getCachedOrPut(cacheKey) { fetchByYear(name, year, type) }
         val ranked = rankResults(name, results, year)
-        // TMDB also finds movies by alternative titles ("I Spit on Your Grave" is "Day of the Woman"), they come after the
-        // ranked ones. Short names like "Dune" or "nde" match too many unrelated titles.
+        // TMDB also finds movies by alternative titles ("I Spit on Your Grave" is "Dar of the Wzeki"), they come after the
+        // ranked ones. Short names like "Daca" or "nde" match too many unrelated titles.
         val isDistinctiveName = name.count { it.isLetter() } >= 8
         return if (type == MediaType.Movie && isDistinctiveName) ranked + results.filter { it !in ranked } else ranked
     }

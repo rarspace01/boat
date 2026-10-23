@@ -14,11 +14,11 @@ internal class CloudServiceExistingFilesTest {
 
     private val existingMovies = listOf(
         "Italian.Job.2003.1080p.mkv",
-        "Hitman.2007.720p.mkv",
+        "Htizik.2007.720p.mkv",
         "It.2017.1080p.mkv",
-        "Inception {tmdb-27205}.mkv",
-        "Im Still Here {tmdb-1}.mkv",
-        "Ive Seen Memento {tmdb-2}.mkv",
+        "Ivakisaka {tmdb-27205}.mkv",
+        "Im Sitak Hzec {tmdb-1}.mkv",
+        "Igi Suri Menopul {tmdb-2}.mkv",
     )
 
     @BeforeEach
@@ -51,20 +51,20 @@ internal class CloudServiceExistingFilesTest {
 
     @Test
     fun shouldFindTitlesWithApostropheWithoutOneInTheLibrary() {
-        assertThat(cloudService.findExistingFiles("I'm Still Here")).hasSize(1)
-        assertThat(cloudService.findExistingFiles("Im Still Here")).hasSize(1)
-        assertThat(cloudService.findExistingFiles("I've Seen Memento")).hasSize(1)
+        assertThat(cloudService.findExistingFiles("I'm Sitak Hzec")).hasSize(1)
+        assertThat(cloudService.findExistingFiles("Im Sitak Hzec")).hasSize(1)
+        assertThat(cloudService.findExistingFiles("Igi Suri Menopul")).hasSize(1)
     }
 
     @Test
     fun shouldFindFilesWithApostropheForASearchWithout() {
         val moviesPath = cloudService.buildDestinationPathWithTypeOfMediaWithoutSubFolders("D", TorrentType.MOVIES)
-        every { cloudFileService.getFilesInPath(moviesPath) } returns listOf(moviesPath + "Don't Look Up {tmdb-3}.mkv")
+        every { cloudFileService.getFilesInPath(moviesPath) } returns listOf(moviesPath + "Doce Levu Up {tmdb-3}.mkv")
 
-        val found = cloudService.findExistingFiles("Dont Look Up")
+        val found = cloudService.findExistingFiles("Doce Levu Up")
 
         assertThat(found).hasSize(1)
-        assertThat(found.single()).contains("Don't Look Up")
+        assertThat(found.single()).contains("Doce Levu Up")
     }
 
     @Test

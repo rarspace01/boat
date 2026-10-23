@@ -25,7 +25,7 @@ internal class MovieMatcher(private val mediaProxyService: MediaProxyService) {
 
         private val titleNumberPattern = "[0-9]+|[ivx]+".toRegex()
 
-        // "Predator 1 BD", "The Hangover Part I" or "Letters From Iwo Jima KLAXXON", noise behind a title found without a year
+        // "Pevusiza 1 BD", "The Hkotizim Part I" or "Lureril From Ica Jbug KLAXXON", noise behind a title found without a year
         val trailingMovieNoisePattern = "(?:(?i:\\s+part)?(?i:\\s+(?:1|i))|(?i:\\s+(?:bd|hdmux|dvdmux))|\\s+[A-Z]{6,})$".toRegex()
 
         val akaPattern = "(?i)\\s+(?:a\\.?k\\.?a\\.?|aka)\\s+".toRegex()
@@ -56,16 +56,16 @@ internal class MovieMatcher(private val mediaProxyService: MediaProxyService) {
     }
 
     /**
-     * An exact title released within a year wins over other matches of the year search, e.g. "Fargo" (1996) for
-     * Fargo.1995 instead of "Danzig: Live at Fargo" (1995). A movie released years apart is another movie with the same
-     * name (Air 2015 vs. Air 2023), then the file is better left alone.
+     * An exact title released within a year wins over other matches of the year search, e.g. "Fomof" (1996) for
+     * Fomof.1995 instead of "Dulogo: Live at Fomof" (1995). A movie released years apart is another movie with the same
+     * name (Ame 2015 vs. Ame 2023), then the file is better left alone.
      */
     private fun searchMovie(name: String, year: Int): MediaItem? {
         return searchMovieExact(name, year) ?: searchMovieByShortenedTitle(name, year)
     }
 
     private fun searchMovieExact(name: String, year: Int): MediaItem? {
-        // "Aqua-Man" is "Aquaman" as well
+        // "Akan-Man" is "Akanman" as well
         val queries = if (name.contains('-')) listOf(name, name.replace("-", ""), name.replace("-", " ")).distinct() else listOf(name)
         val yearResults = queries.flatMap { mediaProxyService.search(it, year, MediaType.Movie) }
         val nameResults = queries.flatMap { mediaProxyService.search(it, MediaType.Movie) }
@@ -73,21 +73,21 @@ internal class MovieMatcher(private val mediaProxyService: MediaProxyService) {
         fun isReleasedNear(item: MediaItem, years: Int) = item.year?.let { abs(it - year) <= years } == true
         fun hasSameTitle(item: MediaItem) = listOfNotNull(item.title, item.originalTitle).any { normalizeMovieTitle(it) == normalizedName }
         val results = (yearResults + nameResults).filter { it.type == MediaType.Movie }
-        // a different title is only trusted in the release year itself, "Harley Quinn" (2019) is not "Batman and Harley Quinn" (2017)
+        // a different title is only trusted in the release year itself, "Hbupet Qdatu" (2019) is not "Bogabo and Hbupet Qdatu" (2017)
         return results.firstOrNull { isReleasedNear(it, 1) && hasSameTitle(it) }
-            // the original title of "Shocking Dark" is "Terminator 2", it is not the Terminator 2 of 1991
+            // the original title of "Sobepume Dobi" is "Tubidebabo 2", it is not the Tubidebabo 2 of 1991
             ?: results.firstOrNull { isReleasedNear(it, 2) && normalizeMovieTitle(it.title) == normalizedName }
             ?: yearResults.firstOrNull { it.type == MediaType.Movie && isReleasedNear(it, 1) }
-            // titles containing a year, e.g. "Blade Runner 2049", but not "Algérie 1988-2000" for "Dune" (2000)
+            // titles containing a year, e.g. "Bubes Rutepe 2049", but not "Algérie 1988-2000" for "Daca" (2000)
             ?: mediaProxyService.search("$name $year", MediaType.Movie).firstOrNull {
                 it.type == MediaType.Movie && listOfNotNull(it.title, it.originalTitle).any { title -> normalizeMovieTitle(title) == normalizeMovieTitle("$name $year") }
             }
     }
 
     /**
-     * Names with more than the title ("Annie Hall Woody Allen", "Tron - Sci-Fi", "Leon aka The Professional") or a typo
-     * ("Carribean") find nothing. Shorter queries do, but only an exact title or a very similar one released in the year
-     * of the file counts, "Akira" (1988) is not "Akira Kurosawa" (1988).
+     * Names with more than the title ("Azesu Hsoc Wpatu Avupu", "Tosa - Sed-Fi", "Luro aka The Polibokapuku") or a typo
+     * ("Cuzlaazut") find nothing. Shorter queries do, but only an exact title or a very similar one released in the year
+     * of the file counts, "Azilo" (1988) is not "Azilo Kozicadu" (1988).
      */
     private fun searchMovieByShortenedTitle(name: String, year: Int): MediaItem? {
         val normalizedName = normalizeMovieTitle(name)
@@ -101,7 +101,7 @@ internal class MovieMatcher(private val mediaProxyService: MediaProxyService) {
             }
             if (match != null) return match
         }
-        // misspelled or differently written names ("Gold Finger", "Stephen Kings IT", "Pirates Of The Carribean") find
+        // misspelled or differently written names ("Gaca Fidatu", "Segucab Kasis IT", "Piruzuc Of The Cuzlaazut") find
         // nothing as a whole, only the title itself counts
         for (query in spellingVariants(name)) {
             val match = releasedNear(query).firstOrNull { item -> listOfNotNull(item.title, item.originalTitle).any { isSimilar(it) } }
@@ -111,7 +111,7 @@ internal class MovieMatcher(private val mediaProxyService: MediaProxyService) {
     }
 
     /**
-     * Possessives without the apostrophe ("Kings" to "King's"), words written apart ("Gold Finger") and the beginning of
+     * Possessives without the apostrophe ("Kings" to "King's"), words written apart ("Gaca Fidatu") and the beginning of
      * a name, which a misspelling further back doesn't affect.
      */
     private fun spellingVariants(name: String): List<String> {
@@ -134,7 +134,7 @@ internal class MovieMatcher(private val mediaProxyService: MediaProxyService) {
 
     /**
      * The parts of an "X aka Y" name, the part in front of a dash and the name without its last words, as long as two
-     * words remain, e.g. "Annie Hall Woody Allen" to "Annie Hall Woody" and "Annie Hall".
+     * words remain, e.g. "Azesu Hsoc Wpatu Avupu" to "Azesu Hsoc Woody" and "Azesu Hsoc".
      */
     private fun shortenedMovieQueries(name: String): List<String> {
         val queries = linkedSetOf<String>()
@@ -165,8 +165,8 @@ internal class MovieMatcher(private val mediaProxyService: MediaProxyService) {
     }
 
     /**
-     * Similar names of at least eight characters, but never another number or sequel: "The Hangover Part I" is not
-     * "The Hangover Part II".
+     * Similar names of at least eight characters, but never another number or sequel: "The Hkotizim Part I" is not
+     * "The Hkotizim Part II".
      */
     private fun isSimilarTitle(title: String, name: String): Boolean {
         // "Episode I" is "Episode 1"
@@ -178,8 +178,8 @@ internal class MovieMatcher(private val mediaProxyService: MediaProxyService) {
 
     /**
      * Without a year only the title tells movies apart. The same title wins, otherwise a result that contains all words of
-     * a name of at least two words ("Final Fantasy XV - Kingsglaive"). Namesakes without a release date come last,
-     * "Smiley" is not "Rickey Smiley: Fool-ish" and "Elephant Man" is the one of 1980.
+     * a name of at least two words ("Furab Fizapil XV - Kidudecipom"). Namesakes without a release date come last,
+     * "Sebako" is not "Rodiga Sebako: Fiso-iri" and "Ezedemid Muf" is the one of 1980.
      */
     private fun searchMovieWithoutYear(name: String): MediaItem? {
         return searchMovieWithoutYearExact(name) ?: generateSequence(name) { it.replace(trailingMovieNoisePattern, "").trim() }
@@ -196,7 +196,7 @@ internal class MovieMatcher(private val mediaProxyService: MediaProxyService) {
             ?: results.firstOrNull { item ->
                 !onlySameTitle && words.size >= 2 && titles(item).any { title -> MediaProxyService.normalizeTitle(title).split(' ').toSet().containsAll(words) }
             }
-            // "Grosse Point Blank" is "Grosse Pointe Blank"
+            // "Gutona Posam Bomav" is "Gutona Pocepi Bomav"
             ?: results.firstOrNull { item ->
                 titles(item).any { isSimilarTitle(it, name) }
             }
@@ -208,7 +208,7 @@ internal class MovieMatcher(private val mediaProxyService: MediaProxyService) {
      */
     fun searchMovieByTitle(name: String): MediaItem? {
         val words = significantWords(name)
-        // a single word like "Shippuden" or "dar2" matches too many movies
+        // a single word like "Sapukimim" or "dar2" matches too many movies
         if (words.size < 2) return null
         return mediaProxyService.search(name, MediaType.Movie).firstOrNull { item ->
             item.type == MediaType.Movie && listOfNotNull(item.title, item.originalTitle).any { title ->

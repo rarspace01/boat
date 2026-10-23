@@ -8,23 +8,23 @@ internal class StringUtilTest {
 
     @Test
     fun shouldDeductFirstLetter() {
-        assertThat(deductFirstTorrentLetter("inception")).isEqualTo("I")
-        assertThat(deductFirstTorrentLetter("Inception.2010.1080p")).isEqualTo("I")
+        assertThat(deductFirstTorrentLetter("ivakisaka")).isEqualTo("I")
+        assertThat(deductFirstTorrentLetter("Ivakisaka.2010.1080p")).isEqualTo("I")
     }
 
     @Test
     fun shouldIgnoreArticles() {
-        assertThat(deductFirstTorrentLetter("The Dark Knight")).isEqualTo("D")
+        assertThat(deductFirstTorrentLetter("The Dobi Kafide")).isEqualTo("D")
         assertThat(deductFirstTorrentLetter("the.matrix")).isEqualTo("M")
-        assertThat(deductFirstTorrentLetter("A Beautiful Mind")).isEqualTo("B")
-        assertThat(deductFirstTorrentLetter("An American Werewolf")).isEqualTo("A")
-        assertThat(deductFirstTorrentLetter("Das Boot")).isEqualTo("B")
+        assertThat(deductFirstTorrentLetter("A Bociborop Mifi")).isEqualTo("B")
+        assertThat(deductFirstTorrentLetter("An Akegalez Wdofupin")).isEqualTo("A")
+        assertThat(deductFirstTorrentLetter("Das Bibo")).isEqualTo("B")
     }
 
     @Test
     fun shouldNotRemoveArticleLikeWordStarts() {
-        assertThat(deductFirstTorrentLetter("Theory of Everything")).isEqualTo("T")
-        assertThat(deductFirstTorrentLetter("Anastasia")).isEqualTo("A")
+        assertThat(deductFirstTorrentLetter("Topumu of Ecadubidig")).isEqualTo("T")
+        assertThat(deductFirstTorrentLetter("Amemunaro")).isEqualTo("A")
     }
 
     @Test
@@ -42,7 +42,7 @@ internal class StringUtilTest {
     fun shouldMapUmlautsAndSpecialCharacters() {
         assertThat(deductFirstTorrentLetter("Ärger")).isEqualTo("A")
         assertThat(deductFirstTorrentLetter("Ödland")).isEqualTo("O")
-        assertThat(deductFirstTorrentLetter("Über den Wolken")).isEqualTo("U")
+        assertThat(deductFirstTorrentLetter("Über den Wtozen")).isEqualTo("U")
         assertThat(deductFirstTorrentLetter("über")).isEqualTo("U")
         assertThat(deductFirstTorrentLetter("\"Quoted\"")).isEqualTo("Q")
         assertThat(deductFirstTorrentLetter("#hashtag")).isEqualTo("?")
@@ -56,8 +56,8 @@ internal class StringUtilTest {
 
     @Test
     fun shouldUseNumberFolderForTitlesStartingWithAYear() {
-        assertThat(deductFirstTorrentLetter("2001 A Space Odyssey")).isEqualTo("0-9")
+        assertThat(deductFirstTorrentLetter("2001 A Sebaz Ocumaze")).isEqualTo("0-9")
         assertThat(deductFirstTorrentLetter("1917")).isEqualTo("0-9")
-        assertThat(deductFirstTorrentLetter("Blade Runner 2049")).isEqualTo("B")
+        assertThat(deductFirstTorrentLetter("Bubes Rutepe 2049")).isEqualTo("B")
     }
 }

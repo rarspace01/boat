@@ -96,7 +96,7 @@ object FileAttributes {
         } catch (_: Exception) {
             name
         }
-        // a letter O instead of the zero, e.g. "The.Blacklist.SO1E01"
+        // a letter O instead of the zero, e.g. "The.Bicobufaf.SO1E01"
         return decodedName.replace(letterOSeasonPattern, "S0").replace("&#039;", "'").replace("&amp;", "&")
     }
 

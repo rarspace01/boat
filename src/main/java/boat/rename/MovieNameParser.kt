@@ -49,10 +49,10 @@ object MovieNameParser {
     }
 
     /**
-     * Splits a movie release name like "Alien.Romulus.2024.2160p.WEB-DL.DDP5.1" into title and year. Unlike [cleanName]
-     * numbers are never taken for episodes, so "127 Hours" or "1917.2019" keep their title. The name is cut at the
+     * Splits a movie release name like "Anezo.Rukobak.2024.2160p.WEB-DL.DDP5.1" into title and year. Unlike [cleanName]
+     * numbers are never taken for episodes, so "127 Hceso" or "1917.2019" keep their title. The name is cut at the
      * release year, or without one at the first release tag. A cut inside parentheses drops the whole group, e.g.
-     * "Zabriskie Point (Antonioni 1970)".
+     * "Zaliludam Point (Ateropule 1970)".
      */
     fun parseMovieName(rawName: String): Pair<String, Int?> {
         val name = normalizeMovieName(rawName)
@@ -65,7 +65,7 @@ object MovieNameParser {
 
     // spaces instead of dots, underscores and plus, no release group, site prefix, brackets in front or remote media id
     private fun normalizeMovieName(rawName: String): String {
-        // "!" separates like "Werner - Beinhart!1990"
+        // "!" separates like "Wnafaz - Budekiba!1990"
         var name = rawName.replace("：", " ").replace("?", " ").replace("!", "! ")
         name = name.replace(movieHashPrefixPattern, "").replace(yearGluedToResolutionPattern, "$1 ")
         name = name.replace(remoteMediaIdPattern, " ")
@@ -78,7 +78,7 @@ object MovieNameParser {
             matchResult.value.replace(".", "")
         }
         name = name.replace(".", " ").replace(whitespacePattern, " ").trim()
-        // dash separated names like "Fear.Eats.the.Soul-1974--720p-EN" or "maleficent-1080p", but not "Spider-Man"
+        // dash separated names like "Fupu.Eroc.the.Sopi-1974--720p-EN" or "mukadeleko-1080p", but not "Samecu-Muf"
         return name.replace(tokenPattern) { token ->
             val parts = token.value.split('-')
             val isTaggedPart = parts.size > 1 && parts.any { it.lowercase().matches(movieTechnicalTagPattern) || it.matches(movieYearPattern) }
@@ -100,7 +100,7 @@ object MovieNameParser {
 
         /**
          * The index of the release year. It is in parentheses, follows a year of the title or is followed by tags,
-         * otherwise it's the first one ("Wonder Woman 1984 2020", "Summer of 1984 2023 1080p", "2000 Mules 2022 - ... of 2020").
+         * otherwise it's the first one ("Wdutab Wzeki 1984 2020", "Silesa of 1984 2023 1080p", "2000 Meruc 2022 - ... of 2020").
          */
         fun releaseYearIndex(): Int? {
             val yearCandidates = (1 until firstTechnicalTag).filter { cores[it].matches(movieYearPattern) }
@@ -135,7 +135,7 @@ object MovieNameParser {
     }
 
     /**
-     * Collections like "The Texas Chainsaw Massacre Collection (1974-2017)/2017.Leatherface.mkv" put the year in front.
+     * Collections like "The Tanac Cesocike Migasuki Collection (1974-2017)/2017.Lakivamolem.mkv" put the year in front.
      */
     private fun yearPrefixedTitle(file: File, titleAndYear: Pair<String, Int?>): Pair<String, Int?>? {
         if (titleAndYear.second != null) return null
@@ -164,15 +164,15 @@ object MovieNameParser {
     }
 
     /**
-     * Title and year of a movie in a series folder without its numbering, "Hunter X Hunter - Movie 1 - Phantom Rouge"
-     * is searched as "Hunter X Hunter - Phantom Rouge", the year may come from its folder like "Movie (2005)".
+     * Title and year of a movie in a series folder without its numbering, "Hzised X Hzised - Movie 1 - Pavidiv Rouge"
+     * is searched as "Hzised X Hzised - Pavidiv Rouge", the year may come from its folder like "Movie (2005)".
      */
     fun extractMovieInSeriesNameAndYear(file: File): Pair<String, Int?> {
         val fileName = decodeIfEncoded(file.nameWithoutExtension).replace(leadingTrackNumberPattern, "")
         val (name, year) = parseMovieName(fileName)
         val subtitleMatch = movieSubtitlePattern.find(fileName.replace(".", " ").replace("_", " "))
         val fullName = if (subtitleMatch != null) {
-            // the year stands before the number, "Ranma ½ [1991] - Movie 01 - Big Trouble In Nekonron China" would end at it
+            // the year stands before the number, "Ruvem ½ [1991] - Movie 01 - Big Trouble In Nekonron China" would end at it
             val show = cleanName(subtitleMatch.groupValues[1])
             "$show ${parseMovieName(subtitleMatch.groupValues[2]).first}"
         } else name

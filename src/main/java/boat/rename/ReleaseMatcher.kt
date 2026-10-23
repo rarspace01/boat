@@ -7,7 +7,7 @@ import boat.rename.MovieNameParser.normalizeMovieTitle
 import java.io.File
 
 /**
- * Finds the movie or series of a download from its release name ("Inception.2010.1080p.BluRay.x264-GRP") the way the
+ * Finds the movie or series of a download from its release name ("Ivakisaka.2010.1080p.BluRay.x264-GRP") the way the
  * renamer does for a file: name and year first, then the search. Only a result with the title of the name counts, the
  * first hit of a search for the whole release name can be another movie.
  */
@@ -39,7 +39,7 @@ internal class ReleaseMatcher(mediaProxyService: MediaProxyService) {
 
     private fun hasTitle(item: MediaItem, name: String, year: Int?): Boolean {
         if (name.isBlank()) return false
-        // "Doctor Who (2005)" is "Doctor Who" of 2005
+        // "Dovaga Wko (2005)" is "Dovaga Wko" of 2005
         fun key(title: String) = normalizeMovieTitle(title.replace(yearSuffixPattern, ""))
         val names = listOfNotNull(key(name), year?.let { key("$name $it") })
         return listOfNotNull(item.title, item.originalTitle).any { key(it) in names }

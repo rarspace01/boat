@@ -89,7 +89,7 @@ internal class MultifileHosterServiceTest {
 
     @Test
     fun shouldUploadAgainWhatARestartInterrupted() {
-        val interrupted = Transfer(name = "Facing.El.Chapo.2026.mkv", transferStatus = TransferStatus.UPLOADING_TO_DRIVE, progressInPercentage = 0.4)
+        val interrupted = Transfer(name = "Fodudu.El.Ceduk.2026.mkv", transferStatus = TransferStatus.UPLOADING_TO_DRIVE, progressInPercentage = 0.4)
         val waiting = Transfer(name = "Other", transferStatus = TransferStatus.ADDED)
         stubTransfers(listOf(interrupted, waiting))
 
@@ -157,9 +157,9 @@ internal class MultifileHosterServiceTest {
     fun transferMatchedTorrentByName() {
         // Given
         val transfer = Transfer()
-        transfer.name = "the adventures of buckaroo banzai across the 8th dimension (1984) (1080p bluray .."
+        transfer.name = "the adventures of buferire bafote across the 8th dimension (1984) (1080p bluray .."
         val torrent = Torrent("Test")
-        torrent.name = "The Adventures of Buckaroo Banzai Across the 8th Dimension (1984) (1080p BluRay x265 HEVC 10bit AAC 5.1 Tigole)"
+        torrent.name = "The Adventures of Buferire Bafote Across the 8th Dimension (1984) (1080p BluRay x265 HEVC 10bit AAC 5.1 Tigole)"
         torrent.remoteId = "remoteId"
         // When
 
@@ -247,14 +247,14 @@ internal class MultifileHosterServiceTest {
         // Given
         val savedTransfer = slot<Transfer>()
         every { transferService.save(capture(savedTransfer)) } just Runs
-        every { mediaProxyService.findByRemoteMediaId("{tmdb-27205}", "Inception.2010.1080p", null) } returns
-                MediaItem(title = "Inception", year = 2010, type = MediaType.Movie, id = "{tmdb-27205}")
-        val torrent = Torrent.of("magnet:?xt=urn:btih:10e93389d579ba4538c68b8d297268a81620fae2&dn=Inception.2010.1080p")
+        every { mediaProxyService.findByRemoteMediaId("{tmdb-27205}", "Ivakisaka.2010.1080p", null) } returns
+                MediaItem(title = "Ivakisaka", year = 2010, type = MediaType.Movie, id = "{tmdb-27205}")
+        val torrent = Torrent.of("magnet:?xt=urn:btih:10e93389d579ba4538c68b8d297268a81620fae2&dn=Ivakisaka.2010.1080p")
         // When
         multifileHosterService.addTorrentToTransfer(torrent, "{tmdb-27205}")
         // Then
-        assertThat(savedTransfer.captured.name).isEqualTo("Inception | Inception.2010.1080p")
-        assertThat(savedTransfer.captured.hosterName()).isEqualTo("Inception.2010.1080p")
+        assertThat(savedTransfer.captured.name).isEqualTo("Ivakisaka | Ivakisaka.2010.1080p")
+        assertThat(savedTransfer.captured.hosterName()).isEqualTo("Ivakisaka.2010.1080p")
         assertThat(savedTransfer.captured.remoteMediaId).isEqualTo("{tmdb-27205}")
         assertThat(savedTransfer.captured.mediaType).isEqualTo(MediaType.Movie)
     }
@@ -265,12 +265,12 @@ internal class MultifileHosterServiceTest {
         val savedTransfer = slot<Transfer>()
         every { transferService.save(capture(savedTransfer)) } just Runs
         every { mediaProxyService.findByRemoteMediaId("{tmdb-1396}", any(), MediaType.Series) } returns
-                MediaItem(title = "Breaking Bad", year = 2008, type = MediaType.Series, id = "{tmdb-1396}")
-        val torrent = Torrent.of("magnet:?xt=urn:btih:10e93389d579ba4538c68b8d297268a81620fae2&dn=Breaking.Bad.S01")
+                MediaItem(title = "Bacozami Bap", year = 2008, type = MediaType.Series, id = "{tmdb-1396}")
+        val torrent = Torrent.of("magnet:?xt=urn:btih:10e93389d579ba4538c68b8d297268a81620fae2&dn=Bacozami.Bap.S01")
         // When
         multifileHosterService.addTorrentToTransfer(torrent, "{tmdb-1396}", MediaType.Series)
         // Then
-        assertThat(savedTransfer.captured.name).isEqualTo("Breaking Bad | Breaking.Bad.S01")
+        assertThat(savedTransfer.captured.name).isEqualTo("Bacozami Bap | Bacozami.Bap.S01")
         assertThat(savedTransfer.captured.mediaType).isEqualTo(MediaType.Series)
     }
 
@@ -279,7 +279,7 @@ internal class MultifileHosterServiceTest {
         val savedTransfer = slot<Transfer>()
         every { transferService.save(capture(savedTransfer)) } just Runs
         every { mediaProxyService.findByRemoteMediaId(any(), any(), any()) } returns null
-        val torrent = Torrent.of("magnet:?xt=urn:btih:10e93389d579ba4538c68b8d297268a81620fae2&dn=Breaking.Bad.S01")
+        val torrent = Torrent.of("magnet:?xt=urn:btih:10e93389d579ba4538c68b8d297268a81620fae2&dn=Bacozami.Bap.S01")
 
         multifileHosterService.addTorrentToTransfer(torrent, "{tmdb-1396}", MediaType.Series)
 
@@ -292,29 +292,29 @@ internal class MultifileHosterServiceTest {
         val savedTransfer = slot<Transfer>()
         every { transferService.save(capture(savedTransfer)) } just Runs
         every { mediaProxyService.findByRemoteMediaId(any(), any(), any()) } returns null
-        val torrent = Torrent.of("magnet:?xt=urn:btih:10e93389d579ba4538c68b8d297268a81620fae2&dn=Inception.2010.1080p")
+        val torrent = Torrent.of("magnet:?xt=urn:btih:10e93389d579ba4538c68b8d297268a81620fae2&dn=Ivakisaka.2010.1080p")
         // When
         multifileHosterService.addTorrentToTransfer(torrent, "{tmdb-27205}")
         // Then
-        assertThat(savedTransfer.captured.name).isEqualTo("Inception.2010.1080p")
+        assertThat(savedTransfer.captured.name).isEqualTo("Ivakisaka.2010.1080p")
     }
 
     @Test
     fun shouldMatchTorrentByNameIgnoringMediaTitlePrefix() {
-        val transfer = Transfer(name = "Inception | Inception.2010.1080p", remoteMediaId = "{tmdb-27205}")
-        val torrent = Torrent("Premiumize").apply { name = "Inception.2010.1080p" }
+        val transfer = Transfer(name = "Ivakisaka | Ivakisaka.2010.1080p", remoteMediaId = "{tmdb-27205}")
+        val torrent = Torrent("Premiumize").apply { name = "Ivakisaka.2010.1080p" }
 
         assertThat(TransferMatching.transferMatchedTorrentByName(transfer, torrent)).isTrue()
     }
 
     @Test
     fun shouldKeepMediaTitlePrefixWhenHosterNameIsUpdated() {
-        val transfer = Transfer(name = "Inception | Inception.2010.1080p", remoteMediaId = "{tmdb-27205}")
+        val transfer = Transfer(name = "Ivakisaka | Ivakisaka.2010.1080p", remoteMediaId = "{tmdb-27205}")
 
-        transfer.updateHosterName("Inception.2010.1080p.BluRay")
+        transfer.updateHosterName("Ivakisaka.2010.1080p.BluRay")
 
-        assertThat(transfer.name).isEqualTo("Inception | Inception.2010.1080p.BluRay")
-        assertThat(transfer.hosterName()).isEqualTo("Inception.2010.1080p.BluRay")
+        assertThat(transfer.name).isEqualTo("Ivakisaka | Ivakisaka.2010.1080p.BluRay")
+        assertThat(transfer.hosterName()).isEqualTo("Ivakisaka.2010.1080p.BluRay")
     }
 
     @Test
@@ -341,22 +341,22 @@ internal class MultifileHosterServiceTest {
     @Test
     fun shouldDownloadSingleFileTransferUsingMediaProxyAndContentRenamer() {
         val transfer = Transfer(
-            name = "Inception.2010.1080p.mkv",
+            name = "Ivakisaka.2010.1080p.mkv",
             transferStatus = TransferStatus.READY_TO_BE_DOWNLOADED,
             remoteId = "remote-123",
             remoteMediaId = "{tmdb-27205}",
             source = "Premiumize"
         )
-        val mediaItem = MediaItem(title = "Inception", year = 2010, type = MediaType.Movie, id = "{tmdb-27205}")
+        val mediaItem = MediaItem(title = "Ivakisaka", year = 2010, type = MediaType.Movie, id = "{tmdb-27205}")
 
         stubTransfers(listOf(transfer))
         every { mediaProxyService.findByRemoteMediaId("{tmdb-27205}", any(), any()) } returns mediaItem
-        every { contentRenamer.getSafeTitle(mediaItem) } returns "Inception"
+        every { contentRenamer.getSafeTitle(mediaItem) } returns "Ivakisaka"
         every { contentRenamer.extractSeasonAndEpisode(any(), mediaItem) } returns Pair(null, null)
-        every { contentRenamer.getTargetFile(any(), mediaItem, "Inception", null, null, any()) } returns "/destination/Movies/I/Inception {tmdb-27205}.mkv"
+        every { contentRenamer.getTargetFile(any(), mediaItem, "Ivakisaka", null, null, any()) } returns "/destination/Movies/I/Ivakisaka {tmdb-27205}.mkv"
 
-        val torrentFile = TorrentFile(name = "Inception.mkv", url = "http://premiumize.me/dl/inception.mkv", filesize = 1000L)
-        val folderResponse = "{\"status\":\"success\",\"content\":[{\"id\":\"f1\",\"name\":\"Inception.mkv\",\"type\":\"file\",\"size\":1000,\"link\":\"http://premiumize.me/dl/inception.mkv\"}]}"
+        val torrentFile = TorrentFile(name = "Ivakisaka.mkv", url = "http://premiumize.me/dl/ivakisaka.mkv", filesize = 1000L)
+        val folderResponse = "{\"status\":\"success\",\"content\":[{\"id\":\"f1\",\"name\":\"Ivakisaka.mkv\",\"type\":\"file\",\"size\":1000,\"link\":\"http://premiumize.me/dl/ivakisaka.mkv\"}]}"
         every { httpHelper.getPage(match { it.contains("folder/list") }) } returns folderResponse
 
         multifileHosterService.checkForDownloadableTorrentsAndDownloadTheFirst()
@@ -367,73 +367,73 @@ internal class MultifileHosterServiceTest {
     @Test
     fun shouldUseStoredMediaTypeForRemoteMediaIdLookup() {
         val transfer = Transfer(
-            name = "Inception | Inception.2010.1080p",
+            name = "Ivakisaka | Ivakisaka.2010.1080p",
             transferStatus = TransferStatus.READY_TO_BE_DOWNLOADED,
             remoteId = "remote-123",
             remoteMediaId = "{tmdb-27205}",
             mediaType = MediaType.Movie,
             source = "Premiumize"
         )
-        val mediaItem = MediaItem(title = "Inception", year = 2010, type = MediaType.Movie, id = "{tmdb-27205}")
+        val mediaItem = MediaItem(title = "Ivakisaka", year = 2010, type = MediaType.Movie, id = "{tmdb-27205}")
 
         stubTransfers(listOf(transfer))
-        every { mediaProxyService.findByRemoteMediaId("{tmdb-27205}", "Inception.2010.1080p", MediaType.Movie) } returns mediaItem
-        every { contentRenamer.getSafeTitle(mediaItem) } returns "Inception"
+        every { mediaProxyService.findByRemoteMediaId("{tmdb-27205}", "Ivakisaka.2010.1080p", MediaType.Movie) } returns mediaItem
+        every { contentRenamer.getSafeTitle(mediaItem) } returns "Ivakisaka"
         every { contentRenamer.extractSeasonAndEpisode(any(), mediaItem) } returns Pair(null, null)
-        every { contentRenamer.getTargetFile(any(), mediaItem, "Inception", null, null, any()) } returns "/destination/Movies/I/Inception {tmdb-27205}.mkv"
-        val folderResponse = "{\"status\":\"success\",\"content\":[{\"id\":\"f1\",\"name\":\"Inception.mkv\",\"type\":\"file\",\"size\":1000,\"link\":\"http://premiumize.me/dl/inception.mkv\"}]}"
+        every { contentRenamer.getTargetFile(any(), mediaItem, "Ivakisaka", null, null, any()) } returns "/destination/Movies/I/Ivakisaka {tmdb-27205}.mkv"
+        val folderResponse = "{\"status\":\"success\",\"content\":[{\"id\":\"f1\",\"name\":\"Ivakisaka.mkv\",\"type\":\"file\",\"size\":1000,\"link\":\"http://premiumize.me/dl/ivakisaka.mkv\"}]}"
         every { httpHelper.getPage(match { it.contains("folder/list") }) } returns folderResponse
 
         multifileHosterService.checkForDownloadableTorrentsAndDownloadTheFirst()
 
-        io.mockk.verify { mediaProxyService.findByRemoteMediaId("{tmdb-27205}", "Inception.2010.1080p", MediaType.Movie) }
-        io.mockk.verify { contentRenamer.getTargetFile(any(), mediaItem, "Inception", null, null, any()) }
+        io.mockk.verify { mediaProxyService.findByRemoteMediaId("{tmdb-27205}", "Ivakisaka.2010.1080p", MediaType.Movie) }
+        io.mockk.verify { contentRenamer.getTargetFile(any(), mediaItem, "Ivakisaka", null, null, any()) }
     }
 
     @Test
     fun shouldUseSeasonAndEpisodeFromContentRenamerForSeries() {
         val transfer = Transfer(
-            name = "Breaking.Bad.E05",
+            name = "Bacozami.Bap.E05",
             transferStatus = TransferStatus.READY_TO_BE_DOWNLOADED,
             remoteId = "remote-456",
             remoteMediaId = "{tvdb-81189}",
             source = "Premiumize"
         )
-        val mediaItem = MediaItem(title = "Breaking Bad", year = 2008, type = MediaType.Series, id = "{tvdb-81189}")
+        val mediaItem = MediaItem(title = "Bacozami Bap", year = 2008, type = MediaType.Series, id = "{tvdb-81189}")
 
         stubTransfers(listOf(transfer))
         every { mediaProxyService.findByRemoteMediaId("{tvdb-81189}", any(), any()) } returns mediaItem
-        every { contentRenamer.getSafeTitle(mediaItem) } returns "Breaking Bad"
+        every { contentRenamer.getSafeTitle(mediaItem) } returns "Bacozami Bap"
         every { contentRenamer.extractSeasonAndEpisode(any(), mediaItem) } returns Pair(1, 5)
-        every { contentRenamer.getTargetFile(any(), mediaItem, "Breaking Bad", 1, 5, any()) } returns "/destination/Series-Shows/B/Breaking Bad {tvdb-81189}/Season 1/Breaking Bad.S01E05.mkv"
-        val folderResponse = "{\"status\":\"success\",\"content\":[{\"id\":\"f1\",\"name\":\"Breaking.Bad.E05.mkv\",\"type\":\"file\",\"size\":1000,\"link\":\"http://premiumize.me/dl/bb05.mkv\"}]}"
+        every { contentRenamer.getTargetFile(any(), mediaItem, "Bacozami Bap", 1, 5, any()) } returns "/destination/Series-Shows/B/Bacozami Bap {tvdb-81189}/Season 1/Bacozami Bap.S01E05.mkv"
+        val folderResponse = "{\"status\":\"success\",\"content\":[{\"id\":\"f1\",\"name\":\"Bacozami.Bap.E05.mkv\",\"type\":\"file\",\"size\":1000,\"link\":\"http://premiumize.me/dl/bb05.mkv\"}]}"
         every { httpHelper.getPage(match { it.contains("folder/list") }) } returns folderResponse
 
         multifileHosterService.checkForDownloadableTorrentsAndDownloadTheFirst()
 
-        io.mockk.verify { contentRenamer.getTargetFile(any(), mediaItem, "Breaking Bad", 1, 5, any()) }
+        io.mockk.verify { contentRenamer.getTargetFile(any(), mediaItem, "Bacozami Bap", 1, 5, any()) }
     }
 
     @Test
     fun shouldDownloadMultiFileSeriesTransferUsingMediaProxyAndContentRenamer() {
         val transfer = Transfer(
-            name = "Breaking.Bad.S01",
+            name = "Bacozami.Bap.S01",
             transferStatus = TransferStatus.READY_TO_BE_DOWNLOADED,
             remoteId = "remote-456",
             remoteMediaId = "{tvdb-81189}",
             source = "Premiumize"
         )
-        val mediaItem = MediaItem(title = "Breaking Bad", year = 2008, type = MediaType.Series, id = "{tvdb-81189}")
+        val mediaItem = MediaItem(title = "Bacozami Bap", year = 2008, type = MediaType.Series, id = "{tvdb-81189}")
 
         stubTransfers(listOf(transfer))
         every { mediaProxyService.findByRemoteMediaId("{tvdb-81189}", any(), any()) } returns mediaItem
-        every { contentRenamer.getSafeTitle(mediaItem) } returns "Breaking Bad"
+        every { contentRenamer.getSafeTitle(mediaItem) } returns "Bacozami Bap"
         every { contentRenamer.extractSeasonAndEpisode(any(), mediaItem) } returns Pair(1, 1)
-        every { contentRenamer.getTargetFile(any(), mediaItem, "Breaking Bad", 1, 1, any()) } returns "/destination/Series-Shows/B/Breaking Bad {tvdb-81189}/Season 1/Breaking Bad.S01E01.mkv"
+        every { contentRenamer.getTargetFile(any(), mediaItem, "Bacozami Bap", 1, 1, any()) } returns "/destination/Series-Shows/B/Bacozami Bap {tvdb-81189}/Season 1/Bacozami Bap.S01E01.mkv"
 
         val folderResponse = "{\"status\":\"success\",\"content\":[" +
-                "{\"id\":\"f1\",\"name\":\"Breaking.Bad.S01E01.mkv\",\"type\":\"file\",\"size\":1000,\"link\":\"http://premiumize.me/dl/bb01.mkv\"}," +
-                "{\"id\":\"f2\",\"name\":\"Breaking.Bad.S01E02.mkv\",\"type\":\"file\",\"size\":1000,\"link\":\"http://premiumize.me/dl/bb02.mkv\"}" +
+                "{\"id\":\"f1\",\"name\":\"Bacozami.Bap.S01E01.mkv\",\"type\":\"file\",\"size\":1000,\"link\":\"http://premiumize.me/dl/bb01.mkv\"}," +
+                "{\"id\":\"f2\",\"name\":\"Bacozami.Bap.S01E02.mkv\",\"type\":\"file\",\"size\":1000,\"link\":\"http://premiumize.me/dl/bb02.mkv\"}" +
                 "]}"
         every { httpHelper.getPage(match { it.contains("folder/list") }) } returns folderResponse
 
@@ -445,7 +445,7 @@ internal class MultifileHosterServiceTest {
     @Test
     fun shouldKeepTransferAndRemoteTorrentWhenSingleFileDownloadFails() {
         val transfer = Transfer(
-            name = "Inception.2010.1080p.mkv",
+            name = "Ivakisaka.2010.1080p.mkv",
             transferStatus = TransferStatus.READY_TO_BE_DOWNLOADED,
             remoteId = "remote-123",
             source = "Premiumize"
@@ -453,7 +453,7 @@ internal class MultifileHosterServiceTest {
         stubTransfers(listOf(transfer))
         every { cloudService.buildDestinationPath(any(), any()) } returns Pair("I", "/destination/Movies/I/")
         every { httpHelper.getPage(match { it.contains("folder/list") }) } returns
-                "{\"status\":\"success\",\"content\":[{\"id\":\"f1\",\"name\":\"Inception.mkv\",\"type\":\"file\",\"size\":1000,\"link\":\"http://premiumize.me/dl/inception.mkv\"}]}"
+                "{\"status\":\"success\",\"content\":[{\"id\":\"f1\",\"name\":\"Ivakisaka.mkv\",\"type\":\"file\",\"size\":1000,\"link\":\"http://premiumize.me/dl/ivakisaka.mkv\"}]}"
         every { rcloneUploader.copyUrl(any(), any(), any()) } returns false
 
         multifileHosterService.checkForDownloadableTorrentsAndDownloadTheFirst()
@@ -492,16 +492,16 @@ internal class MultifileHosterServiceTest {
     @Test
     fun shouldKeepTransferAndRemoteTorrentWhenOneFileOfMultiFileDownloadFails() {
         val transfer = Transfer(
-            name = "Breaking.Bad.S01",
+            name = "Bacozami.Bap.S01",
             transferStatus = TransferStatus.READY_TO_BE_DOWNLOADED,
             remoteId = "remote-456",
             source = "Premiumize"
         )
         stubTransfers(listOf(transfer))
-        every { cloudService.buildDestinationPath(any(), any()) } returns Pair("B", "/destination/Series-Shows/B/Breaking.Bad/")
+        every { cloudService.buildDestinationPath(any(), any()) } returns Pair("B", "/destination/Series-Shows/B/Bacozami.Bap/")
         every { httpHelper.getPage(match { it.contains("folder/list") }) } returns "{\"status\":\"success\",\"content\":[" +
-                "{\"id\":\"f1\",\"name\":\"Breaking.Bad.S01E01.mkv\",\"type\":\"file\",\"size\":1000,\"link\":\"http://premiumize.me/dl/bb01.mkv\"}," +
-                "{\"id\":\"f2\",\"name\":\"Breaking.Bad.S01E02.mkv\",\"type\":\"file\",\"size\":1000,\"link\":\"http://premiumize.me/dl/bb02.mkv\"}" +
+                "{\"id\":\"f1\",\"name\":\"Bacozami.Bap.S01E01.mkv\",\"type\":\"file\",\"size\":1000,\"link\":\"http://premiumize.me/dl/bb01.mkv\"}," +
+                "{\"id\":\"f2\",\"name\":\"Bacozami.Bap.S01E02.mkv\",\"type\":\"file\",\"size\":1000,\"link\":\"http://premiumize.me/dl/bb02.mkv\"}" +
                 "]}"
         every { rcloneUploader.copyUrl("http://premiumize.me/dl/bb02.mkv", any(), any()) } returns false
 
@@ -515,7 +515,7 @@ internal class MultifileHosterServiceTest {
     @Test
     fun shouldDeleteTransferAndRemoteTorrentAfterSuccessfulDownload() {
         val transfer = Transfer(
-            name = "Inception.2010.1080p.mkv",
+            name = "Ivakisaka.2010.1080p.mkv",
             transferStatus = TransferStatus.READY_TO_BE_DOWNLOADED,
             remoteId = "remote-123",
             source = "Premiumize"
@@ -523,7 +523,7 @@ internal class MultifileHosterServiceTest {
         stubTransfers(listOf(transfer))
         every { cloudService.buildDestinationPath(any(), any()) } returns Pair("I", "/destination/Movies/I/")
         every { httpHelper.getPage(match { it.contains("folder/list") }) } returns
-                "{\"status\":\"success\",\"content\":[{\"id\":\"f1\",\"name\":\"Inception.mkv\",\"type\":\"file\",\"size\":1000,\"link\":\"http://premiumize.me/dl/inception.mkv\"}]}"
+                "{\"status\":\"success\",\"content\":[{\"id\":\"f1\",\"name\":\"Ivakisaka.mkv\",\"type\":\"file\",\"size\":1000,\"link\":\"http://premiumize.me/dl/ivakisaka.mkv\"}]}"
 
         multifileHosterService.checkForDownloadableTorrentsAndDownloadTheFirst()
 
@@ -545,7 +545,7 @@ internal class MultifileHosterServiceTest {
     @Test
     fun shouldUpdateIndexOfLetterAfterSuccessfulDownload() {
         val transfer = Transfer(
-            name = "Inception.2010.1080p.mkv",
+            name = "Ivakisaka.2010.1080p.mkv",
             transferStatus = TransferStatus.READY_TO_BE_DOWNLOADED,
             remoteId = "remote-123",
             source = "Premiumize"
@@ -553,7 +553,7 @@ internal class MultifileHosterServiceTest {
         stubTransfers(listOf(transfer))
         every { cloudService.buildDestinationPath(any(), any()) } returns Pair("I", "/destination/Movies/I/")
         every { httpHelper.getPage(match { it.contains("folder/list") }) } returns
-                "{\"status\":\"success\",\"content\":[{\"id\":\"f1\",\"name\":\"Inception.mkv\",\"type\":\"file\",\"size\":1000,\"link\":\"http://premiumize.me/dl/inception.mkv\"}]}"
+                "{\"status\":\"success\",\"content\":[{\"id\":\"f1\",\"name\":\"Ivakisaka.mkv\",\"type\":\"file\",\"size\":1000,\"link\":\"http://premiumize.me/dl/ivakisaka.mkv\"}]}"
 
         multifileHosterService.checkForDownloadableTorrentsAndDownloadTheFirst()
 
@@ -599,7 +599,7 @@ internal class MultifileHosterServiceTest {
     @Test
     fun shouldGiveUpWhenTheHosterKeepsReturningNoFiles() {
         val transfer = Transfer(
-            name = "Inception.2010.1080p.mkv",
+            name = "Ivakisaka.2010.1080p.mkv",
             transferStatus = TransferStatus.READY_TO_BE_DOWNLOADED,
             remoteId = "remote-123",
             source = "Premiumize"
@@ -620,16 +620,16 @@ internal class MultifileHosterServiceTest {
     @Test
     fun shouldTellTheUploaderTheSizeOfEachFile() {
         val transfer = Transfer(
-            name = "Breaking.Bad.S01",
+            name = "Bacozami.Bap.S01",
             transferStatus = TransferStatus.READY_TO_BE_DOWNLOADED,
             remoteId = "remote-123",
             source = "Premiumize"
         )
         stubTransfers(listOf(transfer))
-        every { cloudService.buildDestinationPath(any(), any()) } returns Pair("B", "/destination/Series-Shows/B/Breaking.Bad/")
+        every { cloudService.buildDestinationPath(any(), any()) } returns Pair("B", "/destination/Series-Shows/B/Bacozami.Bap/")
         every { httpHelper.getPage(match { it.contains("folder/list") }) } returns "{\"status\":\"success\",\"content\":[" +
-                "{\"id\":\"f1\",\"name\":\"Breaking.Bad.S01E01.mkv\",\"type\":\"file\",\"size\":1000,\"link\":\"http://premiumize.me/dl/bb01.mkv\"}," +
-                "{\"id\":\"f2\",\"name\":\"Breaking.Bad.S01E02.mkv\",\"type\":\"file\",\"size\":2000,\"link\":\"http://premiumize.me/dl/bb02.mkv\"}" +
+                "{\"id\":\"f1\",\"name\":\"Bacozami.Bap.S01E01.mkv\",\"type\":\"file\",\"size\":1000,\"link\":\"http://premiumize.me/dl/bb01.mkv\"}," +
+                "{\"id\":\"f2\",\"name\":\"Bacozami.Bap.S01E02.mkv\",\"type\":\"file\",\"size\":2000,\"link\":\"http://premiumize.me/dl/bb02.mkv\"}" +
                 "]}"
 
         multifileHosterService.checkForDownloadableTorrentsAndDownloadTheFirst()
@@ -641,7 +641,7 @@ internal class MultifileHosterServiceTest {
     @Test
     fun shouldCountFailedUploadsToDriveAndRetry() {
         val transfer = Transfer(
-            name = "Inception.2010.1080p.mkv",
+            name = "Ivakisaka.2010.1080p.mkv",
             transferStatus = TransferStatus.READY_TO_BE_DOWNLOADED,
             remoteId = "remote-123",
             source = "Premiumize"
@@ -649,7 +649,7 @@ internal class MultifileHosterServiceTest {
         stubTransfers(listOf(transfer))
         every { cloudService.buildDestinationPath(any(), any()) } returns Pair("I", "/destination/Movies/I/")
         every { httpHelper.getPage(match { it.contains("folder/list") }) } returns
-                "{\"status\":\"success\",\"content\":[{\"id\":\"f1\",\"name\":\"Inception.mkv\",\"type\":\"file\",\"size\":1000,\"link\":\"http://premiumize.me/dl/inception.mkv\"}]}"
+                "{\"status\":\"success\",\"content\":[{\"id\":\"f1\",\"name\":\"Ivakisaka.mkv\",\"type\":\"file\",\"size\":1000,\"link\":\"http://premiumize.me/dl/ivakisaka.mkv\"}]}"
         every { rcloneUploader.copyUrl(any(), any(), any()) } returns false
 
         multifileHosterService.checkForDownloadableTorrentsAndDownloadTheFirst()
@@ -664,7 +664,7 @@ internal class MultifileHosterServiceTest {
     @Test
     fun shouldGiveUpAfterMaximumRetriesAndKeepFilesOnHoster() {
         val transfer = Transfer(
-            name = "Inception.2010.1080p.mkv",
+            name = "Ivakisaka.2010.1080p.mkv",
             transferStatus = TransferStatus.READY_TO_BE_DOWNLOADED,
             remoteId = "remote-123",
             source = "Premiumize",
@@ -673,7 +673,7 @@ internal class MultifileHosterServiceTest {
         stubTransfers(listOf(transfer))
         every { cloudService.buildDestinationPath(any(), any()) } returns Pair("I", "/destination/Movies/I/")
         every { httpHelper.getPage(match { it.contains("folder/list") }) } returns
-                "{\"status\":\"success\",\"content\":[{\"id\":\"f1\",\"name\":\"Inception.mkv\",\"type\":\"file\",\"size\":1000,\"link\":\"http://premiumize.me/dl/inception.mkv\"}]}"
+                "{\"status\":\"success\",\"content\":[{\"id\":\"f1\",\"name\":\"Ivakisaka.mkv\",\"type\":\"file\",\"size\":1000,\"link\":\"http://premiumize.me/dl/ivakisaka.mkv\"}]}"
         every { rcloneUploader.copyUrl(any(), any(), any()) } returns false
 
         multifileHosterService.checkForDownloadableTorrentsAndDownloadTheFirst()
@@ -689,7 +689,7 @@ internal class MultifileHosterServiceTest {
     @Test
     fun shouldNotResetFailedTransferToReadyFromHosterStatus() {
         val transfer = Transfer(
-            name = "Inception.2010.1080p.mkv",
+            name = "Ivakisaka.2010.1080p.mkv",
             transferStatus = TransferStatus.UPLOAD_TO_DRIVE_FAILED,
             remoteId = "remote-123",
             uri = "magnet:?xt=urn:btih:10e93389d579ba4538c68b8d297268a81620fae2",
@@ -697,7 +697,7 @@ internal class MultifileHosterServiceTest {
         )
         stubTransfers(listOf(transfer))
         every { httpHelper.getPage(match { it.contains("transfer/list") }) } returns
-                "{\"status\":\"success\",\"transfers\":[{\"id\":\"remote-123\",\"name\":\"Inception.2010.1080p.mkv\",\"status\":\"finished\"," +
+                "{\"status\":\"success\",\"transfers\":[{\"id\":\"remote-123\",\"name\":\"Ivakisaka.2010.1080p.mkv\",\"status\":\"finished\"," +
                 "\"folder_id\":\"folder-1\",\"file_id\":null,\"src\":\"magnet:?xt=urn:btih:10e93389d579ba4538c68b8d297268a81620fae2\",\"message\":\"\",\"progress\":1}]}"
 
         multifileHosterService.updateTransferStatus()
@@ -783,11 +783,11 @@ internal class MultifileHosterServiceTest {
         assertThat(matchedByHash.remoteId).isEqualTo("remote-1")
     }
 
-    private val readyTransferList = "{\"status\":\"success\",\"transfers\":[{\"id\":\"remote-123\",\"name\":\"Inception.2010.1080p.mkv\",\"status\":\"finished\"," +
+    private val readyTransferList = "{\"status\":\"success\",\"transfers\":[{\"id\":\"remote-123\",\"name\":\"Ivakisaka.2010.1080p.mkv\",\"status\":\"finished\"," +
             "\"folder_id\":\"folder-1\",\"file_id\":null,\"src\":\"magnet:?xt=urn:btih:10e93389d579ba4538c68b8d297268a81620fae2\",\"message\":\"\",\"progress\":1}]}"
 
     private fun failedTransfer(remoteId: String? = "remote-123") = Transfer(
-        name = "Inception.2010.1080p.mkv",
+        name = "Ivakisaka.2010.1080p.mkv",
         transferStatus = TransferStatus.UPLOAD_TO_DRIVE_FAILED,
         remoteId = remoteId,
         uri = "magnet:?xt=urn:btih:10e93389d579ba4538c68b8d297268a81620fae2",

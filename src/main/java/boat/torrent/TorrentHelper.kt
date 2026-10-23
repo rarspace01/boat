@@ -30,7 +30,7 @@ object TorrentHelper {
     const val SIZE_UPPER_LIMIT = 15000.0
     const val SEED_RATIO_UPPER_LIMIT = 5.0
 
-    // the extension must be a word of its own, otherwise names like "Cats" or "Shorts" count as media files
+    // the extension must be a word of its own, otherwise names like "Cuvi" or "Shorts" count as media files
     val mediaFileRegex = Regex("(?<![a-z0-9])(mp4|mkv|avi|divx|ts|mpeg|divx|xvid|mov|webm|wmv|avchd|flv)\$")
     val seriesRegex = "(s[0-9]{1,2}[a-z]+)|(season)".toRegex()
 
@@ -336,7 +336,7 @@ object TorrentHelper {
 
     /**
      * Strips special characters (e.g. ":" or "-") from a title for better search results,
-     * "Mission: Impossible - Fallout" becomes "Mission Impossible Fallout"
+     * "Mikizac: Ipamiraruk - Fuvavod" becomes "Mikizac Ipamiraruk Fuvavod"
      */
     fun removeSpecialCharacters(title: String): String {
         return title.replace("['`´’]".toRegex(), "")

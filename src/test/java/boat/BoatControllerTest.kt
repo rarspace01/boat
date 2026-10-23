@@ -47,16 +47,16 @@ internal class BoatControllerTest {
 
     @Test
     fun shouldParseTrailingYearOfSearchListEntry() {
-        assertThat(BoatController.splitSearchListEntry("Dune 1984")).isEqualTo("Dune" to 1984)
-        assertThat(BoatController.splitSearchListEntry("Dune (2021)\r")).isEqualTo("Dune" to 2021)
-        assertThat(BoatController.splitSearchListEntry("Inception.2010")).isEqualTo("Inception" to 2010)
+        assertThat(BoatController.splitSearchListEntry("Daca 1984")).isEqualTo("Daca" to 1984)
+        assertThat(BoatController.splitSearchListEntry("Daca (2021)\r")).isEqualTo("Daca" to 2021)
+        assertThat(BoatController.splitSearchListEntry("Ivakisaka.2010")).isEqualTo("Ivakisaka" to 2010)
     }
 
     @Test
     fun shouldKeepTitleWithoutPlausibleYear() {
-        assertThat(BoatController.splitSearchListEntry("Blade Runner 2049")).isEqualTo("Blade Runner 2049" to null)
+        assertThat(BoatController.splitSearchListEntry("Bubes Rutepe 2049")).isEqualTo("Bubes Rutepe 2049" to null)
         assertThat(BoatController.splitSearchListEntry("1917")).isEqualTo("1917" to null)
-        assertThat(BoatController.splitSearchListEntry("Inception")).isEqualTo("Inception" to null)
+        assertThat(BoatController.splitSearchListEntry("Ivakisaka")).isEqualTo("Ivakisaka" to null)
         assertThat(BoatController.splitSearchListEntry("   ")).isNull()
     }
 
@@ -89,7 +89,7 @@ internal class BoatControllerTest {
 
     @Test
     fun shouldShowRestartAndDeleteControlsForTransfer() {
-        val transfer = Transfer(id = "id-1", name = "Inception", transferStatus = TransferStatus.UPLOAD_TO_DRIVE_FAILED)
+        val transfer = Transfer(id = "id-1", name = "Ivakisaka", transferStatus = TransferStatus.UPLOAD_TO_DRIVE_FAILED)
 
         val controls = BoatController.transferControls(transfer)
 
@@ -98,43 +98,43 @@ internal class BoatControllerTest {
 
     @Test
     fun shouldNotShowControlsWhileUploadingToDrive() {
-        val transfer = Transfer(id = "id-1", name = "Inception", transferStatus = TransferStatus.UPLOADING_TO_DRIVE)
+        val transfer = Transfer(id = "id-1", name = "Ivakisaka", transferStatus = TransferStatus.UPLOADING_TO_DRIVE)
 
         assertThat(BoatController.transferControls(transfer)).isEmpty()
     }
 
     @Test
     fun shouldRedirectToInfoPageWithMessageAfterDelete() {
-        every { multifileHosterService.deleteTransfer("id-1") } returns "deleted Inception & co"
+        every { multifileHosterService.deleteTransfer("id-1") } returns "deleted Ivakisaka & co"
 
         val response = boatController.deleteTransfer("id-1")
 
         assertThat(response.statusCode).isEqualTo(HttpStatus.SEE_OTHER)
-        assertThat(response.headers.getFirst(HttpHeaders.LOCATION)).isEqualTo("./info?message=deleted+Inception+%26+co")
+        assertThat(response.headers.getFirst(HttpHeaders.LOCATION)).isEqualTo("./info?message=deleted+Ivakisaka+%26+co")
     }
 
     @Test
     fun shouldRedirectToInfoPageWithMessageAfterRestart() {
-        every { multifileHosterService.restartTransfer("id-1") } returns "restarted Inception"
+        every { multifileHosterService.restartTransfer("id-1") } returns "restarted Ivakisaka"
 
         val response = boatController.restartTransfer("id-1")
 
         assertThat(response.statusCode).isEqualTo(HttpStatus.SEE_OTHER)
-        assertThat(response.headers.getFirst(HttpHeaders.LOCATION)).isEqualTo("./info?message=restarted+Inception")
+        assertThat(response.headers.getFirst(HttpHeaders.LOCATION)).isEqualTo("./info?message=restarted+Ivakisaka")
     }
 
     @Test
     fun shouldQueuePlainEntriesOfTheSearchListWithoutLookups() {
         every { queueService.addAll(any()) } returns Unit
 
-        val response = boatController.queueList("Dune 1984\nInception\n\n")
+        val response = boatController.queueList("Daca 1984\nIvakisaka\n\n")
 
         verify(exactly = 1) {
-            queueService.addAll(listOf(MediaItem("Dune", "Dune", 1984, MediaType.Other), MediaItem("Inception", "Inception", null, MediaType.Other)))
+            queueService.addAll(listOf(MediaItem("Daca", "Daca", 1984, MediaType.Other), MediaItem("Ivakisaka", "Ivakisaka", null, MediaType.Other)))
         }
         verify(exactly = 0) { mediaProxyService.findBestMatch(any(), any()) }
         verify(exactly = 0) { cloudService.findExistingFiles(any()) }
-        assertThat(response).contains("Dune")
+        assertThat(response).contains("Daca")
     }
 
     @Test

@@ -7,13 +7,13 @@ internal class BencodeTest {
 
     @Test
     fun shouldDecodeIntegersStringsListsAndDictionaries() {
-        val decoded = Bencode.decode("d3:agei42e4:listl3:abci-7ee4:name4:Dunee".toByteArray()) as Map<*, *>
+        val decoded = Bencode.decode("d3:agei42e4:listl3:abci-7ee4:name4:Dacae".toByteArray()) as Map<*, *>
 
         assertThat(decoded["age"]).isEqualTo(42L)
         val list = decoded["list"] as List<*>
         assertThat(String(list[0] as ByteArray)).isEqualTo("abc")
         assertThat(list[1]).isEqualTo(-7L)
-        assertThat(String(decoded["name"] as ByteArray)).isEqualTo("Dune")
+        assertThat(String(decoded["name"] as ByteArray)).isEqualTo("Daca")
     }
 
     @Test
