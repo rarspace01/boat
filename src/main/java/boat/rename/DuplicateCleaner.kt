@@ -46,6 +46,11 @@ import kotlin.math.pow
  * Episodes whose file names have different titles in front of the episode number ("Batman TAS.S01E02" and "The New
  * Batman Adventures.S01E02" in the same show) are not the same episode, such a group is [UnsureGroup].
  *
+ * Shifted episode numbers: if the versions of a decided episode differ in length by more than [SHIFT_MIN_DIFFERENCE]
+ * and one of them has (to the second, [SHIFT_TOLERANCE_SECONDS]) the length of a version of exactly one other episode of
+ * the same season (incomplete files and lengths which many episodes have don't count), one of the files is probably numbered differently (S06E01 of one release is S06E04 of the other). The
+ * official runtime doesn't help there, all episodes have about the same one. Such a group is [UnsureGroup].
+ *
  * A group is otherwise only decided if the codecs are known and they are about equally long (5%, a PAL speed-up of 4% or other credits differ by that much; more is another cut or episode, a mislabeled number). Otherwise it is
  * [UnsureGroup] and nothing of it is deleted: a file which is much shorter might be cut or damaged, or a different
  * cut or a double episode. The subtitles next to a deleted version are moved to the version which stays if it has
@@ -217,6 +222,12 @@ class DuplicateCleaner(
                 groups.add(DuplicateGroup(key, ranked.first(), ranked.drop(1) + incomplete + brokenVersions, reasons))
             }
         }
+        val (consistent, shifted) = groups.partition { group -> shiftedNumbering(group, sameByName, infos) == null }
+        shifted.forEach { group ->
+            unsure.add(UnsureGroup(group.key, (listOf(group.keep) + group.remove).map { it.file }, shiftedNumbering(group, sameByName, infos)!!, listOf(group.keep) + group.remove))
+        }
+        groups.clear()
+        groups.addAll(consistent)
         logger.info(
             "decided {} groups, {} not decided, in {} s ({} runtime lookups, {} s)", groups.size, unsure.size,
             (System.nanoTime() - decideStart) / 1_000_000_000, lookups, lookupMillis / 1000
@@ -240,6 +251,41 @@ class DuplicateCleaner(
             runtimeLookup?.minutes(series.groupValues[1], series.groupValues[2].toInt(), series.groupValues[3].toInt())
         }
         return minutes?.times(60)
+    }
+
+    /**
+     * Tells which version of the [group] has the length of a version of exactly one other episode of the same season
+     * and not the one of the other versions of its own episode, null if the numbering is not suspicious. Incomplete
+     * files (under half of the longest version) don't count, and neither does a length which many episodes have
+     * (the episodes of a cartoon are all about equally long).
+     */
+    private fun shiftedNumbering(group: DuplicateGroup, sameByName: Map<String, List<File>>, infos: Map<File, VideoInfo>): String? {
+        val own = seriesKeyPattern.matchEntire(group.key) ?: return null
+        val versions = completeVersions(listOf(group.keep) + group.remove.filter { it.info.durationSeconds != null })
+        val lengths = versions.mapNotNull { it.info.durationSeconds }
+        if (lengths.size < 2 || lengths.max() <= lengths.min() * (1 + SHIFT_MIN_DIFFERENCE)) return null
+        val otherEpisodes = sameByName.mapNotNull { (otherKey, files) ->
+            val other = seriesKeyPattern.matchEntire(otherKey)
+            if (other == null || otherKey == group.key || other.groupValues[1] != own.groupValues[1] || other.groupValues[2] != own.groupValues[2]) null
+            else files.filter { infos[it]?.durationSeconds != null }.let { readable ->
+                val longest = readable.maxOfOrNull { infos.getValue(it).durationSeconds!! } ?: 0.0
+                readable.filter { infos.getValue(it).durationSeconds!! >= longest * MIN_COMPLETE_LENGTH }
+            }
+        }
+        for (version in versions) {
+            val length = version.info.durationSeconds!!
+            val matching = otherEpisodes.filter { files -> files.any { kotlin.math.abs(infos.getValue(it).durationSeconds!! - length) <= SHIFT_TOLERANCE_SECONDS } }
+            if (matching.size == 1) {
+                val match = matching.single().first { kotlin.math.abs(infos.getValue(it).durationSeconds!! - length) <= SHIFT_TOLERANCE_SECONDS }
+                return "the episode numbering is probably shifted: '${version.file.name}' (${formatDuration(length)}) has the length of '${match.name}'"
+            }
+        }
+        return null
+    }
+
+    private fun completeVersions(versions: List<Version>): List<Version> {
+        val longest = versions.mapNotNull { it.info.durationSeconds }.maxOrNull() ?: return emptyList()
+        return versions.filter { (it.info.durationSeconds ?: 0.0) >= longest * MIN_COMPLETE_LENGTH }
     }
 
     private fun differentLength(versions: List<Version>): Boolean {
@@ -409,6 +455,10 @@ class DuplicateCleaner(
         /** A version shorter than this part of the longest one is an incomplete file (or another cut), it is deleted. */
         private const val MIN_COMPLETE_LENGTH = 0.5
 
+        /** Versions of an episode which differ more than this in length and match another episode of the season by length are suspected to be numbered differently. */
+        private const val SHIFT_MIN_DIFFERENCE = 0.03
+        private const val SHIFT_TOLERANCE_SECONDS = 2.0
+
         /** Versions which differ more in length are not the same content. */
         private const val MAX_LENGTH_DIFFERENCE = 0.05
 
@@ -459,7 +509,7 @@ class DuplicateCleaner(
 
         /** The title without case, punctuation and a leading "the", so "The.Crow.Girl" and "The Crow Girl" are the same. */
         private fun normalizedTitle(title: String): String =
-            title.lowercase().replace("[^\\p{L}\\p{N}]+".toRegex(), " ").trim().removePrefix("the ")
+            title.lowercase().replace("&", " and ").replace("[^\\p{L}\\p{N}]+".toRegex(), " ").trim().removePrefix("the ")
 
         private fun episodeKey(file: File): String? {
             // the id is in the name of the folder of the show
