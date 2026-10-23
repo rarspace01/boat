@@ -108,7 +108,7 @@ internal class TorrentInfoServiceScrapeTest {
         val maxAccepted = 10
         every { httpHelper.getBinary(any(), any()) } answers {
             val hashes = requestedHashes(firstArg())
-            if (hashes.size > maxAccepted) HttpHelper.BinaryResponse(500, "<html>error</html>".toByteArray())
+            if (hashes.size > maxAccepted) HttpHelper.BinaryResponse(414, "<html>Request-URI Too Long</html>".toByteArray())
             else HttpHelper.BinaryResponse(200, answer(hashes.associateWith { 4 to 0 }))
         }
 
@@ -121,19 +121,23 @@ internal class TorrentInfoServiceScrapeTest {
     }
 
     @Test
-    fun shouldFallBackToSingleRequestsForAnAnswerOfAnotherKind() {
-        val service = service()
-        val torrents = torrents(3)
-        every { httpHelper.getBinary(any(), any()) } answers {
-            val hashes = requestedHashes(firstArg())
-            if (hashes.size > 1) HttpHelper.BinaryResponse(200, "not bencode".toByteArray())
-            else HttpHelper.BinaryResponse(200, answer(hashes.associateWith { 2 to 2 }))
+    fun shouldNotSplitForAnyOtherErrorOrAnswer() {
+        listOf(
+            HttpHelper.BinaryResponse(404, "<html>not found</html>".toByteArray()),
+            HttpHelper.BinaryResponse(500, "<html>error</html>".toByteArray()),
+            HttpHelper.BinaryResponse(200, "not bencode".toByteArray()),
+        ).forEach { response ->
+            io.mockk.clearMocks(httpHelper)
+            val service = service()
+            val torrents = torrents(40)
+            every { httpHelper.getBinary(any(), any()) } returns response
+
+            service.refreshTorrentStats(torrents)
+
+            assertThat(torrents).noneMatch { it.statsVerified }
+            verify(exactly = 1) { httpHelper.getBinary(any(), any()) }
+            service.shutdown()
         }
-
-        service.refreshTorrentStats(torrents)
-
-        assertThat(torrents).allMatch { it.seeder == 2 }
-        service.shutdown()
     }
 
     @Test
