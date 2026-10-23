@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service
 import java.io.IOException
 import java.net.InetAddress
 import java.net.URI
+import java.net.URLEncoder
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
@@ -72,7 +73,7 @@ class HttpHelper {
     private fun send(
         client: HttpClient, url: String, cookies: String?, body: String?, timeout: Int, headers: Map<String, String>?
     ): HttpResponse<ByteArray> {
-        val builder = HttpRequest.newBuilder(URI.create(url))
+        val builder = HttpRequest.newBuilder(toUri(url))
             .timeout(Duration.ofMillis(timeout.toLong()))
             .setHeader("User-Agent", USER_AGENT_BROWSER)
             .setHeader("Accept-Charset", "UTF-8")
@@ -162,7 +163,7 @@ class HttpHelper {
      */
     @Throws(IOException::class)
     fun getBinary(url: String, timeout: Int = SHORT_TIMEOUT, headers: Map<String, String> = emptyMap()): BinaryResponse {
-        val builder = HttpRequest.newBuilder(URI.create(url))
+        val builder = HttpRequest.newBuilder(toUri(url))
             .timeout(Duration.ofMillis(timeout.toLong()))
             .setHeader("User-Agent", USER_AGENT_BROWSER)
         headers.forEach { (key, value) -> builder.setHeader(key, value) }
@@ -177,6 +178,20 @@ class HttpHelper {
     }
 
     companion object {
+        // what may stand in a url as it is: letters, digits, the delimiters and %-escapes
+        private val urlCharacter = Regex("[A-Za-z0-9\\-._~:/?#@!$&'()*+,;=%]")
+
+        /**
+         * Links from the search sites contain characters a url must escape (`[ettv]`, spaces), browsers escape them
+         * and so does this. Escapes which are already there stay.
+         */
+        internal fun toUri(url: String): URI = runCatching { URI.create(url) }.getOrElse {
+            URI.create(url.map { char ->
+                if (urlCharacter.matches(char.toString())) char.toString()
+                else URLEncoder.encode(char.toString(), Charsets.UTF_8).replace("+", "%20")
+            }.joinToString(""))
+        }
+
         const val DEFAULT_TIMEOUT = 30 * 1000
         const val SHORT_TIMEOUT = 10 * 1000
         private const val MAX_REDIRECTS = 3
@@ -245,7 +260,7 @@ class HttpHelper {
             }
         }
 
-        private fun hostOf(url: String): String = runCatching { URI.create(url).host }.getOrNull() ?: "unknown"
+        private fun hostOf(url: String): String = runCatching { toUri(url).host }.getOrNull() ?: "unknown"
 
         /**
          * Torrent sites often have broken certificates, so for them a failed verification falls back to an
