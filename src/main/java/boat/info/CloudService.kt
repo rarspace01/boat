@@ -8,6 +8,8 @@ import boat.utilities.LoggerDelegate
 import boat.utilities.PropertiesHelper
 import boat.utilities.StringUtil
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.context.event.ApplicationReadyEvent
+import org.springframework.context.event.EventListener
 import org.springframework.stereotype.Service
 import org.springframework.util.StringUtils
 import java.time.Duration
@@ -25,37 +27,45 @@ class CloudService internal constructor(
     @Autowired
     constructor(cloudFileService: CloudFileService) : this(cloudFileService, System::nanoTime)
 
-    private class TokenCheck(val nanos: Long, val isValid: Boolean)
+    private class FolderCheck(val nanos: Long, val isReady: Boolean)
 
     @Volatile
-    private var lastTokenCheck: TokenCheck? = null
-    private val tokenCheckLock = ReentrantLock()
+    private var lastFolderCheck: FolderCheck? = null
+    private val folderCheckLock = ReentrantLock()
 
     companion object {
         private val logger by LoggerDelegate()
         const val RCLONE_DIR = "RCLONEDIR"
-        private val VALID_TOKEN_CHECK_NANOS = TimeUnit.MINUTES.toNanos(5)
-        private val INVALID_TOKEN_CHECK_NANOS = TimeUnit.MINUTES.toNanos(1)
+        private val FOLDER_READY_NANOS = TimeUnit.DAYS.toNanos(1)
+        private val FOLDER_RETRY_NANOS = TimeUnit.MINUTES.toNanos(1)
     }
 
     /**
-     * A listing of the library, remembered for a minute (a valid token for 5), so an expired or late-ready token is still
-     * noticed soon. Only one check runs at a time, while it waits for a hanging remote the others get the last answer.
+     * Whether the target folder (`RCLONEDIR`) can be listed. Checked on the start, a success is kept for a day (so an
+     * expired token is noticed). A failure is checked again after a minute, so a remote which is late or was fixed
+     * doesn't need a restart. Only one check runs at a time, while it waits for a hanging remote the others get the last answer.
      */
-    val isCloudTokenValid: Boolean
+    val isTargetFolderReady: Boolean
         get() {
-            val last = lastTokenCheck
+            val last = lastFolderCheck
             val now = nanoTime()
-            if (last != null && now - last.nanos < (if (last.isValid) VALID_TOKEN_CHECK_NANOS else INVALID_TOKEN_CHECK_NANOS)) return last.isValid
-            if (!tokenCheckLock.tryLock()) return last?.isValid ?: false
+            if (last != null && now - last.nanos < (if (last.isReady) FOLDER_READY_NANOS else FOLDER_RETRY_NANOS)) return last.isReady
+            if (!folderCheckLock.tryLock()) return last?.isReady ?: false
             try {
-                val isValid = cloudFileService.getFilesInPath(buildDestinationPathWithTypeOfMediaWithoutSubFolders("A", TorrentType.MOVIES)).isNotEmpty()
-                lastTokenCheck = TokenCheck(nanoTime(), isValid)
-                return isValid
+                val path = PropertiesHelper.getProperty(RCLONE_DIR)
+                val isReady = !path.isNullOrBlank() && cloudFileService.isDirectoryReachable(path)
+                if (isReady) logger.info("target folder [{}] is ready", path) else logger.error("target folder [{}] can't be listed, nothing is downloaded until it can", path)
+                lastFolderCheck = FolderCheck(nanoTime(), isReady)
+                return isReady
             } finally {
-                tokenCheckLock.unlock()
+                folderCheckLock.unlock()
             }
         }
+
+    @EventListener(ApplicationReadyEvent::class)
+    fun verifyTargetFolderOnStart() {
+        isTargetFolderReady
+    }
 
     private fun deductSeriesNameFrom(preparedTorrentName: String): String {
         return Arrays.stream(

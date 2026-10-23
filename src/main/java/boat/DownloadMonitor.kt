@@ -141,7 +141,7 @@ class DownloadMonitor(
     @Async
     @Scheduled(fixedRate = (SECONDS_BETWEEN_QUEUE_POLLING * 1000).toLong())
     fun checkForQueueEntries() {
-        if (cloudService.isCloudTokenValid && configurationService.isSearchMode()) runExclusively("checkForQueueEntries") {
+        if (cloudService.isTargetFolderReady && configurationService.isSearchMode()) runExclusively("checkForQueueEntries") {
             logger.info("checkForQueueEntryAndAddToTransfers")
             checkForQueueEntryAndAddToTransfers()
         }

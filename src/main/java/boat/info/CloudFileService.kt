@@ -20,13 +20,14 @@ class CloudFileService(
 ) {
     var isCacheFilled = false
 
-    private class RcloneResult(val output: String, val error: String)
+    private class RcloneResult(val output: String, val error: String, val exitCode: Int)
 
     companion object {
         private val logger by LoggerDelegate()
 
         /** A recursive listing of a whole letter folder of the library takes a while on the remote. */
         const val LISTING_TIMEOUT_SECONDS = 300L
+        private const val DIRECTORY_CHECK_TIMEOUT_SECONDS = 60L
 
         /** Reading the output blocks until rclone ends, so not on the common pool, where it would hold threads others need. */
         private val outputReaders = Executors.newVirtualThreadPerTaskExecutor()
@@ -36,6 +37,19 @@ class CloudFileService(
             listOf("rclone") + RcloneUploader.certificateArguments() + "lsjson" +
                     (if (destinationPath.contains("/transfer/")) emptyList() else listOf("--recursive")) +
                     destinationPath
+    }
+
+    /** Whether rclone can list the folder (an empty one is fine), false if it or its remote doesn't exist or can't be reached. */
+    fun isDirectoryReachable(path: String): Boolean {
+        val command = listOf("rclone") + RcloneUploader.certificateArguments() + listOf("lsjson", "--max-depth", "1", path)
+        return try {
+            val result = run(command, DIRECTORY_CHECK_TIMEOUT_SECONDS)
+            if (result != null && result.exitCode != 0) logger.warn("rclone can't list [{}]: {}", path, result.error.trim())
+            result != null && result.exitCode == 0
+        } catch (e: Exception) {
+            logger.warn("rclone can't list [{}]: {}", path, e.message)
+            false
+        }
     }
 
     @Cacheable("filesCache", unless = "#result.isEmpty()")
@@ -93,6 +107,6 @@ class CloudFileService(
             logger.warn("rclone took more than {}s, stopped it: {}", timeoutSeconds, command.joinToString(" "))
             return null
         }
-        return RcloneResult(output.get(5, TimeUnit.SECONDS), error.get(5, TimeUnit.SECONDS))
+        return RcloneResult(output.get(5, TimeUnit.SECONDS), error.get(5, TimeUnit.SECONDS), process.exitValue())
     }
 }
