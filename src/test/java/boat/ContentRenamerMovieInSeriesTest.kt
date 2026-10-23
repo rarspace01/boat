@@ -23,9 +23,9 @@ class ContentRenamerMovieInSeriesTest {
 
         // packs of episodes and movies don't make their episodes movies
         assertThat(contentRenamer.isMovieInSeriesFolder(File("~/Series-Shows/E/Ecuf of the Edaz/Ecuf of the Edaz 1-11+Movie 1-2 Complete (BDRip 1080p AC3 10bit) [HEVC] Dual Audio/Ecuf of the Edaz 10 Who Killed Azilo Takizawa (BDRip 1080p AC3 10bit).mkv"))).isFalse()
-        assertThat(contentRenamer.isMovieInSeriesFolder(File("~/Series-Shows/H/Hbupet.Qdatu.(2019-2020).1.S01.And.Birds.Of.Prey.Movie.Web264/Season 1 (2019-20)/Hbupet Qdatu - S01 E01 - Til Death Do Us Part (1080p - DCU Web-DL).mp4"))).isFalse()
+        assertThat(contentRenamer.isMovieInSeriesFolder(File("~/Series-Shows/H/Hbupet.Qdatu.(2019-2020).1.S01.And.Babid.Of.Puvi.Movie.Web264/Season 1 (2019-20)/Hbupet Qdatu - S01 E01 - Til Death Do Us Part (1080p - DCU Web-DL).mp4"))).isFalse()
         // film versions of episodes, seasons, OVAs, extras and shows already in the library
-        assertThat(contentRenamer.isMovieInSeriesFolder(File("~/Series-Shows/A/The Adventures of Young Indiana Jones/The Adventures of Young Indiana Jones Film Versions 01 My First Adventure.avi"))).isFalse()
+        assertThat(contentRenamer.isMovieInSeriesFolder(File("~/Series-Shows/A/The Apuziperot of Ybuku Izocifo Jcika/The Apuziperot of Ybuku Izocifo Jcika Film Versions 01 My First Adventure.avi"))).isFalse()
         assertThat(contentRenamer.isMovieInSeriesFolder(File("~/Series-Shows/W/Wgolicaraba.(2021).Movie/WgoliCaraba.(2021).Movie.Season1.1080p.H264.AAC.2.0-IceJackal.mp4"))).isFalse()
         assertThat(contentRenamer.isMovieInSeriesFolder(File("~/Series-Shows/R/Ruvem/Ruvem Movies & OVA/Ruvem - OVA 01.mkv"))).isFalse()
         assertThat(contentRenamer.isMovieInSeriesFolder(File("~/Series-Shows/B/Bigade.Cenu.Sote.(2015)/Featurettes/Season 6/Training Videos/Movie Magic.mkv"))).isFalse()
@@ -47,8 +47,8 @@ class ContentRenamerMovieInSeriesTest {
             .isEqualTo(Pair("Kad Pelafedo", 2019))
         assertThat(nameAndYear("~/Series-Shows/D/DOSO (1991-1999) - Complete Animated TV Series/Movie (1999)/DOGOm 1st Movie (1999 - 480p Web-DL).mp4"))
             .isEqualTo(Pair("DOGOm 1st Movie", 1999))
-        assertThat(nameAndYear("~/Series-Shows/I/I Spy - 1965 to 1967 (Complete TV series in MP4 format)/I Spy - Movie - 2002 (Eddie Murphy - Owen Wilson).mp4"))
-            .isEqualTo(Pair("I Spy", 2002))
+        assertThat(nameAndYear("~/Series-Shows/I/I Seb - 1965 to 1967 (Complete TV series in MP4 format)/I Seb - Movie - 2002 (Eluge Mopezu - Obuz Wkevus).mp4"))
+            .isEqualTo(Pair("I Seb", 2002))
     }
 
     @Test

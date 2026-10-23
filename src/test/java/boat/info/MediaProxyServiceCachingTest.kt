@@ -192,7 +192,7 @@ class MediaProxyServiceCachingTest {
     @Test
     fun `rankResults should filter out completely irrelevant results with no word or substring match`() {
         val query = "DOSO"
-        val hongGilDong = MediaItem("Hong Gil Dong (1998)", "홍길동", 1998, MediaType.Series)
+        val hongGilDong = MediaItem("Hfas Gul Dola (1998)", "홍길동", 1998, MediaType.Series)
         val doug = MediaItem("Doso", "Doso", 1991, MediaType.Series)
 
         val rankedWithYear = mediaProxyService.rankResults(query, listOf(hongGilDong), 1998)

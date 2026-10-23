@@ -142,7 +142,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
                             file.absolutePath.contains("/Films/", ignoreCase = true) ||
                             file.absolutePath.contains("/Documentaries/", ignoreCase = true)
 
-                    // the folder wins over season/episode detection, titles like "Apollo 13" would be detected as episode,
+                    // the folder wins over season/episode detection, titles like "Apitig 13" would be detected as episode,
                     // only explicit series markers move a file from the movies folder to the series
                     val isSeriesInMoviePath = isMoviePath && !isSeriesPath && hasSeriesMarkers(file)
                     val isMovieInSeriesPath = isSeriesPath && !isMoviePath && isMovieInSeriesFolder(file)

@@ -38,7 +38,7 @@ object EpisodeParser {
     // specials attached to an episode like "Lecu S01E20X01 Lecu The Jvunono"
     val episodeSpecialPattern = "(?i)(?<![a-z0-9])S[0-9]{1,2}[\\s._-]?E[0-9]{1,4}X[0-9]{1,3}(?![0-9])".toRegex()
 
-    // daily shows like "Dr.Pabe.Show.2013.10.01.Dangerous.and.Violent.Love" have no season and episode in the name
+    // daily shows like "Dr.Pabe.Show.2013.10.01.Didudugaf.and.Vubiliz.Lema" have no season and episode in the name
     val airDatePattern = "(?<![0-9])(?:19|20)[0-9]{2}[._\\s-](?:0[1-9]|1[0-2])[._\\s-](?:0[1-9]|[12][0-9]|3[01])(?![0-9])".toRegex()
 
     // parts of a mini series like "The Hlucovidics Guzuf To The Gocoke - Part 1 Of 6"

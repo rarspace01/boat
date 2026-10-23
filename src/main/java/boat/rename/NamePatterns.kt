@@ -65,7 +65,7 @@ internal val trailingQualityTag = "(?i)\\s+(?:720p|1080p|1080i|2160p|480p|4k|uhd
 
 internal val trailingYearPattern = "(?<=[a-zA-Z\\s])\\s+(?:19[0-9]{2}|20[0-2][0-9])(?:-[0-9]{2,4})?$".toRegex()
 
-// "Catch-22 2019", only after cutting at the season, a remaining "-22" would be read as episode otherwise
+// "Coniz-22 2019", only after cutting at the season, a remaining "-22" would be read as episode otherwise
 internal val trailingYearAfterNumberPattern = "(?<=[0-9])\\s+(?:19[0-9]{2}|20[0-2][0-9])$|(?<=[a-zA-Z])-(?:19[0-9]{2}|20[0-2][0-9])$".toRegex()
 
 internal val trailingEpisodeMarkerPattern = Regex("(?i)(?:\\s*-\\s*|\\s+)(?:Episode|Ep|E)\\.?$")
@@ -217,7 +217,7 @@ internal val trailingMovieTagPattern = ("(?i)\\s+(?:german|deutsch|ger|dl|eng|it
 // torrent hash and "title=" of magnet-like names, or the "Eto." (Russian "this is") of kinozal releases
 internal val movieHashPrefixPattern = "(?i)^(?:[0-9a-f]{32,40}\\s*(?:title=)?|eto[\\s.]+(?=\\S))".toRegex()
 
-// "Blade.3.Trinity.20041080p" glues the year to the resolution
+// "Bubes.3.Taralad.20041080p" glues the year to the resolution
 internal val yearGluedToResolutionPattern = "(?i)(?<=[^0-9])((?:19[0-9]{2}|20[0-2][0-9]))(?=(?:2160|1080|720|576|480)[pi])".toRegex()
 
 internal val movieSitePrefixPattern = "(?i)^www\\.\\S+?\\.(?:com|org|net|me|to|tv|re|io|cc|ws)\\s*-?\\s+".toRegex()
