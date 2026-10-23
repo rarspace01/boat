@@ -109,7 +109,7 @@ class MultifileHosterService(
     fun addTransfersToDownloadQueue() {
         // filter for traffic left
         val transfersToBeDownloaded = transferService.getAll()
-                .filter { transfer -> TransferStatus.ADDED == transfer.transferStatus || TransferStatus.SERVER_ERROR == transfer.transferStatus }
+                .filter { transfer -> TransferStatus.ADDED == transfer.transferStatus || isServerErrorRetryDue(transfer) }
                 .filter { transfer -> multifileHosterListForDownloads.any { multifileHoster -> multifileHoster.getName() == transfer.source } }
         multifileHosterListForDownloads.forEach { multifileHoster ->
             val transfersForHoster = transfersToBeDownloaded.filter { transfer -> transfer.source == multifileHoster.getName() }
@@ -122,9 +122,10 @@ class MultifileHosterService(
                     if (addTorrentToQueueMessage.contains("You already added this job")) {
                         transfer.transferStatus = TransferStatus.ERROR
                     } else {
-                        transfer.transferStatus = TransferStatus.SERVER_ERROR
+                        handleRejectedByHoster(transfer)
                     }
                 } else {
+                    transfer.failedAddsToHoster = 0
                     transfer.remoteId = addTransferResult.remoteId ?: extractRemoteIdFromMessage(transfer)
                     transfer.transferStatus = TransferStatus.ADDED_TO_MULTIHOSTER
                 }
@@ -238,6 +239,7 @@ class MultifileHosterService(
         }
         val remoteTorrent = findRemoteTorrent(transfer)
         transfer.failedUploadsToDrive = 0
+        transfer.failedAddsToHoster = 0
         transfer.progressInPercentage = 0.0
         transfer.eta = Duration.ZERO
         val message = if (remoteTorrent?.remoteTransferStatus == TransferStatus.READY_TO_BE_DOWNLOADED) {
@@ -467,6 +469,21 @@ class MultifileHosterService(
     }
 
     /**
+     * A transfer the hoster rejects is sent again later, with a growing pause ([isServerErrorRetryDue]). After
+     * [MAX_ADD_TO_HOSTER_RETRIES] tries it is an error, the cleanup removes it.
+     */
+    private fun handleRejectedByHoster(transfer: Transfer) {
+        transfer.failedAddsToHoster++
+        if (transfer.failedAddsToHoster > MAX_ADD_TO_HOSTER_RETRIES) {
+            transfer.transferStatus = TransferStatus.ERROR
+            transfer.feedbackMessage = "${transfer.feedbackMessage}, rejected by the hoster ${transfer.failedAddsToHoster} times, gave up"
+            log.error("giving up on transfer after {} rejections by the hoster: {}", transfer.failedAddsToHoster, transfer)
+        } else {
+            transfer.transferStatus = TransferStatus.SERVER_ERROR
+        }
+    }
+
+    /**
      * Every download from the multifilehoster costs traffic, so a transfer whose upload to the drive failed is only
      * retried [MAX_UPLOAD_TO_DRIVE_RETRIES] times, after the other waiting transfers (they are picked by their last
      * update). After that it is marked as failed and its files stay on the multifilehoster.
@@ -584,6 +601,15 @@ class MultifileHosterService(
     companion object {
         private val log by LoggerDelegate()
         const val MAX_UPLOAD_TO_DRIVE_RETRIES = 2
+        const val MAX_ADD_TO_HOSTER_RETRIES = 5
+        private val FIRST_ADD_TO_HOSTER_RETRY_PAUSE: Duration = Duration.ofMinutes(5)
+
+        /** A rejected transfer is sent again after 5, 10, 20, 40 and 80 minutes. */
+        internal fun isServerErrorRetryDue(transfer: Transfer, now: Instant = Instant.now()): Boolean {
+            if (transfer.transferStatus != TransferStatus.SERVER_ERROR) return false
+            val pause = FIRST_ADD_TO_HOSTER_RETRY_PAUSE.multipliedBy(1L shl (transfer.failedAddsToHoster - 1).coerceIn(0, 10))
+            return !transfer.updated.plus(pause).isAfter(now)
+        }
         const val TRAFFIC_CACHE_SECONDS = 30L
     }
 }

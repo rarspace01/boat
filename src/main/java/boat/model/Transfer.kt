@@ -25,6 +25,8 @@ data class Transfer(
     var feedbackMessage: String? = null,
     var eta: Duration = Duration.ZERO,
     var failedUploadsToDrive: Int = 0,
+    /** How often the hoster rejected the transfer in a row ([TransferStatus.SERVER_ERROR]). */
+    var failedAddsToHoster: Int = 0,
     var updated: Instant = Instant.now(),
 ) {
     override fun toString(): String {

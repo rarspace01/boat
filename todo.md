@@ -9,9 +9,6 @@ Ordered by how much they matter, from the review of 2026-10-23 (on top of #581).
 
 ### Bugs and risks
 
-- [ ] A transfer the hoster rejects (`SERVER_ERROR`) is sent again every 30 s forever. Every try saves it, which
-  renews `updated`, so the cleanup (`isTransferObsolete`) never removes it. Needs a retry limit or backoff like
-  `MAX_UPLOAD_TO_DRIVE_RETRIES`.
 - [ ] The queue is not first in, first out: `QueueService` keeps it in `java.util.Properties` (a hash table), so the
   entries of a list are picked in hash order. Reading it while a list is added can throw a
   `ConcurrentModificationException`. A `LinkedHashMap` (plus a lock) and an ordered file would fix both.
@@ -119,7 +116,8 @@ Ordered by how much they matter, from the review of 2026-10-23 (on top of #581).
   race between the check and the connection is possible, the endpoint needs a login.
 - Downloads: a transfer whose upload to the drive failed, or whose hoster returned no files, is retried
   `MAX_UPLOAD_TO_DRIVE_RETRIES` (2) times, then it is `UPLOAD_TO_DRIVE_FAILED` and the files stay on the hoster
-  (restart on the info page). The torrent is only deleted at the hoster after all files are uploaded.
+  (restart on the info page). The torrent is only deleted at the hoster after all files are uploaded. A transfer the hoster
+  rejects (`SERVER_ERROR`) is sent again after 5, 10, 20, 40 and 80 minutes, then it is `ERROR` and the cleanup removes it.
 - rclone `copyurl` skips a file which already exists with the size the hoster reports. The size doesn't prove identical
   content; a file of another size is replaced.
 - Media proxy cache: failed lookups are never cached; found entries live 90 days, not found 7 (`0` = forever).

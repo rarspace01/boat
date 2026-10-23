@@ -64,6 +64,45 @@ internal class MultifileHosterServiceTest {
     }
 
     @Test
+    fun shouldSendARejectedTransferAgainWithAGrowingPauseAndGiveUpAfterFiveTries() {
+        val transfer = Transfer(source = "Premiumize", uri = "magnet:?xt=urn:btih:123456789", transferStatus = TransferStatus.ADDED)
+        stubTransfers(listOf(transfer))
+        every { httpHelper.getPage(match { it.contains("transfer/create") }) } returns "{\"status\":\"error\",\"message\":\"server error\"}"
+
+        multifileHosterService.addTransfersToDownloadQueue()
+        assertThat(transfer.transferStatus).isEqualTo(TransferStatus.SERVER_ERROR)
+        assertThat(transfer.failedAddsToHoster).isEqualTo(1)
+
+        // not again right away
+        transfer.updated = java.time.Instant.now()
+        multifileHosterService.addTransfersToDownloadQueue()
+        assertThat(transfer.failedAddsToHoster).isEqualTo(1)
+
+        repeat(5) {
+            transfer.updated = java.time.Instant.now().minus(java.time.Duration.ofDays(1))
+            multifileHosterService.addTransfersToDownloadQueue()
+        }
+        assertThat(transfer.failedAddsToHoster).isEqualTo(6)
+        assertThat(transfer.transferStatus).isEqualTo(TransferStatus.ERROR)
+        verify(exactly = 6) { httpHelper.getPage(match { it.contains("transfer/create") }) }
+    }
+
+    @Test
+    fun shouldWaitLongerAfterEveryRejection() {
+        val now = java.time.Instant.parse("2026-10-23T12:00:00Z")
+        fun rejected(times: Int, minutesAgo: Long) = Transfer(
+            transferStatus = TransferStatus.SERVER_ERROR, failedAddsToHoster = times, updated = now.minus(java.time.Duration.ofMinutes(minutesAgo))
+        )
+        assertThat(MultifileHosterService.isServerErrorRetryDue(rejected(1, 4), now)).isFalse
+        assertThat(MultifileHosterService.isServerErrorRetryDue(rejected(1, 5), now)).isTrue
+        assertThat(MultifileHosterService.isServerErrorRetryDue(rejected(3, 19), now)).isFalse
+        assertThat(MultifileHosterService.isServerErrorRetryDue(rejected(3, 20), now)).isTrue
+        // older transfers without the count
+        assertThat(MultifileHosterService.isServerErrorRetryDue(rejected(0, 5), now)).isTrue
+        assertThat(MultifileHosterService.isServerErrorRetryDue(Transfer(transferStatus = TransferStatus.ADDED, updated = now.minusSeconds(86400)), now)).isFalse
+    }
+
+    @Test
     fun extractRemoteIdFromMessage() {
         // Given
         val transferFeedbackMessage =
