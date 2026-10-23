@@ -54,6 +54,39 @@ internal class DownloadMonitorTest {
     }
 
     @Test
+    fun shouldNotAskTheHosterIfTheQueueIsEmpty() {
+        every { queueService.getQueue() } returns emptyList()
+
+        downloadMonitor.checkForQueueEntries()
+
+        verify(exactly = 0) { multifileHosterService.remoteTorrents }
+        verify(exactly = 0) { multifileHosterService.getRemainingTrafficInMB() }
+    }
+
+    @Test
+    fun shouldNotPickTheSameQueueEntryWhileItIsStillSearched() {
+        val queueItem = MediaItem(title = "Avatar", year = 2009, type = MediaType.Movie, id = "{tmdb-19995}")
+        val searching = java.util.concurrent.CountDownLatch(1)
+        val release = java.util.concurrent.CountDownLatch(1)
+        every { queueService.getQueue() } returns listOf(queueItem)
+        every { cloudService.findExistingFiles(any()) } returns emptyList()
+        every { torrentSearchEngineService.searchTorrents("Avatar 2009") } answers {
+            searching.countDown()
+            release.await()
+            emptyList()
+        }
+
+        val first = Thread { downloadMonitor.checkForQueueEntries() }.apply { start() }
+        searching.await()
+        downloadMonitor.checkForQueueEntries()
+        release.countDown()
+        first.join()
+
+        verify(exactly = 1) { torrentSearchEngineService.searchTorrents("Avatar 2009") }
+        verify(exactly = 1) { queueService.remove(queueItem) }
+    }
+
+    @Test
     fun shouldSearchMovieAndIncludeYearAndRemoteMediaId() {
         val queueItem = MediaItem(title = "Avatar", year = 2009)
         val resolvedMedia = MediaItem(title = "Avatar", year = 2009, type = MediaType.Movie, id = "{tmdb-19995}")

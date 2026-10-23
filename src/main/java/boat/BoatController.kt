@@ -38,6 +38,7 @@ import java.lang.management.ManagementFactory
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.util.*
+import java.util.concurrent.Executors
 import kotlin.concurrent.thread
 import kotlin.system.exitProcess
 
@@ -55,6 +56,10 @@ class BoatController @Autowired constructor(
 ) {
 
     companion object {
+        /** The titles come from TMDB/TVDB or a pasted list. */
+        internal fun queueHtml(queue: List<MediaItem>): String =
+            String.format("<br/>Queue [%d]: %s", queue.size, HtmlUtils.htmlEscape(queue.toString()))
+
         private val logger by LoggerDelegate()
         const val BREAK_LINK_HTML = "  <br>\n"
         private val trailingYearPattern = "^(.+?)[\\s.(\\[]+((?:19|20)[0-9]{2})[)\\]]?$".toRegex()
@@ -168,7 +173,7 @@ $BREAK_LINK_HTML  <input type="reset" value="Reset">
   <input type="submit" value="Download">
 </form>
 <br/>
-$switchToSearch$switchToSearchList${switchToProgress.replace("..", "../boat")}""" + htmlFooter
+$switchToSearch$switchToSearchList$switchToProgress""" + htmlFooter
     }
 
     @GetMapping("/boat/searchList")
@@ -232,7 +237,7 @@ $switchToSearch${switchToProgress}""" + htmlFooter
             .filter { mediaItem: MediaItem -> isNotAlreadyDownloaded(mediaItem) }
         queueService.addAll(listOfMediaItems)
         queueService.saveQueue()
-        return htmlHeader + (switchToProgress.replace("..", "../boat") + HtmlUtils.htmlEscape(listOfMediaItems.toString()).replace("\n", "<br/>")) + htmlFooter
+        return htmlHeader + (switchToProgress + HtmlUtils.htmlEscape(listOfMediaItems.toString()).replace("\n", "<br/>")) + htmlFooter
     }
 
     /**
@@ -268,7 +273,7 @@ $BREAK_LINK_HTML  <input type="reset" value="Reset">
   <input type="submit" value="Search">
 </form>
 <br/>
-$switchToSearchOld$switchToSearchList${switchToProgress.replace("..", "../boat")}""" + htmlFooter
+$switchToSearchOld$switchToSearchList$switchToProgress""" + htmlFooter
     }
 
     /**
@@ -317,7 +322,10 @@ $switchToSearchOld$switchToSearchList${switchToProgress.replace("..", "../boat")
                 mediaSearchString, mediaItems.size
             )
             // the searches don't tell the number of seasons of a series, its details do
-            val seasonCounts = mediaItems.parallelStream().map { mediaProxyService.seasonCountOf(it) }.toList()
+            // in parallel on threads of their own, not on the common pool (cores - 1 threads, the requests only wait)
+            val seasonCounts = Executors.newVirtualThreadPerTaskExecutor().use { executor ->
+                mediaItems.map { executor.submit<Int?> { mediaProxyService.seasonCountOf(it) } }.map { it.get() }
+            }
             val mediaList = mediaItems.indices.joinToString(separator = "") { index -> mediaItemLine(mediaItems[index], seasonCounts[index]) }
             htmlHeader + (if (mediaItems.isEmpty()) "No media found.<br/>" else "Select a title:<br/>$mediaList") +
                     htmlFooter
@@ -334,42 +342,21 @@ $switchToSearchOld$switchToSearchList${switchToProgress.replace("..", "../boat")
         @RequestParam(value = "dd", required = false) directDownloadUri: String?,
         @RequestParam(value = "mid", required = false) remoteMediaId: String?,
         @RequestParam(value = "mt", required = false) mediaTypeString: String?,
-    ): String {
-        val torrentsToBeDownloaded: MutableList<Torrent> = ArrayList()
-        val decodedUri: String
-
-        if (Strings.isNotEmpty(downloadUri)) {
-            val magnetUri = Base64.getUrlDecoder().decode(downloadUri)
-            decodedUri = String(magnetUri, StandardCharsets.UTF_8)
-            torrentsToBeDownloaded.add(
-                Torrent.of(
-                    magnetUri = decodedUri,
-                )
-            )
-        } else if (Strings.isNotEmpty(directDownloadUri)) {
-            decodedUri = directDownloadUri ?: ""
-            if (!decodedUri.contains(",")) {
-                torrentsToBeDownloaded.add(
-                    Torrent.of(
-                        magnetUri = decodedUri,
-                    )
-                )
-            } else {
-                val uris = decodedUri.split(",".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
-                uris.forEach {
-                    torrentsToBeDownloaded.add(
-                        Torrent.of(
-                            magnetUri = it,
-                        )
-                    )
-                }
-            }
+    ): ResponseEntity<String> {
+        val uris = if (Strings.isNotEmpty(downloadUri)) {
+            val decoded = runCatching { String(Base64.getUrlDecoder().decode(downloadUri!!.trim()), StandardCharsets.UTF_8) }.getOrNull()
+                ?: return ResponseEntity.badRequest().contentType(MediaType.TEXT_PLAIN).body("d is not Base64")
+            listOf(decoded)
+        } else {
+            // a comma separated list of urls
+            directDownloadUri.orEmpty().split(",").map { it.trim() }
         }
+        val torrentsToBeDownloaded = uris.filter { it.isNotBlank() }.map { Torrent.of(magnetUri = it) }
         torrentsToBeDownloaded.forEach {
             multifileHosterService.addTorrentToTransfer(it, remoteMediaId?.ifBlank { null }, parseMediaType(mediaTypeString))
         }
         multifileHosterService.addTransfersToDownloadQueue()
-        return switchToProgress
+        return ResponseEntity.ok().contentType(MediaType.TEXT_HTML).body(switchToProgress)
     }
 
     @RequestMapping("/boat/tfdb")
@@ -399,11 +386,7 @@ $switchToSearchOld$switchToSearchList${switchToProgress.replace("..", "../boat")
             "<br/>Transfers [%d]: %s",
             transfers.size,
             transfers.joinToString(separator = ", ", prefix = "[", postfix = "]") { it.toString() + transferControls(it) }
-        ) + String.format("<br/><!-- D [%d]: %s -->", remoteTorrents.size, remoteTorrents) + String.format(
-            "<br/>Queue [%d]: %s",
-            queueService.getQueue().size,
-            queueService.getQueue()
-        )) + htmlFooter
+        ) + String.format("<br/><!-- D [%d]: %s -->", remoteTorrents.size, remoteTorrents) + queueHtml(queueService.getQueue())) + htmlFooter
     }
 
     @PostMapping("/boat/transferDelete")

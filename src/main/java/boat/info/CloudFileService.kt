@@ -1,7 +1,6 @@
 package boat.info
 
 import boat.utilities.LoggerDelegate
-import boat.utilities.PropertiesHelper
 import boat.utilities.RcloneUploader
 import com.google.gson.JsonElement
 import com.google.gson.JsonParser
@@ -28,7 +27,6 @@ class CloudFileService(
 
         /** A recursive listing of a whole letter folder of the library takes a while on the remote. */
         const val LISTING_TIMEOUT_SECONDS = 300L
-        private const val ABOUT_TIMEOUT_SECONDS = 60L
 
         /** Reading the output blocks until rclone ends, so not on the common pool, where it would hold threads others need. */
         private val outputReaders = Executors.newVirtualThreadPerTaskExecutor()
@@ -40,35 +38,6 @@ class CloudFileService(
                     destinationPath
     }
 
-    @Cacheable("getFreeSpaceInMegaBytes")
-    fun getFreeSpaceInMegaBytes():Double {
-        val basePath = PropertiesHelper.getProperty(CloudService.RCLONE_DIR)
-        // no shell, so the path can't break out of the command
-        val command = listOf("rclone") + RcloneUploader.certificateArguments() + listOf("about", basePath.toString(), "--json")
-        logger.info(command.joinToString(" "))
-        var output = ""
-        var error = ""
-        try {
-            val result = run(command, ABOUT_TIMEOUT_SECONDS) ?: return -1.0
-            output = result.output
-            error = result.error
-            if (error.contains("limit") && output.isEmpty()) {
-                Thread.sleep(2000)
-                return -1.0
-            }
-            if (error.contains("directory not found")) {
-                return -1.0
-            }
-            val jsonElement = JsonParser.parseString(output)
-            return if (jsonElement.isJsonObject) {
-                return jsonElement.asJsonObject["free"].asLong.toDouble()/1024/1024
-            } else -1.0
-        } catch (e: Exception) {
-            logger.error("{}\nPath: [$basePath]\nOutput from process:\n{}\nError from Process:\n{}", e.message, output, error, e)
-            return -1.0
-        }
-    }
-
     @Cacheable("filesCache", unless = "#result.isEmpty()")
     fun getFilesInPath(destinationPath: String): List<String> {
         return getFilesInPathWithRetries(destinationPath, 3)
@@ -77,9 +46,9 @@ class CloudFileService(
     fun getFilesInPathWithRetries(destinationPath: String, retriesLeft: Int): List<String> {
         val fileList: MutableList<String> = ArrayList()
         val startCounter = System.currentTimeMillis()
-        logger.info("Search in [$destinationPath]")
+        logger.debug("Search in [$destinationPath]")
         val command = buildLsjsonCommand(destinationPath)
-        logger.info(command.joinToString(" "))
+        logger.debug(command.joinToString(" "))
         var output = ""
         var error = ""
         try {

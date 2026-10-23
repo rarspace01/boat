@@ -10,13 +10,22 @@ import com.google.gson.JsonParser
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import java.util.Locale
+import java.util.concurrent.TimeUnit
 import java.util.function.Consumer
 
 @Service
-class TheTVDBService @Autowired constructor(private val httpHelper: HttpHelper) {
+class TheTVDBService internal constructor(private val httpHelper: HttpHelper, private val nanoTime: () -> Long) {
+
+    @Autowired
+    constructor(httpHelper: HttpHelper) : this(httpHelper, System::nanoTime)
+
     private val logger by LoggerDelegate()
     private val baseUrl = "https://api4.thetvdb.com/v4"
     private var token: String? = null
+
+    /** After a failed login the next one waits, 1 minute, doubling up to 30 minutes. */
+    private var failedLogins = 0
+    private var nextLoginNanos = 0L
 
     private fun login(): String? {
         val apiKey = PropertiesHelper.getProperty("TVDB_APIKEY")
@@ -46,9 +55,25 @@ class TheTVDBService @Autowired constructor(private val httpHelper: HttpHelper) 
     @Synchronized
     private fun getToken(): String? {
         if (token == null) {
+            val now = nanoTime()
+            if (failedLogins > 0 && now - nextLoginNanos < 0) return null
             token = login()
+            if (token == null) {
+                failedLogins++
+                val pauseMinutes = (1L shl (failedLogins - 1).coerceAtMost(5)).coerceAtMost(MAX_LOGIN_PAUSE_MINUTES)
+                nextLoginNanos = now + TimeUnit.MINUTES.toNanos(pauseMinutes)
+                logger.warn("TVDB login failed {} times, next try in {} min", failedLogins, pauseMinutes)
+            } else {
+                failedLogins = 0
+            }
         }
         return token
+    }
+
+    /** An empty answer is also what an expired token gets (HTTP 401), the next request logs in again. */
+    private fun resetTokenIfEmpty(pageContent: String?): String? {
+        if (pageContent.isNullOrBlank()) resetToken()
+        return pageContent
     }
 
     /**
@@ -114,7 +139,7 @@ class TheTVDBService @Autowired constructor(private val httpHelper: HttpHelper) 
         val jwtToken = getToken() ?: return null
         val headers = mapOf("Authorization" to "Bearer $jwtToken")
         val url = "$baseUrl/series/${urlEncode(id)}/extended?meta=translations&short=true"
-        return parseSeriesPage(httpHelper.getPage(url, null, headers))
+        return parseSeriesPage(resetTokenIfEmpty(httpHelper.getPage(url, null, headers)))
     }
 
     /** The runtimes in minutes by episode number of a season (aired order) of a series, empty if TVDB doesn't know them. */
@@ -122,7 +147,7 @@ class TheTVDBService @Autowired constructor(private val httpHelper: HttpHelper) 
         val jwtToken = getToken() ?: return emptyMap()
         val headers = mapOf("Authorization" to "Bearer $jwtToken")
         val url = "$baseUrl/series/${urlEncode(id)}/episodes/default?season=$season&page=0"
-        return parseEpisodeRuntimes(httpHelper.getPage(url, null, headers), season)
+        return parseEpisodeRuntimes(resetTokenIfEmpty(httpHelper.getPage(url, null, headers)), season)
     }
 
     fun parseEpisodeRuntimes(pageContent: String?, season: Int): Map<Int, Int> {
@@ -341,5 +366,9 @@ class TheTVDBService @Autowired constructor(private val httpHelper: HttpHelper) 
             type.contains("series") || type.contains("show") || type.contains("tv") -> MediaType.Series
             else -> MediaType.Other
         }
+    }
+
+    private companion object {
+        const val MAX_LOGIN_PAUSE_MINUTES = 30L
     }
 }

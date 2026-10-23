@@ -27,6 +27,7 @@ import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import java.time.Instant
 import java.time.temporal.ChronoUnit
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.system.exitProcess
 
 @EnableAsync
@@ -43,36 +44,37 @@ class DownloadMonitor(
     private val httpHelper: HttpHelper,
     private val mediaProxyService: MediaProxyService
 ) {
+    /**
+     * The `@Async` jobs which are running. A job is skipped while its last run is still going (each runs on a thread of
+     * its own), e.g. a queue entry is only removed after its torrent search, which can take longer than the 30 s between two runs.
+     */
+    private val runningJobs: MutableSet<String> = ConcurrentHashMap.newKeySet()
+
+    private inline fun runExclusively(job: String, block: () -> Unit) {
+        if (!runningJobs.add(job)) {
+            logger.debug("{} is still running, skipped", job)
+            return
+        }
+        try {
+            block()
+        } finally {
+            runningJobs.remove(job)
+        }
+    }
+
     @Async
     @Scheduled(fixedRate = (SECONDS_BETWEEN_SEARCH_ENGINE_POLLING * 1000).toLong())
     fun refreshTorrentSearchEngines() {
-        if (configurationService.isSearchMode()) {
+        if (configurationService.isSearchMode()) runExclusively("refreshTorrentSearchEngines") {
             logger.debug("refreshTorrentSearchEngines()")
             torrentSearchEngineService.refreshTorrentSearchEngines()
         }
     }
 
-    //    @Scheduled(fixedRate = SECONDS_BETWEEN_FILE_CACHE_REFRESH * 1000)
-    //    public void fillQueueWithMovies() {
-    //        logger.info("fillQueueWithMovies()");
-    //        final List<MediaItem> completeList = new java.util.ArrayList<>(Collections.emptyList());
-    //        IntStream.rangeClosed(2006,2021)
-    //            .parallel()
-    //            .forEach(year -> {
-    //                IntStream.rangeClosed(1,12)
-    //                    .parallel()
-    //                    .forEach(month -> {
-    //                        logger.info("adding Queue for {}/{}", month, year);
-    //                        completeList.addAll(bluRayComService.getReleasesForMonthAndYear(month, year));
-    //                        logger.info("Queue Size: {}",completeList.size());
-    //                    });
-    //            });
-    //        queueService.addAll(completeList);
-    //    }
     @Async
     @Scheduled(fixedRate = (SECONDS_BETWEEN_FILE_CACHE_REFRESH * 1000).toLong())
     fun refreshCloudFileServiceCache() {
-        if (configurationService.isSearchMode()) {
+        if (configurationService.isSearchMode()) runExclusively("refreshCloudFileServiceCache") {
             logger.info("refreshCloudFileServiceCache()")
             val startOfCache = System.currentTimeMillis()
             if (multifileHosterService.isRcloneInstalled()) {
@@ -98,7 +100,7 @@ class DownloadMonitor(
     @Async
     @Scheduled(fixedRate = (SECONDS_BETWEEN_TRANSFER_POLLING * 1000).toLong())
     fun addTransfersToDownloadQueueAndUpdateTransferStatus() {
-        if (configurationService.isDownloadMode()) {
+        if (configurationService.isDownloadMode()) runExclusively("addTransfersToDownloadQueueAndUpdateTransferStatus") {
             multifileHosterService.addTransfersToDownloadQueue()
             multifileHosterService.updateTransferStatus()
         }
@@ -115,6 +117,10 @@ class DownloadMonitor(
     @Async
     @Scheduled(fixedRate = (SECONDS_BETWEEN_VERSION_CHECK * 1000).toLong(), initialDelay = 60 * 5 * 1000)
     fun checkForUpdatedVersionAndShutdownIfUpdateAvailable() {
+        runExclusively("checkForUpdatedVersion") { checkForUpdatedVersionAndShutdown() }
+    }
+
+    private fun checkForUpdatedVersionAndShutdown() {
         logger.info("checkForUpdatedVersionAndShutdown()")
         val githubVersion = runCatching {
             val pageContent = httpHelper.getPage("https://api.github.com/repos/rarspace01/boat/releases/latest")
@@ -135,13 +141,15 @@ class DownloadMonitor(
     @Async
     @Scheduled(fixedRate = (SECONDS_BETWEEN_QUEUE_POLLING * 1000).toLong())
     fun checkForQueueEntries() {
-        if (cloudService.isCloudTokenValid && configurationService.isSearchMode()) {
+        if (cloudService.isCloudTokenValid && configurationService.isSearchMode()) runExclusively("checkForQueueEntries") {
             logger.info("checkForQueueEntryAndAddToTransfers")
             checkForQueueEntryAndAddToTransfers()
         }
     }
 
     private fun checkForQueueEntryAndAddToTransfers() {
+        // the hoster is only asked for its transfers and the traffic if there is something to add
+        if (queueService.getQueue().isEmpty()) return
         val remoteTorrents = multifileHosterService.remoteTorrents
         val numberOfActiveRemoteTorrents = remoteTorrents.count { torrent: Torrent -> torrent.remoteTransferStatus != TransferStatus.READY_TO_BE_DOWNLOADED }
         val numberOfTorrentsReadyToDownload = remoteTorrents.count { torrent: Torrent -> torrent.remoteTransferStatus == TransferStatus.READY_TO_BE_DOWNLOADED }

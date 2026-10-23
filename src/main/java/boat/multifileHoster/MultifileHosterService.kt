@@ -10,6 +10,8 @@ import boat.mapper.TorrentMapper
 import boat.model.Transfer
 import boat.model.TransferStatus
 import boat.model.TransferType
+import boat.rename.LibraryPaths
+import boat.rename.ReleaseMatcher
 import boat.services.TransferService
 import boat.torrent.HttpUser
 import boat.torrent.Torrent
@@ -47,7 +49,10 @@ class MultifileHosterService(
         private val rcloneUploader: RcloneUploader = RcloneUploader(),
 ) : HttpUser(httpHelper) {
     private val isDownloadInProgress = AtomicBoolean(false)
+    private val releaseMatcher = ReleaseMatcher(mediaProxyService)
+    @Volatile
     private var isRcloneInstalled: Boolean? = null
+    private var rcloneCheckedAtNanos = 0L
     private val multifileHosterList: MutableList<MultifileHoster> = mutableListOf(Premiumize(httpHelper))
     private val multifileHosterListForDownloads: MutableList<MultifileHoster> = getEligibleMultifileHoster(httpHelper)
 
@@ -109,7 +114,7 @@ class MultifileHosterService(
     fun addTransfersToDownloadQueue() {
         // filter for traffic left
         val transfersToBeDownloaded = transferService.getAll()
-                .filter { transfer -> TransferStatus.ADDED == transfer.transferStatus || TransferStatus.SERVER_ERROR == transfer.transferStatus }
+                .filter { transfer -> TransferStatus.ADDED == transfer.transferStatus || isServerErrorRetryDue(transfer) }
                 .filter { transfer -> multifileHosterListForDownloads.any { multifileHoster -> multifileHoster.getName() == transfer.source } }
         multifileHosterListForDownloads.forEach { multifileHoster ->
             val transfersForHoster = transfersToBeDownloaded.filter { transfer -> transfer.source == multifileHoster.getName() }
@@ -122,16 +127,18 @@ class MultifileHosterService(
                     if (addTorrentToQueueMessage.contains("You already added this job")) {
                         transfer.transferStatus = TransferStatus.ERROR
                     } else {
-                        transfer.transferStatus = TransferStatus.SERVER_ERROR
+                        handleRejectedByHoster(transfer)
                     }
                 } else {
+                    transfer.failedAddsToHoster = 0
                     transfer.remoteId = addTransferResult.remoteId ?: extractRemoteIdFromMessage(transfer)
                     transfer.transferStatus = TransferStatus.ADDED_TO_MULTIHOSTER
                 }
                 transferService.save(transfer)
-                updateTransferStatus()
             }
         }
+        // once for all added transfers, it asks the hoster for its whole list
+        if (transfersToBeDownloaded.isNotEmpty()) updateTransferStatus()
     }
 
     fun extractRemoteIdFromMessage(transfer: Transfer): String? {
@@ -238,6 +245,7 @@ class MultifileHosterService(
         }
         val remoteTorrent = findRemoteTorrent(transfer)
         transfer.failedUploadsToDrive = 0
+        transfer.failedAddsToHoster = 0
         transfer.progressInPercentage = 0.0
         transfer.eta = Duration.ZERO
         val message = if (remoteTorrent?.remoteTransferStatus == TransferStatus.READY_TO_BE_DOWNLOADED) {
@@ -368,7 +376,8 @@ class MultifileHosterService(
                     mediaProxyService.findByRemoteMediaId(it, transferToBeDownloaded.hosterName(), transferToBeDownloaded.mediaType)
                 }
                     ?: transferToBeDownloaded.remoteMediaId?.let { mediaProxyService.search(it, transferToBeDownloaded.mediaType).firstOrNull() }
-                    ?: mediaProxyService.search(transferToBeDownloaded.hosterName(), transferToBeDownloaded.mediaType).firstOrNull())
+                    // without an id only a confident match of name and year, otherwise the download keeps its own name
+                    ?: releaseMatcher.match(transferToBeDownloaded.hosterName(), transferToBeDownloaded.mediaType))
 
                 val filesFromTorrent = getFilesFromTorrent(remoteTorrent)
                 if (filesFromTorrent.isEmpty()) {
@@ -396,7 +405,7 @@ class MultifileHosterService(
                         indexLetter = mediaTarget.second
                     } else {
                         val destination = cloudService.buildDestinationPath(remoteTorrent.name, listOf(fileToDownload))
-                        targetFilePath = destination.second + DownloadFileNames.buildFilename(remoteTorrent.name, fileToDownload.url)
+                        targetFilePath = destination.second + LibraryPaths.getSafeName(DownloadFileNames.buildFilename(remoteTorrent.name, fileToDownload.url))
                         indexLetter = destination.first
                     }
 
@@ -422,10 +431,12 @@ class MultifileHosterService(
                         } else {
                             val destination = cloudService.buildDestinationPath(remoteTorrent.name, filesFromTorrent)
                             val destinationPath: String = destination.second
+                            // the names come from the torrent, a "../" in them must not write elsewhere in the remote
+                            val safeFileName = LibraryPaths.getSafeRelativePath(torrentFile.name ?: "", LibraryPaths.getSafeName(DownloadFileNames.extractFileNameFromUrl(torrentFile.url)))
                             targetFilePath = if (destinationPath.contains(TorrentType.SERIES_SHOWS.type)) {
-                                destinationPath + (torrentFile.name ?: "")
+                                destinationPath + safeFileName
                             } else {
-                                destinationPath + remoteTorrent.name + "/" + (torrentFile.name ?: "")
+                                destinationPath + LibraryPaths.getSafeName(remoteTorrent.name) + "/" + safeFileName
                             }
                             indexLetter = destination.first
                         }
@@ -463,6 +474,21 @@ class MultifileHosterService(
                         transfer
                 )
             }
+        }
+    }
+
+    /**
+     * A transfer the hoster rejects is sent again later, with a growing pause ([isServerErrorRetryDue]). After
+     * [MAX_ADD_TO_HOSTER_RETRIES] tries it is an error, the cleanup removes it.
+     */
+    private fun handleRejectedByHoster(transfer: Transfer) {
+        transfer.failedAddsToHoster++
+        if (transfer.failedAddsToHoster > MAX_ADD_TO_HOSTER_RETRIES) {
+            transfer.transferStatus = TransferStatus.ERROR
+            transfer.feedbackMessage = "${transfer.feedbackMessage}, rejected by the hoster ${transfer.failedAddsToHoster} times, gave up"
+            log.error("giving up on transfer after {} rejections by the hoster: {}", transfer.failedAddsToHoster, transfer)
+        } else {
+            transfer.transferStatus = TransferStatus.SERVER_ERROR
         }
     }
 
@@ -528,14 +554,17 @@ class MultifileHosterService(
         updateTorrent(torrentToBeDownloaded)
     }
 
+    /** Found once is enough, a missing rclone is looked for again every few minutes (it might be installed later). */
     fun isRcloneInstalled(): Boolean {
-        if (isRcloneInstalled == null) {
-            isRcloneInstalled = ProcessUtil.isRcloneInstalled
-            if (isRcloneInstalled == false) {
-                log.error("no rclone found. Downloads not possible")
-            }
+        if (isRcloneInstalled == true) return true
+        val now = System.nanoTime()
+        if (isRcloneInstalled == false && now - rcloneCheckedAtNanos < TimeUnit.MINUTES.toNanos(RCLONE_CHECK_MINUTES)) return false
+        rcloneCheckedAtNanos = now
+        isRcloneInstalled = ProcessUtil.isRcloneInstalled
+        if (isRcloneInstalled == false) {
+            log.error("no rclone found. Downloads not possible")
         }
-        return isRcloneInstalled as Boolean
+        return isRcloneInstalled == true
     }
 
     fun refreshTorrents() {
@@ -548,6 +577,8 @@ class MultifileHosterService(
                 localStatusStorage.remove(torrent.torrentId)
             }
         }
+        // the torrents which are gone from the hoster (uploaded and deleted); an empty list might be a failure of the hoster
+        if (remoteTorrents.isNotEmpty()) localStatusStorage.keys.retainAll(remoteTorrents.map { it.torrentId }.toSet())
         activeTorrents = remoteTorrents
     }
 
@@ -555,11 +586,9 @@ class MultifileHosterService(
         return status != null && status.lowercase(Locale.getDefault()).matches(Regex("finished|seeding|ready"))
     }
 
+    /** The upload progress, shown instead of the status of the hoster, by the info hash. */
     private fun updateTorrent(torrentUpdate: Torrent) {
         localStatusStorage[torrentUpdate.torrentId] = torrentUpdate.remoteStatusText
-        if (torrentUpdate.remoteId.isNotEmpty()) {
-            localStatusStorage[torrentUpdate.remoteId] = torrentUpdate.remoteStatusText
-        }
     }
 
     /**
@@ -584,6 +613,16 @@ class MultifileHosterService(
     companion object {
         private val log by LoggerDelegate()
         const val MAX_UPLOAD_TO_DRIVE_RETRIES = 2
+        const val MAX_ADD_TO_HOSTER_RETRIES = 5
+        private const val RCLONE_CHECK_MINUTES = 5L
+        private val FIRST_ADD_TO_HOSTER_RETRY_PAUSE: Duration = Duration.ofMinutes(5)
+
+        /** A rejected transfer is sent again after 5, 10, 20, 40 and 80 minutes. */
+        internal fun isServerErrorRetryDue(transfer: Transfer, now: Instant = Instant.now()): Boolean {
+            if (transfer.transferStatus != TransferStatus.SERVER_ERROR) return false
+            val pause = FIRST_ADD_TO_HOSTER_RETRY_PAUSE.multipliedBy(1L shl (transfer.failedAddsToHoster - 1).coerceIn(0, 10))
+            return !transfer.updated.plus(pause).isAfter(now)
+        }
         const val TRAFFIC_CACHE_SECONDS = 30L
     }
 }

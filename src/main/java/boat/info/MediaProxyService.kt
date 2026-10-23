@@ -211,7 +211,8 @@ class MediaProxyService(
         dirty = true
         val excess = cache.size - maxCacheEntries
         if (excess > 0) {
-            cache.entries.filter { it.key != cacheKey }.sortedBy { it.value.cachedAt }.take(excess).forEach { cache.remove(it.key) }
+            // a tenth more than needed goes, so the cache is not sorted again on every put once it is full
+            cache.entries.filter { it.key != cacheKey }.sortedBy { it.value.cachedAt }.take(excess + maxCacheEntries / 10).forEach { cache.remove(it.key) }
         }
     }
 

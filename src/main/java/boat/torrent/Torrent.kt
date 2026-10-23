@@ -61,7 +61,7 @@ data class Torrent(
         }
         stringBuilder.append(String.format("[%s][%s]", HtmlUtils.htmlEscape(name), HtmlUtils.htmlEscape(retrieveSourceName())))
         if (!isRemoteTorrent) {
-            stringBuilder.append(String.format("[%s@<!-- ][%s/%s][ -->%.2f]", size, leecher, seeder, seedRatio))
+            stringBuilder.append(String.format("[%s@<!-- ][%s/%s][ -->%.2f]", HtmlUtils.htmlEscape(size), leecher, seeder, seedRatio))
             stringBuilder.append(String.format("<!-- R: %.2f -->", searchRating))
         }
         if (cached.isNotEmpty()) {

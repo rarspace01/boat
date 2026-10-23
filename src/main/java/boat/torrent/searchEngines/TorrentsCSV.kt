@@ -5,19 +5,13 @@ import boat.torrent.Torrent
 import boat.torrent.TorrentHelper
 import boat.torrent.TorrentSearchEngine
 import boat.utilities.HttpHelper
-import boat.utilities.LoggerDelegate
 import com.google.gson.JsonElement
 import com.google.gson.JsonParser
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.util.*
-import java.util.function.Consumer
 
 class TorrentsCSV internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper), TorrentSearchEngine {
-
-    companion object {
-        private val logger by LoggerDelegate()
-    }
 
     override fun searchTorrents(searchName: String): List<Torrent> {
         // the search needs at least 3 characters
@@ -60,7 +54,7 @@ class TorrentsCSV internal constructor(httpHelper: HttpHelper) : HttpUser(httpHe
                 return torrentList
             }
             val results = jsonRoot.asJsonObject["torrents"] ?: return torrentList
-            results.asJsonArray.forEach(Consumer { jsonTorrentElement: JsonElement ->
+            torrentList += SearchHits.parseEach(this, results.asJsonArray) { jsonTorrentElement: JsonElement ->
                 val tempTorrent = Torrent(toString())
                 val jsonTorrent = jsonTorrentElement.asJsonObject
                 tempTorrent.name = jsonTorrent["name"].asString
@@ -74,10 +68,10 @@ class TorrentsCSV internal constructor(httpHelper: HttpHelper) : HttpUser(httpHe
                 tempTorrent.size = TorrentHelper.humanReadableByteCountBinary(sizeInBytes)
                 tempTorrent.sizeInMB = (sizeInBytes / 1024.0f / 1024.0f).toDouble()
                 tempTorrent.date = Date(jsonTorrent["created_unix"].asLong * 1000)
-                torrentList.add(tempTorrent)
-            })
+                tempTorrent
+            }
         } catch (exception: Exception) {
-            logger.error("failed to parse string:\n${pageContent}", exception)
+            SearchHits.logUnreadablePage(this, pageContent, exception)
         }
         return torrentList
     }

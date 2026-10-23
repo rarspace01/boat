@@ -8,10 +8,24 @@ import java.nio.file.Path
 
 internal class DuplicateCleanerTest {
 
-    /** What the fake ffprobe says about a file, by the start of its name. */
+    /** What the fake ffprobe says about a file, by the start of its name: null is a file it rejects. */
     private val infos = mutableMapOf<String, VideoInfo?>()
 
-    private val cleaner = DuplicateCleaner({ file -> infos.entries.firstOrNull { file.name.startsWith(it.key) }?.value ?: infos[file.name] }, probeThreads = 2, codecWeightPercent = 100, betterCodecMarginPercent = 20)
+    /** Files the fake ffprobe can't read (a timeout, an I/O error), by name, with how often it fails for them. */
+    private val failing = mutableMapOf<String, Int>()
+
+    private val probe = VideoProbe { file ->
+        val failures = failing[file.name] ?: 0
+        if (failures > 0) {
+            failing[file.name] = failures - 1
+            ProbeResult.Failed("timeout after 60s")
+        } else {
+            (infos.entries.firstOrNull { file.name.startsWith(it.key) }?.value ?: infos[file.name])?.let { ProbeResult.Read(it) }
+                ?: ProbeResult.Broken("Invalid data found when processing input")
+        }
+    }
+
+    private val cleaner = DuplicateCleaner(probe, probeThreads = 2, codecWeightPercent = 100, betterCodecMarginPercent = 20)
 
     private fun video(codec: String = "h264", height: Int = 1080, width: Int = height * 16 / 9, bitrate: Long = 5_000_000, seconds: Double = 1500.0) =
         VideoInfo(codec, width, height, bitrate, seconds)
@@ -72,7 +86,7 @@ internal class DuplicateCleanerTest {
         val base = File(tempDir.toFile(), "case${System.nanoTime()}")
         val first = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mkv", a)
         val second = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mp4", b)
-        DuplicateCleaner({ infos[it.name] }, 2, weight, margin).processFilesFromDirectory(base.absolutePath, null, false)
+        DuplicateCleaner(probe, 2, weight, margin).processFilesFromDirectory(base.absolutePath, null, false)
         return when {
             first.exists() && !second.exists() -> "first"
             second.exists() && !first.exists() -> "second"
@@ -217,7 +231,7 @@ internal class DuplicateCleanerTest {
             val hd = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mkv", video(height = 1080, codec = "h264", bitrate = 1_000_000))
             val sd = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mp4", video(height = 480, codec = "hevc", bitrate = 9_000_000))
 
-            DuplicateCleaner({ infos[it.name] }, 2, weight, 20).processFilesFromDirectory(base.absolutePath, null, false)
+            DuplicateCleaner(probe, 2, weight, 20).processFilesFromDirectory(base.absolutePath, null, false)
 
             assertThat(hd).describedAs("weight $weight").exists()
             assertThat(sd).describedAs("weight $weight").doesNotExist()
@@ -399,8 +413,54 @@ internal class DuplicateCleanerTest {
         assertThat(b).exists()
     }
 
+    @Test
+    fun `should not delete a file which ffprobe could not read because of a timeout or an I-O error`(@TempDir tempDir: Path) {
+        val base = tempDir.toFile()
+        val a = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mkv", video(height = 1080))
+        val b = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mp4", video(height = 2160))
+        failing[b.name] = 2
+
+        val result = run(base)
+
+        assertThat(result.groups).isEmpty()
+        assertThat(result.unsureGroups.single().reason).contains("could not read").contains("timeout")
+        assertThat(a).exists()
+        assertThat(b).exists()
+    }
+
+    @Test
+    fun `should read a file once more which could not be read the first time`(@TempDir tempDir: Path) {
+        val base = tempDir.toFile()
+        val a = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mkv", video(height = 1080))
+        val b = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mp4", video(height = 2160))
+        failing[b.name] = 1
+
+        val result = run(base)
+
+        assertThat(result.groups.single().keep.file).isEqualTo(b)
+        assertThat(a).doesNotExist()
+        assertThat(b).exists()
+        assertThat(result.probeStats.failed).isZero()
+    }
+
+    @Test
+    fun `should only delete a file as broken which ffprobe rejects both times`(@TempDir tempDir: Path) {
+        val base = tempDir.toFile()
+        val good = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mkv", video())
+        val broken = file(base, "Movies/I/Inception (2010) {tmdb-27205}.mp4", null)
+        // a timeout first, then rejected: once is not enough
+        failing[broken.name] = 1
+
+        val result = run(base)
+
+        assertThat(result.groups).isEmpty()
+        assertThat(result.unsureGroups).hasSize(1)
+        assertThat(good).exists()
+        assertThat(broken).exists()
+    }
+
     private fun withRuntime(vararg minutes: Pair<String, Double>) = DuplicateCleaner(
-        { file -> infos[file.name] }, probeThreads = 2, codecWeightPercent = 100, betterCodecMarginPercent = 20,
+        probe, probeThreads = 2, codecWeightPercent = 100, betterCodecMarginPercent = 20,
         runtimeLookup = RuntimeLookup { id, season, episode -> minutes.toMap()["$id S$season E$episode"] },
     )
 
@@ -608,7 +668,7 @@ internal class DuplicateCleanerTest {
             file(base, "Movies/A/Film $index (2000) {tmdb-$index}.mkv")
             file(base, "Movies/A/Film $index (2000) {tmdb-$index}.mp4")
         }
-        val slowCleaner = DuplicateCleaner({ Thread.sleep(20); video() }, probeThreads = 3)
+        val slowCleaner = DuplicateCleaner({ Thread.sleep(20); ProbeResult.Read(video()) }, probeThreads = 3)
 
         val stats = slowCleaner.findDuplicates(base.absolutePath).probeStats
 
@@ -639,6 +699,23 @@ internal class DuplicateCleanerTest {
         assertThat(hdEnglish).exists()
         assertThat(File(base, "Movies/I/Inception (2010) {tmdb-27205}.1080p.x264.de.srt")).exists()
         assertThat(listOf(sd, sdEnglish, sdGerman, sdNfo)).noneMatch { it.exists() }
+    }
+
+    @Test
+    fun `should leave the subtitles alone and log it if a version can't be deleted`(@TempDir tempDir: Path) {
+        val base = tempDir.toFile()
+        file(base, "Movies/I/Inception (2010) {tmdb-27205}.1080p.x264.mkv", video(height = 1080))
+        val sd = file(base, "Movies/I/Inception (2010) {tmdb-27205}.720p.x264.mkv", video(height = 720))
+        val sdEnglish = file(base, "Movies/I/Inception (2010) {tmdb-27205}.720p.x264.en.srt")
+        val log = File(base, "duplicates.log")
+        // gone after it was read: deleting it fails
+        val cleaner = DuplicateCleaner({ file -> probe.probe(file).also { if (file == sd) file.delete() } }, probeThreads = 1)
+
+        cleaner.processFilesFromDirectory(base.absolutePath, log, isTestRun = false)
+
+        assertThat(sdEnglish).exists()
+        assertThat(File(base, "Movies/I/Inception (2010) {tmdb-27205}.1080p.x264.en.srt")).doesNotExist()
+        assertThat(log.readText()).contains("FAILED to delete '${sd.path}'").doesNotContain("DELETE '${sd.path}'").doesNotContain("MOVE")
     }
 
     @Test

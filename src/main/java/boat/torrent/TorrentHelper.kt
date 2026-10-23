@@ -26,8 +26,12 @@ object TorrentHelper {
     val mediaFileRegex = Regex("(?<![a-z0-9])(mp4|mkv|avi|divx|ts|mpeg|divx|xvid|mov|webm|wmv|avchd|flv)\$")
     val seriesRegex = "(s[0-9]{1,2}[a-z]+)|(season)".toRegex()
 
-    private fun listOfReleaseTagsPiped(): String {
-        return torrentService.getReleaseTags().joinToString("($|[ .-]+)|[ .]")
+    // compiled once, a search rates thousands of names; the tags are text ("5.1" must not match "5x1")
+    private val releaseTagCleaners: List<Regex> by lazy {
+        torrentService.getReleaseTags().filter { it.isNotBlank() }.map { "([ .-]+${Regex.escape(it)})([ .-]+|$)".toRegex() }
+    }
+    private val releaseTagRemovers: List<Regex> by lazy {
+        torrentService.getReleaseTags().filter { it.isNotBlank() }.map { "\\s(?i)${Regex.escape(it)}\\s".toRegex() }
     }
 
     fun extractTorrentSizeFromString(tempTorrent: Torrent): Double {
@@ -169,15 +173,8 @@ object TorrentHelper {
         return regexCleaned.replace("[()]+".toRegex(), "").replace("\\s".toRegex(), "").replace("\\.".toRegex(), "")
     }
 
-    private fun getRegexCleaned(inputString: String): String {
-        val workString = arrayOf(inputString)
-        torrentService.getReleaseTags().forEach(Consumer { tag: String ->
-            workString[0] = workString[0].replace(
-                "([ .-]+$tag)([ .-]+|$)".toRegex(), "."
-            )
-        })
-        return workString[0]
-    }
+    private fun getRegexCleaned(inputString: String): String =
+        releaseTagCleaners.fold(inputString) { cleaned, tag -> cleaned.replace(tag, ".") }
 
     fun getNormalizedTorrentStringWithSpaces(name: String): String {
         val lowerCase =
@@ -200,11 +197,6 @@ object TorrentHelper {
 
     fun cleanNumberString(value: String): String {
         return value.replace(",".toRegex(), "")
-    }
-
-    fun isBlocklisted(torrent: Torrent, searchName: String = ""): Boolean {
-        val torrentNameLowerCased = torrent.name.lowercase(Locale.getDefault())
-        return isBadQualityName(torrentNameLowerCased) || isExplicitContent(torrent, searchName)
     }
 
     /**
@@ -290,15 +282,8 @@ object TorrentHelper {
         return removeReleaseTags(normalizedTorrentStringWithSpaces)
     }
 
-    private fun removeReleaseTags(string: String?): String {
-        val releaseTagsRemoved = StringBuilder(string)
-        torrentService.getReleaseTags().forEach(Consumer { tag: String ->
-            val temporaryString = releaseTagsRemoved.toString().replace("\\s(?i)$tag\\s".toRegex(), " ")
-            releaseTagsRemoved.setLength(0)
-            releaseTagsRemoved.append(temporaryString)
-        })
-        return releaseTagsRemoved.toString()
-    }
+    private fun removeReleaseTags(string: String?): String =
+        releaseTagRemovers.fold(string.orEmpty()) { removed, tag -> removed.replace(tag, " ") }
 
     fun humanReadableByteCountBinary(bytes: Long): String {
         val absB = if (bytes == Long.MIN_VALUE) Long.MAX_VALUE else Math.abs(bytes)

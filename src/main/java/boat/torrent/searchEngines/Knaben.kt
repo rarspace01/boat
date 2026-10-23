@@ -5,18 +5,15 @@ import boat.torrent.Torrent
 import boat.torrent.TorrentHelper
 import boat.torrent.TorrentSearchEngine
 import boat.utilities.HttpHelper
-import boat.utilities.LoggerDelegate
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import java.util.*
-import java.util.function.Consumer
 
 class Knaben internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper), TorrentSearchEngine {
 
     companion object {
         private const val PAGE_SIZE = 300
-        private val logger by LoggerDelegate()
     }
 
     override fun searchTorrents(searchName: String): List<Torrent> {
@@ -56,7 +53,7 @@ class Knaben internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper)
                 return torrentList
             }
             val hits = jsonRoot.asJsonObject["hits"] ?: return torrentList
-            hits.asJsonArray.forEach(Consumer { jsonTorrentElement: JsonElement ->
+            torrentList += SearchHits.parseEach(this, hits.asJsonArray) { jsonTorrentElement: JsonElement ->
                 val tempTorrent = Torrent(toString())
                 val jsonTorrent = jsonTorrentElement.asJsonObject
                 tempTorrent.name = jsonTorrent["title"].asString
@@ -76,10 +73,10 @@ class Knaben internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper)
                 val sizeInBytes = jsonTorrent["bytes"].asLong
                 tempTorrent.size = TorrentHelper.humanReadableByteCountBinary(sizeInBytes)
                 tempTorrent.sizeInMB = (sizeInBytes / 1024.0f / 1024.0f).toDouble()
-                torrentList.add(tempTorrent)
-            })
+                tempTorrent
+            }
         } catch (exception: Exception) {
-            logger.error("failed to parse string:\n${pageContent}", exception)
+            SearchHits.logUnreadablePage(this, pageContent, exception)
         }
         return torrentList
     }

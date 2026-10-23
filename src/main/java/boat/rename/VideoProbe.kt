@@ -5,6 +5,7 @@ import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import java.io.File
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 /** What is known about a video file: the first video stream and the length of the file. */
@@ -17,9 +18,19 @@ data class VideoInfo(
     val durationSeconds: Double?,
 )
 
+/** What reading a file gave: the video, a file ffprobe rejects, or no answer which tells something about the file. */
+sealed interface ProbeResult {
+    data class Read(val info: VideoInfo) : ProbeResult
+
+    /** ffprobe read the file and rejected it (not a video, damaged): it is broken. */
+    data class Broken(val reason: String) : ProbeResult
+
+    /** No answer about the file itself: a timeout, an I/O error on the mount, ffprobe not there. Says nothing about the file. */
+    data class Failed(val reason: String) : ProbeResult
+}
+
 fun interface VideoProbe {
-    /** Null if the file can't be read. */
-    fun probe(file: File): VideoInfo?
+    fun probe(file: File): ProbeResult
 }
 
 /**
@@ -30,32 +41,54 @@ class FfprobeVideoProbe(private val command: String = "ffprobe", private val tim
 
     private val logger by LoggerDelegate()
 
-    override fun probe(file: File): VideoInfo? {
+    override fun probe(file: File): ProbeResult {
         return try {
             val process = ProcessBuilder(
                 command, "-v", "error", "-select_streams", "v:0",
                 "-show_entries", "stream=codec_name,width,height,bit_rate:format=duration,bit_rate,size",
                 "-of", "json", "-i", file.absolutePath
-            ).redirectError(ProcessBuilder.Redirect.DISCARD).start()
-            // the answer is read while waiting, a ffprobe which hangs must not hold us longer than the timeout
-            val output = CompletableFuture.supplyAsync { process.inputStream.readAllBytes().toString(Charsets.UTF_8) }
+            ).start()
+            // the answer is read while waiting on threads of its own, a ffprobe which hangs must not hold us longer than the timeout
+            val output = CompletableFuture.supplyAsync({ process.inputStream.readAllBytes().toString(Charsets.UTF_8) }, outputReaders)
+            val error = CompletableFuture.supplyAsync({ process.errorStream.readAllBytes().toString(Charsets.UTF_8) }, outputReaders)
             if (!process.waitFor(timeoutSeconds, TimeUnit.SECONDS)) {
                 process.destroyForcibly()
                 logger.warn("ffprobe took more than {}s for {}", timeoutSeconds, file)
-                return null
+                return ProbeResult.Failed("timeout after ${timeoutSeconds}s")
             }
-            if (process.exitValue() != 0) return null
-            parse(output.get(5, TimeUnit.SECONDS))
+            classify(process.exitValue(), output.get(5, TimeUnit.SECONDS), error.get(5, TimeUnit.SECONDS))
         } catch (e: Exception) {
             logger.warn("could not run {} for {}: {}", command, file, e.message)
-            null
+            ProbeResult.Failed("could not run ffprobe: ${e.message}")
         }
     }
 
     companion object {
+        private val outputReaders = Executors.newVirtualThreadPerTaskExecutor()
+
+        /** What ffprobe writes for a file it read and doesn't take, as opposed to one it couldn't read (I/O error, missing). */
+        private val rejectedMarkers = listOf("Invalid data found when processing input", "moov atom not found")
+
+        /**
+         * Only a file ffprobe really rejects is broken. Any other error (an I/O error of the mount, a missing file) and an
+         * answer which can't be parsed say nothing about the file.
+         */
+        internal fun classify(exitCode: Int, output: String, error: String): ProbeResult {
+            val message = error.lineSequence().map { it.trim() }.lastOrNull { it.isNotEmpty() }.orEmpty()
+            if (exitCode != 0) {
+                return if (rejectedMarkers.any { error.contains(it) }) ProbeResult.Broken(message)
+                else ProbeResult.Failed("ffprobe exited with $exitCode: $message")
+            }
+            val root = runCatching { JsonParser.parseString(output).asJsonObject }.getOrNull()
+                ?: return ProbeResult.Failed("unexpected answer of ffprobe")
+            return parse(root)?.let { ProbeResult.Read(it) } ?: ProbeResult.Broken("no video stream")
+        }
+
         /** The answer of `ffprobe -of json`, null if there is no video stream or the answer is not what we expect. */
-        internal fun parse(json: String): VideoInfo? {
-            val root = runCatching { JsonParser.parseString(json).asJsonObject }.getOrNull() ?: return null
+        internal fun parse(json: String): VideoInfo? =
+            runCatching { JsonParser.parseString(json).asJsonObject }.getOrNull()?.let { parse(it) }
+
+        private fun parse(root: JsonObject): VideoInfo? {
             val stream = root["streams"]?.takeIf { it.isJsonArray }?.asJsonArray?.firstOrNull()?.takeIf { it.isJsonObject }?.asJsonObject
                 ?: return null
             val format = root["format"]?.takeIf { it.isJsonObject }?.asJsonObject

@@ -1199,6 +1199,8 @@ class ContentRenamerTest {
         assertThat(searchResult.first().type).isEqualTo(MediaType.Series)
     }
 
+    // asks TVDB
+    @Tag("live")
     @Test
     fun testCowboyExtraction() {
         val httpHelper = HttpHelper()

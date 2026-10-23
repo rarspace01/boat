@@ -22,7 +22,8 @@ the boat sails with wind
 Copy `boat.default.cfg` to `boat.cfg` and modify values accordingly. Run `./runBoat.sh` to have an autoupdate of the
 newest version.
 
-Settings are read from `boat.cfg` (or `boat.default.cfg`) and can be overridden by environment variables:
+Settings are read from `boat.cfg` and can be overridden by environment variables. `boat.default.cfg` only lists them,
+its dummy values are not used:
 
 | Setting | Default | |
 |---|---|---|
@@ -42,7 +43,7 @@ Settings are read from `boat.cfg` (or `boat.default.cfg`) and can be overridden 
 | `DUPLICATE_CODEC_WEIGHT_PERCENT` | `100` | duplicates of the same resolution: how much the efficiency of the codec counts against the bitrate, `100` fully, `0` only the plain bitrate |
 | `DUPLICATE_PROBE_THREADS` | `8` | duplicates: how many files `ffprobe` reads at once (1 to 64), the rclone mount of a library is the limit above about 8 |
 
-install certbot & generate certifiactes
+install certbot & generate certificates
 ```
 sudo apt install certbot
 sudo certbot certonly -d YOUR_DOMAIN
@@ -50,7 +51,10 @@ sudo certbot certonly -d YOUR_DOMAIN
 certbot renew
 sudo cp /etc/letsencrypt/live/YOUR_DOMAIN/privkey.pem /home/downloads/privkey.pem
 sudo cp /etc/letsencrypt/live/YOUR_DOMAIN/fullchain.pem /home/downloads/fullchain.pem
-sudo chmod 7777 /home/downloads/privkey.pem /home/downloads/fullchain.pem
+# only the user boat runs as may read the private key
+sudo chown YOUR_BOAT_USER: /home/downloads/privkey.pem /home/downloads/fullchain.pem
+sudo chmod 600 /home/downloads/privkey.pem
+sudo chmod 644 /home/downloads/fullchain.pem
 ```
 
 ## Users
@@ -135,5 +139,3 @@ openjdk version "25" 2025-09-16 LTS
 Build Status:
 
 [![Java CI with Gradle](https://github.com/rarspace01/boat/actions/workflows/ci.yml/badge.svg)](https://github.com/rarspace01/boat/actions/workflows/ci.yml)
-[![Coveralls](https://github.com/rarspace01/boat/actions/workflows/coveralls.yml/badge.svg)](https://github.com/rarspace01/boat/actions/workflows/coveralls.yml)
-[![Coverage Status](https://coveralls.io/repos/github/rarspace01/boat/badge.svg?branch=main)](https://coveralls.io/github/rarspace01/boat?branch=main)

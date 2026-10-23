@@ -32,6 +32,24 @@ internal class QueueServiceTest {
     }
 
     @Test
+    fun shouldKeepTheOrderOfTheEntriesAlsoInTheFile() {
+        val items = (1..30).map { MediaItem("Title $it", year = 2000 + it) } + MediaItem("Amélie 東京 = a:b", year = 2001)
+        queueService().addAll(items)
+
+        assertThat(queueService().getQueue()).containsExactlyElementsOf(items)
+    }
+
+    @Test
+    fun shouldReadTheQueueWhileItIsChanged() {
+        val queueService = queueService()
+        val writer = Thread { repeat(2000) { queueService.add(MediaItem("Title $it")) } }.apply { start() }
+        repeat(200) { queueService.getQueue() }
+        writer.join()
+
+        assertThat(queueService.getQueue()).hasSize(2000)
+    }
+
+    @Test
     fun shouldKeepSameTitleWithDifferentYears() {
         val queueService = queueService()
         val first = MediaItem("Dune", year = 1984)

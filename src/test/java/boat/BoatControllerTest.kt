@@ -61,6 +61,33 @@ internal class BoatControllerTest {
     }
 
     @Test
+    fun shouldAnswerABadRequestForADownloadWhichIsNotBase64() {
+        val response = boatController.downloadTorrentToMultifileHoster("not base64!", null, null, null)
+
+        assertThat(response.statusCode).isEqualTo(HttpStatus.BAD_REQUEST)
+        verify(exactly = 0) { multifileHosterService.addTorrentToTransfer(any(), any(), any()) }
+    }
+
+    @Test
+    fun shouldTrimTheDirectDownloadUrlsAndSkipBlankOnes() {
+        val added = mutableListOf<boat.torrent.Torrent>()
+        every { multifileHosterService.addTorrentToTransfer(capture(added), any(), any()) } returns Unit
+        every { multifileHosterService.addTransfersToDownloadQueue() } returns Unit
+
+        val response = boatController.downloadTorrentToMultifileHoster(null, " http://a.example/1.mkv , ,http://a.example/2.mkv,", null, null)
+
+        assertThat(response.statusCode).isEqualTo(HttpStatus.OK)
+        assertThat(added.map { it.magnetUri }).containsExactly("http://a.example/1.mkv", "http://a.example/2.mkv")
+    }
+
+    @Test
+    fun shouldEscapeTheQueueOnTheInfoPage() {
+        val html = BoatController.queueHtml(listOf(boat.info.MediaItem("<script>alert(1)</script>", year = 2000)))
+
+        assertThat(html).doesNotContain("<script>").contains("Queue [1]", "&lt;script&gt;")
+    }
+
+    @Test
     fun shouldShowRestartAndDeleteControlsForTransfer() {
         val transfer = Transfer(id = "id-1", name = "Inception", transferStatus = TransferStatus.UPLOAD_TO_DRIVE_FAILED)
 

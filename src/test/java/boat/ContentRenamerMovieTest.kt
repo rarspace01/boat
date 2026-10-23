@@ -56,6 +56,34 @@ class ContentRenamerMovieTest {
     }
 
     @Test
+    fun `should remove the folders the run emptied`(@TempDir tempDir: Path) {
+        val base = tempDir.toFile()
+        createFile(base, "Movies/I/Inception (2010)/Inception (2010).mkv")
+        File(base, "Movies/X").mkdirs()
+        every { mediaProxyService.search("Inception", 2010, MediaType.Movie) } returns listOf(inception)
+        val log = File(base, "rename.log")
+
+        contentRenamer.processFilesFromDirectory(File(base, "Movies").absolutePath, log, isTestRun = false, basePath = base.absolutePath)
+
+        assertThat(File(base, "Movies/I/Inception (2010) {tmdb-27205}.mkv")).exists()
+        assertThat(File(base, "Movies/I/Inception (2010)")).doesNotExist()
+        assertThat(log.readText()).contains("Removed empty folder")
+        // a folder which was empty before stays
+        assertThat(File(base, "Movies/X")).isDirectory()
+    }
+
+    @Test
+    fun `should keep the folders in a test run`(@TempDir tempDir: Path) {
+        val base = tempDir.toFile()
+        createFile(base, "Movies/I/Inception (2010)/Inception (2010).mkv")
+        every { mediaProxyService.search("Inception", 2010, MediaType.Movie) } returns listOf(inception)
+
+        contentRenamer.processFilesFromDirectory(File(base, "Movies").absolutePath, null, isTestRun = true, basePath = base.absolutePath)
+
+        assertThat(File(base, "Movies/I/Inception (2010)/Inception (2010).mkv")).exists()
+    }
+
+    @Test
     fun `should use remote media id of already renamed files`(@TempDir tempDir: Path) {
         val base = tempDir.toFile()
         val renamed = createFile(base, "Movies/I/Inception (2010) {tmdb-27205}.1080p.x264.mkv")

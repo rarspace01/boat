@@ -12,7 +12,7 @@ internal class TheTVDBServiceFailureTest {
 
     @Test
     fun shouldReturnNullIfTheLoginFails() {
-        // needs an api key to try the login, boat.default.cfg has one
+        // needs an api key to try the login, boat.test.cfg has one
         every { httpHelper.getPage(match { it.endsWith("/login") }, anyNullable<String>(), anyNullable<Map<String, String>>()) } returns ""
 
         assertThat(TheTVDBService(httpHelper).search("Dark")).isNull()
@@ -28,6 +28,42 @@ internal class TheTVDBServiceFailureTest {
         assertThat(service.search("Dark")).isNull()
 
         io.mockk.verify(exactly = 2) { httpHelper.getPage(match { it.endsWith("/login") }, anyNullable<String>(), anyNullable<Map<String, String>>()) }
+    }
+
+    @Test
+    fun shouldWaitLongerAfterEveryFailedLogin() {
+        every { httpHelper.getPage(match { it.endsWith("/login") }, anyNullable<String>(), anyNullable<Map<String, String>>()) } returns ""
+        var now = 0L
+        val service = TheTVDBService(httpHelper) { now }
+        fun noSearches() = io.mockk.verify(exactly = 0) { httpHelper.getPage(match { it.contains("/search?") }, anyNullable<String>(), anyNullable<Map<String, String>>()) }
+
+        repeat(3) { assertThat(service.search("Dark")).isNull() }
+        now += java.util.concurrent.TimeUnit.SECONDS.toNanos(59)
+        assertThat(service.search("Dark")).isNull()
+        io.mockk.verify(exactly = 1) { httpHelper.getPage(match { it.endsWith("/login") }, anyNullable<String>(), anyNullable<Map<String, String>>()) }
+
+        now += java.util.concurrent.TimeUnit.SECONDS.toNanos(1)
+        assertThat(service.search("Dark")).isNull()
+        io.mockk.verify(exactly = 2) { httpHelper.getPage(match { it.endsWith("/login") }, anyNullable<String>(), anyNullable<Map<String, String>>()) }
+
+        // the second pause is two minutes
+        now += java.util.concurrent.TimeUnit.SECONDS.toNanos(119)
+        assertThat(service.search("Dark")).isNull()
+        io.mockk.verify(exactly = 2) { httpHelper.getPage(match { it.endsWith("/login") }, anyNullable<String>(), anyNullable<Map<String, String>>()) }
+        noSearches()
+    }
+
+    @Test
+    fun shouldLoginAgainIfALookupByIdFails() {
+        every { httpHelper.getPage(match { it.endsWith("/login") }, anyNullable<String>(), anyNullable<Map<String, String>>()) } returns """{"data":{"token":"t"}}"""
+        every { httpHelper.getPage(match { it.contains("/series/") }, anyNullable<String>(), anyNullable<Map<String, String>>()) } returns ""
+        val service = TheTVDBService(httpHelper)
+
+        assertThat(service.findById("81189")).isNull()
+        assertThat(service.episodeRuntimes("81189", 1)).isEmpty()
+        assertThat(service.findById("81189")).isNull()
+
+        io.mockk.verify(exactly = 3) { httpHelper.getPage(match { it.endsWith("/login") }, anyNullable<String>(), anyNullable<Map<String, String>>()) }
     }
 
     @Test

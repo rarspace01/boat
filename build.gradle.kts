@@ -83,8 +83,13 @@ kotlin {
     jvmToolchain(25)
 }
 
+// the version is the latest tag; only CI fetches the tags first (the release tag is pushed during the run), a local
+// build uses the tags it has and works offline
 val gitVersionProvider = providers.exec {
-    commandLine("sh", "-c", "git fetch --all --tags>/dev/null&& git describe --tags --always --first-parent|tail -1")
+    commandLine(
+        "sh", "-c",
+        "if [ -n \"\$CI\" ]; then git fetch --tags --quiet || true; fi; git describe --tags --always --first-parent | tail -1"
+    )
 }
 
 val gitHashProvider = providers.exec {
@@ -125,6 +130,8 @@ tasks.test {
     useJUnitPlatform {
         excludeTags("live")
     }
+    // the dummy settings of the offline tests, a boat.cfg of the developer is not used (environment variables still win)
+    systemProperty("boat.config", file("src/test/resources/boat.test.cfg").absolutePath)
     jvmArgs("-XX:+EnableDynamicAgentLoading", "-Xshare:off")
     testLogging {
         events("standardOut", "started", "passed", "skipped", "failed")
@@ -149,10 +156,4 @@ val liveTest by tasks.registering(Test::class) {
 
 tasks.wrapper {
     distributionType = Wrapper.DistributionType.ALL
-}
-
-subprojects {
-    tasks.withType<Test>().configureEach {
-        maxParallelForks = Runtime.getRuntime().availableProcessors()
-    }
 }

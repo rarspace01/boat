@@ -41,7 +41,9 @@ import kotlin.math.pow
  * to 30% longer than it compete (whatever their differences among each other), shorter ones are incomplete and deleted, a longer one
  * (several episodes in one file) leaves the group undecided.
  *
- * A file which ffprobe can't read is broken, it is deleted if a readable version exists. A version shorter than half of the longest one is an incomplete file (or another cut) and is deleted too.
+ * A file which ffprobe rejects (twice, every file which can't be read is read once more) is broken, it is deleted if a
+ * readable version exists. A file which ffprobe could not read for another reason (a timeout, an I/O error of the
+ * mount) may be fine, its group is [UnsureGroup]. A version shorter than half of the longest one is an incomplete file (or another cut) and is deleted too.
  *
  * Episodes whose file names have different titles in front of the episode number ("Batman TAS.S01E02" and "The New
  * Batman Adventures.S01E02" in the same show) are not the same episode, such a group is [UnsureGroup].
@@ -160,7 +162,8 @@ class DuplicateCleaner(
             .groupBy({ it.first }, { it.second })
             .filter { it.value.size > 1 }
         logger.info("{} groups of files which exist more than once, reading {} files", sameByName.size, sameByName.values.sumOf { it.size })
-        val (infos, stats) = probeAll(sameByName.values.flatten())
+        val (results, stats) = probeAll(sameByName.values.flatten())
+        val infos = results.mapNotNull { (file, result) -> (result as? ProbeResult.Read)?.let { file to it.info } }.toMap()
         logger.info("{}", stats)
         logger.info("deciding {} groups of files which exist more than once", sameByName.size)
         val decideStart = System.nanoTime()
@@ -179,8 +182,9 @@ class DuplicateCleaner(
                 unsure.add(UnsureGroup(key, files, "different titles (${titles.joinToString(" / ") { "'$it'" }})", files.mapNotNull { file -> infos[file]?.let { Version(file, it) } }))
                 return@forEach
             }
-            // a file which can't be read is broken, it goes if there is a readable version
-            val broken = files.filter { infos[it] == null }.takeIf { it.size < files.size } ?: emptyList()
+            // a file which ffprobe rejects is broken, it goes if there is a readable version. One it could not read (a
+            // timeout, an I/O error) might be fine, its group is not decided.
+            val broken = files.filter { results[it] is ProbeResult.Broken }.takeIf { files.any { file -> infos[file] != null } } ?: emptyList()
             val candidates = files - broken.toSet()
             val versions = candidates.mapNotNull { file -> infos[file]?.let { Version(file, it) } }
             val unreadable = candidates.filter { infos[it] == null }
@@ -203,7 +207,7 @@ class DuplicateCleaner(
             }
             val complete = if (byRuntime) matching else versions - incomplete.toSet()
             val reason = when {
-                unreadable.isNotEmpty() -> "ffprobe could not read ${unreadable.joinToString { "'${it.name}'" }}"
+                unreadable.isNotEmpty() -> "ffprobe could not read ${unreadable.joinToString { "'${it.name}' (${results[it]?.let(::probeProblem) ?: "?"})" }}"
                 versions.any { it.info.durationSeconds == null } -> "the length of a version is not known"
                 versions.any { bitrateNeededByCodec(it.info.codec) == null } ->
                     "the codec is not known (${versions.joinToString { it.info.codec ?: "?" }})"
@@ -217,7 +221,7 @@ class DuplicateCleaner(
             } else {
                 val ranked = complete.sortedWith(bestFirst)
                 val brokenVersions = broken.map { Version(it, VideoInfo(null, null, null, null, null)) }
-                val reasons = broken.associateWith { "broken file, not readable" } +
+                val reasons = broken.associateWith { "broken file, not readable (${results[it]?.let(::probeProblem)})" } +
                         incomplete.associate { it.file to if (byRuntime) "shorter than the official runtime of ${formatDuration(official!!)}" else "incomplete, shorter than half of the longest version" }
                 groups.add(DuplicateGroup(key, ranked.first(), ranked.drop(1) + incomplete + brokenVersions, reasons))
             }
@@ -293,9 +297,28 @@ class DuplicateCleaner(
         return lengths.max() > lengths.min() * (1 + MAX_LENGTH_DIFFERENCE)
     }
 
-    /** Reads all files with [probeThreads] threads at once, with the time ffprobe took. */
-    private fun probeAll(files: List<File>): Pair<Map<File, VideoInfo>, ProbeStats> {
-        val infos = ConcurrentHashMap<File, VideoInfo>()
+    /**
+     * Reads all files with [probeThreads] threads at once, with the time ffprobe took. A file which can't be read is
+     * read once more after the others, a hiccup of the mount must not make a good file look broken.
+     */
+    private fun probeAll(files: List<File>): Pair<Map<File, ProbeResult>, ProbeStats> {
+        val (results, stats) = probeOnce(files)
+        val again = files.filter { results[it] !is ProbeResult.Read }
+        if (again.isEmpty()) return results to stats
+        logger.info("reading {} files which could not be read once more", again.size)
+        val (retried, retryStats) = probeOnce(again)
+        val merged = results + retried.mapValues { (file, result) ->
+            // broken only if ffprobe rejects it both times
+            if (result is ProbeResult.Broken && results[file] is ProbeResult.Failed) results.getValue(file) else result
+        }
+        return merged to ProbeStats(
+            files.size, merged.values.count { it !is ProbeResult.Read }, stats.threads, stats.wallMillis + retryStats.wallMillis,
+            stats.durationsMillis + retryStats.durationsMillis
+        )
+    }
+
+    private fun probeOnce(files: List<File>): Pair<Map<File, ProbeResult>, ProbeStats> {
+        val results = ConcurrentHashMap<File, ProbeResult>()
         val durations = Collections.synchronizedList(mutableListOf<Long>())
         val done = AtomicInteger()
         val start = System.nanoTime()
@@ -305,7 +328,7 @@ class DuplicateCleaner(
             executor.invokeAll(files.map { file ->
                 Callable {
                     val begin = System.nanoTime()
-                    videoProbe.probe(file)?.let { infos[file] = it }
+                    results[file] = videoProbe.probe(file)
                     val millis = (System.nanoTime() - begin) / 1_000_000
                     if (millis > SLOW_PROBE_MILLIS) logger.warn("reading {} took {} ms", file, millis)
                     durations.add(millis)
@@ -327,7 +350,13 @@ class DuplicateCleaner(
             executor.shutdown()
         }
         val wallMillis = (System.nanoTime() - start) / 1_000_000
-        return infos to ProbeStats(files.size, files.size - infos.size, probeThreads.coerceAtLeast(1), wallMillis, durations.toList())
+        return results to ProbeStats(files.size, results.values.count { it !is ProbeResult.Read }, probeThreads.coerceAtLeast(1), wallMillis, durations.toList())
+    }
+
+    private fun probeProblem(result: ProbeResult): String = when (result) {
+        is ProbeResult.Read -> "read"
+        is ProbeResult.Broken -> result.reason
+        is ProbeResult.Failed -> result.reason
     }
 
     private fun deleteVersion(keep: Version, loser: Version, reason: String?, isTestRun: Boolean, writer: BufferedWriter?) {
@@ -335,10 +364,13 @@ class DuplicateCleaner(
         val loserBaseName = loser.file.nameWithoutExtension
         // versions with the same name and another extension (X.mkv, X.avi) share their subtitles, they stay
         val sidecars = if (loserBaseName == keepBaseName && loser.file.parentFile == keep.file.parentFile) emptyList() else sidecarsOf(loser.file)
-        writer?.write("DELETE '${loser.file.path}' (${loser.description()})${reason?.let { " - $it" } ?: ""}${if (isTestRun) " [test run]" else ""}\n")
-        if (!isTestRun) {
-            loser.file.delete()
+        // the file which is still there keeps its subtitles
+        if (!isTestRun && !loser.file.delete()) {
+            logger.warn("could not delete {}", loser.file)
+            writer?.write("FAILED to delete '${loser.file.path}' (${loser.description()})${reason?.let { " - $it" } ?: ""}\n")
+            return
         }
+        writer?.write("DELETE '${loser.file.path}' (${loser.description()})${reason?.let { " - $it" } ?: ""}${if (isTestRun) " [test run]" else ""}\n")
         sidecars.forEach { sidecar ->
             val rest = sidecar.name.removePrefix(loserBaseName)
             val target = File(keep.file.parentFile, keepBaseName + rest)
@@ -349,8 +381,12 @@ class DuplicateCleaner(
                     logger.warn("could not move {} to {}", sidecar, target)
                 }
             } else {
-                writer?.write("DELETE '${sidecar.path}'${if (isTestRun) " [test run]" else ""}\n")
-                if (!isTestRun) sidecar.delete()
+                if (!isTestRun && !sidecar.delete()) {
+                    logger.warn("could not delete {}", sidecar)
+                    writer?.write("FAILED to delete '${sidecar.path}'\n")
+                } else {
+                    writer?.write("DELETE '${sidecar.path}'${if (isTestRun) " [test run]" else ""}\n")
+                }
             }
         }
         if (!isTestRun) deleteEmptyFolders(loser.file.parentFile, keep.file.parentFile)

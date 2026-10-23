@@ -18,6 +18,13 @@ internal class TorrentHtmlEscapeTest {
     }
 
     @Test
+    fun shouldEscapeTheSizeFromTheSearchSites() {
+        val html = Torrent("name").apply { size = evil }.toHtml()
+
+        assertThat(html).doesNotContain("<script>", "<img")
+    }
+
+    @Test
     fun shouldEscapeRemoteTorrentFields() {
         val torrent = Torrent("name").apply {
             remoteId = "<b>id</b>"

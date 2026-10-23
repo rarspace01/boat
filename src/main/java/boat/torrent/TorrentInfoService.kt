@@ -32,6 +32,8 @@ class TorrentInfoService(httpHelper: HttpHelper) :
         const val MAX_PARALLEL_TRACKER_REQUESTS = 8
         private const val REFRESH_TIMEOUT_SECONDS = 30L
         private const val REQUEST_TIMEOUT_MILLIS = 10 * 1000
+        /** Request-URI Too Long and Payload Too Large: the tracker refuses that many hashes at once. */
+        private val URL_TOO_LONG_STATUSES = setOf(413, 414)
 
         /**
          * Trackers refuse the request somewhere above 100 hashes (url longer than about 6000 characters), this stays
@@ -77,13 +79,6 @@ class TorrentInfoService(httpHelper: HttpHelper) :
         executor.shutdownNow()
     }
 
-    fun refreshSeedAndLeecherFromTracker(trackerUrl: String, torrentList: List<Torrent>) {
-        val torrentsByHash = torrentList.groupByHash()
-        torrentsByHash.keys.chunked(BATCH_SIZE).forEach { hashes ->
-            applyStats(scrape(trackerUrl, hashes), torrentsByHash)
-        }
-    }
-
     private fun List<Torrent>.groupByHash(): Map<String, List<Torrent>> =
         filter { torrent -> torrent.torrentId.matches(HASH_PATTERN) }.groupBy { torrent -> torrent.torrentId.lowercase() }
 
@@ -112,11 +107,12 @@ class TorrentInfoService(httpHelper: HttpHelper) :
             log.warn("tracker {} not reachable: {}", trackerUrl, e.message)
             return emptyMap()
         }
-        val answer = if (response.status in 200..299) Bencode.decode(response.body) as? Map<*, *> else null
-        if (answer == null && hashes.size > 1) {
+        // only a url which is too long is worth smaller batches, any other error (404, 5xx, no scrape) would be the same for them
+        if (response.status in URL_TOO_LONG_STATUSES && hashes.size > 1) {
             val halves = hashes.chunked((hashes.size + 1) / 2)
             return halves.fold(emptyMap()) { stats, half -> stats + scrape(trackerUrl, half) }
         }
+        val answer = if (response.status in 200..299) Bencode.decode(response.body) as? Map<*, *> else null
         return parseScrapeAnswer(answer)
     }
 

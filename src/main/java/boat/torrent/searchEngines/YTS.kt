@@ -5,7 +5,6 @@ import boat.torrent.Torrent
 import boat.torrent.TorrentHelper
 import boat.torrent.TorrentSearchEngine
 import boat.utilities.HttpHelper
-import boat.utilities.LoggerDelegate
 import com.google.gson.JsonArray
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
@@ -17,10 +16,6 @@ import java.util.concurrent.atomic.AtomicReference
 import java.util.function.Consumer
 
 class YTS internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper), TorrentSearchEngine {
-
-    companion object {
-        private val logger by LoggerDelegate()
-    }
 
     override fun searchTorrents(searchName: String): List<Torrent> {
         return SearchPaging.collect { page -> parseTorrentsOnResultPage(httpHelper.getPage(buildSearchUrl(searchName, page)), searchName) }
@@ -49,7 +44,7 @@ class YTS internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper), T
             val data = jsonRoot.asJsonObject["data"] ?: return torrentList
             val results = data.asJsonObject["movies"] ?: return torrentList
             val jsonArray = results.asJsonArray
-            jsonArray.forEach(Consumer { jsonTorrentElement: JsonElement ->
+            torrentList += SearchHits.parseEach(this, jsonArray) { jsonTorrentElement: JsonElement ->
                 val tempTorrent = Torrent(toString())
                 val jsonTorrent = jsonTorrentElement.asJsonObject
                 tempTorrent.name = jsonTorrent["title"].asString + " " + jsonTorrent["year"].asInt
@@ -61,10 +56,10 @@ class YTS internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper), T
                 tempTorrent.size = bestTorrentSource["size"].asString
                 tempTorrent.sizeInMB = (bestTorrentSource["size_bytes"].asLong / 1024.0f / 1024.0f).toDouble()
                 tempTorrent.date = Date(bestTorrentSource["date_uploaded_unix"].asLong * 1000)
-                torrentList.add(tempTorrent)
-            })
+                tempTorrent
+            }
         } catch (exception: Exception) {
-            logger.error("failed to parse string:\n${pageContent}", exception)
+            SearchHits.logUnreadablePage(this, pageContent, exception)
         }
         return torrentList
     }

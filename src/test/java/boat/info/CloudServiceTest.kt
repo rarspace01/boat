@@ -2,7 +2,6 @@ package boat.info
 
 import boat.torrent.Torrent
 import boat.torrent.TorrentFile
-import boat.utilities.HttpHelper
 import boat.utilities.PropertiesHelper
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
@@ -14,11 +13,7 @@ internal class CloudServiceTest {
 
     @BeforeEach
     fun beforeMethod() {
-        val httpHelper = HttpHelper()
-        cloudService = CloudService(
-            CloudFileService(),
-            MediaProxyService(TheMovieDataBaseService(httpHelper), TheTVDBService(httpHelper))
-        )
+        cloudService = CloudService(CloudFileService())
     }
 
     @EnabledIfEnvironmentVariable(named = "DISABLE_UPDATE_PROMPT", matches = "true")
