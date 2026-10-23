@@ -1,4 +1,5 @@
-# only ffprobe is used (duplicates), a static build is one file instead of the ~240 packages the ffmpeg package needs
+# only ffprobe is used (duplicates), a static build is one file instead of the ~240 packages the ffmpeg package needs.
+# It is a full build (dav1d for AV1, VVC, EVC, AVS2/3, ...) for amd64 and arm64.
 FROM mwader/static-ffmpeg:9.0.2 AS ffmpeg
 
 FROM eclipse-temurin:25-jre
