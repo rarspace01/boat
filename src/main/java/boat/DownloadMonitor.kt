@@ -27,7 +27,7 @@ import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import java.time.Instant
 import java.time.temporal.ChronoUnit
-import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.system.exitProcess
 
 @EnableAsync
@@ -44,13 +44,28 @@ class DownloadMonitor(
     private val httpHelper: HttpHelper,
     private val mediaProxyService: MediaProxyService
 ) {
-    /** A queue entry is only removed after its torrent search, which can take longer than the 30 s between two runs. */
-    private val isQueueCheckInProgress = AtomicBoolean(false)
+    /**
+     * The `@Async` jobs which are running. A job is skipped while its last run is still going (each runs on a thread of
+     * its own), e.g. a queue entry is only removed after its torrent search, which can take longer than the 30 s between two runs.
+     */
+    private val runningJobs: MutableSet<String> = ConcurrentHashMap.newKeySet()
+
+    private inline fun runExclusively(job: String, block: () -> Unit) {
+        if (!runningJobs.add(job)) {
+            logger.debug("{} is still running, skipped", job)
+            return
+        }
+        try {
+            block()
+        } finally {
+            runningJobs.remove(job)
+        }
+    }
 
     @Async
     @Scheduled(fixedRate = (SECONDS_BETWEEN_SEARCH_ENGINE_POLLING * 1000).toLong())
     fun refreshTorrentSearchEngines() {
-        if (configurationService.isSearchMode()) {
+        if (configurationService.isSearchMode()) runExclusively("refreshTorrentSearchEngines") {
             logger.debug("refreshTorrentSearchEngines()")
             torrentSearchEngineService.refreshTorrentSearchEngines()
         }
@@ -76,7 +91,7 @@ class DownloadMonitor(
     @Async
     @Scheduled(fixedRate = (SECONDS_BETWEEN_FILE_CACHE_REFRESH * 1000).toLong())
     fun refreshCloudFileServiceCache() {
-        if (configurationService.isSearchMode()) {
+        if (configurationService.isSearchMode()) runExclusively("refreshCloudFileServiceCache") {
             logger.info("refreshCloudFileServiceCache()")
             val startOfCache = System.currentTimeMillis()
             if (multifileHosterService.isRcloneInstalled()) {
@@ -102,7 +117,7 @@ class DownloadMonitor(
     @Async
     @Scheduled(fixedRate = (SECONDS_BETWEEN_TRANSFER_POLLING * 1000).toLong())
     fun addTransfersToDownloadQueueAndUpdateTransferStatus() {
-        if (configurationService.isDownloadMode()) {
+        if (configurationService.isDownloadMode()) runExclusively("addTransfersToDownloadQueueAndUpdateTransferStatus") {
             multifileHosterService.addTransfersToDownloadQueue()
             multifileHosterService.updateTransferStatus()
         }
@@ -119,6 +134,10 @@ class DownloadMonitor(
     @Async
     @Scheduled(fixedRate = (SECONDS_BETWEEN_VERSION_CHECK * 1000).toLong(), initialDelay = 60 * 5 * 1000)
     fun checkForUpdatedVersionAndShutdownIfUpdateAvailable() {
+        runExclusively("checkForUpdatedVersion") { checkForUpdatedVersionAndShutdown() }
+    }
+
+    private fun checkForUpdatedVersionAndShutdown() {
         logger.info("checkForUpdatedVersionAndShutdown()")
         val githubVersion = runCatching {
             val pageContent = httpHelper.getPage("https://api.github.com/repos/rarspace01/boat/releases/latest")
@@ -139,13 +158,9 @@ class DownloadMonitor(
     @Async
     @Scheduled(fixedRate = (SECONDS_BETWEEN_QUEUE_POLLING * 1000).toLong())
     fun checkForQueueEntries() {
-        if (cloudService.isCloudTokenValid && configurationService.isSearchMode() && isQueueCheckInProgress.compareAndSet(false, true)) {
-            try {
-                logger.info("checkForQueueEntryAndAddToTransfers")
-                checkForQueueEntryAndAddToTransfers()
-            } finally {
-                isQueueCheckInProgress.set(false)
-            }
+        if (cloudService.isCloudTokenValid && configurationService.isSearchMode()) runExclusively("checkForQueueEntries") {
+            logger.info("checkForQueueEntryAndAddToTransfers")
+            checkForQueueEntryAndAddToTransfers()
         }
     }
 
