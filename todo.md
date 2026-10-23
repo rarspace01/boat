@@ -24,8 +24,6 @@ Ordered by how much they matter, from the review of 2026-10-23 (on top of #581).
 
 ### Build, CI and docs
 
-- [ ] The CI build (`ci.yml`) gets the production secrets (`MONGO_URI`, hoster and TMDB/TVDB keys), the offline tests
-  don't need them. Only the live tests should get them.
 - [ ] The Coveralls workflow is broken: JDK 21 against the Java 25 toolchain, and there is no jacoco plugin for
   `jacocoTestReport`. Fix or remove it and its README badge.
 - [ ] `createProperties` runs `git fetch --all --tags` on every build (network, slow offline);

@@ -61,24 +61,16 @@ jobs:
       # Build with strong Gradle optimizations
       - name: Build with Gradle (PR)
         if: github.event_name == 'pull_request'
+        # the offline tests need no secrets, the live tests get them (live-tests.yml)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TFDB_APIKEY: ${{ secrets.TFDB_APIKEY }}
-          TVDB_APIKEY: ${{ secrets.TVDB_APIKEY }}
-          PREMIUMIZE_APIKEY: ${{ secrets.PREMIUMIZE_APIKEY }}
-          ALLDEBRID_APIKEY: ${{ secrets.ALLDEBRID_APIKEY }}
-          MONGO_URI: ${{ secrets.MONGO_URI }}
         run: ./gradlew build --parallel --build-cache
 
       - name: Build with Gradle (main)
         if: github.ref == 'refs/heads/main'
+        # the offline tests need no secrets, the live tests get them (live-tests.yml)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TFDB_APIKEY: ${{ secrets.TFDB_APIKEY }}
-          TVDB_APIKEY: ${{ secrets.TVDB_APIKEY }}
-          PREMIUMIZE_APIKEY: ${{ secrets.PREMIUMIZE_APIKEY }}
-          ALLDEBRID_APIKEY: ${{ secrets.ALLDEBRID_APIKEY }}
-          MONGO_URI: ${{ secrets.MONGO_URI }}
         run: ./gradlew build --parallel --build-cache
 
       # Upload artifact only for main
