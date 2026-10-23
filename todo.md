@@ -5,7 +5,7 @@ are in the git history (PRs #545 to #581), the settings are in the README.
 
 ## Open
 
-Ordered by how much they matter, from the review of 2026-10-23 (on top of #581).
+Ordered by how much they matter, from the review of 2026-10-23 (on top of #581). The rest of that review is done.
 
 ### Bugs and risks
 
@@ -15,15 +15,6 @@ Ordered by how much they matter, from the review of 2026-10-23 (on top of #581).
 - [ ] Renamer: files logged as "unsure, title differs" are still moved. To decide: the same flag covers the wanted
   fuzzy matches (typos, "Annie Hall Woody Allen", roman numerals, see `ContentRenamerMovieTest`), not moving them would
   undo those; only the year search fallback (`MovieMatcher.searchMovieExact`, any title of the year) is really unsure.
-
-### Performance
-
-
-### Cleanup
-
-
-### Build, CI and docs
-
 
 ### Features
 
