@@ -21,12 +21,11 @@ Ordered by how much they matter, from the review of 2026-10-23 (on top of #581).
 
 ### Cleanup
 
-- [ ] The search engines `Zooqle` (not registered) and `LeetxTo` (commented out): remove or bring back.
 - [ ] `switchToProgress.replace("..", "../boat")` in `BoatController` does nothing (the string has no `..`).
 - [ ] `MultifileHosterService`: `isRcloneInstalled` is checked once (missing at start = no downloads until a
   restart), `localStatusStorage` never removes the entries by remote id.
 - [ ] Search engines: one malformed hit ends the parsing of its page (Knaben, TorrentsCSV, YTS log the whole page),
-  NyaaSi and LeetxTo have no error handling of their own.
+  NyaaSi has no error handling of its own.
 
 ### Build, CI and docs
 

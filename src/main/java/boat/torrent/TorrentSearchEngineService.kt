@@ -41,7 +41,6 @@ class TorrentSearchEngineService(
         ExtraTorrent(httpHelper),
         Kat(httpHelper),
         Knaben(httpHelper),
-        //LeetxTo(httpHelper),
         LimeTorrents(httpHelper),
         NyaaSi(httpHelper),
         PirateBay(httpHelper),
