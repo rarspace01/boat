@@ -44,7 +44,7 @@ object EpisodeParser {
     // parts of a mini series like "The Hlucovidics Guzuf To The Gocoke - Part 1 Of 6"
     val partOfPattern = "(?i)(?<![a-z])part\\s*([0-9]{1,2})\\s*of\\s*[0-9]{1,2}(?![0-9])".toRegex()
 
-    // "No Gupe No Lova 12 Rule Number 10" or "Ecuf of the Edaz - 01 - I've Found Myself a Prince", three digits like
+    // "No Gupe No Lova 12 Rule Number 10" or "Ecuf of the Edaz - 01 - Igi Fureg Mepaco a Pubolu", three digits like
     // "Dunapir 101 - I, Dunapir" can be season and episode
     val episodeAfterShowPattern = "^(?:\\[[^\\]]*][\\s._-]*)?[A-Za-z][^0-9]*?[\\s._-]+(?:-[\\s._-]+)?([0-9]{2})(?:[\\s._]+-)?[\\s._]+[A-Za-z]".toRegex()
 
@@ -202,12 +202,12 @@ object EpisodeParser {
         }
 
         gluedSeasonEpisode(file)?.let { (_, season, episode) -> return Pair(episode, season) }
-        // specials of year seasons like "MevoSebudik 2008X01 Shark Week Special 2" have no regular episode number
+        // specials of year seasons like "MevoSebudik 2008X01 Solal Wrod Sinekuf 2" have no regular episode number
         if (yearSpecialPattern.containsMatchIn(fileName) || episodeSpecialPattern.containsMatchIn(fileName) || airDatePattern.containsMatchIn(fileName)) return null
         explicitSeasonEpisodePattern.find(fileName)?.let { return Pair(it.groupValues[2].toInt(), it.groupValues[1].toInt()) }
         doubleDashEpisodePattern.find(fileName)?.let { return Pair(it.groupValues[2].toInt(), it.groupValues[1].toInt()) }
         if (episodeRangeWordPattern.containsMatchIn(fileName)) return null
-        // a bracketed episode wins over numbers in the title like "The Sefanuma [20.19] Waverly Hills 9-0-2-1-D'oh"
+        // a bracketed episode wins over numbers in the title like "The Sefanuma [20.19] Wvukapu Hloma 9-0-2-1-Des"
         bracketedSeasonEpisode(fileName)?.let { (season, episode) -> return Pair(episode, season) }
         partOfPattern.find(fileName)?.let { return Pair(it.groupValues[1].toInt(), null) }
         // the number after the show, not the one in the episode's title like "No Gupe No Lova 12 Rule Number 10"

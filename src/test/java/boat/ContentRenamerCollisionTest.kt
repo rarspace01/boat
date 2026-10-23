@@ -55,7 +55,7 @@ class ContentRenamerCollisionTest {
         file("T/Turo.Pimes.(1990)/Featurettes/Season 2/The Lif Luza/The Lif Luza 01.mkv")
         file("T/Turo.Pimes.(1990)/Featurettes/Season 2/The Lif Luza/The Lif Luza 02.mkv")
         file("D/Dr.Pabe.Show/Dr.Pabe.Show.2013.10.01.Didudugaf.and.Vubiliz.Lema.HDTV.x264-OWN.mp4")
-        file("D/Dr.Pabe.Show/Dr.Pabe.Show.2013.10.02.Death.in.6.Seconds.HDTV.x264-OWN.mp4")
+        file("D/Dr.Pabe.Show/Dr.Pabe.Show.2013.10.02.Dapir.in.6.Suluven.HDTV.x264-OWN.mp4")
         val hlucovidics = "H/The Hlucovidics Guzuf To The Gocoke - Remastered Mini Series 1981 1080p [H264-mp4]/The Hlucovidics Guzuf To The Gocoke - Remastered Mini Series 1981 1080p"
         file("$hlucovidics/01 The Hlucovidics Guzuf To The Gocoke - Part 1 Of 6 Mini-Series 1981 1080p [H264-mp4].mp4")
         file("$hlucovidics/02 The Hlucovidics Guzuf To The Gocoke - Part 2 Of 6 Mini-Series 1981 1080p [H264-mp4].mp4")
@@ -78,7 +78,7 @@ class ContentRenamerCollisionTest {
         file("N/No_Gupe_No_Lova_English_Dub_720p_1-12_Complete/No Gupe No Lova 12 Rule Number 10.mp4")
         // segments and specials of an episode
         file("K/Kad Pelafedo/Season 2/Kad Pelafedo.S02E06.1080p.mp4")
-        file("K/Kad Pelafedo/Season 2/Kad Pelafedo - S02 E06b - Adventures In Rufus-Sitting (1080p - AMZN Web-DL).mp4")
+        file("K/Kad Pelafedo/Season 2/Kad Pelafedo - S02 E06b - Apuziperot In Ripoz-Solusod (1080p - AMZN Web-DL).mp4")
         file("L/Lecu/Season 1/Lecu.S01E20.mp4")
         file("L/Lecu/Season 1/Lecu S01E20X01 Lecu The Jvunono.mp4")
         file("L/Lecu/Season 4/Lecu.S04E13.mkv")
@@ -103,7 +103,7 @@ class ContentRenamerCollisionTest {
         assertThat(movedFiles("{tvdb-70533}/Featurettes/Season 2 - The Lif Luza - The Lif Luza 01.mkv")).hasSize(1)
         assertThat(movedFiles("{tvdb-70533}/Featurettes/Season 2 - The Lif Luza - The Lif Luza 02.mkv")).hasSize(1)
         assertThat(movedFiles("{tvdb-71424}/Dr.Pabe.Show.2013.10.01.Didudugaf.and.Vubiliz.Lema.HDTV.x264-OWN.mp4")).hasSize(1)
-        assertThat(movedFiles("{tvdb-71424}/Dr.Pabe.Show.2013.10.02.Death.in.6.Seconds.HDTV.x264-OWN.mp4")).hasSize(1)
+        assertThat(movedFiles("{tvdb-71424}/Dr.Pabe.Show.2013.10.02.Dapir.in.6.Suluven.HDTV.x264-OWN.mp4")).hasSize(1)
         assertThat(movedFiles("{tvdb-78142}/Season 1/", ".S01E01.")).hasSize(1)
         assertThat(movedFiles("{tvdb-78142}/Season 1/", ".S01E02.")).hasSize(1)
         listOf("01", "08", "11").forEach { assertThat(movedFiles("{tmdb-37866}/Season 1/", ".S01E$it.")).hasSize(1) }

@@ -475,7 +475,7 @@ class ContentRenamerMovieTest {
     @Test
     fun `should skip Plex extras behind a dash and decode html entities`(@TempDir tempDir: Path) {
         val base = tempDir.toFile()
-        val audition = createFile(base, "Movies/U/Uveki.Goba/Andrea Linsky Audition Tape-other.mkv")
+        val audition = createFile(base, "Movies/U/Uveki.Goba/Apubef Logusu Abaconep Tico-other.mkv")
         assertThat(audition).exists()
         contentRenamer.processFilesFromDirectory(File(base, "Movies").absolutePath, null, isTestRun = false, basePath = base.absolutePath)
         assertThat(audition).exists()

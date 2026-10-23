@@ -47,7 +47,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         val paddingFilePattern = renamePaddingFilePattern
         val nonMediaExtensions = renameNonMediaExtensions
 
-        // Plex names extras behind a dash, "Uveki.Goba/Audition Tape-other.mkv"
+        // Plex names extras behind a dash, "Uveki.Goba/Abaconep Tico-other.mkv"
         val plexExtraSuffixPattern = "(?i)-(?:behindthescenes|deleted|featurette|interview|scene|short|trailer|other)$".toRegex()
     }
 

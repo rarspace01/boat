@@ -42,7 +42,7 @@ object NameCleaner {
         // Normalize unicode and foreign characters, remove backslash escape characters
         var name = inputName.replace("：", " ").replace("?", " ").replace("\\", "")
 
-        // the title ends at a bracketed episode like "Hgosa - [2x01] - Acceptance" or "Demadi Bemu GT [1.21] A Secret Revealed"
+        // the title ends at a bracketed episode like "Hgosa - [2x01] - Acceptance" or "Demadi Bemu GT [1.21] A Sucedu Rologiba"
         val bracketedEpisode = bracketedEpisodePattern.find(name)
         if (bracketedEpisode != null && bracketedEpisode.range.first > 0) {
             name = name.substring(0, bracketedEpisode.range.first)
