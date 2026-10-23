@@ -47,17 +47,17 @@ internal class BoatControllerTest {
 
     @Test
     fun shouldParseTrailingYearOfSearchListEntry() {
-        assertThat(BoatController.parseSearchListEntry("Dune 1984")).isEqualTo(MediaItem("Dune", "Dune", 1984, MediaType.Other))
-        assertThat(BoatController.parseSearchListEntry("Dune (2021)\r")?.let { it.title to it.year }).isEqualTo("Dune" to 2021)
-        assertThat(BoatController.parseSearchListEntry("Inception.2010")?.let { it.title to it.year }).isEqualTo("Inception" to 2010)
+        assertThat(BoatController.splitSearchListEntry("Dune 1984")).isEqualTo("Dune" to 1984)
+        assertThat(BoatController.splitSearchListEntry("Dune (2021)\r")).isEqualTo("Dune" to 2021)
+        assertThat(BoatController.splitSearchListEntry("Inception.2010")).isEqualTo("Inception" to 2010)
     }
 
     @Test
     fun shouldKeepTitleWithoutPlausibleYear() {
-        assertThat(BoatController.parseSearchListEntry("Blade Runner 2049")?.let { it.title to it.year }).isEqualTo("Blade Runner 2049" to null)
-        assertThat(BoatController.parseSearchListEntry("1917")?.let { it.title to it.year }).isEqualTo("1917" to null)
-        assertThat(BoatController.parseSearchListEntry("Inception")?.let { it.title to it.year }).isEqualTo("Inception" to null)
-        assertThat(BoatController.parseSearchListEntry("   ")).isNull()
+        assertThat(BoatController.splitSearchListEntry("Blade Runner 2049")).isEqualTo("Blade Runner 2049" to null)
+        assertThat(BoatController.splitSearchListEntry("1917")).isEqualTo("1917" to null)
+        assertThat(BoatController.splitSearchListEntry("Inception")).isEqualTo("Inception" to null)
+        assertThat(BoatController.splitSearchListEntry("   ")).isNull()
     }
 
     @Test
@@ -124,17 +124,17 @@ internal class BoatControllerTest {
     }
 
     @Test
-    fun shouldQueueMatchedEntriesOfTheSearchList() {
-        val matched = MediaItem("Dune", "Dune", 1984, MediaType.Movie, "{tmdb-841}")
-        every { mediaProxyService.findBestMatch("Dune", 1984) } returns matched
-        every { cloudService.findExistingFilesForEach(any()) } answers { firstArg<List<String>>().map { emptyList() } }
+    fun shouldQueuePlainEntriesOfTheSearchListWithoutLookups() {
         every { queueService.addAll(any()) } returns Unit
-        every { queueService.saveQueue() } returns Unit
 
-        val response = boatController.queueList("Dune 1984\n")
+        val response = boatController.queueList("Dune 1984\nInception\n\n")
 
-        verify(exactly = 1) { queueService.addAll(listOf(matched)) }
-        assertThat(response).contains("{tmdb-841}")
+        verify(exactly = 1) {
+            queueService.addAll(listOf(MediaItem("Dune", "Dune", 1984, MediaType.Other), MediaItem("Inception", "Inception", null, MediaType.Other)))
+        }
+        verify(exactly = 0) { mediaProxyService.findBestMatch(any(), any()) }
+        verify(exactly = 0) { cloudService.findExistingFiles(any()) }
+        assertThat(response).contains("Dune")
     }
 
     @Test

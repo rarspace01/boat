@@ -1,5 +1,9 @@
 package boat.info
 
+import boat.model.QueueEntry
+import boat.repositories.QueueRepository
+import io.mockk.every
+import io.mockk.mockk
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
@@ -10,74 +14,68 @@ internal class QueueServiceTest {
     @TempDir
     lateinit var dir: File
 
-    private fun queueService() = QueueService(File(dir, "sub/queue.list"))
+    /** The collection of the repository, so a new service on it is a restart. */
+    private val stored = LinkedHashMap<String, QueueEntry>()
 
-    @Test
-    fun shouldKeepMatchedMediaDataInTheQueue() {
-        val queueService = queueService()
-        val item = MediaItem("Avatar", "Avatar", 2009, MediaType.Movie, "{tmdb-19995}")
-
-        queueService.add(item)
-
-        assertThat(queueService.getQueue()).containsExactly(item)
+    private val repository: QueueRepository = mockk<QueueRepository>().also { repo ->
+        every { repo.count() } answers { stored.size.toLong() }
+        every { repo.existsById(any()) } answers { stored.containsKey(firstArg()) }
+        every { repo.save(any<QueueEntry>()) } answers { firstArg<QueueEntry>().also { stored[it.id] = it } }
+        every { repo.deleteById(any()) } answers { stored.remove(firstArg<String>()); Unit }
+        every { repo.findAllByOrderBySequenceAsc() } answers { stored.values.sortedBy { it.sequence } }
     }
 
-    @Test
-    fun shouldKeepUnmatchedItemWithoutYear() {
-        val queueService = queueService()
-
-        queueService.add(MediaItem("Unknown"))
-
-        assertThat(queueService.getQueue()).containsExactly(MediaItem("Unknown"))
-    }
+    private fun queueService() = QueueService(repository, File(dir, "queue.list"))
 
     @Test
-    fun shouldKeepTheOrderOfTheEntriesAlsoInTheFile() {
-        val items = (1..30).map { MediaItem("Title $it", year = 2000 + it) } + MediaItem("Amélie 東京 = a:b", year = 2001)
+    fun queueSurvivesRestart() {
+        val items = (1..50).map { MediaItem("Title $it", year = 2000 + it, type = MediaType.Movie, id = "id$it", originalTitle = "Orig $it") }
+
         queueService().addAll(items)
 
         assertThat(queueService().getQueue()).containsExactlyElementsOf(items)
     }
 
     @Test
-    fun shouldReadTheQueueWhileItIsChanged() {
+    fun addingAgainKeepsPlace() {
         val queueService = queueService()
-        val writer = Thread { repeat(2000) { queueService.add(MediaItem("Title $it")) } }.apply { start() }
-        repeat(200) { queueService.getQueue() }
-        writer.join()
+        queueService.addAll(listOf(MediaItem("A"), MediaItem("B")))
+        queueService.add(MediaItem("A"))
 
-        assertThat(queueService.getQueue()).hasSize(2000)
+        assertThat(queueService.getQueue()).containsExactly(MediaItem("A"), MediaItem("B"))
     }
 
     @Test
-    fun shouldKeepSameTitleWithDifferentYears() {
+    fun sameTitleWithDifferentYearsDoNotCollide() {
         val queueService = queueService()
         val first = MediaItem("Dune", year = 1984)
         val second = MediaItem("Dune", year = 2021)
-
         queueService.addAll(listOf(first, second))
-        assertThat(queueService.getQueue()).containsExactlyInAnyOrder(first, second)
+        assertThat(queueService.getQueue()).containsExactly(first, second)
 
         queueService.remove(first)
         assertThat(queueService.getQueue()).containsExactly(second)
     }
 
     @Test
-    fun shouldCreateMissingDirectoryAndReloadSavedQueue() {
-        val item = MediaItem("Avatar", year = 2009, type = MediaType.Movie, id = "{tmdb-19995}")
-        queueService().addAll(listOf(item))
+    fun importsQueueFileOfOlderVersionOnce() {
+        val file = File(dir, "queue.list")
+        file.writeText("Avatar=2009\nNo\\ Year=\nMatched={\"title\":\"Matched\",\"year\":1999,\"type\":\"Movie\",\"id\":\"7\"}\n")
 
-        assertThat(queueService().getQueue()).containsExactly(item)
+        val queueService = queueService()
+
+        assertThat(queueService.getQueue()).containsExactly(
+            MediaItem("Avatar", year = 2009), MediaItem("No Year"), MediaItem("Matched", year = 1999, type = MediaType.Movie, id = "7")
+        )
+        assertThat(file).doesNotExist()
+        assertThat(File(dir, "queue.list.imported")).exists()
     }
 
     @Test
-    fun shouldReadAndRemoveEntriesOfOlderQueueFiles() {
-        File(dir, "queue.list").writeText("Avatar=2009\nNo\\ Year=null\n")
-        val queueService = QueueService(File(dir, "queue.list"))
+    fun doesNotImportQueueFileIntoFilledQueue() {
+        queueService().add(MediaItem("Existing"))
+        File(dir, "queue.list").writeText("Old=2000\n")
 
-        assertThat(queueService.getQueue()).containsExactlyInAnyOrder(MediaItem("Avatar", year = 2009), MediaItem("No Year"))
-
-        queueService.remove(MediaItem("Avatar", year = 2009))
-        assertThat(queueService.getQueue()).containsExactly(MediaItem("No Year"))
+        assertThat(queueService().getQueue()).containsExactly(MediaItem("Existing"))
     }
 }

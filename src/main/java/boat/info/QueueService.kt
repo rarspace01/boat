@@ -1,74 +1,73 @@
 package boat.info
 
+import boat.model.QueueEntry
+import boat.repositories.QueueRepository
 import boat.utilities.LoggerDelegate
 import boat.utilities.PropertiesHelper
-import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
-import java.io.ByteArrayOutputStream
 import java.io.File
 import java.util.Properties
 
 /**
- * The queue, first in, first out: the entries are kept and saved in the order they were added. Its file is in the
- * format of [Properties] (title=json), older files are read too.
+ * The queue, first in, first out, kept in MongoDB so it survives a restart. A queue file of an older version
+ * (format of [Properties], title=json or title=year) is imported once, if the queue is empty, and renamed afterwards.
  */
 @Service
-class QueueService internal constructor(private val queueFile: File) {
+class QueueService internal constructor(private val queueRepository: QueueRepository, private val legacyQueueFile: File) {
 
     @Autowired
-    constructor() : this(File(PropertiesHelper.getProperty("QUEUE_FILE", DEFAULT_QUEUE_FILE)!!))
+    constructor(queueRepository: QueueRepository) : this(queueRepository, File(PropertiesHelper.getProperty("QUEUE_FILE", DEFAULT_QUEUE_FILE)!!))
 
-    /** Guarded by `this`: the web requests add, the queue job reads and removes. */
-    private val entries: LinkedHashMap<String, String> = initQueue()
+    /** Guarded by `this`, keeps the order of entries added within the same millisecond. */
+    private var lastSequence = 0L
 
-    private fun initQueue(): LinkedHashMap<String, String> {
-        val ordered = LinkedHashMap<String, String>()
-        if (queueFile.isFile) {
-            // Properties is a hash table, the entries are taken as they are read to keep their order
-            val reader = object : Properties() {
-                override fun put(key: Any, value: Any): Any? = ordered.put(key.toString(), value.toString())
+    init {
+        importLegacyQueueFile()
+    }
+
+    private fun importLegacyQueueFile() {
+        if (!legacyQueueFile.isFile) return
+        try {
+            if (queueRepository.count() == 0L) {
+                val ordered = LinkedHashMap<String, String>()
+                // Properties is a hash table, the entries are taken as they are read to keep their order
+                val reader = object : Properties() {
+                    override fun put(key: Any, value: Any): Any? = ordered.put(key.toString(), value.toString())
+                }
+                legacyQueueFile.inputStream().use { reader.load(it) }
+                addAll(ordered.map { (key, value) -> deserialize(key, value) })
+                logger.info("imported {} entries of the queue file [{}]", ordered.size, legacyQueueFile)
             }
-            runCatching { queueFile.inputStream().use { reader.load(it) } }
-                .onFailure { logger.error("could not read the queue [{}]: {}", queueFile, it.message) }
+            val imported = File(legacyQueueFile.path + ".imported")
+            if (!legacyQueueFile.renameTo(imported)) logger.warn("could not rename the queue file [{}]", legacyQueueFile)
+        } catch (exception: Exception) {
+            logger.error("could not import the queue file [{}]: {}", legacyQueueFile, exception.message)
         }
-        return ordered
     }
 
     @Synchronized
     fun addAll(listOfMediaItems: List<MediaItem>) {
         listOfMediaItems.forEach { add(it) }
-        saveQueue()
     }
 
+    /** An item that is already queued keeps its place. */
     @Synchronized
     fun add(mediaItem: MediaItem) {
-        entries[keyOf(mediaItem)] = serialize(mediaItem)
+        if (queueRepository.existsById(QueueEntry.idOf(mediaItem))) return
+        lastSequence = maxOf(lastSequence + 1, System.currentTimeMillis())
+        queueRepository.save(QueueEntry.of(mediaItem, lastSequence))
     }
 
     @Synchronized
     fun remove(mediaItem: MediaItem) {
-        entries.remove(keyOf(mediaItem))
-        // entries of older queue files are keyed by the title only
-        if (entries[mediaItem.title]?.startsWith("{") == false) entries.remove(mediaItem.title)
+        queueRepository.deleteById(QueueEntry.idOf(mediaItem))
     }
-
-    /** Title and year, so the same title with different years doesn't collide. */
-    private fun keyOf(mediaItem: MediaItem): String = mediaItem.title + (mediaItem.year?.let { " ($it)" } ?: "")
 
     /** A copy, oldest first. */
     @Synchronized
-    fun getQueue(): List<MediaItem> = entries.map { (key, value) -> deserialize(key, value) }
-
-    /** Entries are stored as JSON with the matched media data; older queue files only hold the year. */
-    private fun serialize(mediaItem: MediaItem): String = JsonObject().apply {
-        addProperty("title", mediaItem.title)
-        mediaItem.year?.let { addProperty("year", it) }
-        mediaItem.type?.let { addProperty("type", it.name) }
-        mediaItem.id?.let { addProperty("id", it) }
-        mediaItem.originalTitle?.let { addProperty("originalTitle", it) }
-    }.toString()
+    fun getQueue(): List<MediaItem> = queueRepository.findAllByOrderBySequenceAsc().map { it.toMediaItem() }
 
     private fun deserialize(title: String, value: String): MediaItem {
         if (!value.startsWith("{")) return MediaItem(title = title, year = value.toIntOrNull())
@@ -84,25 +83,7 @@ class QueueService internal constructor(private val queueFile: File) {
         }.getOrElse { MediaItem(title = title) }
     }
 
-    @Synchronized
-    fun saveQueue() {
-        try {
-            queueFile.parentFile?.mkdirs()
-            queueFile.writeText(entries.entries.joinToString("") { (key, value) -> propertiesLine(key, value) }, Charsets.ISO_8859_1)
-        } catch (exception: Exception) {
-            logger.error("could not save the queue [{}]: {}", queueFile, exception.message)
-        }
-    }
-
     companion object {
-        /** One entry as [Properties.store] writes it (escaped, without its date comment), [Properties] itself writes in hash order. */
-        private fun propertiesLine(key: String, value: String): String {
-            // the stream variant escapes what is not Latin-1 (\uXXXX), as the file is read
-            val bytes = ByteArrayOutputStream()
-            Properties().apply { setProperty(key, value) }.store(bytes, null)
-            return bytes.toString(Charsets.ISO_8859_1).lineSequence().filter { it.isNotEmpty() && !it.startsWith("#") }.joinToString("") { "$it\n" }
-        }
-
         private const val DEFAULT_QUEUE_FILE = "/tmp/boat/queue.list"
         private val logger by LoggerDelegate()
     }

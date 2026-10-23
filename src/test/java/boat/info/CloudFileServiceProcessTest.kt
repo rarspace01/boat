@@ -62,4 +62,11 @@ internal class CloudFileServiceProcessTest {
     fun `should return nothing if rclone is not installed`() {
         assertThat(CloudFileService("rclone-which-does-not-exist").getFilesInPathWithRetries("remote:Movies/A/", 0)).isEmpty()
     }
+
+    @Test
+    fun `should tell if a folder can be listed`(@TempDir tempDir: Path) {
+        assertThat(CloudFileService(fakeRclone(tempDir.toFile(), "echo '[]'")).isDirectoryReachable("remote:Library")).isTrue()
+        assertThat(CloudFileService(fakeRclone(tempDir.toFile(), """echo "ERROR : directory not found" >&2; exit 3""")).isDirectoryReachable("remote:Library")).isFalse()
+        assertThat(CloudFileService(File(tempDir.toFile(), "no-rclone").path).isDirectoryReachable("remote:Library")).isFalse()
+    }
 }

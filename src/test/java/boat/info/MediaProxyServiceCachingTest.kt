@@ -29,6 +29,17 @@ class MediaProxyServiceCachingTest {
     }
 
     @Test
+    fun `findBestMatch falls back to the full name if the year is part of the title`() {
+        val space = MediaItem("Space 1999", "Space 1999", 1975, MediaType.Series)
+        every { tmdbService.search("Space", 1999) } returns emptyList()
+        every { tvdbService.search("Space", 1999) } returns emptyList()
+        every { tmdbService.search("Space 1999") } returns listOf(space)
+        every { tvdbService.search("Space 1999") } returns emptyList()
+
+        assertThat(mediaProxyService.findBestMatch("Space", 1999)).isEqualTo(space)
+    }
+
+    @Test
     fun `search should cache results`() {
         val name = "Test Movie"
         val results = listOf(MediaItem(name, name, 2020, MediaType.Movie))

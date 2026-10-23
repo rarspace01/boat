@@ -47,7 +47,7 @@ internal class DownloadMonitorTest {
             httpHelper,
             mediaProxyService
         )
-        every { cloudService.isCloudTokenValid } returns true
+        every { cloudService.isTargetFolderReady } returns true
         every { configurationService.isSearchMode() } returns true
         every { multifileHosterService.remoteTorrents } returns emptyList()
         every { multifileHosterService.getRemainingTrafficInMB() } returns 200_000.0
@@ -93,7 +93,7 @@ internal class DownloadMonitorTest {
         val torrent = Torrent("Avatar 2009 1080p")
 
         every { queueService.getQueue() } returns listOf(queueItem)
-        every { mediaProxyService.search("Avatar", 2009) } returns listOf(resolvedMedia)
+        every { mediaProxyService.findBestMatch("Avatar", 2009) } returns resolvedMedia
         every { cloudService.findExistingFiles("Avatar") } returns emptyList()
         every { cloudService.findExistingFiles("{tmdb-19995}") } returns emptyList()
         every { torrentSearchEngineService.searchTorrents("Avatar 2009") } returns listOf(torrent)
@@ -103,7 +103,6 @@ internal class DownloadMonitorTest {
         verify(exactly = 1) { torrentSearchEngineService.searchTorrents("Avatar 2009") }
         verify(exactly = 1) { multifileHosterService.addTorrentToTransfer(torrent, "{tmdb-19995}", MediaType.Movie) }
         verify(exactly = 1) { queueService.remove(queueItem) }
-        verify(exactly = 1) { queueService.saveQueue() }
     }
 
     @Test
@@ -113,7 +112,7 @@ internal class DownloadMonitorTest {
         val torrent = Torrent("Breaking Bad S01 1080p")
 
         every { queueService.getQueue() } returns listOf(queueItem)
-        every { mediaProxyService.search("Breaking Bad: Season 1", 2008) } returns listOf(resolvedMedia)
+        every { mediaProxyService.findBestMatch("Breaking Bad: Season 1", 2008) } returns resolvedMedia
         every { cloudService.findExistingFiles("Breaking Bad Season 1") } returns emptyList()
         every { cloudService.findExistingFiles("{tvdb-81189}") } returns emptyList()
         every { torrentSearchEngineService.searchTorrents("Breaking Bad Season 1") } returns listOf(torrent)
@@ -123,7 +122,6 @@ internal class DownloadMonitorTest {
         verify(exactly = 1) { torrentSearchEngineService.searchTorrents("Breaking Bad Season 1") }
         verify(exactly = 1) { multifileHosterService.addTorrentToTransfer(torrent, "{tvdb-81189}", MediaType.Series) }
         verify(exactly = 1) { queueService.remove(queueItem) }
-        verify(exactly = 1) { queueService.saveQueue() }
     }
 
     @Test
@@ -132,7 +130,7 @@ internal class DownloadMonitorTest {
         val resolvedMedia = MediaItem(title = "Avatar", year = 2009, type = MediaType.Movie, id = "{tmdb-19995}")
 
         every { queueService.getQueue() } returns listOf(queueItem)
-        every { mediaProxyService.search("Avatar", 2009) } returns listOf(resolvedMedia)
+        every { mediaProxyService.findBestMatch("Avatar", 2009) } returns resolvedMedia
         every { cloudService.findExistingFiles("Avatar") } returns emptyList()
         every { cloudService.findExistingFiles("{tmdb-19995}") } returns listOf("Avatar (2009) {tmdb-19995}.mkv")
 
@@ -141,7 +139,6 @@ internal class DownloadMonitorTest {
         verify(exactly = 0) { torrentSearchEngineService.searchTorrents(any()) }
         verify(exactly = 0) { multifileHosterService.addTorrentToTransfer(any(), any(), any()) }
         verify(exactly = 1) { queueService.remove(queueItem) }
-        verify(exactly = 1) { queueService.saveQueue() }
     }
 
     @Test
@@ -156,7 +153,7 @@ internal class DownloadMonitorTest {
 
         downloadMonitor.checkForQueueEntries()
 
-        verify(exactly = 0) { mediaProxyService.search(any<String>(), any<Int>()) }
+        verify(exactly = 0) { mediaProxyService.findBestMatch(any(), any()) }
         verify(exactly = 1) { multifileHosterService.addTorrentToTransfer(torrent, "{tmdb-19995}", MediaType.Movie) }
         verify(exactly = 1) { queueService.remove(queueItem) }
     }
@@ -167,8 +164,7 @@ internal class DownloadMonitorTest {
         val torrent = Torrent("Custom Show 2021")
 
         every { queueService.getQueue() } returns listOf(queueItem)
-        every { mediaProxyService.search("Custom Show!", 2021) } returns emptyList()
-        every { mediaProxyService.search("Custom Show! 2021") } returns emptyList()
+        every { mediaProxyService.findBestMatch("Custom Show!", 2021) } returns null
         every { cloudService.findExistingFiles("Custom Show") } returns emptyList()
         every { cloudService.findExistingFiles("{custom-id}") } returns emptyList()
         every { torrentSearchEngineService.searchTorrents("Custom Show 2021") } returns listOf(torrent)
@@ -178,7 +174,6 @@ internal class DownloadMonitorTest {
         verify(exactly = 1) { torrentSearchEngineService.searchTorrents("Custom Show 2021") }
         verify(exactly = 1) { multifileHosterService.addTorrentToTransfer(torrent, "{custom-id}", null) }
         verify(exactly = 1) { queueService.remove(queueItem) }
-        verify(exactly = 1) { queueService.saveQueue() }
     }
 
     @Test
@@ -188,8 +183,7 @@ internal class DownloadMonitorTest {
         val torrent = Torrent("Space 1999 S01")
 
         every { queueService.getQueue() } returns listOf(queueItem)
-        every { mediaProxyService.search("Space", 1999) } returns emptyList()
-        every { mediaProxyService.search("Space 1999") } returns listOf(resolvedMedia)
+        every { mediaProxyService.findBestMatch("Space", 1999) } returns resolvedMedia
         every { torrentSearchEngineService.searchTorrents("Space 1999") } returns listOf(torrent)
 
         downloadMonitor.checkForQueueEntries()

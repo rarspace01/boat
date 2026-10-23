@@ -141,7 +141,7 @@ class DownloadMonitor(
     @Async
     @Scheduled(fixedRate = (SECONDS_BETWEEN_QUEUE_POLLING * 1000).toLong())
     fun checkForQueueEntries() {
-        if (cloudService.isCloudTokenValid && configurationService.isSearchMode()) runExclusively("checkForQueueEntries") {
+        if (cloudService.isTargetFolderReady && configurationService.isSearchMode()) runExclusively("checkForQueueEntries") {
             logger.info("checkForQueueEntryAndAddToTransfers")
             checkForQueueEntryAndAddToTransfers()
         }
@@ -159,12 +159,8 @@ class DownloadMonitor(
                 // items from the search list are already matched, older queue entries are matched now
                 val matchedMediaItem = if (isMatched(mediaItem)) {
                     mediaItem
-                } else if (mediaItem.year != null) {
-                    // the year might be part of the title (e.g. "Space 1999"), so fall back to the full name
-                    mediaProxyService.search(mediaItem.title, mediaItem.year).firstOrNull()
-                        ?: mediaProxyService.search("${mediaItem.title} ${mediaItem.year}").firstOrNull()
                 } else {
-                    mediaProxyService.search(mediaItem.title).firstOrNull()
+                    mediaProxyService.findBestMatch(mediaItem.title, mediaItem.year)
                 }
                 val selectedTitle = matchedMediaItem?.title ?: mediaItem.title
                 val selectedYear = if (matchedMediaItem != null) {
@@ -192,7 +188,6 @@ class DownloadMonitor(
 
     private fun removeFromQueue(mediaItem: MediaItem) {
         queueService.remove(mediaItem)
-        queueService.saveQueue()
     }
 
     @Scheduled(fixedRate = (SECONDS_BETWEEN_CLEAR_TRANSFER_POLLING * 1000).toLong())

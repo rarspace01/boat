@@ -54,17 +54,8 @@ internal class CloudServiceExistingFilesTest {
     }
 
     @Test
-    fun shouldListTheLibraryOnceForAllNamesOfAList() {
-        val found = cloudService.findExistingFilesForEach(listOf("It", "Hitman", "Dune", ""))
-
-        assertThat(found.map { it.size }).containsExactly(1, 1, 0, 0)
-        // a listing is one lookup per letter and media type
-        io.mockk.verify(exactly = 28 * TorrentType.entries.size) { cloudFileService.getFilesInPath(any()) }
-    }
-
-    @Test
-    fun shouldFindNoFilesIfCacheIsNotFilled() {
+    fun shouldListTheFilesIfCacheIsNotFilledYet() {
         every { cloudFileService.isCacheFilled } returns false
-        assertThat(cloudService.findExistingFiles("It")).isEmpty()
+        assertThat(cloudService.findExistingFiles("It")).hasSize(1)
     }
 }
