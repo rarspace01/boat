@@ -6,6 +6,8 @@ import boat.info.MediaItem
 import boat.info.MediaProxyService
 import boat.info.MediaType
 import boat.info.QueueService
+import boat.model.Transfer
+import boat.model.TransferStatus
 import boat.multifileHoster.MultifileHosterService
 import boat.services.ConfigurationService
 import boat.services.TransferService
@@ -189,5 +191,51 @@ internal class DownloadMonitorTest {
         downloadMonitor.checkForQueueEntries()
 
         verify(exactly = 1) { multifileHosterService.addTorrentToTransfer(torrent, "{tvdb-77853}", MediaType.Series) }
+    }
+
+    private fun finishedTorrent(remoteId: String) = Torrent("Premiumize").apply {
+        name = "Finished $remoteId"
+        this.remoteId = remoteId
+        remoteTransferStatus = TransferStatus.READY_TO_BE_DOWNLOADED
+    }
+
+    private fun queueOneMovie(): MediaItem {
+        val queueItem = MediaItem(title = "Arapef", year = 2009, type = MediaType.Movie, id = "{tmdb-19995}")
+        every { queueService.getQueue() } returns listOf(queueItem)
+        every { cloudService.findExistingFiles(any()) } returns emptyList()
+        return queueItem
+    }
+
+    @Test
+    fun shouldWaitWhileAFinishedTorrentIsDownloaded() {
+        queueOneMovie()
+        every { multifileHosterService.remoteTorrents } returns listOf(finishedTorrent("r1"))
+        every { transferService.getAll() } returns listOf(Transfer(remoteId = "r1", transferStatus = TransferStatus.READY_TO_BE_DOWNLOADED))
+
+        downloadMonitor.checkForQueueEntries()
+
+        verify(exactly = 0) { torrentSearchEngineService.searchTorrents(any()) }
+    }
+
+    @Test
+    fun shouldNotWaitForFinishedTorrentsWhichAreNeverDownloaded() {
+        val queueItem = queueOneMovie()
+        every { multifileHosterService.remoteTorrents } returns listOf(finishedTorrent("failed"), finishedTorrent("orphan"))
+        every { transferService.getAll() } returns listOf(Transfer(remoteId = "failed", transferStatus = TransferStatus.UPLOAD_TO_DRIVE_FAILED))
+
+        downloadMonitor.checkForQueueEntries()
+
+        verify(exactly = 1) { torrentSearchEngineService.searchTorrents("Arapef 2009") }
+        verify(exactly = 1) { queueService.remove(queueItem) }
+    }
+
+    @Test
+    fun shouldWaitWithoutEnoughTraffic() {
+        queueOneMovie()
+        every { multifileHosterService.getRemainingTrafficInMB() } returns 1024.0
+
+        downloadMonitor.checkForQueueEntries()
+
+        verify(exactly = 0) { torrentSearchEngineService.searchTorrents(any()) }
     }
 }

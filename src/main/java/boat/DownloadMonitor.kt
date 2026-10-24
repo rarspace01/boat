@@ -147,14 +147,47 @@ class DownloadMonitor(
         }
     }
 
+    /** Why the queue waited the last time, so the reason is only logged when it changes and not every 30 s. */
+    @Volatile
+    private var lastQueueWaitReason: String? = null
+
+    private fun logQueueWaitReason(reason: String?) {
+        if (reason != lastQueueWaitReason) {
+            if (reason != null) logger.info("queue waits: {}", reason) else if (lastQueueWaitReason != null) logger.info("queue continues")
+            lastQueueWaitReason = reason
+        }
+    }
+
     private fun checkForQueueEntryAndAddToTransfers() {
         // the hoster is only asked for its transfers and the traffic if there is something to add
-        if (queueService.getQueue().isEmpty()) return
+        val queue = queueService.getQueue()
+        if (queue.isEmpty()) {
+            logQueueWaitReason("the queue is empty")
+            return
+        }
         val remoteTorrents = multifileHosterService.remoteTorrents
         val numberOfActiveRemoteTorrents = remoteTorrents.count { torrent: Torrent -> torrent.remoteTransferStatus != TransferStatus.READY_TO_BE_DOWNLOADED }
-        val numberOfTorrentsReadyToDownload = remoteTorrents.count { torrent: Torrent -> torrent.remoteTransferStatus == TransferStatus.READY_TO_BE_DOWNLOADED }
-        if (numberOfTorrentsReadyToDownload == 0 && numberOfActiveRemoteTorrents < MAX_QUEUE_DOWNLOADS_LIMIT && multifileHosterService.getRemainingTrafficInMB() > MIN_GB_FOR_QUEUE * 1024) {
-            queueService.getQueue().stream().findFirst().ifPresent { mediaItem: MediaItem ->
+        val readyTorrents = remoteTorrents.filter { torrent: Torrent -> torrent.remoteTransferStatus == TransferStatus.READY_TO_BE_DOWNLOADED }
+        // finished torrents nobody downloads (the upload to the drive failed for good, or there is no transfer) don't block the queue
+        val transfers = transferService.getAll()
+        val torrentsWaitingForDownload = readyTorrents.filter { torrent -> isWaitingForDownload(torrent, transfers) }
+        val waitReason = when {
+            torrentsWaitingForDownload.isNotEmpty() ->
+                "${torrentsWaitingForDownload.size} torrent(s) at the hoster wait for their download: ${torrentsWaitingForDownload.map { it.name }}"
+            numberOfActiveRemoteTorrents >= MAX_QUEUE_DOWNLOADS_LIMIT ->
+                "$numberOfActiveRemoteTorrents torrents are active at the hoster (limit $MAX_QUEUE_DOWNLOADS_LIMIT)"
+            else -> multifileHosterService.getRemainingTrafficInMB().let { traffic ->
+                if (traffic > MIN_GB_FOR_QUEUE * 1024) null
+                else "%.1f GB traffic left at the hosters, %d GB are needed".format(traffic / 1024, MIN_GB_FOR_QUEUE)
+            }
+        }
+        logQueueWaitReason(waitReason)
+        if (waitReason == null) {
+            if (readyTorrents.size > torrentsWaitingForDownload.size) {
+                logger.debug("finished torrents at the hoster which aren't downloaded: {}", (readyTorrents - torrentsWaitingForDownload.toSet()).map { it.name })
+            }
+            queue.stream().findFirst().ifPresent { mediaItem: MediaItem ->
+                logger.info("picked {} ({} entries in the queue)", mediaItem, queue.size)
                 logger.info("picked {}", mediaItem)
                 // items from the search list are already matched, older queue entries are matched now
                 val matchedMediaItem = if (isMatched(mediaItem)) {
@@ -175,9 +208,13 @@ class DownloadMonitor(
                 val existingFiles = (cloudService.findExistingFiles(cleanedTitle) +
                         (remoteMediaId?.let { cloudService.findExistingFiles(it) } ?: emptyList())).distinct()
                 if (existingFiles.isEmpty()) {
-                    torrentSearchEngineService.searchTorrents(torrentSearchString).stream()
-                        .findFirst()
-                        .ifPresent { torrent: Torrent? -> multifileHosterService.addTorrentToTransfer(torrent!!, remoteMediaId, matchedMediaItem?.type) }
+                    val torrent = torrentSearchEngineService.searchTorrents(torrentSearchString).firstOrNull()
+                    if (torrent != null) {
+                        logger.info("adding [{}] for [{}]", torrent.name, torrentSearchString)
+                        multifileHosterService.addTorrentToTransfer(torrent, remoteMediaId, matchedMediaItem?.type)
+                    } else {
+                        logger.warn("no torrent found for [{}], removed {} from the queue", torrentSearchString, mediaItem)
+                    }
                 } else {
                     logger.warn("Looks like Torrent was already downloaded, skipped {} - matched files: {}", mediaItem, existingFiles)
                 }
@@ -218,6 +255,18 @@ class DownloadMonitor(
             val maxAgeInDays = if (TransferStatus.ADDED == transfer.transferStatus) 7L else 1L
             return transfer.updated.isBefore(now.minus(maxAgeInDays, ChronoUnit.DAYS))
         }
+
+        /**
+         * True if a transfer will download the finished [torrent]: one in [TransferStatus.READY_TO_BE_DOWNLOADED] or
+         * already uploading. Its files stay at the hoster if the upload failed for good, and without a transfer nothing
+         * downloads it at all.
+         */
+        internal fun isWaitingForDownload(torrent: Torrent, transfers: List<Transfer>): Boolean =
+            transfers.any { transfer ->
+                transfer.transferStatus in listOf(TransferStatus.READY_TO_BE_DOWNLOADED, TransferStatus.UPLOADING_TO_DRIVE) &&
+                        ((transfer.remoteId != null && transfer.remoteId == torrent.remoteId) ||
+                                (torrent.torrentId.isNotEmpty() && transfer.uri.lowercase().contains(torrent.torrentId.lowercase())))
+            }
 
         private fun isMatched(mediaItem: MediaItem) =
             !mediaItem.id.isNullOrBlank() && mediaItem.type != null && mediaItem.type != MediaType.Other
