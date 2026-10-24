@@ -167,8 +167,13 @@ internal class AlldebridTest {
         answer("v4/user", """{"status":"success","data":{"user":{"username":"demoUserPremium","isPremium":true,"isTrial":false,"premiumUntil":1793597087,"limitedHostersQuotas":{"ddl":2000}}}}""")
         assertThat(alldebrid.getRemainingTrafficInMB()).isEqualTo(Alldebrid.UNLIMITED_TRAFFIC_MB)
 
-        answer("v4/user", """{"status":"success","data":{"user":{"isPremium":false,"isTrial":true,"remainingTrialQuota":20480}}}""")
+        // a trial is premium too
+        answer("v4/user", """{"status":"success","data":{"user":{"isPremium":true,"isTrial":true,"remainingTrialQuota":20480}}}""")
         assertThat(alldebrid.getRemainingTrafficInMB()).isEqualTo(20480.0)
+
+        // the answer of the trial demo account, without a quota
+        answer("v4/user", """{"status":"success","demo":true,"data":{"user":{"username":"demoUserTrial","isPremium":true,"isTrial":true,"isSubscribed":false,"premiumUntil":1793136340,"limitedHostersQuotas":{"ddl":2000}}}}""")
+        assertThat(alldebrid.getRemainingTrafficInMB()).isEqualTo(0.0)
 
         answer("v4/user", """{"status":"success","data":{"user":{"isPremium":false,"isTrial":false,"premiumUntil":0}}}""")
         assertThat(alldebrid.getRemainingTrafficInMB()).isEqualTo(0.0)
