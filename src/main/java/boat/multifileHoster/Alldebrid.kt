@@ -16,7 +16,7 @@ import java.time.Duration
 /**
  * AllDebrid, API v4 and v4.1 (https://docs.alldebrid.com). The api key goes in the `Authorization` header, so it is
  * never part of an url (and a log), the parameters are sent as POST form. Errors come as HTTP 200 with
- * `"status": "error"`. Not registered in [MultifileHosterService] yet, only Premiumize is used.
+ * `"status": "error"`. Used by [MultifileHosterService] if `ALLDEBRID_APIKEY` is set.
  */
 class Alldebrid(
     httpHelper: HttpHelper,
