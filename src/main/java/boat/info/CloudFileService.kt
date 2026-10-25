@@ -28,6 +28,7 @@ class CloudFileService(
         /** A recursive listing of a whole letter folder of the library takes a while on the remote. */
         const val LISTING_TIMEOUT_SECONDS = 300L
         private const val DIRECTORY_CHECK_TIMEOUT_SECONDS = 60L
+        private const val ABOUT_TIMEOUT_SECONDS = 60L
 
         /** Reading the output blocks until rclone ends, so not on the common pool, where it would hold threads others need. */
         private val outputReaders = Executors.newVirtualThreadPerTaskExecutor()
@@ -49,6 +50,26 @@ class CloudFileService(
         } catch (e: Exception) {
             logger.warn("rclone can't list [{}]: {}", path, e.message)
             false
+        }
+    }
+
+    /** The free space on the remote of [path] in bytes, from `rclone about`, null if rclone fails or the remote doesn't tell. */
+    fun getFreeSpaceInBytes(path: String): Long? {
+        val command = listOf("rclone") + RcloneUploader.certificateArguments() + listOf("about", "--json", path)
+        var output = ""
+        return try {
+            val result = run(command, ABOUT_TIMEOUT_SECONDS) ?: return null
+            output = result.output
+            if (result.exitCode != 0) {
+                logger.warn("rclone can't tell the free space of [{}]: {}", path, result.error.trim())
+                return null
+            }
+            val jsonElement = JsonParser.parseString(output)
+            if (!jsonElement.isJsonObject) return null
+            jsonElement.asJsonObject["free"]?.takeIf { it.isJsonPrimitive }?.asLong
+        } catch (e: Exception) {
+            logger.warn("rclone can't tell the free space of [{}]: {}\nOutput from process:\n{}", path, e.message, output)
+            null
         }
     }
 

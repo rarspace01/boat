@@ -1,5 +1,6 @@
 package boat.multifileHoster
 
+import java.time.Instant
 import boat.ContentRenamer
 import boat.info.CloudFileService
 import boat.info.CloudService
@@ -61,6 +62,7 @@ internal class MultifileHosterServiceTest {
             )
         )
         every { rcloneUploader.copyUrl(any(), any(), any()) } returns true
+        every { cloudService.freeSpaceInBytes } returns null
     }
 
     @Test
@@ -336,6 +338,35 @@ internal class MultifileHosterServiceTest {
 
         val result = multifileHosterService.getTransferToBeDownloaded()
         assertThat(result).isEqualTo(transfer2)
+    }
+
+    @Test
+    fun shouldOnlyGetTransfersWhichFitIntoTheFreeSpace() {
+        val big = Transfer(name = "Big", transferStatus = TransferStatus.READY_TO_BE_DOWNLOADED, sizeInBytes = 3000L, updated = Instant.ofEpochSecond(1))
+        val small = Transfer(name = "Small", transferStatus = TransferStatus.READY_TO_BE_DOWNLOADED, sizeInBytes = 1000L, updated = Instant.ofEpochSecond(2))
+        stubTransfers(listOf(big, small))
+        every { cloudService.freeSpaceInBytes } returns 2000L
+
+        assertThat(multifileHosterService.getTransferToBeDownloaded()).isEqualTo(small)
+
+        every { cloudService.freeSpaceInBytes } returns 500L
+        assertThat(multifileHosterService.getTransferToBeDownloaded()).isNull()
+
+        // unknown free space or an unknown size don't hold a download back
+        every { cloudService.freeSpaceInBytes } returns null
+        assertThat(multifileHosterService.getTransferToBeDownloaded()).isEqualTo(big)
+        every { cloudService.freeSpaceInBytes } returns 500L
+        val unknownSize = Transfer(name = "Unknown", transferStatus = TransferStatus.READY_TO_BE_DOWNLOADED, updated = Instant.ofEpochSecond(3))
+        stubTransfers(listOf(big, small, unknownSize))
+        assertThat(multifileHosterService.getTransferToBeDownloaded()).isEqualTo(unknownSize)
+    }
+
+    @Test
+    fun shouldNotAskForTheFreeSpaceWithoutTransfersToDownload() {
+        stubTransfers(listOf(Transfer(name = "T1", transferStatus = TransferStatus.ADDED)))
+
+        assertThat(multifileHosterService.getTransferToBeDownloaded()).isNull()
+        verify(exactly = 0) { cloudService.freeSpaceInBytes }
     }
 
     @Test
@@ -681,6 +712,9 @@ internal class MultifileHosterServiceTest {
         assertThat(transfer.transferStatus).isEqualTo(TransferStatus.UPLOAD_TO_DRIVE_FAILED)
         verify(exactly = 0) { transferService.delete(any()) }
         verify(exactly = 0) { httpHelper.getPage(match { it.contains("transfer/delete") }) }
+
+        // the next download is checked against the space left after this one
+        verify { cloudService.forgetFreeSpace() }
 
         // a failed transfer is not picked again
         assertThat(multifileHosterService.getTransferToBeDownloaded()).isNull()
