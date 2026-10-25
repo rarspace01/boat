@@ -69,4 +69,13 @@ internal class CloudFileServiceProcessTest {
         assertThat(CloudFileService(fakeRclone(tempDir.toFile(), """echo "ERROR : directory not found" >&2; exit 3""")).isDirectoryReachable("remote:Library")).isFalse()
         assertThat(CloudFileService(File(tempDir.toFile(), "no-rclone").path).isDirectoryReachable("remote:Library")).isFalse()
     }
+
+    @Test
+    fun `should read the free space of the remote`(@TempDir tempDir: Path) {
+        val dir = tempDir.toFile()
+        assertThat(CloudFileService(fakeRclone(dir, """echo '{"total":1000,"used":400,"free":600}'""")).getFreeSpaceInBytes("remote:Library")).isEqualTo(600L)
+        assertThat(CloudFileService(fakeRclone(dir, """echo '{"used":400}'""")).getFreeSpaceInBytes("remote:Library")).isNull()
+        assertThat(CloudFileService(fakeRclone(dir, """echo "ERROR : not supported" >&2; exit 1""")).getFreeSpaceInBytes("remote:Library")).isNull()
+        assertThat(CloudFileService(File(dir, "no-rclone").path).getFreeSpaceInBytes("remote:Library")).isNull()
+    }
 }
