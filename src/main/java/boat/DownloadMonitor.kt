@@ -211,7 +211,7 @@ class DownloadMonitor(
                     val torrent = torrentSearchEngineService.searchTorrents(torrentSearchString).firstOrNull()
                     if (torrent != null) {
                         logger.info("adding [{}] for [{}]", torrent.name, torrentSearchString)
-                        multifileHosterService.addTorrentToTransfer(torrent, remoteMediaId, matchedMediaItem?.type)
+                        multifileHosterService.addQueuedTorrentToTransfer(torrent, remoteMediaId, matchedMediaItem?.type)
                     } else {
                         logger.warn("no torrent found for [{}], removed {} from the queue", torrentSearchString, mediaItem)
                     }
