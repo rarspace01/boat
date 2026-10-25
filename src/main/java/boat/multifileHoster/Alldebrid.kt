@@ -16,7 +16,7 @@ import java.time.Duration
 /**
  * AllDebrid, API v4 and v4.1 (https://docs.alldebrid.com). The api key goes in the `Authorization` header, so it is
  * never part of an url (and a log), the parameters are sent as POST form. Errors come as HTTP 200 with
- * `"status": "error"`. Not registered in [MultifileHosterService] yet, only Premiumize is used.
+ * `"status": "error"`. Used by [MultifileHosterService] if `ALLDEBRID_APIKEY` is set.
  */
 class Alldebrid(
     httpHelper: HttpHelper,
@@ -148,13 +148,14 @@ class Alldebrid(
 
     /**
      * Premium accounts have no traffic limit for magnets (only some file hosters have daily quotas), a trial has its
-     * remaining quota, everything else none.
+     * remaining quota in MB (0 if it isn't sent), everything else none. A trial is premium too (`isPremium` and
+     * `isTrial` are both true), so the trial is checked first.
      */
     override fun getRemainingTrafficInMB(): Double {
         val user = data(call("v4/user"))?.path("user") ?: return 0.0
         return when {
-            user.path("isPremium").asBoolean() -> UNLIMITED_TRAFFIC_MB
             user.path("isTrial").asBoolean() -> user.path("remainingTrialQuota").asDouble()
+            user.path("isPremium").asBoolean() -> UNLIMITED_TRAFFIC_MB
             else -> 0.0
         }
     }

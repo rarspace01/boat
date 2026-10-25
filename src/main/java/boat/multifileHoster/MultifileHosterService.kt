@@ -57,19 +57,13 @@ class MultifileHosterService(
     @Volatile
     private var isRcloneInstalled: Boolean? = null
     private var rcloneCheckedAtNanos = 0L
-    private val multifileHosterList: MutableList<MultifileHoster> = mutableListOf(Premiumize(httpHelper))
-    private val multifileHosterListForDownloads: MutableList<MultifileHoster> = getEligibleMultifileHoster(httpHelper)
+    private val multifileHosterList: List<MultifileHoster> = createMultifileHosters(httpHelper, PropertiesHelper::getProperty)
+    private val multifileHosterListForDownloads: List<MultifileHoster> = multifileHosterList
 
     private val localStatusStorage = ConcurrentHashMap<String, String>()
 
     @Volatile
     var activeTorrents: List<Torrent> = emptyList()
-
-    private fun getEligibleMultifileHoster(httpHelper: HttpHelper): MutableList<MultifileHoster> {
-        val eligibleList = mutableListOf<MultifileHoster>()
-        eligibleList.add(Premiumize(httpHelper))
-        return eligibleList
-    }
 
     fun getCachedStateOfTorrents(returnResults: List<Torrent>): List<Torrent> {
         multifileHosterList.forEach(
@@ -676,5 +670,16 @@ class MultifileHosterService(
             return !transfer.updated.plus(pause).isAfter(now)
         }
         const val TRAFFIC_CACHE_SECONDS = 30L
+
+        /**
+         * Premiumize, and AllDebrid if `ALLDEBRID_APIKEY` is set. A new transfer goes to the hoster with the lowest
+         * [MultifileHoster.getPrio] among those with traffic left, so AllDebrid (prio 2) only gets transfers when
+         * Premiumize runs out; without a subscription it has no traffic and gets none.
+         */
+        internal fun createMultifileHosters(httpHelper: HttpHelper, lookup: (String) -> String?): List<MultifileHoster> =
+            listOfNotNull(
+                Premiumize(httpHelper),
+                Alldebrid(httpHelper).takeIf { !lookup("ALLDEBRID_APIKEY").isNullOrBlank() },
+            )
     }
 }
