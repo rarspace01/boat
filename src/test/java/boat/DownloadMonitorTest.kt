@@ -103,7 +103,7 @@ internal class DownloadMonitorTest {
         downloadMonitor.checkForQueueEntries()
 
         verify(exactly = 1) { torrentSearchEngineService.searchTorrents("Arapef 2009") }
-        verify(exactly = 1) { multifileHosterService.addTorrentToTransfer(torrent, "{tmdb-19995}", MediaType.Movie) }
+        verify(exactly = 1) { multifileHosterService.addQueuedTorrentToTransfer(torrent, "{tmdb-19995}", MediaType.Movie) }
         verify(exactly = 1) { queueService.remove(queueItem) }
     }
 
@@ -122,7 +122,7 @@ internal class DownloadMonitorTest {
         downloadMonitor.checkForQueueEntries()
 
         verify(exactly = 1) { torrentSearchEngineService.searchTorrents("Bacozami Bap Season 1") }
-        verify(exactly = 1) { multifileHosterService.addTorrentToTransfer(torrent, "{tvdb-81189}", MediaType.Series) }
+        verify(exactly = 1) { multifileHosterService.addQueuedTorrentToTransfer(torrent, "{tvdb-81189}", MediaType.Series) }
         verify(exactly = 1) { queueService.remove(queueItem) }
     }
 
@@ -139,7 +139,7 @@ internal class DownloadMonitorTest {
         downloadMonitor.checkForQueueEntries()
 
         verify(exactly = 0) { torrentSearchEngineService.searchTorrents(any()) }
-        verify(exactly = 0) { multifileHosterService.addTorrentToTransfer(any(), any(), any()) }
+        verify(exactly = 0) { multifileHosterService.addQueuedTorrentToTransfer(any(), any(), any()) }
         verify(exactly = 1) { queueService.remove(queueItem) }
     }
 
@@ -156,7 +156,7 @@ internal class DownloadMonitorTest {
         downloadMonitor.checkForQueueEntries()
 
         verify(exactly = 0) { mediaProxyService.findBestMatch(any(), any()) }
-        verify(exactly = 1) { multifileHosterService.addTorrentToTransfer(torrent, "{tmdb-19995}", MediaType.Movie) }
+        verify(exactly = 1) { multifileHosterService.addQueuedTorrentToTransfer(torrent, "{tmdb-19995}", MediaType.Movie) }
         verify(exactly = 1) { queueService.remove(queueItem) }
     }
 
@@ -174,7 +174,7 @@ internal class DownloadMonitorTest {
         downloadMonitor.checkForQueueEntries()
 
         verify(exactly = 1) { torrentSearchEngineService.searchTorrents("Custom Show 2021") }
-        verify(exactly = 1) { multifileHosterService.addTorrentToTransfer(torrent, "{custom-id}", null) }
+        verify(exactly = 1) { multifileHosterService.addQueuedTorrentToTransfer(torrent, "{custom-id}", null) }
         verify(exactly = 1) { queueService.remove(queueItem) }
     }
 
@@ -190,7 +190,7 @@ internal class DownloadMonitorTest {
 
         downloadMonitor.checkForQueueEntries()
 
-        verify(exactly = 1) { multifileHosterService.addTorrentToTransfer(torrent, "{tvdb-77853}", MediaType.Series) }
+        verify(exactly = 1) { multifileHosterService.addQueuedTorrentToTransfer(torrent, "{tvdb-77853}", MediaType.Series) }
     }
 
     private fun finishedTorrent(remoteId: String) = Torrent("Premiumize").apply {

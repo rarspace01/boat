@@ -76,7 +76,20 @@ class MultifileHosterService(
         return returnResults
     }
 
+    /** A torrent the user picked: to the hoster with the lowest prio among those with enough traffic left. */
     fun addTorrentToTransfer(torrent: Torrent, remoteMediaId: String? = null, mediaType: MediaType? = null) {
+        saveTransfer(torrent, selectHosterByPrio(torrent), remoteMediaId, mediaType)
+    }
+
+    /**
+     * A torrent for an entry of the queue: to the hoster which has it cached if that one has [MIN_TRAFFIC_FOR_CACHED_MB]
+     * left, otherwise to the hoster with the most traffic left, so the queue doesn't use up the traffic of one.
+     */
+    fun addQueuedTorrentToTransfer(torrent: Torrent, remoteMediaId: String? = null, mediaType: MediaType? = null) {
+        saveTransfer(torrent, selectHosterForQueue(torrent), remoteMediaId, mediaType)
+    }
+
+    private fun selectHosterByPrio(torrent: Torrent): MultifileHoster {
         val trafficByHoster = getRemainingTrafficInMBByHoster()
         val sizeInMB = torrent.getByteSize() / 1024.0 / 1024.0
         // enough for this torrent and some more
@@ -85,13 +98,22 @@ class MultifileHosterService(
             traffic > MIN_TRAFFIC_FOR_NEW_TRANSFER_MB && traffic > sizeInMB
         }
         val potentialMultiHosters = listOfMultiHostersWithTrafficLeft.ifEmpty { multifileHosterList }
-        val selectedMultiFileHosterSource: MultifileHoster = if (potentialMultiHosters.size == 1) {
-            potentialMultiHosters.first()
-        } else {
-            potentialMultiHosters
-                    .minByOrNull { it.getPrio() }
-                    ?: potentialMultiHosters.first()
-        }
+        return potentialMultiHosters.minByOrNull { it.getPrio() } ?: potentialMultiHosters.first()
+    }
+
+    private fun selectHosterForQueue(torrent: Torrent): MultifileHoster {
+        val trafficByHoster = getRemainingTrafficInMBByHoster()
+        fun traffic(multifileHoster: MultifileHoster) = trafficByHoster[multifileHoster.getName()] ?: 0.0
+        val cachedHoster = multifileHosterList
+                .filter { torrent.cached.contains(it.getName()) && traffic(it) >= MIN_TRAFFIC_FOR_CACHED_MB }
+                .maxByOrNull { traffic(it) }
+        val selected = cachedHoster ?: multifileHosterList.maxBy { traffic(it) }
+        log.info("queued torrent [{}] goes to {}{} (traffic left: {})", torrent.name, selected.getName(),
+                if (cachedHoster != null) ", cached there" else "", trafficByHoster)
+        return selected
+    }
+
+    private fun saveTransfer(torrent: Torrent, selectedMultiFileHosterSource: MultifileHoster, remoteMediaId: String?, mediaType: MediaType?) {
         val hosterName = TorrentHelper.extractTorrentName(torrent)
         val mediaItem = remoteMediaId?.let { mediaProxyService.findByRemoteMediaId(it, hosterName, mediaType) }
         val transfer = Transfer(
@@ -687,10 +709,14 @@ class MultifileHosterService(
         /** A new transfer goes to a multifilehoster with more traffic left than this (and than the torrent needs). */
         private const val MIN_TRAFFIC_FOR_NEW_TRANSFER_MB = 30000.0
 
+        /** A queued torrent cached at a hoster goes there only with this much traffic left there (150 GB). */
+        private const val MIN_TRAFFIC_FOR_CACHED_MB = 150.0 * 1024
+
         /**
-         * Premiumize, and AllDebrid if `ALLDEBRID_APIKEY` is set. A new transfer goes to the hoster with the lowest
-         * [MultifileHoster.getPrio] among those with traffic left, so AllDebrid (prio 2) only gets transfers when
-         * Premiumize runs out; without a subscription it has no traffic and gets none.
+         * Premiumize, and AllDebrid if `ALLDEBRID_APIKEY` is set. A transfer the user adds goes to the hoster with the
+         * lowest [MultifileHoster.getPrio] among those with traffic left, so AllDebrid (prio 2) only gets those when
+         * Premiumize runs out; without a subscription it has no traffic and gets none. A queued one goes by traffic,
+         * see [addQueuedTorrentToTransfer].
          */
         internal fun createMultifileHosters(httpHelper: HttpHelper, lookup: (String) -> String?): List<MultifileHoster> =
             listOfNotNull(

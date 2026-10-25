@@ -151,4 +151,58 @@ internal class MultifileHosterServiceTwoHostersTest {
         multifileHosterService.addTorrentToTransfer(Torrent.of(magnet).apply { sizeInMB = 60.0 * 1024 })
         assertThat(saved.captured.source).isEqualTo("Alldebrid")
     }
+
+    private fun addQueued(torrent: Torrent): String {
+        val saved = slot<Transfer>()
+        every { transferService.save(capture(saved)) } returns Unit
+        multifileHosterService.addQueuedTorrentToTransfer(torrent)
+        return saved.captured.source
+    }
+
+    private fun alldebridTrialWithGB(gb: Double) =
+        alldebrid("v4/user", """{"status":"success","data":{"user":{"isPremium":true,"isTrial":true,"remainingTrialQuota":${gb * 1024}}}}""")
+
+    private fun cachedAtPremiumize() = Torrent.of(magnet).apply { sizeInMB = 10.0 * 1024; cached.add("Premiumize") }
+
+    @Test
+    fun shouldAddAQueuedTorrentToTheHosterWhichHasItCachedWith150GBLeft() {
+        premiumizeTrafficLeftInGB(150.0)
+
+        assertThat(addQueued(cachedAtPremiumize())).isEqualTo("Premiumize")
+    }
+
+    @Test
+    fun shouldAddAQueuedTorrentToTheHosterWithTheMostTrafficIfTheCachedOneHasLessThan150GB() {
+        premiumizeTrafficLeftInGB(149.0)
+
+        assertThat(addQueued(cachedAtPremiumize())).isEqualTo("Alldebrid")
+    }
+
+    @Test
+    fun shouldAddAQueuedTorrentWhichIsNotCachedToTheHosterWithTheMostTraffic() {
+        premiumizeTrafficLeftInGB(100.0)
+        alldebridTrialWithGB(20.0)
+
+        assertThat(addQueued(Torrent.of(magnet).apply { sizeInMB = 10.0 * 1024 })).isEqualTo("Premiumize")
+
+        alldebridTrialWithGB(120.0)
+        // the traffic is reused for a short time
+        multifileHosterService = MultifileHosterService(
+            httpHelper, transferService, cloudService, mockk<CacheManager>(relaxed = true), mockk<CloudFileService>(relaxed = true),
+            mockk<MediaProxyService>(relaxed = true), mockk(relaxed = true), mockk<RcloneUploader>(relaxed = true)
+        )
+        assertThat(addQueued(Torrent.of(magnet).apply { sizeInMB = 10.0 * 1024 })).isEqualTo("Alldebrid")
+    }
+
+    @Test
+    fun shouldKeepThePrioForATorrentTheUserAdds() {
+        premiumizeTrafficLeftInGB(100.0)
+        val saved = slot<Transfer>()
+        every { transferService.save(capture(saved)) } returns Unit
+
+        // AllDebrid has more traffic and Premiumize no cache, still Premiumize first
+        multifileHosterService.addTorrentToTransfer(Torrent.of(magnet).apply { sizeInMB = 10.0 * 1024 })
+
+        assertThat(saved.captured.source).isEqualTo("Premiumize")
+    }
 }
