@@ -77,7 +77,13 @@ class MultifileHosterService(
     }
 
     fun addTorrentToTransfer(torrent: Torrent, remoteMediaId: String? = null, mediaType: MediaType? = null) {
-        val listOfMultiHostersWithTrafficLeft = multifileHosterList.filter { multifileHoster -> multifileHoster.getRemainingTrafficInMB() > 30000 }
+        val trafficByHoster = getRemainingTrafficInMBByHoster()
+        val sizeInMB = torrent.getByteSize() / 1024.0 / 1024.0
+        // enough for this torrent and some more
+        val listOfMultiHostersWithTrafficLeft = multifileHosterList.filter { multifileHoster ->
+            val traffic = trafficByHoster[multifileHoster.getName()] ?: 0.0
+            traffic > MIN_TRAFFIC_FOR_NEW_TRANSFER_MB && traffic > sizeInMB
+        }
         val potentialMultiHosters = listOfMultiHostersWithTrafficLeft.ifEmpty { multifileHosterList }
         val selectedMultiFileHosterSource: MultifileHoster = if (potentialMultiHosters.size == 1) {
             potentialMultiHosters.first()
@@ -192,19 +198,22 @@ class MultifileHosterService(
      * Asking the multifilehosters costs HTTP calls and this is needed very often, so the sum is reused for
      * [TRAFFIC_CACHE_SECONDS].
      */
-    fun getRemainingTrafficInMB(): Double {
+    fun getRemainingTrafficInMB(): Double = getRemainingTrafficInMBByHoster().values.sum()
+
+    /** The traffic left at each multifilehoster by its name, reused for [TRAFFIC_CACHE_SECONDS]. */
+    fun getRemainingTrafficInMBByHoster(): Map<String, Double> {
         val cached = cachedRemainingTraffic
         val now = System.nanoTime()
         if (cached != null && now - cached.first < TimeUnit.SECONDS.toNanos(TRAFFIC_CACHE_SECONDS)) {
             return cached.second
         }
-        val remainingTraffic = multifileHosterList.sumOf { multifileHoster: MultifileHoster -> multifileHoster.getRemainingTrafficInMB() }
+        val remainingTraffic = multifileHosterList.associate { multifileHoster -> multifileHoster.getName() to multifileHoster.getRemainingTrafficInMB() }
         cachedRemainingTraffic = now to remainingTraffic
         return remainingTraffic
     }
 
     @Volatile
-    private var cachedRemainingTraffic: Pair<Long, Double>? = null
+    private var cachedRemainingTraffic: Pair<Long, Map<String, Double>>? = null
 
     private fun getFilesFromTorrent(torrentToBeDownloaded: Torrent): List<TorrentFile> {
         val hoster = multifileHosterList.firstOrNull { multifileHoster: MultifileHoster -> multifileHoster.getName() == torrentToBeDownloaded.source }
@@ -313,7 +322,8 @@ class MultifileHosterService(
             if (unmatchedTorrents().isEmpty() || unmatchedTransfers().isEmpty()) break
             unmatchedTorrents().forEach { torrent ->
                 transfers.find { transfer ->
-                    matchedTransfers.none { it.id == transfer.id } && TransferMatching.transferMatchedTorrentByName(transfer, torrent, maxDiff)
+                    matchedTransfers.none { it.id == transfer.id } && TransferMatching.isAtTheHosterOf(transfer, torrent) &&
+                            TransferMatching.transferMatchedTorrentByName(transfer, torrent, maxDiff)
                 }?.also { transfer ->
                     updateTransferFromTorrent(transfer, torrent)
                     matchedTransfers.add(transfer)
@@ -325,7 +335,7 @@ class MultifileHosterService(
         }
         unmatchedTorrents().forEach { torrent ->
             // the transfers which are left out on purpose, so the log tells why a torrent has none
-            transferService.getAll().filter { it !in transfers && it.remoteId != null && it.remoteId == torrent.remoteId }.forEach {
+            transferService.getAll().filter { it !in transfers && it.remoteId != null && it.remoteId == torrent.remoteId && TransferMatching.isAtTheHosterOf(it, torrent) }.forEach {
                 log.warn("torrent {} belongs to transfer {} in status {}", torrent.name, it.name, it.transferStatus)
             }
         }
@@ -352,9 +362,10 @@ class MultifileHosterService(
     ) {
         torrentsForDownload.forEach { torrent ->
             transfers.find { transfer ->
-                transfer.uri.lowercase().contains(torrent.torrentId.lowercase()) ||
+                TransferMatching.isAtTheHosterOf(transfer, torrent) && (
+                        transfer.uri.lowercase().contains(torrent.torrentId.lowercase()) ||
                         transfer.remoteId != null && transfer.remoteId == torrent.remoteId ||
-                        TransferMatching.transferMatchedTorrentBySource(transfer, torrent)
+                        TransferMatching.transferMatchedTorrentBySource(transfer, torrent))
             }
                     ?.also { transfer ->
                         updateTransferFromTorrent(transfer, torrent)
@@ -381,8 +392,8 @@ class MultifileHosterService(
         if (transferToBeDownloaded != null) {
             val remoteTorrentsList = remoteTorrents
             val remoteTorrent = remoteTorrentsList.firstOrNull {
-                it.remoteId == transferToBeDownloaded.remoteId ||
-                        (transferToBeDownloaded.uri.isNotEmpty() && transferToBeDownloaded.uri.lowercase(Locale.ROOT).contains(it.torrentId.lowercase(Locale.ROOT)))
+                TransferMatching.isAtTheHosterOf(transferToBeDownloaded, it) && (it.remoteId == transferToBeDownloaded.remoteId ||
+                        (transferToBeDownloaded.uri.isNotEmpty() && transferToBeDownloaded.uri.lowercase(Locale.ROOT).contains(it.torrentId.lowercase(Locale.ROOT))))
             } ?: TorrentMapper.mapTransferToTorrent(transferToBeDownloaded)
 
             if (remoteTorrent.source.isEmpty()) {
@@ -551,13 +562,15 @@ class MultifileHosterService(
     }
 
     fun getTransferToBeDownloaded(): Transfer? {
-        val remainingTrafficInMB: Double = getRemainingTrafficInMB()
         val readyTransfers = transferService.getAll()
                 .filter { transfer -> TransferStatus.READY_TO_BE_DOWNLOADED == transfer.transferStatus }
-                .filter { transfer -> transfer.sizeInBytes == 0L || (transfer.sizeInBytes.toDouble() / 1024.0 / 1024.0) < remainingTrafficInMB }
+        // the traffic of the hoster which has the transfer, the others' doesn't help
+        val trafficByHoster = if (readyTransfers.any { it.sizeInBytes != 0L }) getRemainingTrafficInMBByHoster() else emptyMap()
+        val transfersWithTrafficLeft = readyTransfers
+                .filter { transfer -> transfer.sizeInBytes == 0L || (transfer.sizeInBytes.toDouble() / 1024.0 / 1024.0) < (trafficByHoster[transfer.source] ?: 0.0) }
         // only if the remote tells its free space, otherwise the download is tried like before
-        val freeSpaceInBytes = if (readyTransfers.isEmpty()) null else cloudService.freeSpaceInBytes
-        return readyTransfers
+        val freeSpaceInBytes = if (transfersWithTrafficLeft.isEmpty()) null else cloudService.freeSpaceInBytes
+        return transfersWithTrafficLeft
                 .filter { transfer -> fitsIntoFreeSpace(transfer, freeSpaceInBytes) }
                 .minByOrNull { it.updated }
     }
@@ -670,6 +683,9 @@ class MultifileHosterService(
             return !transfer.updated.plus(pause).isAfter(now)
         }
         const val TRAFFIC_CACHE_SECONDS = 30L
+
+        /** A new transfer goes to a multifilehoster with more traffic left than this (and than the torrent needs). */
+        private const val MIN_TRAFFIC_FOR_NEW_TRANSFER_MB = 30000.0
 
         /**
          * Premiumize, and AllDebrid if `ALLDEBRID_APIKEY` is set. A new transfer goes to the hoster with the lowest

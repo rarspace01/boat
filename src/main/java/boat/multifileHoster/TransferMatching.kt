@@ -13,6 +13,12 @@ object TransferMatching {
 
     private val log by LoggerDelegate()
 
+    /**
+     * A transfer only belongs to a torrent at its own hoster: another hoster can have the same torrent (e.g. an older
+     * transfer), downloading that one would use the traffic of the wrong hoster.
+     */
+    fun isAtTheHosterOf(transfer: Transfer, torrent: Torrent): Boolean = transfer.source == torrent.source
+
     fun transferMatchedTorrentBySource(transfer: Transfer, torrent: Torrent): Boolean {
         return Strings.isNotEmpty(transfer.uri) && transfer.uri == torrent.magnetUri
     }
