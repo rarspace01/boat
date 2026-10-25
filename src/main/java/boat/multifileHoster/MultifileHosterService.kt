@@ -50,6 +50,9 @@ class MultifileHosterService(
         private val rcloneUploader: RcloneUploader = RcloneUploader(),
 ) : HttpUser(httpHelper) {
     private val isDownloadInProgress = AtomicBoolean(false)
+
+    /** Transfers already logged as too big for the free space, so the poll doesn't log them every time. */
+    private val transfersWaitingForSpace = ConcurrentHashMap.newKeySet<String>()
     private val releaseMatcher = ReleaseMatcher(mediaProxyService)
     @Volatile
     private var isRcloneInstalled: Boolean? = null
@@ -485,6 +488,9 @@ class MultifileHosterService(
                 updateIndexForLetters(listOfCharactersToIndexUpdate)
             } catch (exception: Exception) {
                 log.error(String.format("Couldn't download Transfer: %s", transferToBeDownloaded), exception)
+            } finally {
+                // the download used some of it, the next one is checked against the space which is left now
+                cloudService.forgetFreeSpace()
             }
             if (!wasDownloadSuccessful) {
                 log.error("Couldn't download Transfer: {}", transferToBeDownloaded)
@@ -492,7 +498,9 @@ class MultifileHosterService(
             }
         } else {
             val optionalTransfer = transferService.getAll().stream()
-                    .filter { transfer: Transfer -> TransferStatus.READY_TO_BE_DOWNLOADED == transfer.transferStatus }.findFirst()
+                    .filter { transfer: Transfer -> TransferStatus.READY_TO_BE_DOWNLOADED == transfer.transferStatus }
+                    // those already told they wait for space
+                    .filter { transfer: Transfer -> transfer.id !in transfersWaitingForSpace }.findFirst()
             optionalTransfer.ifPresent { transfer: Transfer? ->
                 log.error(
                         "According to State we could download but doesn't exist: {}",
@@ -550,10 +558,29 @@ class MultifileHosterService(
 
     fun getTransferToBeDownloaded(): Transfer? {
         val remainingTrafficInMB: Double = getRemainingTrafficInMB()
-        return transferService.getAll()
+        val readyTransfers = transferService.getAll()
                 .filter { transfer -> TransferStatus.READY_TO_BE_DOWNLOADED == transfer.transferStatus }
                 .filter { transfer -> transfer.sizeInBytes == 0L || (transfer.sizeInBytes.toDouble() / 1024.0 / 1024.0) < remainingTrafficInMB }
+        // only if the remote tells its free space, otherwise the download is tried like before
+        val freeSpaceInBytes = if (readyTransfers.isEmpty()) null else cloudService.freeSpaceInBytes
+        return readyTransfers
+                .filter { transfer -> fitsIntoFreeSpace(transfer, freeSpaceInBytes) }
                 .minByOrNull { it.updated }
+    }
+
+    private fun fitsIntoFreeSpace(transfer: Transfer, freeSpaceInBytes: Long?): Boolean {
+        val fits = freeSpaceInBytes == null || transfer.sizeInBytes == 0L || transfer.sizeInBytes < freeSpaceInBytes
+        if (fits) {
+            transfersWaitingForSpace.remove(transfer.id)
+        } else if (transfersWaitingForSpace.add(transfer.id)) {
+            log.warn(
+                "transfer needs {}, only {} left in the target folder, waits for space: {}",
+                TorrentHelper.humanReadableByteCountBinary(transfer.sizeInBytes),
+                TorrentHelper.humanReadableByteCountBinary(freeSpaceInBytes!!),
+                transfer.hosterName()
+            )
+        }
+        return fits
     }
 
     private fun updateUploadStatus(

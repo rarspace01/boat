@@ -89,4 +89,25 @@ internal class CloudServiceTargetFolderTest {
         assertThat(cloudService.isTargetFolderReady).isTrue
         verify(exactly = 1) { cloudFileService.isDirectoryReachable(any()) }
     }
+
+    @Test
+    fun shouldKeepTheFreeSpaceForTenMinutes() {
+        every { cloudFileService.getFreeSpaceInBytes("remote:Library") } returns 600L
+
+        assertThat(cloudService.freeSpaceInBytes).isEqualTo(600L)
+        every { cloudFileService.getFreeSpaceInBytes("remote:Library") } returns 500L
+        now += TimeUnit.MINUTES.toNanos(9)
+        assertThat(cloudService.freeSpaceInBytes).isEqualTo(600L)
+        now += TimeUnit.MINUTES.toNanos(1)
+        assertThat(cloudService.freeSpaceInBytes).isEqualTo(500L)
+        verify(exactly = 2) { cloudFileService.getFreeSpaceInBytes(any()) }
+    }
+
+    @Test
+    fun shouldNotKnowTheFreeSpaceWithoutATargetFolder() {
+        every { PropertiesHelper.getProperty(CloudService.RCLONE_DIR) } returns null
+
+        assertThat(cloudService.freeSpaceInBytes).isNull()
+        verify(exactly = 0) { cloudFileService.getFreeSpaceInBytes(any()) }
+    }
 }

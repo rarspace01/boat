@@ -380,6 +380,7 @@ $switchToSearchOld$switchToSearchList$switchToProgress""" + htmlFooter
                 + "<br/>Active MultifileHoster: " + multifileHosterService.getActiveMultifileHosters()
                 + "<br/>Active DL MultifileHoster: " + multifileHosterService.getActiveMultifileHosterForDownloads()
                 + "<br/>TrafficLeft: " + humanReadableByteCountBinary(multifileHosterService.getRemainingTrafficInMB().toLong() * 1024 * 1024)
+                + "<br/>SpaceLeft: " + (cloudService.freeSpaceInBytes?.let { humanReadableByteCountBinary(it) } ?: "unknown")
                 + String.format(
             "<br/>Transfers [%d]: %s",
             transfers.size,

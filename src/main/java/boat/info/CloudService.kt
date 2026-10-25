@@ -33,11 +33,18 @@ class CloudService internal constructor(
     private var lastFolderCheck: FolderCheck? = null
     private val folderCheckLock = ReentrantLock()
 
+    private class FreeSpaceCheck(val nanos: Long, val bytes: Long?)
+
+    @Volatile
+    private var lastFreeSpaceCheck: FreeSpaceCheck? = null
+    private val freeSpaceCheckLock = ReentrantLock()
+
     companion object {
         private val logger by LoggerDelegate()
         const val RCLONE_DIR = "RCLONEDIR"
         private val FOLDER_READY_NANOS = TimeUnit.DAYS.toNanos(1)
         private val FOLDER_RETRY_NANOS = TimeUnit.MINUTES.toNanos(1)
+        private val FREE_SPACE_NANOS = TimeUnit.MINUTES.toNanos(10)
     }
 
     /**
@@ -65,6 +72,31 @@ class CloudService internal constructor(
     @EventListener(ApplicationReadyEvent::class)
     fun verifyTargetFolderOnStart() {
         isTargetFolderReady
+    }
+
+    /**
+     * The free space on the remote of the target folder in bytes, null if unknown. Kept for ten minutes; while a check
+     * runs, the others get the last answer instead of waiting for rclone.
+     */
+    val freeSpaceInBytes: Long?
+        get() {
+            val last = lastFreeSpaceCheck
+            val now = nanoTime()
+            if (last != null && now - last.nanos < FREE_SPACE_NANOS) return last.bytes
+            if (!freeSpaceCheckLock.tryLock()) return last?.bytes
+            try {
+                val path = PropertiesHelper.getProperty(RCLONE_DIR)
+                val bytes = if (path.isNullOrBlank()) null else cloudFileService.getFreeSpaceInBytes(path)
+                lastFreeSpaceCheck = FreeSpaceCheck(nanoTime(), bytes)
+                return bytes
+            } finally {
+                freeSpaceCheckLock.unlock()
+            }
+        }
+
+    /** The next [freeSpaceInBytes] asks rclone again, e.g. after a download filled some of the space. */
+    fun forgetFreeSpace() {
+        lastFreeSpaceCheck = null
     }
 
     private fun deductSeriesNameFrom(preparedTorrentName: String): String {
