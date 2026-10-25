@@ -94,6 +94,11 @@ class CloudService internal constructor(
             }
         }
 
+    /** The next [freeSpaceInBytes] asks rclone again, e.g. after a download filled some of the space. */
+    fun forgetFreeSpace() {
+        lastFreeSpaceCheck = null
+    }
+
     private fun deductSeriesNameFrom(preparedTorrentName: String): String {
         return Arrays.stream(
             preparedTorrentName
