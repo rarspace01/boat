@@ -331,8 +331,8 @@ internal class MultifileHosterServiceTest {
     @Test
     fun shouldGetTransferToBeDownloaded() {
         val transfer1 = Transfer(name = "T1", transferStatus = TransferStatus.ADDED)
-        val transfer2 = Transfer(name = "T2", transferStatus = TransferStatus.READY_TO_BE_DOWNLOADED, sizeInBytes = 1000L)
-        val transfer3 = Transfer(name = "T3", transferStatus = TransferStatus.READY_TO_BE_DOWNLOADED, sizeInBytes = 2000L)
+        val transfer2 = Transfer(name = "T2", source = "Premiumize", transferStatus = TransferStatus.READY_TO_BE_DOWNLOADED, sizeInBytes = 1000L)
+        val transfer3 = Transfer(name = "T3", source = "Premiumize", transferStatus = TransferStatus.READY_TO_BE_DOWNLOADED, sizeInBytes = 2000L)
 
         stubTransfers(listOf(transfer1, transfer2, transfer3))
 
@@ -342,8 +342,8 @@ internal class MultifileHosterServiceTest {
 
     @Test
     fun shouldOnlyGetTransfersWhichFitIntoTheFreeSpace() {
-        val big = Transfer(name = "Big", transferStatus = TransferStatus.READY_TO_BE_DOWNLOADED, sizeInBytes = 3000L, updated = Instant.ofEpochSecond(1))
-        val small = Transfer(name = "Small", transferStatus = TransferStatus.READY_TO_BE_DOWNLOADED, sizeInBytes = 1000L, updated = Instant.ofEpochSecond(2))
+        val big = Transfer(name = "Big", source = "Premiumize", transferStatus = TransferStatus.READY_TO_BE_DOWNLOADED, sizeInBytes = 3000L, updated = Instant.ofEpochSecond(1))
+        val small = Transfer(name = "Small", source = "Premiumize", transferStatus = TransferStatus.READY_TO_BE_DOWNLOADED, sizeInBytes = 1000L, updated = Instant.ofEpochSecond(2))
         stubTransfers(listOf(big, small))
         every { cloudService.freeSpaceInBytes } returns 2000L
 
@@ -356,7 +356,7 @@ internal class MultifileHosterServiceTest {
         every { cloudService.freeSpaceInBytes } returns null
         assertThat(multifileHosterService.getTransferToBeDownloaded()).isEqualTo(big)
         every { cloudService.freeSpaceInBytes } returns 500L
-        val unknownSize = Transfer(name = "Unknown", transferStatus = TransferStatus.READY_TO_BE_DOWNLOADED, updated = Instant.ofEpochSecond(3))
+        val unknownSize = Transfer(name = "Unknown", source = "Premiumize", transferStatus = TransferStatus.READY_TO_BE_DOWNLOADED, updated = Instant.ofEpochSecond(3))
         stubTransfers(listOf(big, small, unknownSize))
         assertThat(multifileHosterService.getTransferToBeDownloaded()).isEqualTo(unknownSize)
     }
