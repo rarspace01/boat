@@ -29,6 +29,12 @@ class ContentRenamerIntegrationTest {
 
     @Disabled
     @Test
+    fun manualFullRunDocumentaries() {
+        renameAll("$homeDir/pfdb/PFDB/Documentaries/")
+    }
+
+    @Disabled
+    @Test
     fun deleteAll() {
         processFile(File("$homeDir/pfdb/PFDB/Series-Shows/"))
     }
@@ -37,6 +43,12 @@ class ContentRenamerIntegrationTest {
     @Test
     fun deleteAllMovies() {
         processFile(File("$homeDir/pfdb/PFDB/Movies/"))
+    }
+
+    @Disabled
+    @Test
+    fun deleteAllDocumentaries() {
+        processFile(File("$homeDir/pfdb/PFDB/Documentaries/"))
     }
 
     private fun renameAll(path: String) {
