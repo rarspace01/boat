@@ -152,30 +152,33 @@ internal class MultifileHosterServiceTwoHostersTest {
         assertThat(saved.captured.source).isEqualTo("Alldebrid")
     }
 
-    private fun addQueued(torrent: Torrent): String {
-        val saved = slot<Transfer>()
-        every { transferService.save(capture(saved)) } returns Unit
-        multifileHosterService.addQueuedTorrentToTransfer(torrent)
-        return saved.captured.source
+    private fun addQueued(vararg torrents: Torrent): MultifileHosterService.QueuedTorrentResult {
+        every { transferService.save(any()) } returns Unit
+        return multifileHosterService.addQueuedTorrentToTransfer(torrents.toList())
     }
+
+    private fun addedTo(result: MultifileHosterService.QueuedTorrentResult) =
+        (result as MultifileHosterService.QueuedTorrentResult.Added).hoster
 
     private fun alldebridTrialWithGB(gb: Double) =
         alldebrid("v4/user", """{"status":"success","data":{"user":{"isPremium":true,"isTrial":true,"remainingTrialQuota":${gb * 1024}}}}""")
 
-    private fun cachedAtPremiumize() = Torrent.of(magnet).apply { sizeInMB = 10.0 * 1024; cached.add("Premiumize") }
+    private fun cachedAtPremiumize(seeders: Int = 5) = Torrent.of(magnet).apply { sizeInMB = 10.0 * 1024; cached.add("Premiumize"); seeder = seeders }
+
+    private fun alive(name: String) = Torrent.of("magnet:?xt=urn:btih:${"1".repeat(40)}&dn=$name").apply { sizeInMB = 10.0 * 1024; seeder = 20 }
 
     @Test
     fun shouldAddAQueuedTorrentToTheHosterWhichHasItCachedWith150GBLeft() {
         premiumizeTrafficLeftInGB(150.0)
 
-        assertThat(addQueued(cachedAtPremiumize())).isEqualTo("Premiumize")
+        assertThat(addedTo(addQueued(cachedAtPremiumize()))).isEqualTo("Premiumize")
     }
 
     @Test
     fun shouldAddAQueuedTorrentToTheHosterWithTheMostTrafficIfTheCachedOneHasLessThan150GB() {
         premiumizeTrafficLeftInGB(149.0)
 
-        assertThat(addQueued(cachedAtPremiumize())).isEqualTo("Alldebrid")
+        assertThat(addedTo(addQueued(cachedAtPremiumize()))).isEqualTo("Alldebrid")
     }
 
     @Test
@@ -183,7 +186,7 @@ internal class MultifileHosterServiceTwoHostersTest {
         premiumizeTrafficLeftInGB(100.0)
         alldebridTrialWithGB(20.0)
 
-        assertThat(addQueued(Torrent.of(magnet).apply { sizeInMB = 10.0 * 1024 })).isEqualTo("Premiumize")
+        assertThat(addedTo(addQueued(alive("Ivakisaka.2010")))).isEqualTo("Premiumize")
 
         alldebridTrialWithGB(120.0)
         // the traffic is reused for a short time
@@ -191,7 +194,7 @@ internal class MultifileHosterServiceTwoHostersTest {
             httpHelper, transferService, cloudService, mockk<CacheManager>(relaxed = true), mockk<CloudFileService>(relaxed = true),
             mockk<MediaProxyService>(relaxed = true), mockk(relaxed = true), mockk<RcloneUploader>(relaxed = true)
         )
-        assertThat(addQueued(Torrent.of(magnet).apply { sizeInMB = 10.0 * 1024 })).isEqualTo("Alldebrid")
+        assertThat(addedTo(addQueued(alive("Ivakisaka.2010")))).isEqualTo("Alldebrid")
     }
 
     @Test
@@ -204,5 +207,52 @@ internal class MultifileHosterServiceTwoHostersTest {
         multifileHosterService.addTorrentToTransfer(Torrent.of(magnet).apply { sizeInMB = 10.0 * 1024 })
 
         assertThat(saved.captured.source).isEqualTo("Premiumize")
+    }
+
+    @Test
+    fun shouldAddAQueuedCachedTorrentWithoutSeedersOnlyToTheHosterWhichHasItCached() {
+        premiumizeTrafficLeftInGB(150.0)
+
+        assertThat(addedTo(addQueued(cachedAtPremiumize(seeders = 0), alive("Ivakisaka.2010")))).isEqualTo("Premiumize")
+    }
+
+    @Test
+    fun shouldSkipAQueuedCachedTorrentWithoutSeedersIfItsHosterHasNotEnoughTraffic() {
+        premiumizeTrafficLeftInGB(100.0)
+        val next = alive("Ivakisaka.2010")
+
+        val result = addQueued(cachedAtPremiumize(seeders = 0), next)
+
+        assertThat(result).isEqualTo(MultifileHosterService.QueuedTorrentResult.Added(next, "Alldebrid"))
+    }
+
+    @Test
+    fun shouldTellAQueuedEntryToWaitIfThereAreOnlyCachedTorrentsWithoutSeeders() {
+        premiumizeTrafficLeftInGB(100.0)
+
+        assertThat(addQueued(cachedAtPremiumize(seeders = 0), cachedAtPremiumize(seeders = -1)))
+            .isEqualTo(MultifileHosterService.QueuedTorrentResult.WaitsForTrafficOfCachedHoster)
+        assertThat(addQueued()).isEqualTo(MultifileHosterService.QueuedTorrentResult.NothingDownloadable)
+        verify(exactly = 0) { transferService.save(any()) }
+    }
+
+    @Test
+    fun shouldAddACachedTorrentWithoutSeedersTheUserPicksToItsHosterOrNotAtAll() {
+        premiumizeTrafficLeftInGB(20.0)
+        val saved = slot<Transfer>()
+        every { transferService.save(capture(saved)) } returns Unit
+
+        // less than the 30 GB margin, but enough for it: AllDebrid can't download it without seeders
+        assertThat(multifileHosterService.addTorrentToTransfer(cachedAtPremiumize(seeders = 0))).isTrue
+        assertThat(saved.captured.source).isEqualTo("Premiumize")
+
+        premiumizeTrafficLeftInGB(5.0)
+        multifileHosterService = MultifileHosterService(
+            httpHelper, transferService, cloudService, mockk<CacheManager>(relaxed = true), mockk<CloudFileService>(relaxed = true),
+            mockk<MediaProxyService>(relaxed = true), mockk(relaxed = true), mockk<RcloneUploader>(relaxed = true)
+        )
+        assertThat(multifileHosterService.addTorrentToTransfer(cachedAtPremiumize(seeders = 0))).isFalse
+        verify(exactly = 1) { transferService.save(any()) }
+        assertThat(multifileHosterService.canTakeCached(cachedAtPremiumize(seeders = 0))).isFalse
     }
 }

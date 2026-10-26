@@ -9,6 +9,7 @@ import boat.info.QueueService
 import boat.model.Transfer
 import boat.model.TransferStatus
 import boat.multifileHoster.MultifileHosterService
+import boat.multifileHoster.MultifileHosterService.QueuedTorrentResult
 import boat.services.ConfigurationService
 import boat.services.TransferService
 import boat.torrent.Torrent
@@ -53,6 +54,7 @@ internal class DownloadMonitorTest {
         every { configurationService.isSearchMode() } returns true
         every { multifileHosterService.remoteTorrents } returns emptyList()
         every { multifileHosterService.getRemainingTrafficInMB() } returns 200_000.0
+        every { multifileHosterService.addQueuedTorrentToTransfer(any(), any(), any()) } returns QueuedTorrentResult.NothingDownloadable
     }
 
     @Test
@@ -103,7 +105,7 @@ internal class DownloadMonitorTest {
         downloadMonitor.checkForQueueEntries()
 
         verify(exactly = 1) { torrentSearchEngineService.searchTorrents("Arapef 2009") }
-        verify(exactly = 1) { multifileHosterService.addQueuedTorrentToTransfer(torrent, "{tmdb-19995}", MediaType.Movie) }
+        verify(exactly = 1) { multifileHosterService.addQueuedTorrentToTransfer(listOf(torrent), "{tmdb-19995}", MediaType.Movie) }
         verify(exactly = 1) { queueService.remove(queueItem) }
     }
 
@@ -122,7 +124,7 @@ internal class DownloadMonitorTest {
         downloadMonitor.checkForQueueEntries()
 
         verify(exactly = 1) { torrentSearchEngineService.searchTorrents("Bacozami Bap Season 1") }
-        verify(exactly = 1) { multifileHosterService.addQueuedTorrentToTransfer(torrent, "{tvdb-81189}", MediaType.Series) }
+        verify(exactly = 1) { multifileHosterService.addQueuedTorrentToTransfer(listOf(torrent), "{tvdb-81189}", MediaType.Series) }
         verify(exactly = 1) { queueService.remove(queueItem) }
     }
 
@@ -156,7 +158,7 @@ internal class DownloadMonitorTest {
         downloadMonitor.checkForQueueEntries()
 
         verify(exactly = 0) { mediaProxyService.findBestMatch(any(), any()) }
-        verify(exactly = 1) { multifileHosterService.addQueuedTorrentToTransfer(torrent, "{tmdb-19995}", MediaType.Movie) }
+        verify(exactly = 1) { multifileHosterService.addQueuedTorrentToTransfer(listOf(torrent), "{tmdb-19995}", MediaType.Movie) }
         verify(exactly = 1) { queueService.remove(queueItem) }
     }
 
@@ -174,7 +176,7 @@ internal class DownloadMonitorTest {
         downloadMonitor.checkForQueueEntries()
 
         verify(exactly = 1) { torrentSearchEngineService.searchTorrents("Custom Show 2021") }
-        verify(exactly = 1) { multifileHosterService.addQueuedTorrentToTransfer(torrent, "{custom-id}", null) }
+        verify(exactly = 1) { multifileHosterService.addQueuedTorrentToTransfer(listOf(torrent), "{custom-id}", null) }
         verify(exactly = 1) { queueService.remove(queueItem) }
     }
 
@@ -190,7 +192,7 @@ internal class DownloadMonitorTest {
 
         downloadMonitor.checkForQueueEntries()
 
-        verify(exactly = 1) { multifileHosterService.addQueuedTorrentToTransfer(torrent, "{tvdb-77853}", MediaType.Series) }
+        verify(exactly = 1) { multifileHosterService.addQueuedTorrentToTransfer(listOf(torrent), "{tvdb-77853}", MediaType.Series) }
     }
 
     private fun finishedTorrent(remoteId: String) = Torrent("Premiumize").apply {
@@ -237,5 +239,25 @@ internal class DownloadMonitorTest {
         downloadMonitor.checkForQueueEntries()
 
         verify(exactly = 0) { torrentSearchEngineService.searchTorrents(any()) }
+    }
+
+    @Test
+    fun shouldKeepAnEntryWhichWaitsForTheTrafficOfTheCachedHosterAndLetTheNextGoFirst() {
+        val waiting = MediaItem(title = "Arapef", year = 2009, type = MediaType.Movie, id = "{tmdb-19995}")
+        val next = MediaItem(title = "Daca", year = 2021, type = MediaType.Movie, id = "{tmdb-1}")
+        every { queueService.getQueue() } returns listOf(waiting, next)
+        every { cloudService.findExistingFiles(any()) } returns emptyList()
+        every { multifileHosterService.addQueuedTorrentToTransfer(any(), "{tmdb-19995}", any()) } returns QueuedTorrentResult.WaitsForTrafficOfCachedHoster
+
+        downloadMonitor.checkForQueueEntries()
+
+        verify(exactly = 0) { queueService.remove(waiting) }
+
+        downloadMonitor.checkForQueueEntries()
+
+        verify(exactly = 1) { torrentSearchEngineService.searchTorrents("Arapef 2009") }
+        verify(exactly = 1) { torrentSearchEngineService.searchTorrents("Daca 2021") }
+        verify(exactly = 1) { queueService.remove(next) }
+        verify(exactly = 0) { queueService.remove(waiting) }
     }
 }

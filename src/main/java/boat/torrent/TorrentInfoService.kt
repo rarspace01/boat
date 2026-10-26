@@ -46,13 +46,13 @@ class TorrentInfoService(httpHelper: HttpHelper) :
     class TrackerStats(val seeders: Int, val leechers: Int)
 
     /**
-     * Asks the tracker for the seeders and leechers of the torrents which are not cached at a multifilehoster (cached
-     * ones download from the hoster, so their stats don't matter). Many hashes go into one scrape request, which is
+     * Asks the tracker for the seeders and leechers of the torrents, also of the cached ones: a hoster which doesn't
+     * have one cached (AllDebrid) needs seeders to download it. Many hashes go into one scrape request, which is
      * much faster than a request per torrent. The batches are asked in parallel by a few threads shared by all searches.
      */
     fun refreshTorrentStats(torrentList: MutableList<Torrent>) {
         val startOfRefresh = System.currentTimeMillis()
-        val torrentsByHash = torrentList.filter { torrent -> torrent.cached.size == 0 }.groupByHash()
+        val torrentsByHash = torrentList.groupByHash()
         try {
             val tracker = trackerUrl
             val tasks = torrentsByHash.keys.chunked(BATCH_SIZE).map { hashes ->

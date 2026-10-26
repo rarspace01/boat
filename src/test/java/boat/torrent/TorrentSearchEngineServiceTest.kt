@@ -39,8 +39,9 @@ internal class TorrentSearchEngineServiceTest {
     }
 
     @Test
-    fun cachedTorrentsKeepTheirResultWithoutSeeders() {
+    fun cachedTorrentsKeepTheirResultAndTheirRealSeeders() {
         every { torrentInfoService.refreshTorrentStats(any()) } just Runs
+        every { multifileHosterService.canTakeCached(any()) } returns true
         val tse = TorrentSearchEngineService(HttpHelper(), multifileHosterService, torrentInfoService)
         val noStats = torrent("Daca.2021.1080p", -1, -1, "Premiumize")
         val noSeeders = torrent("Daca.2021.2160p", 0, 3, "Premiumize")
@@ -49,11 +50,33 @@ internal class TorrentSearchEngineServiceTest {
         val results = tse.rateResults(mutableListOf(noStats, noSeeders, reported), "Daca 2021")
 
         Assertions.assertThat(results).containsExactlyInAnyOrder(noStats, noSeeders, reported)
-        Assertions.assertThat(noStats.seeder).isEqualTo(TorrentSearchEngineService.DUMMY_SEEDERS_OF_CACHED_TORRENT)
-        Assertions.assertThat(noStats.leecher).isEqualTo(0)
-        Assertions.assertThat(noSeeders.leecher).isEqualTo(3)
-        // numbers of the search engine are kept
+        // no made up seeders, a hoster without the cache needs the real numbers
+        Assertions.assertThat(noStats.seeder).isEqualTo(-1)
+        Assertions.assertThat(noSeeders.seeder).isEqualTo(0)
         Assertions.assertThat(reported.seeder).isEqualTo(40)
+    }
+
+    @Test
+    fun aCachedTorrentIsOnlyRatedAsInstantIfItsHosterCanTakeIt() {
+        every { torrentInfoService.refreshTorrentStats(any()) } just Runs
+        val tse = TorrentSearchEngineService(HttpHelper(), multifileHosterService, torrentInfoService)
+        val cachedWithoutSeeders = Torrent().apply {
+            name = "Daca.2021.1080p.BluRay"; sizeInMB = 8000.0; seeder = 0; leecher = 0
+            magnetUri = "magnet:?xt=urn:btih:" + "a".repeat(40); cached.add("Premiumize")
+        }
+        val alive = Torrent().apply {
+            name = "Daca.2021.1080p.WEB"; sizeInMB = 8000.0; seeder = 50; leecher = 2
+            magnetUri = "magnet:?xt=urn:btih:" + "b".repeat(40)
+        }
+
+        every { multifileHosterService.canTakeCached(any()) } returns true
+        Assertions.assertThat(tse.rateResults(mutableListOf(alive, cachedWithoutSeeders), "Daca 2021").first()).isEqualTo(cachedWithoutSeeders)
+
+        every { multifileHosterService.canTakeCached(any()) } returns false
+        val rated = tse.rateResults(mutableListOf(alive, cachedWithoutSeeders), "Daca 2021")
+        Assertions.assertThat(alive.searchRating).isGreaterThan(cachedWithoutSeeders.searchRating)
+        // rated lower, but cached torrents stay on top of the list
+        Assertions.assertThat(rated).containsExactly(cachedWithoutSeeders, alive)
     }
 
     @Test
@@ -68,18 +91,16 @@ internal class TorrentSearchEngineServiceTest {
     }
 
     @Test
-    fun cachedTorrentsAreNotAskedForTheirStats() {
+    fun cachedTorrentsAreAskedForTheirStatsToo() {
+        every { multifileHosterService.canTakeCached(any()) } returns true
         val tse = TorrentSearchEngineService(HttpHelper(), multifileHosterService, torrentInfoService)
-        every { torrentInfoService.refreshTorrentStats(any()) } answers {
-            // the real service only asks the tracker for the torrents without a cache state
-            firstArg<List<Torrent>>().filter { it.cached.isEmpty() }.forEach { it.seeder = 7 }
-        }
+        every { torrentInfoService.refreshTorrentStats(any()) } answers { firstArg<List<Torrent>>().forEach { it.seeder = 7 } }
         val cached = torrent("Daca.2021.1080p", -1, -1, "Premiumize")
         val uncached = torrent("Daca.2021.720p", -1, -1)
 
         tse.rateResults(mutableListOf(cached, uncached), "Daca 2021")
 
         Assertions.assertThat(uncached.seeder).isEqualTo(7)
-        Assertions.assertThat(cached.seeder).isEqualTo(TorrentSearchEngineService.DUMMY_SEEDERS_OF_CACHED_TORRENT)
+        Assertions.assertThat(cached.seeder).isEqualTo(7)
     }
 }

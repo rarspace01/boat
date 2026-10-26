@@ -6,9 +6,11 @@ import boat.info.MediaItem
 import boat.info.MediaProxyService
 import boat.info.MediaType
 import boat.info.QueueService
+import boat.model.QueueEntry
 import boat.model.Transfer
 import boat.model.TransferStatus
 import boat.multifileHoster.MultifileHosterService
+import boat.multifileHoster.MultifileHosterService.QueuedTorrentResult
 import boat.services.ConfigurationService
 import boat.services.TransferService
 import boat.torrent.Torrent
@@ -25,6 +27,7 @@ import org.springframework.scheduling.annotation.Async
 import org.springframework.scheduling.annotation.EnableAsync
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
+import java.time.Duration
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.concurrent.ConcurrentHashMap
@@ -147,6 +150,9 @@ class DownloadMonitor(
         }
     }
 
+    /** Queue entries (by id) which wait until then for the traffic of the hoster which has their torrent cached. */
+    private val waitingForCachedHoster = ConcurrentHashMap<String, Instant>()
+
     /** Why the queue waited the last time, so the reason is only logged when it changes and not every 30 s. */
     @Volatile
     private var lastQueueWaitReason: String? = null
@@ -186,7 +192,10 @@ class DownloadMonitor(
             if (readyTorrents.size > torrentsWaitingForDownload.size) {
                 logger.debug("finished torrents at the hoster which aren't downloaded: {}", (readyTorrents - torrentsWaitingForDownload.toSet()).map { it.name })
             }
-            queue.stream().findFirst().ifPresent { mediaItem: MediaItem ->
+            // an entry which waits for the traffic of the hoster which has its torrent cached lets the others go first
+            val now = Instant.now()
+            waitingForCachedHoster.values.removeIf { it.isBefore(now) }
+            queue.firstOrNull { !waitingForCachedHoster.containsKey(QueueEntry.idOf(it)) }?.let { mediaItem: MediaItem ->
                 logger.info("picked {} ({} entries in the queue)", mediaItem, queue.size)
                 logger.info("picked {}", mediaItem)
                 // items from the search list are already matched, older queue entries are matched now
@@ -208,12 +217,17 @@ class DownloadMonitor(
                 val existingFiles = (cloudService.findExistingFiles(cleanedTitle) +
                         (remoteMediaId?.let { cloudService.findExistingFiles(it) } ?: emptyList())).distinct()
                 if (existingFiles.isEmpty()) {
-                    val torrent = torrentSearchEngineService.searchTorrents(torrentSearchString).firstOrNull()
-                    if (torrent != null) {
-                        logger.info("adding [{}] for [{}]", torrent.name, torrentSearchString)
-                        multifileHosterService.addQueuedTorrentToTransfer(torrent, remoteMediaId, matchedMediaItem?.type)
-                    } else {
-                        logger.warn("no torrent found for [{}], removed {} from the queue", torrentSearchString, mediaItem)
+                    val torrents = torrentSearchEngineService.searchTorrents(torrentSearchString)
+                    when (val result = multifileHosterService.addQueuedTorrentToTransfer(torrents, remoteMediaId, matchedMediaItem?.type)) {
+                        is QueuedTorrentResult.Added -> logger.info("added [{}] for [{}] to {}", result.torrent.name, torrentSearchString, result.hoster)
+                        QueuedTorrentResult.WaitsForTrafficOfCachedHoster -> {
+                            logger.info("[{}] is only cached without seeders, at hosters without enough traffic, it stays in the queue for {}h",
+                                    torrentSearchString, WAIT_FOR_CACHED_HOSTER.toHours())
+                            waitingForCachedHoster[QueueEntry.idOf(mediaItem)] = now.plus(WAIT_FOR_CACHED_HOSTER)
+                            return
+                        }
+                        QueuedTorrentResult.NothingDownloadable ->
+                            logger.warn("no torrent found for [{}], removed {} from the queue", torrentSearchString, mediaItem)
                     }
                 } else {
                     logger.warn("Looks like Torrent was already downloaded, skipped {} - matched files: {}", mediaItem, existingFiles)
@@ -272,6 +286,7 @@ class DownloadMonitor(
             !mediaItem.id.isNullOrBlank() && mediaItem.type != null && mediaItem.type != MediaType.Other
 
         const val MIN_GB_FOR_QUEUE = 150
+        private val WAIT_FOR_CACHED_HOSTER: Duration = Duration.ofHours(1)
         const val MAX_QUEUE_DOWNLOADS_LIMIT = 20
         private const val SECONDS_BETWEEN_DOWNLOAD_POLLING = 30
         private const val SECONDS_BETWEEN_TRANSFER_POLLING = 30

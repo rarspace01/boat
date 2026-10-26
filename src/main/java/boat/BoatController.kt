@@ -8,9 +8,11 @@ import boat.info.QueueService
 import boat.model.Transfer
 import boat.model.TransferStatus
 import boat.multifileHoster.MultifileHosterService
+import boat.rename.MovieNameParser
 import boat.services.ConfigurationService
 import boat.services.TransferService
 import boat.torrent.Torrent
+import boat.torrent.TorrentHelper
 import boat.torrent.TorrentHelper.humanReadableByteCountBinary
 import boat.torrent.TorrentHelper.removeSpecialCharacters
 import boat.torrent.TorrentSearchEngineService
@@ -350,11 +352,27 @@ $switchToSearchOld$switchToSearchList$switchToProgress""" + htmlFooter
             directDownloadUri.orEmpty().split(",").map { it.trim() }
         }
         val torrentsToBeDownloaded = uris.filter { it.isNotBlank() }.map { Torrent.of(magnetUri = it) }
-        torrentsToBeDownloaded.forEach {
-            multifileHosterService.addTorrentToTransfer(it, remoteMediaId?.ifBlank { null }, parseMediaType(mediaTypeString))
-        }
+        // the link only has the magnet: a cached torrent without seeders can only come from the hoster which has it
+        torrentSearchEngineService.refreshCacheStateAndStats(torrentsToBeDownloaded)
+        val mediaId = remoteMediaId?.ifBlank { null }
+        val mediaType = parseMediaType(mediaTypeString)
+        val queued = torrentsToBeDownloaded.filterNot { multifileHosterService.addTorrentToTransfer(it, mediaId, mediaType) }
+            .map { queueInstead(it, mediaId, mediaType) }
         multifileHosterService.addTransfersToDownloadQueue()
-        return ResponseEntity.ok().contentType(MediaType.TEXT_HTML).body(switchToProgress)
+        val queuedHtml = if (queued.isEmpty()) "" else "<b>" + HtmlUtils.htmlEscape(
+            "cached without seeders and no traffic left at the hoster which has it, queued instead: $queued"
+        ) + "</b><br/>"
+        return ResponseEntity.ok().contentType(MediaType.TEXT_HTML).body(queuedHtml + switchToProgress)
+    }
+
+    /** Queues the title of a torrent which can't be added now, the queue looks for it again later. */
+    private fun queueInstead(torrent: Torrent, mediaId: String?, mediaType: boat.info.MediaType?): MediaItem {
+        val name = TorrentHelper.extractTorrentName(torrent)
+        val mediaItem = mediaId?.let { mediaProxyService.findByRemoteMediaId(it, name, mediaType) }
+            ?: MovieNameParser.parseMovieName(name).let { (title, year) -> MediaItem(title = title, year = year, type = mediaType, id = mediaId) }
+        logger.info("[{}] can't be downloaded now, queued {}", name, mediaItem)
+        queueService.add(mediaItem)
+        return mediaItem
     }
 
     @RequestMapping("/boat/tfdb")
