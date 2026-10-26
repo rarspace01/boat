@@ -73,7 +73,10 @@ internal class TorrentSearchEngineServiceTest {
         Assertions.assertThat(tse.rateResults(mutableListOf(alive, cachedWithoutSeeders), "Daca 2021").first()).isEqualTo(cachedWithoutSeeders)
 
         every { multifileHosterService.canTakeCached(any()) } returns false
-        Assertions.assertThat(tse.rateResults(mutableListOf(alive, cachedWithoutSeeders), "Daca 2021").first()).isEqualTo(alive)
+        val rated = tse.rateResults(mutableListOf(alive, cachedWithoutSeeders), "Daca 2021")
+        Assertions.assertThat(alive.searchRating).isGreaterThan(cachedWithoutSeeders.searchRating)
+        // rated lower, but cached torrents stay on top of the list
+        Assertions.assertThat(rated).containsExactly(cachedWithoutSeeders, alive)
     }
 
     @Test

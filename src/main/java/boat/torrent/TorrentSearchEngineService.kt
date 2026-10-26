@@ -132,7 +132,7 @@ class TorrentSearchEngineService(
 
     /**
      * Asks the trackers for the seeders of the torrents, cached ones too (their real numbers are kept, a hoster without
-     * the cache needs them), then drops the dead ones, rates and sorts the rest. A cached torrent stays without
+     * the cache needs them), then drops the dead ones, rates and sorts the rest (cached ones first, each group by rating). A cached torrent stays without
      * seeders, it can come from the hoster which has it (or wait in the queue until that one has traffic again).
      */
     internal fun rateResults(torrents: MutableList<Torrent>, searchString: String): List<Torrent> {
@@ -141,7 +141,7 @@ class TorrentSearchEngineService(
             .map { torrent: Torrent ->
                 TorrentHelper.evaluateRating(torrent, searchString, torrent.cached.isNotEmpty() && multifileHosterService.canTakeCached(torrent))
             }
-            .sortedWith(TorrentComparator)
+            .sortedWith(compareByDescending<Torrent> { it.cached.isNotEmpty() }.then(TorrentComparator))
     }
 
     /** The cache state and the seeders of torrents which come without them, like one picked on the search page. */
