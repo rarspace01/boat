@@ -76,17 +76,78 @@ class MultifileHosterService(
         return returnResults
     }
 
-    /** A torrent the user picked: to the hoster with the lowest prio among those with enough traffic left. */
-    fun addTorrentToTransfer(torrent: Torrent, remoteMediaId: String? = null, mediaType: MediaType? = null) {
-        saveTransfer(torrent, selectHosterByPrio(torrent), remoteMediaId, mediaType)
+    /**
+     * A torrent the user picked: to the hoster with the lowest prio among those with enough traffic left. A cached one
+     * without seeders can only come from a hoster which has it cached: it goes there if that one has the traffic for
+     * it, otherwise it isn't added (false), the caller can queue its title instead.
+     */
+    fun addTorrentToTransfer(torrent: Torrent, remoteMediaId: String? = null, mediaType: MediaType? = null): Boolean {
+        val hoster = if (torrent.cached.isNotEmpty() && torrent.seeder <= 0) {
+            cachedHosterWithTrafficFor(torrent, minimumTrafficInMB = 0.0) ?: run {
+                log.info("[{}] is cached at {} without seeders, but there is not enough traffic left there: {}",
+                        torrent.name, torrent.cached, getRemainingTrafficInMBByHoster())
+                return false
+            }
+        } else {
+            selectHosterByPrio(torrent)
+        }
+        saveTransfer(torrent, hoster, remoteMediaId, mediaType)
+        return true
+    }
+
+    /** What [addQueuedTorrentToTransfer] did with the torrents found for an entry of the queue. */
+    sealed interface QueuedTorrentResult {
+        data class Added(val torrent: Torrent, val hoster: String) : QueuedTorrentResult
+
+        /** Only cached torrents without seeders, at hosters without enough traffic: the entry should wait. */
+        data object WaitsForTrafficOfCachedHoster : QueuedTorrentResult
+        data object NothingDownloadable : QueuedTorrentResult
     }
 
     /**
-     * A torrent for an entry of the queue: to the hoster which has it cached if that one has [MIN_TRAFFIC_FOR_CACHED_MB]
-     * left, otherwise to the hoster with the most traffic left, so the queue doesn't use up the traffic of one.
+     * The best of the [torrents] (sorted, best first) for an entry of the queue, and its hoster:
+     * - cached at a hoster with [MIN_TRAFFIC_FOR_CACHED_MB] left (and enough for it): there,
+     * - otherwise with seeders: the hoster with the most traffic left, so the queue doesn't use up the traffic of one.
+     * A cached torrent without seeders can only come from a hoster which has it cached, so without one that has
+     * enough traffic it is skipped for the next.
      */
-    fun addQueuedTorrentToTransfer(torrent: Torrent, remoteMediaId: String? = null, mediaType: MediaType? = null) {
-        saveTransfer(torrent, selectHosterForQueue(torrent), remoteMediaId, mediaType)
+    fun addQueuedTorrentToTransfer(torrents: List<Torrent>, remoteMediaId: String? = null, mediaType: MediaType? = null): QueuedTorrentResult {
+        var waitsForCachedHoster = false
+        for (torrent in torrents) {
+            val cachedHoster = cachedHosterWithTrafficFor(torrent, MIN_TRAFFIC_FOR_CACHED_MB)
+            val hoster = cachedHoster ?: if (torrent.seeder > 0) hosterWithTheMostTraffic() else null
+            if (hoster == null) {
+                if (torrent.cached.isNotEmpty()) waitsForCachedHoster = true
+                log.info("skipped [{}] for the queue: no seeders, and no hoster with it cached has enough traffic (cached at {})", torrent.name, torrent.cached)
+                continue
+            }
+            log.info("queued torrent [{}] goes to {}{} (traffic left: {})", torrent.name, hoster.getName(),
+                    if (cachedHoster != null) ", cached there" else "", getRemainingTrafficInMBByHoster())
+            saveTransfer(torrent, hoster, remoteMediaId, mediaType)
+            return QueuedTorrentResult.Added(torrent, hoster.getName())
+        }
+        return if (waitsForCachedHoster) QueuedTorrentResult.WaitsForTrafficOfCachedHoster else QueuedTorrentResult.NothingDownloadable
+    }
+
+    /** Whether a hoster which has the torrent cached has the traffic for it. */
+    fun canTakeCached(torrent: Torrent): Boolean = cachedHosterWithTrafficFor(torrent, minimumTrafficInMB = 0.0) != null
+
+    /** The hoster with the most traffic left among those which have the torrent cached and more than it needs. */
+    private fun cachedHosterWithTrafficFor(torrent: Torrent, minimumTrafficInMB: Double): MultifileHoster? {
+        if (torrent.cached.isEmpty()) return null
+        val trafficByHoster = getRemainingTrafficInMBByHoster()
+        val sizeInMB = torrent.getByteSize() / 1024.0 / 1024.0
+        return multifileHosterList
+                .filter { torrent.cached.contains(it.getName()) }
+                .map { it to (trafficByHoster[it.getName()] ?: 0.0) }
+                .filter { (_, traffic) -> traffic >= minimumTrafficInMB && traffic > sizeInMB }
+                .maxByOrNull { (_, traffic) -> traffic }
+                ?.first
+    }
+
+    private fun hosterWithTheMostTraffic(): MultifileHoster {
+        val trafficByHoster = getRemainingTrafficInMBByHoster()
+        return multifileHosterList.maxBy { trafficByHoster[it.getName()] ?: 0.0 }
     }
 
     private fun selectHosterByPrio(torrent: Torrent): MultifileHoster {
@@ -99,18 +160,6 @@ class MultifileHosterService(
         }
         val potentialMultiHosters = listOfMultiHostersWithTrafficLeft.ifEmpty { multifileHosterList }
         return potentialMultiHosters.minByOrNull { it.getPrio() } ?: potentialMultiHosters.first()
-    }
-
-    private fun selectHosterForQueue(torrent: Torrent): MultifileHoster {
-        val trafficByHoster = getRemainingTrafficInMBByHoster()
-        fun traffic(multifileHoster: MultifileHoster) = trafficByHoster[multifileHoster.getName()] ?: 0.0
-        val cachedHoster = multifileHosterList
-                .filter { torrent.cached.contains(it.getName()) && traffic(it) >= MIN_TRAFFIC_FOR_CACHED_MB }
-                .maxByOrNull { traffic(it) }
-        val selected = cachedHoster ?: multifileHosterList.maxBy { traffic(it) }
-        log.info("queued torrent [{}] goes to {}{} (traffic left: {})", torrent.name, selected.getName(),
-                if (cachedHoster != null) ", cached there" else "", trafficByHoster)
-        return selected
     }
 
     private fun saveTransfer(torrent: Torrent, selectedMultiFileHosterSource: MultifileHoster, remoteMediaId: String?, mediaType: MediaType?) {

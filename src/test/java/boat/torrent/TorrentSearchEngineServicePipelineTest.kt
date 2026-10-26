@@ -36,6 +36,7 @@ internal class TorrentSearchEngineServicePipelineTest {
     private fun service(vararg engines: TorrentSearchEngine): TorrentSearchEngineService {
         every { torrentInfoService.refreshTorrentStats(any()) } just Runs
         every { multifileHosterService.getCachedStateOfTorrents(any()) } answers { firstArg() }
+        every { multifileHosterService.canTakeCached(any()) } returns true
         val service = TorrentSearchEngineService(HttpHelper(), multifileHosterService, torrentInfoService, engines.toList())
         return service
     }

@@ -15,11 +15,13 @@ import boat.model.Transfer
 import boat.model.TransferStatus
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.slot
 import io.mockk.verify
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
+import java.util.Base64
 
 internal class BoatControllerTest {
 
@@ -71,13 +73,33 @@ internal class BoatControllerTest {
     @Test
     fun shouldTrimTheDirectDownloadUrlsAndSkipBlankOnes() {
         val added = mutableListOf<boat.torrent.Torrent>()
-        every { multifileHosterService.addTorrentToTransfer(capture(added), any(), any()) } returns Unit
+        every { multifileHosterService.addTorrentToTransfer(capture(added), any(), any()) } returns true
+        every { torrentSearchEngineService.refreshCacheStateAndStats(any()) } returns Unit
         every { multifileHosterService.addTransfersToDownloadQueue() } returns Unit
 
         val response = boatController.downloadTorrentToMultifileHoster(null, " http://a.example/1.mkv , ,http://a.example/2.mkv,", null, null)
 
         assertThat(response.statusCode).isEqualTo(HttpStatus.OK)
         assertThat(added.map { it.magnetUri }).containsExactly("http://a.example/1.mkv", "http://a.example/2.mkv")
+    }
+
+    @Test
+    fun shouldQueueTheTitleIfTheTorrentCanNotBeAdded() {
+        val queued = slot<MediaItem>()
+        every { torrentSearchEngineService.refreshCacheStateAndStats(any()) } returns Unit
+        every { multifileHosterService.addTorrentToTransfer(any(), any(), any()) } returns false
+        every { multifileHosterService.addTransfersToDownloadQueue() } returns Unit
+        every { queueService.add(capture(queued)) } returns Unit
+        val magnet = "magnet:?xt=urn:btih:10e93389d579ba4538c68b8d297268a81620fae2&dn=Daca.2021.1080p.WEB-DL"
+
+        val response = boatController.downloadTorrentToMultifileHoster(
+            Base64.getUrlEncoder().encodeToString(magnet.toByteArray()), null, null, null
+        )
+
+        assertThat(queued.captured.title).isEqualTo("Daca")
+        assertThat(queued.captured.year).isEqualTo(2021)
+        assertThat(response.body).contains("queued instead")
+        verify { torrentSearchEngineService.refreshCacheStateAndStats(match { it.single().magnetUri == magnet }) }
     }
 
     @Test

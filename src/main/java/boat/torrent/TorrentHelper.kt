@@ -62,7 +62,11 @@ object TorrentHelper {
 
     private val sizeUnitAndTagPattern = "(TiB)|(TB)|(GiB)|(GB)|(MiB)|(MB)|(<.*?>)".toRegex()
 
-    fun evaluateRating(tempTorrent: Torrent, searchName: String): Torrent {
+    /**
+     * [isCachedUsable]: a hoster which has the torrent cached can also take it (traffic), only then the cache stands in
+     * for the seeders. Otherwise it is rated by its seeders like any other torrent.
+     */
+    fun evaluateRating(tempTorrent: Torrent, searchName: String, isCachedUsable: Boolean = tempTorrent.cached.isNotEmpty()): Torrent {
         tempTorrent.debugRating = ""
         tempTorrent.searchRating = 0.0
         var debugAdditional = ""
@@ -144,6 +148,8 @@ object TorrentHelper {
                 "⚡(%s)",
                 tempTorrent.cached.stream().map { s: String -> s[0] }.collect(Collectors.toList())
             )
+        }
+        if (tempTorrent.cached.isNotEmpty() && isCachedUsable) {
             speedRating = 2.0
             speedMultiplier = 1.0
         } else if (seedRatio > 1.0) {

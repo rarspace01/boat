@@ -165,7 +165,7 @@ internal class TorrentInfoServiceScrapeTest {
     }
 
     @Test
-    fun shouldSkipCachedTorrentsInvalidHashesAndAskOnceForDuplicates() {
+    fun shouldAskForCachedTorrentsTooSkipInvalidHashesAndAskOnceForDuplicates() {
         val service = service()
         val cached = Torrent("Cached").apply { magnetUri = "magnet:?xt=urn:btih:" + hash(1); cached.add("Premiumize") }
         val first = Torrent("Daca").apply { magnetUri = "magnet:?xt=urn:btih:" + hash(2) }
@@ -173,8 +173,8 @@ internal class TorrentInfoServiceScrapeTest {
         val noHash = Torrent("No hnud").apply { magnetUri = "https://example.org/file.torrent" }
         every { httpHelper.getBinary(any(), any()) } answers {
             val hashes = requestedHashes(firstArg())
-            assertThat(hashes).containsExactly(hash(2))
-            HttpHelper.BinaryResponse(200, answer(mapOf(hash(2) to (8 to 1))))
+            assertThat(hashes).containsExactlyInAnyOrder(hash(1), hash(2))
+            HttpHelper.BinaryResponse(200, answer(mapOf(hash(1) to (0 to 0), hash(2) to (8 to 1))))
         }
 
         service.refreshTorrentStats(mutableListOf(cached, first, duplicate, noHash))
@@ -182,7 +182,9 @@ internal class TorrentInfoServiceScrapeTest {
         verify(exactly = 1) { httpHelper.getBinary(any(), any()) }
         assertThat(first.seeder).isEqualTo(8)
         assertThat(duplicate.seeder).isEqualTo(8)
-        assertThat(cached.seeder).isEqualTo(-1)
+        // a hoster without the cache needs the real numbers
+        assertThat(cached.seeder).isEqualTo(0)
+        assertThat(cached.statsVerified).isTrue
         assertThat(noHash.seeder).isEqualTo(-1)
         service.shutdown()
     }

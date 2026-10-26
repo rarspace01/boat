@@ -23,7 +23,6 @@ class TorrentSearchEngineService(
 
     companion object {
         private val logger by LoggerDelegate()
-        const val DUMMY_SEEDERS_OF_CACHED_TORRENT = 1
 
         /** The most results a search returns, after everything is filtered and sorted. */
         const val MAX_SEARCH_RESULTS = 100
@@ -132,19 +131,23 @@ class TorrentSearchEngineService(
             .onEach { TorrentHelper.evaluateRating(it, searchString) }
 
     /**
-     * Asks the trackers for the seeders of the torrents which are not cached at a multifilehoster (cached ones
-     * download from the hoster, so their stats don't matter), then drops the dead ones, rates and sorts the rest.
+     * Asks the trackers for the seeders of the torrents, cached ones too (their real numbers are kept, a hoster without
+     * the cache needs them), then drops the dead ones, rates and sorts the rest. A cached torrent stays without
+     * seeders, it can come from the hoster which has it (or wait in the queue until that one has traffic again).
      */
     internal fun rateResults(torrents: MutableList<Torrent>, searchString: String): List<Torrent> {
         torrentInfoService.refreshTorrentStats(torrents)
-        // a cached torrent is downloadable whatever the search engine says about its seeders (often nothing or 0)
-        torrents.filter { it.cached.isNotEmpty() && it.seeder <= 0 }.forEach {
-            it.seeder = DUMMY_SEEDERS_OF_CACHED_TORRENT
-            it.leecher = maxOf(it.leecher, 0)
-        }
-        return torrents.filter { torrent: Torrent -> torrent.seeder > 0 }
-            .map { torrent: Torrent -> TorrentHelper.evaluateRating(torrent, searchString) }
+        return torrents.filter { torrent: Torrent -> torrent.seeder > 0 || torrent.cached.isNotEmpty() }
+            .map { torrent: Torrent ->
+                TorrentHelper.evaluateRating(torrent, searchString, torrent.cached.isNotEmpty() && multifileHosterService.canTakeCached(torrent))
+            }
             .sortedWith(TorrentComparator)
+    }
+
+    /** The cache state and the seeders of torrents which come without them, like one picked on the search page. */
+    fun refreshCacheStateAndStats(torrents: List<Torrent>) {
+        multifileHosterService.getCachedStateOfTorrents(torrents)
+        torrentInfoService.refreshTorrentStats(torrents.toMutableList())
     }
 
     /** The better rated one of torrents with the same info hash, in the order of the first one. */
