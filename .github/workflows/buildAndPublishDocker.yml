@@ -34,7 +34,11 @@ jobs:
             ghcr.io/${{ github.repository_owner }}/boat:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          outputs: type=image,annotation-index.org.opencontainers.image.description=boat dockerimage image
+          # a plain image: an index with an attestation manifest has untagged child versions, which the cleanup below deletes
+          provenance: false
+          sbom: false
+          labels: |
+            org.opencontainers.image.description=boat dockerimage image
       - name: Delete old Docker images except latest
         uses: actions/delete-package-versions@v5
         with:
