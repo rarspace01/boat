@@ -97,4 +97,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Restart server
-        run: curl ${{ secrets.SERVERURL }}/boat/shutdown || true
+        # the token is the SHUTDOWN_TOKEN of the boat.cfg of the server, without it boat refuses (and updates itself
+        # within the hour anyway)
+        env:
+          SERVERURL: ${{ secrets.SERVERURL }}
+          SHUTDOWN_TOKEN: ${{ secrets.SHUTDOWN_TOKEN }}
+        run: curl -fsS -X POST -H "X-Shutdown-Token: $SHUTDOWN_TOKEN" "$SERVERURL/boat/shutdown" || true

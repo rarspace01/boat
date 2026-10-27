@@ -35,7 +35,9 @@ class SecurityConfiguration(private val cachedAuthenticationProvider: CachedAuth
             .authorizeHttpRequests { authorize ->
                 authorize
                     .requestMatchers(HttpMethod.OPTIONS).permitAll()
-                    .requestMatchers("/boat/shutdown", "/").permitAll()
+                    // the shutdown checks its own token (BoatController.shutdownServer), the deployment calls it
+                    .requestMatchers(HttpMethod.POST, "/boat/shutdown").permitAll()
+                    .requestMatchers("/").permitAll()
                     .anyRequest().authenticated()
             }
             .httpBasic(Customizer.withDefaults())

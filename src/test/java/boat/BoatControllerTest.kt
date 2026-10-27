@@ -48,6 +48,29 @@ internal class BoatControllerTest {
     )
 
     @Test
+    fun shouldOnlyAllowTheShutdownWithTheConfiguredToken() {
+        assertThat(BoatController.isShutdownAllowed("s3cret-token", "s3cret-token")).isTrue()
+        assertThat(BoatController.isShutdownAllowed("s3cret-token", "s3cret-tokeN")).isFalse()
+        assertThat(BoatController.isShutdownAllowed("s3cret-token", "s3cret")).isFalse()
+        assertThat(BoatController.isShutdownAllowed("s3cret-token", null)).isFalse()
+    }
+
+    @Test
+    fun shouldNotAllowTheShutdownWithoutAConfiguredToken() {
+        assertThat(BoatController.isShutdownAllowed(null, "")).isFalse()
+        assertThat(BoatController.isShutdownAllowed("", "")).isFalse()
+        assertThat(BoatController.isShutdownAllowed("  ", "  ")).isFalse()
+    }
+
+    @Test
+    fun shouldRefuseTheShutdownWithoutToken() {
+        // the offline tests have no SHUTDOWN_TOKEN, so the controller must not stop the test run
+        val response = boatController.shutdownServer(null)
+
+        assertThat(response.statusCode).isEqualTo(HttpStatus.FORBIDDEN)
+    }
+
+    @Test
     fun shouldParseTrailingYearOfSearchListEntry() {
         assertThat(BoatController.splitSearchListEntry("Daca 1984")).isEqualTo("Daca" to 1984)
         assertThat(BoatController.splitSearchListEntry("Daca (2021)\r")).isEqualTo("Daca" to 2021)

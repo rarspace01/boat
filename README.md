@@ -31,6 +31,7 @@ its dummy values are not used:
 | `RCLONEDIR` | | **required**, the rclone path of the library, e.g. `remote:PFDB` |
 | `PREMIUMIZE_APIKEY`, `ALLDEBRID_APIKEY` | | at least one multifilehoster, a warning is logged if none is set |
 | `TFDB_APIKEY`, `TVDB_APIKEY` | | media lookup, a warning is logged if missing |
+| `SHUTDOWN_TOKEN` | | secret for `POST /boat/shutdown` (header `X-Shutdown-Token`), which stops boat so the deployment starts the latest release; not set = nobody can stop boat over http. CI sends the `SHUTDOWN_TOKEN` secret of the repository after a release |
 | `MODE` | `BOTH` | `SEARCH`, `DOWNLOAD` or `BOTH` |
 | `MEDIA_CACHE_TTL_DAYS` | `90` | how long TMDB/TVDB results are cached, `0` keeps them forever (e.g. for local rename test runs) |
 | `MEDIA_CACHE_NOT_FOUND_TTL_DAYS` | `7` | same for searches without a result |
@@ -59,7 +60,7 @@ sudo chmod 644 /home/downloads/fullchain.pem
 
 ## Users
 
-All endpoints except `/` and `/boat/shutdown` need a login (HTTP Basic auth), the users are stored in the
+All endpoints except `/` and `POST /boat/shutdown` (which needs the `SHUTDOWN_TOKEN` instead) need a login (HTTP Basic auth), the users are stored in the
 `user` collection of the `boat` database in the MongoDB from `MONGO_URI`. Without a user nobody can log in, so the
 first user has to be inserted by hand.
 

@@ -31,6 +31,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseBody
 import org.springframework.web.bind.annotation.RestController
@@ -38,6 +39,7 @@ import org.springframework.web.util.HtmlUtils
 import java.lang.management.ManagementFactory
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
+import java.security.MessageDigest
 import java.util.*
 import java.util.concurrent.Executors
 import kotlin.concurrent.thread
@@ -86,6 +88,16 @@ class BoatController @Autowired constructor(
                 "tmdb" -> "https://www.themoviedb.org/${if (isSeries) "tv" else "movie"}/$id"
                 else -> "https://thetvdb.com/dereferrer/${if (isSeries) "series" else "movie"}/$id"
             }
+        }
+
+        /** The setting with the secret of [shutdownServer], without it nobody can stop boat over http. */
+        const val SHUTDOWN_TOKEN = "SHUTDOWN_TOKEN"
+        const val SHUTDOWN_TOKEN_HEADER = "X-Shutdown-Token"
+
+        /** Only with a token set in the settings, compared in constant time so the answer doesn't tell how much matched. */
+        internal fun isShutdownAllowed(configuredToken: String?, givenToken: String?): Boolean {
+            if (configuredToken.isNullOrBlank() || givenToken == null) return false
+            return MessageDigest.isEqual(configuredToken.toByteArray(StandardCharsets.UTF_8), givenToken.toByteArray(StandardCharsets.UTF_8))
         }
 
         private fun parseMediaType(mediaType: String?): boat.info.MediaType? {
@@ -434,14 +446,22 @@ $switchToSearchOld$switchToSearchList$switchToProgress""" + htmlFooter
             .build()
     }
 
-    @GetMapping("/boat/shutdown")
-    fun shutdownServer(): String {
+    /**
+     * Stops boat, the deployment starts the latest release (CI calls it after a release). It needs no login but the
+     * [SHUTDOWN_TOKEN] of the settings in the [SHUTDOWN_TOKEN_HEADER] header.
+     */
+    @PostMapping("/boat/shutdown")
+    fun shutdownServer(@RequestHeader(value = SHUTDOWN_TOKEN_HEADER, required = false) token: String?): ResponseEntity<String> {
+        if (!isShutdownAllowed(PropertiesHelper.getProperty(SHUTDOWN_TOKEN), token)) {
+            logger.warn("shutdown request rejected, {} is missing or wrong", SHUTDOWN_TOKEN_HEADER)
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).contentType(MediaType.TEXT_PLAIN).body("not allowed")
+        }
         logger.info("shutdown request received")
         thread(start = true) {
             Thread.sleep(1000)
             exitProcess(0)
         }
-        return "shutting down/restarting"
+        return ResponseEntity.ok().contentType(MediaType.TEXT_PLAIN).body("shutting down/restarting")
     }
 
     @GetMapping("/boat/clearMediaCache")

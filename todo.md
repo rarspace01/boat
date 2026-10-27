@@ -34,8 +34,8 @@ Ordered by how much they matter, from the review of 2026-10-23 (on top of #581).
   no seeders from it, asking a second tracker isn't worth the longer search.
 - The release jar is not signed: the checksum next to `boat.jar` protects against corrupted or tampered downloads, not
   against a compromised GitHub release. Accepted as is.
-- `/boat/shutdown` and `/` stay unauthenticated (`permitAll`): the deployment/Docker setup restarts the app through
-  `/boat/shutdown`. Don't secure it without changing the deployment first.
+- `/` and `POST /boat/shutdown` need no login (`permitAll`). The shutdown needs the `SHUTDOWN_TOKEN` of the settings in
+  the `X-Shutdown-Token` header instead (CI sends it after a release), without the setting it is refused.
 - All other endpoints need a login. Without users or without MongoDB nobody can log in, the first user is inserted by
   hand (README). A changed or removed user stays valid for up to 10 minutes (auth cache), users change 1-2 times a year.
 - CSRF has no tokens: `CrossSiteRequestFilter` rejects requests the browser marks as `cross-site`/`same-site`
