@@ -6,26 +6,20 @@ import io.mockk.every
 import io.mockk.mockk
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.io.TempDir
-import java.io.File
 
 internal class QueueServiceTest {
-
-    @TempDir
-    lateinit var dir: File
 
     /** The collection of the repository, so a new service on it is a restart. */
     private val stored = LinkedHashMap<String, QueueEntry>()
 
     private val repository: QueueRepository = mockk<QueueRepository>().also { repo ->
-        every { repo.count() } answers { stored.size.toLong() }
         every { repo.existsById(any()) } answers { stored.containsKey(firstArg()) }
         every { repo.save(any<QueueEntry>()) } answers { firstArg<QueueEntry>().also { stored[it.id] = it } }
         every { repo.deleteById(any()) } answers { stored.remove(firstArg<String>()); Unit }
         every { repo.findAllByOrderBySequenceAsc() } answers { stored.values.sortedBy { it.sequence } }
     }
 
-    private fun queueService() = QueueService(repository, File(dir, "queue.list"))
+    private fun queueService() = QueueService(repository)
 
     @Test
     fun queueSurvivesRestart() {
@@ -55,37 +49,5 @@ internal class QueueServiceTest {
 
         queueService.remove(first)
         assertThat(queueService.getQueue()).containsExactly(second)
-    }
-
-    @Test
-    fun importsQueueFileOfOlderVersionOnce() {
-        val file = File(dir, "queue.list")
-        file.writeText("Arapef=2009\nNo\\ Year=\nMatched={\"title\":\"Matched\",\"year\":1999,\"type\":\"Movie\",\"id\":\"7\"}\n")
-
-        val queueService = queueService()
-
-        assertThat(queueService.getQueue()).containsExactly(
-            MediaItem("Arapef", year = 2009), MediaItem("No Year"), MediaItem("Matched", year = 1999, type = MediaType.Movie, id = "7")
-        )
-        assertThat(file).doesNotExist()
-        assertThat(File(dir, "queue.list.imported")).exists()
-    }
-
-    @Test
-    fun doesNotImportAQueueFileWhichIsALink() {
-        // the default is in /tmp, another user of the machine could link it to a queue of their own
-        val other = File(dir, "other.list").apply { writeText("Planted=2000\n") }
-        java.nio.file.Files.createSymbolicLink(File(dir, "queue.list").toPath(), other.toPath())
-
-        assertThat(queueService().getQueue()).isEmpty()
-        assertThat(other).exists()
-    }
-
-    @Test
-    fun doesNotImportQueueFileIntoFilledQueue() {
-        queueService().add(MediaItem("Existing"))
-        File(dir, "queue.list").writeText("Old=2000\n")
-
-        assertThat(queueService().getQueue()).containsExactly(MediaItem("Existing"))
     }
 }
