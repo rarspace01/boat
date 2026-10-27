@@ -43,6 +43,10 @@ Ordered by how much they matter, from the review of 2026-10-23 (on top of #581).
   the endpoints changing state only take POST. Clients without the header (curl, scripts) still work.
 - The Premiumize API key travels in query strings, its API requires it; it is redacted in logs. AllDebrid gets its key
   in the `Authorization` header.
+- Transport: boat runs behind an nginx reverse proxy which terminates https, so boat itself serves plain http and
+  nothing in the repository turns on TLS (no SSL bundle, no certbot setup beyond the README steps). The ports of the
+  Docker image (8080 boat, 8081 `rclone serve webdav`) must not be published without that proxy. The webdav of the
+  image is read only (`--read-only`), so a htpasswd user can't change or delete the library through it.
 - TLS is verified. Only torrent search sites fall back to an unverified connection (never hosters, TMDB/TVDB, GitHub or
   urls with an api key, the host name is still checked). rclone verifies unless `RCLONE_NO_CHECK_CERTIFICATE=true`.
 - Search list urls: only public addresses are fetched (`ALLOW_PRIVATE_URLS=true` to allow local ones). A DNS rebinding
