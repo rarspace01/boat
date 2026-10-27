@@ -35,7 +35,7 @@ its dummy values are not used:
 | `MEDIA_CACHE_TTL_DAYS` | `90` | how long TMDB/TVDB results are cached, `0` keeps them forever (e.g. for local rename test runs) |
 | `MEDIA_CACHE_NOT_FOUND_TTL_DAYS` | `7` | same for searches without a result |
 | `SEARCH_MAX_RESULTS_PER_ENGINE` | `500` | how many results a search engine is asked for (paged where the engine has pages); the search itself shows the best 100 after filtering and sorting |
-| `HTPASSWD_FILE` | `/tmp/htpasswd` | where the users are written for a reverse proxy |
+| `HTPASSWD_FILE` | `~/tmp/htpasswd` | where the users are written for a reverse proxy, in the home of the user boat runs as (not in `/tmp`, where other users of the machine could link or create the file); only written when the users changed |
 | `ALLOW_PRIVATE_URLS` | `false` | allow local addresses in search list urls |
 | `RCLONE_NO_CHECK_CERTIFICATE` | `false` | pass `--no-check-certificate` to rclone |
 | `DUPLICATE_BETTER_CODEC_MARGIN_PERCENT` | `20` | duplicates of the same resolution: the head start (in %) of the better codec per generation against a version with a higher quality bitrate, `0` = none |
@@ -117,7 +117,7 @@ minutes are over (logins boat already knows still work). Behind a reverse proxy 
 address of the client from `X-Forwarded-For`, so others behind the same proxy aren't locked out.
 
 Changing the password works the same way, update the `password` field with a new hash. Logins are cached for 10
-minutes, so a changed or removed user is locked out after that at the latest (restart boat to apply it right away). Users with a `{bcrypt}` password are also written to `/tmp/htpasswd` every minute, for a
+minutes, so a changed or removed user is locked out after that at the latest (restart boat to apply it right away). Users with a `{bcrypt}` password are also written to `~/tmp/htpasswd` every minute, for a
 reverse proxy in front of boat.
 
 ## TLS
