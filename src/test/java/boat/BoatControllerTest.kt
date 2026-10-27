@@ -103,6 +103,11 @@ internal class BoatControllerTest {
     }
 
     @Test
+    fun shouldClearTheMediaCacheWithAPostForm() {
+        assertThat(BoatController.CLEAR_MEDIA_CACHE_FORM).contains("method=\"post\"", "action=\"./clearMediaCache\"")
+    }
+
+    @Test
     fun shouldEscapeTheQueueOnTheInfoPage() {
         val html = BoatController.queueHtml(listOf(boat.info.MediaItem("<script>alert(1)</script>", year = 2000)))
 
