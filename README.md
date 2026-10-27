@@ -93,6 +93,10 @@ or as a document for MongoDB Compass / Atlas:
 }
 ```
 
+After 20 failed logins from one address within 10 minutes no more passwords are checked from there until the 10
+minutes are over (logins boat already knows still work). Behind a reverse proxy in the local network boat takes the
+address of the client from `X-Forwarded-For`, so others behind the same proxy aren't locked out.
+
 Changing the password works the same way, update the `password` field with a new hash. Logins are cached for 10
 minutes, so a changed or removed user is locked out after that at the latest (restart boat to apply it right away). Users with a `{bcrypt}` password are also written to `/tmp/htpasswd` every minute, for a
 reverse proxy in front of boat.
