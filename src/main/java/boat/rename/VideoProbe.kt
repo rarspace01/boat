@@ -35,7 +35,9 @@ fun interface VideoProbe {
 
 /**
  * Reads the video metadata with `ffprobe` (part of ffmpeg, it has to be installed). The command gets its arguments
- * directly, there is no shell, so a file name can't break out of it.
+ * directly, there is no shell, so a file name can't break out of it. The files are downloads from strangers: ffprobe
+ * may only open local files, a "video" which is a playlist or a concat list can't get it to fetch urls (ffmpeg refuses
+ * that by default as well, the whitelist doesn't depend on the build).
  */
 class FfprobeVideoProbe(private val command: String = "ffprobe", private val timeoutSeconds: Long = 60) : VideoProbe {
 
@@ -44,7 +46,7 @@ class FfprobeVideoProbe(private val command: String = "ffprobe", private val tim
     override fun probe(file: File): ProbeResult {
         return try {
             val process = ProcessBuilder(
-                command, "-v", "error", "-select_streams", "v:0",
+                command, "-v", "error", "-protocol_whitelist", "file", "-select_streams", "v:0",
                 "-show_entries", "stream=codec_name,width,height,bit_rate:format=duration,bit_rate,size",
                 "-of", "json", "-i", file.absolutePath
             ).start()
