@@ -255,11 +255,49 @@ class HttpHelper {
             ) return false
             val bytes = address.address
             return when (bytes.size) {
-                // 100.64.0.0/10 (carrier grade NAT), 0.0.0.0/8
-                4 -> !((bytes[0].toInt() and 0xff) == 100 && (bytes[1].toInt() and 0xc0) == 64) && bytes[0].toInt() != 0
-                // fc00::/7 (unique local)
-                16 -> (bytes[0].toInt() and 0xfe) != 0xfc
+                4 -> isPublicIpv4(bytes)
+                16 -> isPublicIpv6(bytes)
                 else -> false
+            }
+        }
+
+        private fun isPublicIpv4(bytes: ByteArray): Boolean {
+            val first = bytes[0].toInt() and 0xff
+            val second = bytes[1].toInt() and 0xff
+            return when {
+                // 0.0.0.0/8, 10/8, 127/8 (the latter two also isSiteLocal/isLoopback for an Inet4Address)
+                first == 0 || first == 10 || first == 127 -> false
+                // 100.64.0.0/10 (carrier grade NAT)
+                first == 100 && (second and 0xc0) == 64 -> false
+                // 169.254/16, 172.16/12, 192.168/16, for addresses taken out of IPv6 ones
+                first == 169 && second == 254 -> false
+                first == 172 && (second and 0xf0) == 16 -> false
+                first == 192 && second == 168 -> false
+                // 192.0.0.0/24 (IETF protocol assignments), 198.18.0.0/15 (benchmarking)
+                first == 192 && second == 0 && (bytes[2].toInt() and 0xff) == 0 -> false
+                first == 198 && (second and 0xfe) == 18 -> false
+                // 224/4 multicast, 240.0.0.0/4 (reserved) and the broadcast address
+                first >= 224 -> false
+                else -> true
+            }
+        }
+
+        /**
+         * Besides fc00::/7 (unique local) the IPv6 addresses with an IPv4 address in them are only public if that one
+         * is: NAT64 (64:ff9b::/96, 64:ff9b:1::/48), 6to4 (2002::/16) and the old IPv4 compatible ::a.b.c.d. The IPv4
+         * mapped ::ffff:a.b.c.d come as Inet4Address already.
+         */
+        private fun isPublicIpv6(bytes: ByteArray): Boolean {
+            fun word(index: Int) = ((bytes[index].toInt() and 0xff) shl 8) or (bytes[index + 1].toInt() and 0xff)
+            return when {
+                (bytes[0].toInt() and 0xfe) == 0xfc -> false
+                word(0) == 0x64 && word(2) == 0xff9b && (0..3).all { word(4 + 2 * it) == 0 } -> isPublicIpv4(bytes.copyOfRange(12, 16))
+                word(0) == 0x64 && word(2) == 0xff9b && word(4) == 1 -> false
+                word(0) == 0x2002 -> isPublicIpv4(bytes.copyOfRange(2, 6))
+                (0..11).all { bytes[it].toInt() == 0 } -> isPublicIpv4(bytes.copyOfRange(12, 16))
+                // 2001:db8::/32 documentation
+                word(0) == 0x2001 && word(2) == 0x0db8 -> false
+                else -> true
             }
         }
 
