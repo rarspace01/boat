@@ -92,6 +92,9 @@ class BoatController @Autowired constructor(
             return boat.info.MediaType.entries.firstOrNull { it.name.equals(mediaType, ignoreCase = true) }
         }
 
+        /** The only script of the pages, the Content-Security-Policy allows it by its hash ([SecurityConfiguration]). */
+        const val CONFIRM_DELETE_SCRIPT = "return confirm('Delete this transfer and its files on the multifilehoster?')"
+
         /**
          * Restart and delete buttons of a transfer on the info page, not while it is uploading to the drive.
          */
@@ -101,7 +104,7 @@ class BoatController @Autowired constructor(
             return """ <form method="post" action="./transferRestart" class="transfer-control">""" +
                     """<input type="hidden" name="id" value="$id"><button type="submit" title="restart">↻</button></form>""" +
                     """<form method="post" action="./transferDelete" class="transfer-control" """ +
-                    """onsubmit="return confirm('Delete this transfer and its files on the multifilehoster?')">""" +
+                    """onsubmit="$CONFIRM_DELETE_SCRIPT">""" +
                     """<input type="hidden" name="id" value="$id"><button type="submit" title="delete">🗑</button></form>"""
         }
     }
