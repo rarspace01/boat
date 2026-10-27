@@ -37,7 +37,7 @@ Ordered by how much they matter, from the review of 2026-10-23 (on top of #581).
 - `/boat/shutdown` and `/` stay unauthenticated (`permitAll`): the deployment/Docker setup restarts the app through
   `/boat/shutdown`. Don't secure it without changing the deployment first. Anyone who knows the endpoint can restart
   boat (a short outage, nothing is lost), it is not published anywhere, so this is accepted for now to keep deployments
-  fast. If it becomes a problem: a token (`POST` + `X-Shutdown-Token` header, see the closed PR #609) or restricting it
+  fast. If it becomes a problem: a token (`POST` + `X-Shutdown-Token` header, see PR #609) or restricting it
   in the reverse proxy to the deployment host.
 - All other endpoints need a login. Without users or without MongoDB nobody can log in, the first user is inserted by
   hand (README). A changed or removed user stays valid for up to 10 minutes (auth cache), users change 1-2 times a year.
