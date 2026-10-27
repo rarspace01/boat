@@ -74,7 +74,7 @@ class TorrentDownloads internal constructor(httpHelper: HttpHelper) : HttpUser(h
     }
 
     private fun retrieveMagnetUri(torrent: Torrent): String {
-        val pageContent = httpHelper.getPage(baseUrl + torrent.remoteUrl)
+        val pageContent = HttpHelper.linkOnSameHost(baseUrl, torrent.remoteUrl)?.let { httpHelper.getPage(it) } ?: ""
         return Jsoup.parse(pageContent).selectFirst("a[href^=\"magnet:\"]")?.attr("href")?.trim { it <= ' ' } ?: ""
     }
 
