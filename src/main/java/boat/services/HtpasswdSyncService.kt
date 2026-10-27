@@ -1,19 +1,24 @@
 package boat.services
 
 import boat.repositories.UserRepository
-import boat.utilities.LocalFiles
 import boat.utilities.LoggerDelegate
 import boat.utilities.PropertiesHelper
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
 import java.io.File
 
 @Service
-class HtpasswdSyncService(private val userRepository: UserRepository) {
-    
+class HtpasswdSyncService internal constructor(private val userRepository: UserRepository, private val htpasswdFile: File) {
+
+    @Autowired
+    constructor(userRepository: UserRepository) : this(userRepository, File(PropertiesHelper.getProperty("HTPASSWD_FILE", defaultHtpasswdPath())!!))
+
     companion object {
         private val logger by LoggerDelegate()
-        const val HTPASSWD_FILE_PATH = "/tmp/htpasswd"
+
+        /** In the home of the user boat runs as, not in /tmp: other users of the machine can't link or create files there. */
+        fun defaultHtpasswdPath(): String = System.getProperty("user.home") + "/tmp/htpasswd"
         const val BCRYPT_PREFIX = "{bcrypt}"
     }
 
@@ -33,9 +38,12 @@ class HtpasswdSyncService(private val userRepository: UserRepository) {
                 }
             }
             
-            // /tmp is shared with the other users of the machine, a link or a file of one of them is not written
-            val file = File(PropertiesHelper.getProperty("HTPASSWD_FILE", HTPASSWD_FILE_PATH)!!)
-            if (LocalFiles.writeIfChanged(file.toPath(), htpasswdContent)) logger.info("Synced {} users to {}", users.size, file)
+            // only when it changed, so the proxy doesn't read a half written file every minute
+            if (!htpasswdFile.isFile || htpasswdFile.readText() != htpasswdContent) {
+                htpasswdFile.parentFile?.mkdirs()
+                htpasswdFile.writeText(htpasswdContent)
+                logger.info("Synced {} users to {}", users.size, htpasswdFile)
+            }
         } catch (e: Exception) {
             logger.error("Failed to sync users to htpasswd file", e)
         }

@@ -16,7 +16,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
 RUN useradd -ms /bin/bash boatuser
 USER boatuser
 WORKDIR /home/boatuser
-RUN touch /tmp/htpasswd
-# both are plain http (boat logs in with Basic auth, webdav with the users of /tmp/htpasswd): publish them behind https
+RUN mkdir -p /home/boatuser/tmp && touch /home/boatuser/tmp/htpasswd
+# both are plain http (boat logs in with Basic auth, webdav with the users of ~/tmp/htpasswd): publish them behind https
 EXPOSE 8080 8081
-CMD tmux new -d 'rclone serve webdav /PFDB --read-only --addr :8081 --baseurl /PFDB --htpasswd /tmp/htpasswd' && curl -fL -o boat.jar https://github.com/rarspace01/boat/releases/latest/download/boat.jar && curl -fL -o boat.jar.sha256 https://github.com/rarspace01/boat/releases/latest/download/boat.jar.sha256 && sha256sum -c boat.jar.sha256 && chmod +x boat.jar && java -jar boat.jar
+CMD tmux new -d 'rclone serve webdav /PFDB --read-only --addr :8081 --baseurl /PFDB --htpasswd /home/boatuser/tmp/htpasswd' && curl -fL -o boat.jar https://github.com/rarspace01/boat/releases/latest/download/boat.jar && curl -fL -o boat.jar.sha256 https://github.com/rarspace01/boat/releases/latest/download/boat.jar.sha256 && sha256sum -c boat.jar.sha256 && chmod +x boat.jar && java -jar boat.jar

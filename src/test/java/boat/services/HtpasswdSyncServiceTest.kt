@@ -6,22 +6,19 @@ import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.io.TempDir
 import java.io.File
 
 class HtpasswdSyncServiceTest {
 
     private val userRepository: UserRepository = mockk()
-    private val htpasswdSyncService = HtpasswdSyncService(userRepository)
-    private val htpasswdFile = File(HtpasswdSyncService.HTPASSWD_FILE_PATH)
 
-    @BeforeEach
-    fun setUp() {
-        if (htpasswdFile.exists()) {
-            htpasswdFile.delete()
-        }
-    }
+    @TempDir
+    lateinit var dir: File
+
+    private val htpasswdFile by lazy { File(dir, "tmp/htpasswd") }
+    private val htpasswdSyncService by lazy { HtpasswdSyncService(userRepository, htpasswdFile) }
 
     @Test
     fun `should sync users with bcrypt passwords to htpasswd file`() {
@@ -43,14 +40,18 @@ class HtpasswdSyncServiceTest {
     }
 
     @Test
-    fun `should not rewrite the htpasswd file when the users did not change`() {
-        every { userRepository.findAll() } returns listOf(User(id = "1", username = "testuser", password = "{bcrypt}\$2a\$10\$abc"))
+    fun `should not write the file again if the users did not change`() {
+        every { userRepository.findAll() } returns listOf(User(id = "1", username = "testuser", password = "{bcrypt}\$2a\$10\$abcdefghijklmnopqrstuv"))
         htpasswdSyncService.syncUsersToHtpasswd()
-        htpasswdFile.setLastModified(1_000_000L)
+        htpasswdFile.setLastModified(1_000_000)
 
         htpasswdSyncService.syncUsersToHtpasswd()
 
-        // a reverse proxy reading it never sees a file which is half written
-        assertEquals(1_000_000L, htpasswdFile.lastModified())
+        assertEquals(1_000_000, htpasswdFile.lastModified())
+    }
+
+    @Test
+    fun `should default to a path in the home of the user`() {
+        assertEquals(System.getProperty("user.home") + "/tmp/htpasswd", HtpasswdSyncService.defaultHtpasswdPath())
     }
 }
