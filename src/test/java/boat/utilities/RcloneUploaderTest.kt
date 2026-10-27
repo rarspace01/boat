@@ -23,4 +23,14 @@ class RcloneUploaderTest {
     fun shouldVerifyCertificatesByDefault() {
         assertThat(RcloneUploader.certificateArguments()).isEmpty()
     }
+
+    @Test
+    fun shouldNotLogTheDirectLinkOfTheHoster() {
+        val url = "https://cdn42.example.org/dl/Tok3nAbc/Name.mkv"
+
+        assertThat(RcloneUploader.withoutLink("rclone --retries 1 copyurl $url remote:Movies/N/Name.mkv", url))
+            .isEqualTo("rclone --retries 1 copyurl https://cdn42.example.org/… remote:Movies/N/Name.mkv")
+        assertThat(RcloneUploader.withoutLink("ERROR : Failed to copyurl: Get \"$url\": EOF", url)).doesNotContain("Tok3nAbc")
+        assertThat(RcloneUploader.withoutLink("no link here", "")).isEqualTo("no link here")
+    }
 }

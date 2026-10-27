@@ -4,6 +4,7 @@ import com.google.gson.JsonParser
 import org.springframework.stereotype.Component
 import java.io.File
 import java.io.IOException
+import java.net.URI
 import java.util.concurrent.TimeUnit
 
 /**
@@ -24,14 +25,15 @@ class RcloneUploader {
         }
         log.info("D>[{}]", destinationPath)
         val command = listOf("rclone") + certificateArguments() + listOf("--retries", "1", "copyurl", url, destinationPath.replace("'", ""))
-        log.info(command.joinToString(" "))
+        // the direct link of the hoster downloads the file without login until it expires, the log only gets its host
+        log.info(withoutLink(command.joinToString(" "), url))
         val exitCode = try {
             val process = ProcessBuilder(command)
                 .directory(File(System.getProperty("user.home")))
                 .redirectErrorStream(true)
                 .start()
             process.inputStream.bufferedReader().useLines { lines ->
-                lines.forEach { line -> if (isErrorLine(line)) log.error("rclone: {}", line) else log.info("rclone: {}", line) }
+                lines.map { withoutLink(it, url) }.forEach { line -> if (isErrorLine(line)) log.error("rclone: {}", line) else log.info("rclone: {}", line) }
             }
             process.waitFor()
         } catch (e: IOException) {
@@ -86,5 +88,12 @@ class RcloneUploader {
             if (PropertiesHelper.getProperty("RCLONE_NO_CHECK_CERTIFICATE") == "true") listOf("--no-check-certificate") else emptyList()
 
         internal fun isErrorLine(line: String): Boolean = errorLinePattern.containsMatchIn(line)
+
+        /** [text] with the [url] replaced by its host, e.g. "https://cdn.example/…". */
+        internal fun withoutLink(text: String, url: String): String {
+            if (url.isEmpty()) return text
+            val host = runCatching { URI.create(url) }.getOrNull()?.let { "${it.scheme}://${it.host}/…" } ?: "<link>"
+            return text.replace(url, host)
+        }
     }
 }
