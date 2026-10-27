@@ -52,6 +52,11 @@ Ordered by how much they matter, from the review of 2026-10-23 (on top of #581).
   image is read only (`--read-only`), so a htpasswd user can't change or delete the library through it.
 - TLS is verified. Only torrent search sites fall back to an unverified connection (never hosters, TMDB/TVDB, GitHub or
   urls with an api key, the host name is still checked). rclone verifies unless `RCLONE_NO_CHECK_CERTIFICATE=true`.
+  Accepted: someone on the network path of the server could make a verification fail and show a certificate of their
+  own, and so feed fake results of a search site. Search results come from sites anyone can upload to anyway, the links
+  from them are limited to the site's host and to public addresses, and many of these sites have broken certificates,
+  which would stop working. If it becomes a problem: an allow-list of hosts (`UNVERIFIED_TLS_HOSTS`, see the closed
+  PR #614) for the fallback, empty by default.
 - Search list urls: only public addresses are fetched (`ALLOW_PRIVATE_URLS=true` to allow local ones). A DNS rebinding
   race between the check and the connection is possible, the endpoint needs a login.
 - Downloads: a transfer whose upload to the drive failed, or whose hoster returned no files, is retried
