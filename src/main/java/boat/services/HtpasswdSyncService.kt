@@ -1,6 +1,7 @@
 package boat.services
 
 import boat.repositories.UserRepository
+import boat.utilities.LocalFiles
 import boat.utilities.LoggerDelegate
 import boat.utilities.PropertiesHelper
 import org.springframework.scheduling.annotation.Scheduled
@@ -32,9 +33,9 @@ class HtpasswdSyncService(private val userRepository: UserRepository) {
                 }
             }
             
+            // /tmp is shared with the other users of the machine, a link or a file of one of them is not written
             val file = File(PropertiesHelper.getProperty("HTPASSWD_FILE", HTPASSWD_FILE_PATH)!!)
-            file.writeText(htpasswdContent)
-            logger.debug("Successfully synced {} users to {}", users.size, file)
+            if (LocalFiles.writeIfChanged(file.toPath(), htpasswdContent)) logger.info("Synced {} users to {}", users.size, file)
         } catch (e: Exception) {
             logger.error("Failed to sync users to htpasswd file", e)
         }

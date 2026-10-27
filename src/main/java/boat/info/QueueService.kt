@@ -2,6 +2,7 @@ package boat.info
 
 import boat.model.QueueEntry
 import boat.repositories.QueueRepository
+import boat.utilities.LocalFiles
 import boat.utilities.LoggerDelegate
 import boat.utilities.PropertiesHelper
 import com.google.gson.JsonParser
@@ -29,6 +30,11 @@ class QueueService internal constructor(private val queueRepository: QueueReposi
 
     private fun importLegacyQueueFile() {
         if (!legacyQueueFile.isFile) return
+        // the default is in /tmp, the queue must not come from another user of the machine
+        if (!LocalFiles.isOwnFile(legacyQueueFile.toPath())) {
+            logger.warn("not importing the queue file [{}], it is a link or a file of another user", legacyQueueFile)
+            return
+        }
         try {
             if (queueRepository.count() == 0L) {
                 val ordered = LinkedHashMap<String, String>()

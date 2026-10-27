@@ -41,4 +41,16 @@ class HtpasswdSyncServiceTest {
         assertEquals("testuser:\$2a\$10\$abcdefghijklmnopqrstuv", lines[0])
         assertEquals("admin:\$2y\$10\$zyxwvutsrqponmlkjihgfe", lines[1])
     }
+
+    @Test
+    fun `should not rewrite the htpasswd file when the users did not change`() {
+        every { userRepository.findAll() } returns listOf(User(id = "1", username = "testuser", password = "{bcrypt}\$2a\$10\$abc"))
+        htpasswdSyncService.syncUsersToHtpasswd()
+        htpasswdFile.setLastModified(1_000_000L)
+
+        htpasswdSyncService.syncUsersToHtpasswd()
+
+        // a reverse proxy reading it never sees a file which is half written
+        assertEquals(1_000_000L, htpasswdFile.lastModified())
+    }
 }

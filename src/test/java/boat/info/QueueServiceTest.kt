@@ -72,6 +72,16 @@ internal class QueueServiceTest {
     }
 
     @Test
+    fun doesNotImportAQueueFileWhichIsALink() {
+        // the default is in /tmp, another user of the machine could link it to a queue of their own
+        val other = File(dir, "other.list").apply { writeText("Planted=2000\n") }
+        java.nio.file.Files.createSymbolicLink(File(dir, "queue.list").toPath(), other.toPath())
+
+        assertThat(queueService().getQueue()).isEmpty()
+        assertThat(other).exists()
+    }
+
+    @Test
     fun doesNotImportQueueFileIntoFilledQueue() {
         queueService().add(MediaItem("Existing"))
         File(dir, "queue.list").writeText("Old=2000\n")
