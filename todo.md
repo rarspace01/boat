@@ -39,7 +39,8 @@ Ordered by how much they matter, from the review of 2026-10-23 (on top of #581).
 - All other endpoints need a login. Without users or without MongoDB nobody can log in, the first user is inserted by
   hand (README). A changed or removed user stays valid for up to 10 minutes (auth cache), users change 1-2 times a year.
 - CSRF has no tokens: `CrossSiteRequestFilter` rejects requests the browser marks as `cross-site`/`same-site`
-  (`Sec-Fetch-Site`), clients without the header (curl, scripts) still work.
+  (`Sec-Fetch-Site`), and `none` (typed urls, but also links handed over by native apps) for anything but GET/HEAD, so
+  the endpoints changing state only take POST. Clients without the header (curl, scripts) still work.
 - The Premiumize API key travels in query strings, its API requires it; it is redacted in logs. AllDebrid gets its key
   in the `Authorization` header.
 - TLS is verified. Only the search sites of `UNVERIFIED_TLS_HOSTS` (none by default) fall back to an unverified
