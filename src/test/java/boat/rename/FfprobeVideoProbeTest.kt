@@ -78,6 +78,21 @@ internal class FfprobeVideoProbeTest {
     }
 
     @Test
+    fun `should only let ffprobe open local files`(@TempDir tempDir: Path) {
+        val arguments = File(tempDir.toFile(), "arguments")
+        val recording = File(tempDir.toFile(), "recording-ffprobe.sh").apply {
+            writeText("#!/bin/sh\nfor a in \"$@\"; do echo \"\$a\"; done > '${arguments.path}'\n")
+            setExecutable(true)
+        }
+
+        FfprobeVideoProbe(recording.path).probe(File(tempDir.toFile(), "a.mkv"))
+
+        val given = arguments.readLines()
+        assertThat(given).containsSubsequence("-protocol_whitelist", "file", "-i")
+        assertThat(given.indexOf("-protocol_whitelist")).isLessThan(given.indexOf("-i"))
+    }
+
+    @Test
     fun `should read a real video`(@TempDir tempDir: Path) {
         assumeTrue(isInstalled("ffprobe") && isInstalled("ffmpeg"), "ffmpeg is not installed")
         val video = File(tempDir.toFile(), "test.mp4")
