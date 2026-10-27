@@ -18,4 +18,4 @@ USER boatuser
 WORKDIR /home/boatuser
 RUN touch /tmp/htpasswd
 EXPOSE 8080 8081
-CMD tmux new -d 'rclone serve webdav /PFDB --addr :8081 --baseurl /PFDB --htpasswd /tmp/htpasswd' && curl -fL -o boat.jar https://github.com/rarspace01/boat/releases/latest/download/boat.jar && curl -fL -o boat.jar.sha256 https://github.com/rarspace01/boat/releases/latest/download/boat.jar.sha256 && sha256sum -c boat.jar.sha256 && chmod +x boat.jar && java -XX:+HeapDumpOnOutOfMemoryError -jar boat.jar
+CMD tmux new -d 'rclone serve webdav /PFDB --addr :8081 --baseurl /PFDB --htpasswd /tmp/htpasswd' && curl -fL -o boat.jar https://github.com/rarspace01/boat/releases/latest/download/boat.jar && curl -fL -o boat.jar.sha256 https://github.com/rarspace01/boat/releases/latest/download/boat.jar.sha256 && sha256sum -c boat.jar.sha256 && chmod +x boat.jar && java -jar boat.jar
