@@ -7,7 +7,6 @@ import io.mockk.just
 import io.mockk.mockk
 import io.mockk.Runs
 import io.mockk.slot
-import io.mockk.verify
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 

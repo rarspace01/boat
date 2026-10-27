@@ -654,7 +654,7 @@ class MultifileHosterService(
             log.warn(
                 "transfer needs {}, only {} left in the target folder, waits for space: {}",
                 TorrentHelper.humanReadableByteCountBinary(transfer.sizeInBytes),
-                TorrentHelper.humanReadableByteCountBinary(freeSpaceInBytes!!),
+                TorrentHelper.humanReadableByteCountBinary(freeSpaceInBytes),
                 transfer.hosterName()
             )
         }

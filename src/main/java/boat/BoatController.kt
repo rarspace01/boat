@@ -382,11 +382,6 @@ $switchToSearchOld$switchToSearchList$switchToProgress""" + htmlFooter
         return mediaItem
     }
 
-    @RequestMapping("/boat/tfdb")
-    fun searchTfdb(@RequestParam(value = "q") query: String?): String {
-        return HtmlUtils.htmlEscape(mediaProxyService.search(query).toString())
-    }
-
     @GetMapping("/boat/info")
     fun info(@RequestParam(value = "message", required = false) message: String?): String {
         multifileHosterService.refreshTorrents()
