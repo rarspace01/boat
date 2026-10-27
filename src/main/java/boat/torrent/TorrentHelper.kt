@@ -70,7 +70,6 @@ object TorrentHelper {
         tempTorrent.debugRating = ""
         tempTorrent.searchRating = 0.0
         var debugAdditional = ""
-        var isInstantDownload = false
         var isVerified = false
         var torrentName = tempTorrent.name
         var additionalRating = 0.0
@@ -80,7 +79,6 @@ object TorrentHelper {
         val normalizedTorrentName = getNormalizedTorrentString(torrentName)
         val normalizedTorrentNameWithSpaces = getNormalizedTorrentStringWithSpaces(torrentName)
         val normalizedSearchNameWithSpaces = getNormalizedTorrentStringWithSpaces(searchName)
-        val normalizedSearchName = getNormalizedTorrentString(searchName)
 
         //check individual words
         val searchWords =
@@ -331,13 +329,6 @@ object TorrentHelper {
         if (countMap.entries.isEmpty()) return TorrentType.TRANSFER
         val maxEntry: Map.Entry<TorrentType, Int> = countMap.entries.maxBy { it.value }
         return maxEntry.key
-    }
-
-    fun getSearchNameFrom(mediaItem: MediaItem): String {
-        val year = mediaItem.year
-        var searchName = mediaItem.title + if (year != null) " $year" else ""
-        searchName = getNormalizedTorrentStringWithSpaces(searchName).replace("['!]".toRegex(), "")
-        return searchName
     }
 
     /**

@@ -1,6 +1,5 @@
 package boat.torrent
 
-import boat.multifileHoster.MultifileHosterService
 import boat.utilities.HttpHelper
 import io.mockk.mockk
 import org.assertj.core.api.Assertions.assertThat

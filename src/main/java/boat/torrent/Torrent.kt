@@ -102,10 +102,10 @@ data class Torrent(
             stringBuilder.append(
                 String.format(
                     "%s - %s - folder_id: %s file_id: %s",
-                    HtmlUtils.htmlEscape(torrentId.toString()),
-                    HtmlUtils.htmlEscape(remoteId.toString()),
+                    HtmlUtils.htmlEscape(torrentId),
+                    HtmlUtils.htmlEscape(remoteId),
                     HtmlUtils.htmlEscape(folder_id.toString()),
-                    HtmlUtils.htmlEscape(file_id.toString())
+                    HtmlUtils.htmlEscape(file_id)
                 )
             )
         }
