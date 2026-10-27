@@ -5,14 +5,14 @@ import org.junit.jupiter.api.Test
 
 internal class TorrentTest {
     @Test
-    fun shouldAddRemoteMediaIdAndMediaTypeToDownloadLink() {
+    fun shouldAddRemoteMediaIdAndMediaTypeToDownloadForm() {
         val torrent = Torrent("Test")
         torrent.magnetUri = "magnet:?xt=urn:btih:10e93389d579ba4538c68b8d297268a81620fae2&dn=Nametest"
 
         val html = torrent.toHtml("{tmdb-1396}", boat.info.MediaType.Series)
 
-        Assertions.assertTrue(html.contains("&mid=%7Btmdb-1396%7D&mt=Series\">Download</a>"), html)
-        Assertions.assertFalse(torrent.toHtml().contains("&mt="))
+        Assertions.assertTrue(html.contains("<input type=\"hidden\" name=\"mid\" value=\"{tmdb-1396}\"><input type=\"hidden\" name=\"mt\" value=\"Series\">"), html)
+        Assertions.assertFalse(torrent.toHtml().contains("name=\"mt\""))
     }
 
     @Test

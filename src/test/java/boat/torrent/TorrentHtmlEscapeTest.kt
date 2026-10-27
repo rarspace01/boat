@@ -14,7 +14,19 @@ internal class TorrentHtmlEscapeTest {
 
         assertThat(html).doesNotContain("<script>", "<img")
         assertThat(html).contains("&lt;script&gt;", "--&gt;")
-        assertThat(html).contains("<a href=\"./download?d=")
+        assertThat(html).contains("<form method=\"post\" action=\"./download\"")
+    }
+
+    @Test
+    fun shouldDownloadWithAPostFormCarryingTheMagnetAndTheMedia() {
+        val magnetUri = "magnet:?xt=urn:btih:" + "a".repeat(40)
+        val html = Torrent("name").apply { this.magnetUri = magnetUri }.toHtml("{tmdb-1\"><b>}", boat.info.MediaType.Movie)
+
+        val base64 = java.util.Base64.getUrlEncoder().encodeToString(magnetUri.toByteArray())
+        assertThat(html).contains("<input type=\"hidden\" name=\"d\" value=\"$base64\">")
+        assertThat(html).contains("<input type=\"hidden\" name=\"mid\" value=\"{tmdb-1&quot;&gt;&lt;b&gt;}\">")
+        assertThat(html).contains("<input type=\"hidden\" name=\"mt\" value=\"Movie\">")
+        assertThat(html).doesNotContain("href=\"./download")
     }
 
     @Test
@@ -33,6 +45,18 @@ internal class TorrentHtmlEscapeTest {
         }
 
         assertThat(torrent.toHtml()).doesNotContain("<b>id", "<i>status")
+    }
+
+    @Test
+    fun shouldEscapeTheProgressOfTheHoster() {
+        // the progress of Premiumize is the json value as it is, the info page shows it inside an html comment
+        val torrent = Torrent("name").apply {
+            remoteId = "1"
+            remoteStatusText = "running"
+            remoteProgress = evil
+        }
+
+        assertThat(torrent.toHtml()).doesNotContain("-->", "<img", "<script>")
     }
 
     @Test
