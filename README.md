@@ -39,6 +39,7 @@ its dummy values are not used:
 | `HTPASSWD_FILE` | `/tmp/htpasswd` | where the users are written for a reverse proxy |
 | `ALLOW_PRIVATE_URLS` | `false` | allow local addresses in search list urls |
 | `RCLONE_NO_CHECK_CERTIFICATE` | `false` | pass `--no-check-certificate` to rclone |
+| `UNVERIFIED_TLS_HOSTS` | | search sites (host names, comma separated) whose broken certificate is accepted, see TLS |
 | `DUPLICATE_BETTER_CODEC_MARGIN_PERCENT` | `20` | duplicates of the same resolution: the head start (in %) of the better codec per generation against a version with a higher quality bitrate, `0` = none |
 | `DUPLICATE_CODEC_WEIGHT_PERCENT` | `100` | duplicates of the same resolution: how much the efficiency of the codec counts against the bitrate, `100` fully, `0` only the plain bitrate |
 | `DUPLICATE_PROBE_THREADS` | `8` | duplicates: how many files `ffprobe` reads at once (1 to 64), the rclone mount of a library is the limit above about 8 |
@@ -99,8 +100,10 @@ reverse proxy in front of boat.
 
 ## TLS
 
-Certificates are verified for all connections. Only torrent search sites with a broken certificate are retried
-without verification, calls to the multifilehosters, TMDB, TVDB, GitHub and every url with an api key never are.
+Certificates are verified for all connections. A torrent search site with a broken certificate doesn't work (the log
+tells it), its host can be allowed with `UNVERIFIED_TLS_HOSTS` (comma separated, in `boat.cfg` or as environment
+variable): it is retried without verification, which anyone on the way could exploit. Calls to the multifilehosters,
+TMDB, TVDB, GitHub and every url with an api key never are.
 rclone verifies certificates as well, set `RCLONE_NO_CHECK_CERTIFICATE=true` in `boat.cfg` (or as environment
 variable) to pass `--no-check-certificate`, e.g. for a webdav remote with a self-signed certificate.
 

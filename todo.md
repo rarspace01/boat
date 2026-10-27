@@ -42,8 +42,8 @@ Ordered by how much they matter, from the review of 2026-10-23 (on top of #581).
   (`Sec-Fetch-Site`), clients without the header (curl, scripts) still work.
 - The Premiumize API key travels in query strings, its API requires it; it is redacted in logs. AllDebrid gets its key
   in the `Authorization` header.
-- TLS is verified. Only torrent search sites fall back to an unverified connection (never hosters, TMDB/TVDB, GitHub or
-  urls with an api key, the host name is still checked). rclone verifies unless `RCLONE_NO_CHECK_CERTIFICATE=true`.
+- TLS is verified. Only the search sites of `UNVERIFIED_TLS_HOSTS` (none by default) fall back to an unverified
+  connection (never hosters, TMDB/TVDB, GitHub or urls with an api key). rclone verifies unless `RCLONE_NO_CHECK_CERTIFICATE=true`.
 - Search list urls: only public addresses are fetched (`ALLOW_PRIVATE_URLS=true` to allow local ones). A DNS rebinding
   race between the check and the connection is possible, the endpoint needs a login.
 - Downloads: a transfer whose upload to the drive failed, or whose hoster returned no files, is retried

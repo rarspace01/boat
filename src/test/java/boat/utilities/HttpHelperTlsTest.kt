@@ -14,19 +14,32 @@ internal class HttpHelperTlsTest {
             "https://api4.thetvdb.com/v4/login",
             "https://api.github.com/repos/rarspace01/boat/releases/latest",
             "https://raw.githubusercontent.com/x/y/z",
-        ).forEach { assertThat(HttpHelper.mayFallBackToUnverifiedTls(it)).describedAs(it).isFalse() }
+        ).forEach { url ->
+            // not even if they are in the setting
+            val host = java.net.URI.create(url).host
+            assertThat(HttpHelper.mayFallBackToUnverifiedTls(url, setOf(host))).describedAs(url).isFalse()
+        }
     }
 
     @Test
     fun shouldNeverFallBackToUnverifiedTlsForUrlsWithApiKey() {
-        assertThat(HttpHelper.mayFallBackToUnverifiedTls("https://example.org/api?apikey=secret")).isFalse()
-        assertThat(HttpHelper.mayFallBackToUnverifiedTls("https://example.org/api?API_KEY=secret")).isFalse()
+        assertThat(HttpHelper.mayFallBackToUnverifiedTls("https://example.org/api?apikey=secret", setOf("example.org"))).isFalse()
+        assertThat(HttpHelper.mayFallBackToUnverifiedTls("https://example.org/api?API_KEY=secret", setOf("example.org"))).isFalse()
     }
 
     @Test
     fun shouldAllowFallbackForTorrentSites() {
-        assertThat(HttpHelper.mayFallBackToUnverifiedTls("https://1337x.to/search/daca/1/")).isTrue()
-        assertThat(HttpHelper.mayFallBackToUnverifiedTls("https://notpremiumize.me.example.org/")).isTrue()
+        assertThat(HttpHelper.mayFallBackToUnverifiedTls("https://1337x.to/search/daca/1/", setOf("1337x.to"))).isTrue()
+        assertThat(HttpHelper.mayFallBackToUnverifiedTls("https://notpremiumize.me.example.org/", setOf("notpremiumize.me.example.org"))).isTrue()
+    }
+
+    @Test
+    fun shouldNotFallBackForSitesWhichAreNotInTheSetting() {
+        // someone on the way could make the verification fail for any site and then show their own certificate
+        assertThat(HttpHelper.mayFallBackToUnverifiedTls("https://1337x.to/search/daca/1/", emptySet())).isFalse()
+        assertThat(HttpHelper.mayFallBackToUnverifiedTls("https://1337x.to/search/daca/1/", setOf("other.example"))).isFalse()
+        // the offline tests have no UNVERIFIED_TLS_HOSTS
+        assertThat(HttpHelper.mayFallBackToUnverifiedTls("https://1337x.to/search/daca/1/")).isFalse()
     }
 
     @Test

@@ -25,7 +25,8 @@ private const val ACCEPT_HEADER =
  * Fetches pages for the search engines, hosters and metadata services on top of [java.net.http.HttpClient].
  * The page methods return an empty string if the page can't be read (the reason is logged, including the start of the
  * answer of the server), [getBinary] and [getPublicPage] are for callers which need to tell failures apart.
- * Certificates are verified, only torrent search sites fall back to an unverified connection ([mayFallBackToUnverifiedTls]).
+ * Certificates are verified, only the search sites of `UNVERIFIED_TLS_HOSTS` fall back to an unverified connection
+ * ([mayFallBackToUnverifiedTls]).
  * https uses HTTP/2 where the server supports it, plain http uses HTTP/1.1.
  */
 @Service
@@ -57,7 +58,8 @@ class HttpHelper {
                     ""
                 }
             } else {
-                log.error("TLS verification failed for [{}]: {}", hostOf(url), redactSecrets(exception.message))
+                log.error("TLS verification failed for [{}]: {} (a search site with a broken certificate can be allowed with {})",
+                    hostOf(url), redactSecrets(exception.message), UNVERIFIED_TLS_HOSTS)
                 ""
             }
         } catch (exception: InterruptedException) {
@@ -231,7 +233,8 @@ class HttpHelper {
 
         private fun noRedirectClientFor(url: String) = if (isHttps(url)) httpsClientWithoutRedirects else plainClientWithoutRedirects
 
-        // a plain X509TrustManager, so the host name is still checked, only expired or unknown certificates are accepted
+        // accepts every certificate: the host name is still checked, but against a certificate anyone can make, so this
+        // is no protection against someone on the way (only for the hosts of UNVERIFIED_TLS_HOSTS)
         private val unverifiedClient: HttpClient by lazy {
             val sslContext = SSLContext.getInstance("TLS").apply { init(null, trustAllCerts, null) }
             clientBuilder(HttpClient.Version.HTTP_2).sslContext(sslContext).followRedirects(HttpClient.Redirect.NORMAL).build()
@@ -262,12 +265,21 @@ class HttpHelper {
 
         private fun hostOf(url: String): String = runCatching { toUri(url).host }.getOrNull() ?: "unknown"
 
+        /** The setting with the hosts (comma separated) whose broken certificates are accepted. */
+        const val UNVERIFIED_TLS_HOSTS = "UNVERIFIED_TLS_HOSTS"
+
+        private fun unverifiedTlsHosts(): Set<String> =
+            PropertiesHelper.getProperty(UNVERIFIED_TLS_HOSTS).orEmpty().split(",").map { it.trim().lowercase() }.filter { it.isNotEmpty() }.toSet()
+
         /**
-         * Torrent sites often have broken certificates, so for them a failed verification falls back to an
-         * unverified connection. Hosters, metadata providers, GitHub and every url with an api key never do.
+         * Only the hosts of [UNVERIFIED_TLS_HOSTS] (a search site with a broken certificate) fall back to an unverified
+         * connection after a failed verification: anyone on the way could make that verification fail and then show
+         * a certificate of their own, so it isn't done for every site. Hosters, metadata providers, GitHub and every url
+         * with an api key never do, whatever the setting says.
          */
-        internal fun mayFallBackToUnverifiedTls(url: String): Boolean {
+        internal fun mayFallBackToUnverifiedTls(url: String, allowedHosts: Set<String> = unverifiedTlsHosts()): Boolean {
             val host = hostOf(url).lowercase()
+            if (host !in allowedHosts) return false
             if (VERIFIED_HOST_SUFFIXES.any { host == it || host.endsWith(".$it") }) return false
             return !url.contains("apikey=", ignoreCase = true) && !url.contains("api_key=", ignoreCase = true)
         }
