@@ -1,15 +1,18 @@
 # only ffprobe is used (duplicates), a static build is one file instead of the ~240 packages the ffmpeg package needs.
 # It is a full build (dav1d for AV1, VVC, EVC, AVS2/3, ...) for amd64 and arm64.
 FROM mwader/static-ffmpeg:9.0.2-1 AS ffmpeg
+# rclone from its official image (a static binary for amd64 and arm64) instead of piping install.sh from the internet,
+# so the version is pinned and dependabot updates it
+FROM rclone/rclone:1.75.2 AS rclone
 
 FROM eclipse-temurin:25-jre
 COPY --from=ffmpeg /ffprobe /usr/local/bin/
+COPY --from=rclone /usr/local/bin/rclone /usr/local/bin/
 HEALTHCHECK --start-period=30s CMD curl --fail http://localhost:8080 || exit 1
 VOLUME /tmp/boat
 SHELL ["/bin/bash", "-c"]
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl unzip dnsutils tmux \
-    && rm -rf /var/lib/apt/lists/* \
-    && curl https://rclone.org/install.sh -o install.sh && chmod +x install.sh && ./install.sh && rm -f ./install.sh
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl dnsutils tmux \
+    && rm -rf /var/lib/apt/lists/*
 RUN useradd -ms /bin/bash boatuser
 USER boatuser
 WORKDIR /home/boatuser
