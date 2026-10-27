@@ -54,6 +54,19 @@ internal class CrossSiteRequestFilterTest {
     }
 
     @Test
+    fun shouldOnlyAllowReadingForRequestsWithoutAPageWhichStartedThem() {
+        // "none" is also a link a native mail or chat app hands to the browser, it must not change anything
+        listOf("POST", "PUT", "DELETE", "PATCH").forEach { method ->
+            val (response, chain) = call(method, "none")
+            assertThat(response.status).describedAs(method).isEqualTo(403)
+            assertThat(chain.request).describedAs(method).isNull()
+        }
+        assertThat(call("HEAD", "none").first.status).isEqualTo(200)
+        assertThat(call("POST", "same-origin").first.status).isEqualTo(200)
+        assertThat(call("POST", null).first.status).isEqualTo(200)
+    }
+
+    @Test
     fun shouldAllowOpeningEntryPagesFromLinksOfOtherSitesAndApps() {
         // e.g. a link to the search page sent via WhatsApp
         listOf("/", "/search", "/boat/search", "/boat/searchOld", "/boat/searchList", "/boat/info", "/boat/debug").forEach { path ->

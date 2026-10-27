@@ -63,6 +63,9 @@ class BoatController @Autowired constructor(
 
         private val logger by LoggerDelegate()
         const val BREAK_LINK_HTML = "  <br>\n"
+        // a button, the cache is only cleared by a POST
+        internal const val CLEAR_MEDIA_CACHE_FORM =
+            """ <form method="post" action="./clearMediaCache" class="transfer-control"><button type="submit">clear media cache</button></form>"""
         private val trailingYearPattern = "^(.+?)[\\s.(\\[]+((?:19|20)[0-9]{2})[)\\]]?$".toRegex()
 
         /**
@@ -118,7 +121,7 @@ class BoatController @Autowired constructor(
 <style>
     body { font-size: 1.5em; overflow-wrap: break-word; word-wrap: break-word; }
     input[type="text"], textarea { font-size: 1em; width: 95%; box-sizing: border-box; }
-    form.transfer-control { display: inline; margin-left: 4px; }
+    form.transfer-control, form.download { display: inline; margin-left: 4px; }
     @media (min-width: 800px) {
         body { font-size: 1em; }
         input[type="text"], textarea { width: auto; }
@@ -336,7 +339,8 @@ $switchToSearchOld$switchToSearchList$switchToProgress""" + htmlFooter
 
     private fun urlEncode(value: String): String = URLEncoder.encode(value, StandardCharsets.UTF_8)
 
-    @RequestMapping("/boat/download")
+    /** Only POST, a GET could come from a link a native app hands to the browser (see [boat.security.CrossSiteRequestFilter]). */
+    @PostMapping("/boat/download")
     fun downloadTorrentToMultifileHoster(
         @RequestParam(value = "d", required = false) downloadUri: String?,
         @RequestParam(value = "dd", required = false) directDownloadUri: String?,
@@ -393,6 +397,7 @@ $switchToSearchOld$switchToSearchList$switchToProgress""" + htmlFooter
                 + "<br/>MODE: " + configurationService.getServiceMode()
                 + "<br/>target folder: " + (if (cloudService.isTargetFolderReady) "✅" else "❌")
                 + "<br/>search Cache: " + (if (cloudFileService.isCacheFilled) "✅" else "❌")
+                + CLEAR_MEDIA_CACHE_FORM
                 + "<br/>ActiveSearchEngines: " + torrentSearchEngineService.getActiveSearchEngines()
                 + "<br/>InActiveSearchEngines: " + torrentSearchEngineService.inActiveSearchEngines
                 + "<br/>Active MultifileHoster: " + multifileHosterService.getActiveMultifileHosters()
@@ -444,7 +449,7 @@ $switchToSearchOld$switchToSearchList$switchToProgress""" + htmlFooter
         return "shutting down/restarting"
     }
 
-    @GetMapping("/boat/clearMediaCache")
+    @PostMapping("/boat/clearMediaCache")
     fun clearMediaCache(): String {
         logger.info("clear media cache request received")
         val removedEntries = mediaProxyService.clearCache()
