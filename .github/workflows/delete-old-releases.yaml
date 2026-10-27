@@ -6,13 +6,17 @@ on:
   release:
   workflow_dispatch:
 
+# deleting releases needs no personal token, so a third party action doesn't get one
+permissions:
+  contents: write
+
 jobs:
   delete-old-releases:
     runs-on: ubuntu-latest
     steps:
       - name: Delete Older Releases
-        uses: dev-drprasad/delete-older-releases@v0.3.4
+        uses: dev-drprasad/delete-older-releases@dfbe6be2a006e9475dfcbe5b8d201f1824c2a9fe # v0.3.4
         with:
           keep_latest: 3
         env:
-          GITHUB_TOKEN: ${{ secrets.AUTOPR }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
