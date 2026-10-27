@@ -84,7 +84,8 @@ class Kat internal constructor(httpHelper: HttpHelper) : HttpUser(httpHelper), T
     }
 
     private fun parseMagnetFromUrl(urlForMagnet: String): String {
-        httpHelper.getPage(urlForMagnet).let {
+        // a link to another host is not followed, a search site must not get boat to fetch something elsewhere
+        (HttpHelper.linkOnSameHost(baseUrl, urlForMagnet)?.let { httpHelper.getPage(it) } ?: "").let {
             return Jsoup.parse(it).getElementsByAttributeValueMatching("href", "magnet:").attr("href")
         }
     }

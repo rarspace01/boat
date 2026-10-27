@@ -78,7 +78,7 @@ class TorrentDownload internal constructor(httpHelper: HttpHelper) : HttpUser(ht
         if (torrent.sizeInMB <= 0) {
             return ""
         }
-        val pageContent = httpHelper.getPage(baseUrl + torrent.remoteUrl)
+        val pageContent = HttpHelper.linkOnSameHost(baseUrl, torrent.remoteUrl)?.let { httpHelper.getPage(it) } ?: ""
         return Jsoup.parse(pageContent).selectFirst("a[href^=\"magnet:?xt=\"]")?.attr("href")?.trim { it <= ' ' } ?: ""
     }
 
