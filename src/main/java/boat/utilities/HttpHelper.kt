@@ -27,11 +27,16 @@ private const val ACCEPT_HEADER =
  * answer of the server), [getBinary] and [getPublicPage] are for callers which need to tell failures apart.
  * Certificates are verified, only torrent search sites fall back to an unverified connection ([mayFallBackToUnverifiedTls]).
  * https uses HTTP/2 where the server supports it, plain http uses HTTP/1.1.
+ * Only public addresses are fetched, also after redirects (unless `ALLOW_PRIVATE_URLS=true`): the urls come from search
+ * sites, their links and redirects and a tracker list of others, none of them may get boat to call into the local network.
  */
 @Service
 class HttpHelper {
 
     class BinaryResponse(val status: Int, val body: ByteArray)
+
+    /** Whether local addresses may be fetched, the tests use a local server. */
+    internal var allowPrivateAddresses: () -> Boolean = { PropertiesHelper.getProperty("ALLOW_PRIVATE_URLS") == "true" }
 
     fun getPage(url: String): String = fetchPage(url, null, null, DEFAULT_TIMEOUT, null)
 
@@ -46,12 +51,12 @@ class HttpHelper {
 
     private fun fetchPage(url: String, cookies: String?, body: String?, timeout: Int, headers: Map<String, String>?): String {
         return try {
-            readPage(url, send(verifiedClientFor(url), url, cookies, body, timeout, headers))
+            readPage(url, sendFollowingRedirects(url, cookies, body, timeout, headers, verified = true))
         } catch (exception: SSLException) {
             if (mayFallBackToUnverifiedTls(url)) {
                 log.warn("TLS verification failed for [{}], retrying without verification: {}", hostOf(url), redactSecrets(exception.message))
                 try {
-                    readPage(url, send(unverifiedClient, url, cookies, body, timeout, headers))
+                    readPage(url, sendFollowingRedirects(url, cookies, body, timeout, headers, verified = false))
                 } catch (retryException: Exception) {
                     log.error("HttpHelper [{}]: {}", hostOf(url), redactSecrets(retryException.message))
                     ""
@@ -68,6 +73,35 @@ class HttpHelper {
             log.error("HttpHelper [{}]: {} {}", hostOf(url), exception.javaClass.simpleName, redactSecrets(exception.message))
             ""
         }
+    }
+
+    /**
+     * Follows up to [MAX_REDIRECTS] redirects by hand, so every address is checked before it is called
+     * ([isAllowedPublicUrl]). Like browsers a 303, and a POST redirected with 301 or 302, continue as GET, and https is
+     * never redirected to http. Cookies and [headers] (e.g. an api key) only go to the host they were meant for.
+     */
+    private fun sendFollowingRedirects(
+        url: String, cookies: String?, body: String?, timeout: Int, headers: Map<String, String>?, verified: Boolean
+    ): HttpResponse<ByteArray> {
+        var currentUrl = url
+        var currentBody = body
+        var sameHost = true
+        repeat(MAX_REDIRECTS + 1) {
+            if (!allowPrivateAddresses() && !isAllowedPublicUrl(currentUrl)) {
+                throw IOException("refusing to fetch [${hostOf(currentUrl)}], it is not a public address")
+            }
+            val client = if (verified) noRedirectClientFor(currentUrl) else unverifiedClient
+            val response = send(client, currentUrl, cookies.takeIf { sameHost }, currentBody, timeout, headers.takeIf { sameHost })
+            val status = response.statusCode()
+            val location = response.headers().firstValue("Location").orElse(null)
+            if (status !in REDIRECT_STATUSES || location == null) return response
+            val nextUrl = toUri(currentUrl).resolve(toUri(location)).toString()
+            if (isHttps(currentUrl) && !isHttps(nextUrl)) return response
+            if (status == 303 || (status in 301..302 && currentBody != null)) currentBody = null
+            sameHost = sameHost && hostOf(nextUrl).equals(hostOf(url), ignoreCase = true)
+            currentUrl = nextUrl
+        }
+        throw IOException("too many redirects for [${hostOf(url)}]")
     }
 
     private fun send(
@@ -163,13 +197,8 @@ class HttpHelper {
      */
     @Throws(IOException::class)
     fun getBinary(url: String, timeout: Int = SHORT_TIMEOUT, headers: Map<String, String> = emptyMap()): BinaryResponse {
-        val builder = HttpRequest.newBuilder(toUri(url))
-            .timeout(Duration.ofMillis(timeout.toLong()))
-            .setHeader("User-Agent", USER_AGENT_BROWSER)
-        headers.forEach { (key, value) -> builder.setHeader(key, value) }
-        val request = builder.GET().build()
         return try {
-            val response = verifiedClientFor(url).send(request, HttpResponse.BodyHandlers.ofByteArray())
+            val response = sendFollowingRedirects(url, null, null, timeout, headers, verified = true)
             BinaryResponse(response.statusCode(), response.body())
         } catch (e: InterruptedException) {
             Thread.currentThread().interrupt()
@@ -195,6 +224,7 @@ class HttpHelper {
         const val DEFAULT_TIMEOUT = 30 * 1000
         const val SHORT_TIMEOUT = 10 * 1000
         private const val MAX_REDIRECTS = 3
+        private val REDIRECT_STATUSES = setOf(301, 302, 303, 307, 308)
         private val log = LoggerFactory.getLogger(HttpHelper::class.java)
 
         // Calls to these hosts carry API keys or deliver the data we act on, they are never made without verification.
@@ -212,12 +242,7 @@ class HttpHelper {
         private fun clientBuilder(version: HttpClient.Version) =
             HttpClient.newBuilder().version(version).connectTimeout(Duration.ofSeconds(10))
 
-        private val httpsClient: HttpClient by lazy {
-            clientBuilder(HttpClient.Version.HTTP_2).followRedirects(HttpClient.Redirect.NORMAL).build()
-        }
-        private val plainClient: HttpClient by lazy {
-            clientBuilder(HttpClient.Version.HTTP_1_1).followRedirects(HttpClient.Redirect.NORMAL).build()
-        }
+        // redirects are followed by hand, every address is checked first (sendFollowingRedirects, getPublicPage)
         private val httpsClientWithoutRedirects: HttpClient by lazy {
             clientBuilder(HttpClient.Version.HTTP_2).followRedirects(HttpClient.Redirect.NEVER).build()
         }
@@ -227,19 +252,17 @@ class HttpHelper {
 
         private fun isHttps(url: String) = url.startsWith("https:", ignoreCase = true)
 
-        private fun verifiedClientFor(url: String) = if (isHttps(url)) httpsClient else plainClient
-
         private fun noRedirectClientFor(url: String) = if (isHttps(url)) httpsClientWithoutRedirects else plainClientWithoutRedirects
 
         // a plain X509TrustManager, so the host name is still checked, only expired or unknown certificates are accepted
         private val unverifiedClient: HttpClient by lazy {
             val sslContext = SSLContext.getInstance("TLS").apply { init(null, trustAllCerts, null) }
-            clientBuilder(HttpClient.Version.HTTP_2).sslContext(sslContext).followRedirects(HttpClient.Redirect.NORMAL).build()
+            clientBuilder(HttpClient.Version.HTTP_2).sslContext(sslContext).followRedirects(HttpClient.Redirect.NEVER).build()
         }
 
         /** http(s) url whose host only resolves to public addresses (unless [allowPrivate]). */
         internal fun isAllowedPublicUrl(url: String, allowPrivate: Boolean = false): Boolean {
-            val uri = runCatching { URI.create(url) }.getOrNull() ?: return false
+            val uri = runCatching { toUri(url) }.getOrNull() ?: return false
             if (uri.scheme?.lowercase() !in listOf("http", "https") || uri.host.isNullOrBlank()) return false
             if (allowPrivate) return true
             val addresses = runCatching { InetAddress.getAllByName(uri.host) }.getOrNull() ?: return false
@@ -258,6 +281,19 @@ class HttpHelper {
                 16 -> (bytes[0].toInt() and 0xfe) != 0xfc
                 else -> false
             }
+        }
+
+        /**
+         * A link ([href]) of a page of a search site ([baseUrl]) as url, null if it points to another host: a page of a
+         * search site must not get boat to fetch something elsewhere (`baseUrl + "@10.0.0.1/"` is the host 10.0.0.1).
+         */
+        fun linkOnSameHost(baseUrl: String, href: String): String? {
+            // without a path "https://site" resolves "x" to "https://sitex"
+            val base = runCatching { toUri(baseUrl).let { if (it.rawPath.isNullOrEmpty()) it.resolve("/") else it } }.getOrNull() ?: return null
+            val link = runCatching { base.resolve(toUri(href.trim())) }.getOrNull() ?: return null
+            if (link.scheme?.lowercase() !in listOf("http", "https") || link.rawUserInfo != null) return null
+            fun withoutWww(host: String?) = host?.lowercase()?.removePrefix("www.")
+            return link.toString().takeIf { link.host != null && withoutWww(link.host) == withoutWww(base.host) }
         }
 
         private fun hostOf(url: String): String = runCatching { toUri(url).host }.getOrNull() ?: "unknown"

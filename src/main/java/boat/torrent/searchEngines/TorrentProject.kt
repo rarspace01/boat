@@ -72,7 +72,7 @@ class TorrentProject internal constructor(httpHelper: HttpHelper) : HttpUser(htt
             .sortedByDescending { torrent: Torrent -> torrent.seeder }
             .take(MAX_DETAIL_PAGES)
         for (torrent in candidates) {
-            val pageContent = httpHelper.getPage(baseUrl + torrent.remoteUrl)
+            val pageContent = HttpHelper.linkOnSameHost(baseUrl, torrent.remoteUrl)?.let { httpHelper.getPage(it) } ?: ""
             if (pageContent.isEmpty()) {
                 logger.info("[{}] couldn't read a torrent page, skipping the other ones for [{}]", this, searchName)
                 break

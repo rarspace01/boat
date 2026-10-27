@@ -13,7 +13,8 @@ internal class HttpHelperServerTest {
 
     private lateinit var server: HttpServer
     private val requests = CopyOnWriteArrayList<Map<String, String>>()
-    private val helper = HttpHelper()
+    // the test server is a local address
+    private val helper = HttpHelper().apply { allowPrivateAddresses = { true } }
 
     private fun url(path: String) = "http://127.0.0.1:${server.address.port}$path"
 
@@ -45,6 +46,12 @@ internal class HttpHelperServerTest {
                 exchange.requestURI.path == "/utf8" -> respond(exchange, 200, "Café".toByteArray(Charsets.UTF_8), "text/html")
                 exchange.requestURI.path == "/missing" -> respond(exchange, 404, "{\"error\":\"nothing here apikey=secret123\"}".toByteArray())
                 exchange.requestURI.path == "/redirect" -> { exchange.responseHeaders.add("Location", "/ok"); respond(exchange, 302, ByteArray(0)) }
+                exchange.requestURI.path == "/see-other" -> { exchange.responseHeaders.add("Location", "/ok"); respond(exchange, 303, ByteArray(0)) }
+                exchange.requestURI.path == "/loop" -> { exchange.responseHeaders.add("Location", "/loop"); respond(exchange, 302, ByteArray(0)) }
+                // the same server under another host name
+                exchange.requestURI.path == "/other-host" -> {
+                    exchange.responseHeaders.add("Location", "http://localhost:${server.address.port}/ok"); respond(exchange, 302, ByteArray(0))
+                }
                 exchange.requestURI.path == "/bytes" -> respond(exchange, 200, byteArrayOf(0xff.toByte(), 0x00, 0x80.toByte()))
                 exchange.requestURI.path == "/slow" -> { Thread.sleep(1500); respond(exchange, 200, "late".toByteArray()) }
                 else -> respond(exchange, 500, ByteArray(0))
@@ -80,6 +87,38 @@ internal class HttpHelperServerTest {
     @Test
     fun shouldFollowRedirects() {
         assertThat(helper.getPage(url("/redirect"))).isEqualTo("hello")
+    }
+
+    @Test
+    fun shouldNotFetchLocalAddresses() {
+        // e.g. a search site redirecting to the router, or a tracker list with a local address
+        val publicOnly = HttpHelper().apply { allowPrivateAddresses = { false } }
+
+        assertThat(publicOnly.getPage(url("/ok"))).isEmpty()
+        org.junit.jupiter.api.Assertions.assertThrows(java.io.IOException::class.java) { publicOnly.getBinary(url("/bytes")) }
+        assertThat(requests).isEmpty()
+    }
+
+    @Test
+    fun shouldContinueAPostAsGetAfterASeeOther() {
+        assertThat(helper.getPage(url("/see-other"), "{}")).isEqualTo("hello")
+
+        assertThat(requests.map { it["method"] }).containsExactly("POST", "GET")
+    }
+
+    @Test
+    fun shouldGiveUpAfterTooManyRedirects() {
+        assertThat(helper.getPage(url("/loop"))).isEmpty()
+        assertThat(requests).hasSize(4)
+    }
+
+    @Test
+    fun shouldOnlySendHeadersAndCookiesToTheHostTheyAreFor() {
+        assertThat(helper.getPage(url("/other-host"), null, mapOf("Authorization" to "Bearer key"))).isEqualTo("hello")
+        assertThat(helper.getPageWithCookies(url("/other-host"), "session=1")).isEqualTo("hello")
+
+        assertThat(requests.map { it["authorization"] }).containsExactly("Bearer key", "", "", "")
+        assertThat(requests.map { it["cookie"] }).containsExactly("", "", "session=1", "")
     }
 
     @Test
