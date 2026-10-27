@@ -10,13 +10,22 @@ updates:
     schedule:
       interval: "daily"
     open-pull-requests-limit: 20
+    # new versions wait a few days before they are proposed (and merged by auto_pr.yaml), a compromised release is
+    # usually found and pulled in that time; security updates don't wait
+    cooldown:
+      default-days: 5
   # base images and the static ffprobe of the Dockerfiles
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 5
   - package-ecosystem: "github-actions" # See documentation for possible values
     directory: "/" # Location of package manifests
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 20
+    # the actions are pinned to commit hashes, dependabot updates the hash and the version comment
+    cooldown:
+      default-days: 5
