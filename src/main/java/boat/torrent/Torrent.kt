@@ -87,7 +87,8 @@ data class Torrent(
 
 
         if (remoteStatusText.isNotEmpty() && remoteProgress != null) {
-            var progress = "/" + remoteProgress
+            // from the hoster, like everything here it goes into html
+            var progress = "/" + HtmlUtils.htmlEscape(remoteProgress.orEmpty())
             if (remoteStatusText.contains("Uploading")) {
                 progress = ""
             }

@@ -48,6 +48,18 @@ internal class TorrentHtmlEscapeTest {
     }
 
     @Test
+    fun shouldEscapeTheProgressOfTheHoster() {
+        // the progress of Premiumize is the json value as it is, the info page shows it inside an html comment
+        val torrent = Torrent("name").apply {
+            remoteId = "1"
+            remoteStatusText = "running"
+            remoteProgress = evil
+        }
+
+        assertThat(torrent.toHtml()).doesNotContain("-->", "<img", "<script>")
+    }
+
+    @Test
     fun shouldEscapeTransferFieldsInHtml() {
         val html = Transfer(name = evil, feedbackMessage = evil, source = "<s>").toString()
 
