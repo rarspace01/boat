@@ -57,6 +57,26 @@ sudo chmod 600 /home/downloads/privkey.pem
 sudo chmod 644 /home/downloads/fullchain.pem
 ```
 
+## HTTPS
+
+boat logs in with HTTP Basic auth, the password goes with every request, so boat must only be reachable via https.
+Without settings it serves plain http on port 8080. Either:
+
+- a reverse proxy with https in front of boat, then boat only listens locally: `SERVER_ADDRESS=127.0.0.1`, or
+- boat serves https itself with the certificates from above, these are Spring Boot settings and go into the
+  environment of boat (not into `boat.cfg`), a renewed certificate is picked up without a restart:
+
+```
+export SERVER_PORT=8443
+export SERVER_SSL_BUNDLE=boat
+export SPRING_SSL_BUNDLE_PEM_BOAT_KEYSTORE_CERTIFICATE=file:/path/to/fullchain.pem
+export SPRING_SSL_BUNDLE_PEM_BOAT_KEYSTORE_PRIVATEKEY=file:/path/to/privkey.pem
+export SPRING_SSL_BUNDLE_PEM_BOAT_RELOADONUPDATE=true
+```
+
+The Docker image serves the library with `rclone serve webdav` on port 8081, read only and as plain http as well:
+publish that port only behind a proxy with https.
+
 ## Users
 
 All endpoints except `/` and `/boat/shutdown` need a login (HTTP Basic auth), the users are stored in the
