@@ -206,7 +206,8 @@ class Premiumize(httpHelper: HttpHelper) : HttpUser(httpHelper), MultifileHoster
             } else if (jsonFile["type"].asString() == "folder") {
                 extractTorrentFilesFromJSONFolder(returnList, jsonFile, folderName)
             } else {
-                log.error("file extraction error, type: {} - file: {}", jsonFile["type"].asString(), jsonFile)
+                // not the whole entry, it has the direct download link
+                log.error("file extraction error, type: {} - file: {}", jsonFile["type"].asString(), jsonFile.path("name").asString())
             }
         }
     }
