@@ -9,22 +9,33 @@ on:
   pull_request:
     branches: [ main ]
 
+# the jobs ask for more where they need it
+permissions:
+  contents: read
+
 jobs:
   buildFatJarForJVM:
     name: Build JVM jar application
     runs-on: ubuntu-latest
+    # pushes the version tag on main
+    permissions:
+      contents: write
     outputs:
       tag-version: ${{ steps.tag_version.outputs.new_tag }}
 
     steps:
       # Faster checkout (no full history)
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 1
 
+      # gradle-wrapper.jar is a binary in the repository, it must be the one Gradle published
+      - name: Validate Gradle wrapper
+        uses: gradle/actions/wrapper-validation@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+
       # Setup Java with the Gradle cache (~/.gradle/caches and wrapper, keyed by the gradle files)
       - name: Set up JDK 25
-        uses: actions/setup-java@v6
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           java-version: '25'
           distribution: 'temurin'
@@ -42,7 +53,7 @@ jobs:
       - name: Bump version and push tag
         if: github.ref == 'refs/heads/main'
         id: tag_version
-        uses: mathieudutour/github-tag-action@v7
+        uses: mathieudutour/github-tag-action@af99e60ce8132224b8e6ebab5023449fe256ed46 # v7.0.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           release_branches: main
@@ -51,19 +62,15 @@ jobs:
       - name: Build with Gradle (PR)
         if: github.event_name == 'pull_request'
         # the offline tests need no secrets, the live tests get them (live-tests.yml)
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: ./gradlew build --parallel --build-cache
 
       - name: Build with Gradle (main)
         if: github.ref == 'refs/heads/main'
         # the offline tests need no secrets, the live tests get them (live-tests.yml)
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: ./gradlew build --parallel --build-cache
 
       # Upload artifact only for main
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: github.ref == 'refs/heads/main'
         with:
           name: jvmArtifacts-${{ github.sha }}
@@ -75,11 +82,14 @@ jobs:
     runs-on: ubuntu-latest
     needs: [buildFatJarForJVM]
     if: github.ref == 'refs/heads/main'
+    # creates the release
+    permissions:
+      contents: write
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: jvmArtifacts-${{ github.sha }}
 
@@ -87,7 +97,7 @@ jobs:
         run: sha256sum boat.jar > boat.jar.sha256
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
           tag_name: ${{ needs.buildFatJarForJVM.outputs.tag-version }}
           files: |
