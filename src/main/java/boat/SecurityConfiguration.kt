@@ -15,6 +15,8 @@ import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter
 import org.springframework.security.web.firewall.HttpFirewall
 import org.springframework.security.web.firewall.StrictHttpFirewall
+import java.security.MessageDigest
+import java.util.Base64
 
 @Configuration
 @EnableWebSecurity
@@ -39,8 +41,23 @@ class SecurityConfiguration(private val cachedAuthenticationProvider: CachedAuth
                     .anyRequest().authenticated()
             }
             .httpBasic(Customizer.withDefaults())
+            .headers { headers -> headers.contentSecurityPolicy { it.policyDirectives(CONTENT_SECURITY_POLICY) } }
 
         return http.build()
+    }
+
+    companion object {
+        private fun sha256Source(script: String): String =
+            "'sha256-" + Base64.getEncoder().encodeToString(MessageDigest.getInstance("SHA-256").digest(script.toByteArray(Charsets.UTF_8))) + "'"
+
+        /**
+         * The pages are html of their own with names of search sites and hosters in them. They are escaped, should
+         * something slip through anyway it can't run a script: the only script is the confirmation of the delete
+         * button (by its hash), styles are inline, forms only go to boat and no other site can show boat in a frame.
+         */
+        internal val CONTENT_SECURITY_POLICY = "default-src 'none'; style-src 'unsafe-inline'; " +
+                "script-src 'unsafe-hashes' ${sha256Source(BoatController.CONFIRM_DELETE_SCRIPT)}; " +
+                "form-action 'self'; frame-ancestors 'none'; base-uri 'none'"
     }
 
     @Bean

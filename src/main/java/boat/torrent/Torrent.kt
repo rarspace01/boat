@@ -4,7 +4,6 @@ import boat.info.MediaType
 import boat.model.TransferStatus
 import org.apache.logging.log4j.util.Strings
 import org.springframework.web.util.HtmlUtils
-import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.time.Duration
 import java.util.*
@@ -71,14 +70,16 @@ data class Torrent(
             stringBuilder.append("✅")
         }
         if (isNotARemoteTorrent(magnetUriBase64)) {
-            stringBuilder.append("<a href=\"./download?d=").append(magnetUriBase64)
+            // a form, downloads only take POST (see CrossSiteRequestFilter)
+            stringBuilder.append("<form method=\"post\" action=\"./download\" class=\"download\">")
+                .append("<input type=\"hidden\" name=\"d\" value=\"").append(magnetUriBase64).append("\">")
             if (!remoteMediaId.isNullOrEmpty()) {
-                stringBuilder.append("&mid=").append(URLEncoder.encode(remoteMediaId, StandardCharsets.UTF_8))
+                stringBuilder.append("<input type=\"hidden\" name=\"mid\" value=\"").append(HtmlUtils.htmlEscape(remoteMediaId)).append("\">")
             }
             if (mediaType != null) {
-                stringBuilder.append("&mt=").append(mediaType.name)
+                stringBuilder.append("<input type=\"hidden\" name=\"mt\" value=\"").append(mediaType.name).append("\">")
             }
-            stringBuilder.append("\">Download</a>")
+            stringBuilder.append("<button type=\"submit\">Download</button></form>")
         }
         if (Strings.isNotEmpty(debugRating)) {
             stringBuilder.append(debugRating)
@@ -86,7 +87,8 @@ data class Torrent(
 
 
         if (remoteStatusText.isNotEmpty() && remoteProgress != null) {
-            var progress = "/" + remoteProgress
+            // from the hoster, like everything here it goes into html
+            var progress = "/" + HtmlUtils.htmlEscape(remoteProgress.orEmpty())
             if (remoteStatusText.contains("Uploading")) {
                 progress = ""
             }
