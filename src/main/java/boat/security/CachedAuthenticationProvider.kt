@@ -14,7 +14,6 @@ import org.springframework.security.web.authentication.WebAuthenticationDetails
 import org.springframework.stereotype.Component
 import java.security.SecureRandom
 import java.util.Base64
-import java.util.UUID
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 import javax.crypto.Mac
@@ -45,9 +44,10 @@ class CachedAuthenticationProvider(
         .expireAfterWrite(FAILED_LOGIN_WINDOW_MINUTES, TimeUnit.MINUTES)
         .build()
 
-    // checked instead of the password of a user who doesn't exist, so that takes as long as a wrong password and the
-    // time of the answer doesn't tell which users exist
-    private val unknownUserHash: String by lazy { checkNotNull(passwordEncoder.encode(UUID.randomUUID().toString())) }
+    // How long the last BCrypt check of an existing user took. A user who doesn't exist waits that long instead of
+    // running BCrypt (no CPU load for nobody), so the time of the answer doesn't tell which users exist.
+    @Volatile
+    private var bcryptCheckMillis = DEFAULT_BCRYPT_CHECK_MILLIS
 
     private fun cacheKey(username: String, password: String): String {
         val mac = Mac.getInstance("HmacSHA256").apply { init(SecretKeySpec(cacheKeySecret, "HmacSHA256")) }
@@ -74,10 +74,16 @@ class CachedAuthenticationProvider(
 
         // 2. Database/BCrypt Fallback
         val user = userRepository.findByUsername(username)
-        val passwordMatches = passwordEncoder.matches(password, user?.password ?: unknownUserHash)
-        if (user != null && passwordMatches) {
-            authCache.put(cacheKey, true)
-            return UsernamePasswordAuthenticationToken(username, password, authorities)
+        if (user == null) {
+            waitLikeABcryptCheck()
+        } else {
+            val started = System.nanoTime()
+            val passwordMatches = passwordEncoder.matches(password, user.password)
+            bcryptCheckMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started)
+            if (passwordMatches) {
+                authCache.put(cacheKey, true)
+                return UsernamePasswordAuthenticationToken(username, password, authorities)
+            }
         }
 
         val failedLogins = failedLoginsByAddress.get(address) { AtomicInteger() }.incrementAndGet()
@@ -88,6 +94,14 @@ class CachedAuthenticationProvider(
         throw BadCredentialsException("Invalid credentials")
     }
 
+    private fun waitLikeABcryptCheck() {
+        try {
+            Thread.sleep(bcryptCheckMillis)
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
+        }
+    }
+
     override fun supports(authentication: Class<*>): Boolean =
         authentication == UsernamePasswordAuthenticationToken::class.java
 
@@ -95,5 +109,6 @@ class CachedAuthenticationProvider(
         private val logger by LoggerDelegate()
         const val MAX_FAILED_LOGINS = 20
         const val FAILED_LOGIN_WINDOW_MINUTES = 10L
+        private const val DEFAULT_BCRYPT_CHECK_MILLIS = 100L
     }
 }

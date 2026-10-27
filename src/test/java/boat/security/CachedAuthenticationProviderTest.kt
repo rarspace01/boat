@@ -49,26 +49,19 @@ internal class CachedAuthenticationProviderTest {
     @Test
     fun shouldDenyLoginIfThereAreNoUsers() {
         every { userRepository.findByUsername("denis") } returns null
-        every { passwordEncoder.encode(any()) } returns "unknown-user-hash"
-        every { passwordEncoder.matches("secret", "unknown-user-hash") } returns false
 
         assertThatThrownBy { login("secret") }.isInstanceOf(BadCredentialsException::class.java)
     }
 
     @Test
-    fun shouldCheckThePasswordOfAnUnknownUserAsWell() {
-        // a missing user must take as long as a wrong password, otherwise the time of the answer tells which users exist
+    fun shouldNotRunBcryptForAnUnknownUser() {
+        // a missing user waits like a BCrypt check instead of running one, no CPU load for a user who doesn't exist
         every { userRepository.findByUsername("nobody") } returns null
-        every { passwordEncoder.encode(any()) } returns "unknown-user-hash"
-        every { passwordEncoder.matches(any(), any()) } returns false
 
         assertThatThrownBy { login("secret", username = "nobody") }.isInstanceOf(BadCredentialsException::class.java)
-        assertThatThrownBy { login("other", username = "nobody") }.isInstanceOf(BadCredentialsException::class.java)
 
-        verify(exactly = 1) { passwordEncoder.matches("secret", "unknown-user-hash") }
-        verify(exactly = 1) { passwordEncoder.matches("other", "unknown-user-hash") }
-        // the hash is made once, not per login
-        verify(exactly = 1) { passwordEncoder.encode(any()) }
+        verify(exactly = 0) { passwordEncoder.matches(any(), any()) }
+        verify(exactly = 0) { passwordEncoder.encode(any()) }
     }
 
     @Test
