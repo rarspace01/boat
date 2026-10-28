@@ -22,12 +22,20 @@ OPUS_BITRATE = {1: 48_000, 2: 96_000, 3: 128_000, 4: 144_000, 5: 160_000, 6: 160
 # libopus refuses layouts like 5.1(side), the plain layouts work
 OPUS_LAYOUTS = {6: "5.1", 8: "7.1"}
 INTERLACED = {"tt", "bb", "tb", "bt"}
+# SVT-AV1 preset by picture height, the bigger the picture the faster the preset to keep the time per movie reasonable
+PRESET_BY_HEIGHT = [(576, 5), (1080, 6)]
+PRESET_ABOVE = 7
+
+
+def preset_for(video) -> int:
+    height = (video or {}).get("height") or 0
+    return next((preset for limit, preset in PRESET_BY_HEIGHT if height <= limit), PRESET_ABOVE)
 
 
 def probe(path: Path) -> dict:
     out = subprocess.run(
         ["ffprobe", "-v", "error", "-protocol_whitelist", "file", "-show_entries",
-         "stream=index,codec_type,codec_name,channels,bit_rate,field_order:stream_tags=BPS:format=duration",
+         "stream=index,codec_type,codec_name,channels,bit_rate,field_order,height:stream_tags=BPS:format=duration",
          "-of", "json", "-i", str(path)], capture_output=True, text=True, check=True)
     return json.loads(out.stdout)
 
@@ -59,7 +67,7 @@ def build_command(path: Path, output: Path, info: dict, args) -> list:
     # DVD material is often interlaced, it looks bad on a progressive screen without this
     if video and video.get("field_order") in INTERLACED:
         command += ["-vf", "bwdif=mode=send_frame"]
-    command += ["-c:v", "libsvtav1", "-crf", str(args.crf), "-preset", str(args.preset), "-pix_fmt", "yuv420p10le"]
+    command += ["-c:v", "libsvtav1", "-crf", str(args.crf), "-preset", str(args.preset if args.preset is not None else preset_for(video)), "-pix_fmt", "yuv420p10le"]
     command += ["-c:a", "libopus", "-c:s", "copy"]
     for n, stream in enumerate(audios):
         command += [f"-b:a:{n}", str(audio_bitrate(stream))]
@@ -116,7 +124,7 @@ def main():
     parser.add_argument("files", type=Path, nargs="*")
     parser.add_argument("--from-list", type=Path, help="file with one path per line (--list of find-av1-candidates.py)")
     parser.add_argument("--crf", type=int, default=30, help="quality, lower is better and bigger (default 30)")
-    parser.add_argument("--preset", type=int, default=5, help="0 slowest/best .. 13 fastest (default 5)")
+    parser.add_argument("--preset", type=int, help="0 slowest/best .. 13 fastest (default by height: 5 up to 576p, 6 up to 1080p, 7 above)")
     parser.add_argument("--replace", action="store_true", help="delete the original after the checks, name the result <name>.mkv")
     parser.add_argument("--sample", type=int, metavar="SECONDS", help="only convert that much from the middle, to try the settings")
     parser.add_argument("--sample-start", type=int, default=600, help="where the sample starts, seconds (default 600)")
