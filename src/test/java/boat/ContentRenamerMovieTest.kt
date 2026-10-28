@@ -259,6 +259,19 @@ class ContentRenamerMovieTest {
     }
 
     @Test
+    fun `should skip extras released on their own and tutorials`(@TempDir tempDir: Path) {
+        val base = tempDir.toFile()
+        val extra = createFile(base, "Documentaries/Some.Movie.Extras-Grym/Making.of.Some.Movie.2018.1080p.mkv")
+        val tutorial = createFile(base, "Documentaries/Roadtrip/tom-tutorials-1/Death Valley.mp4")
+        every { mediaProxyService.search(any<String>(), any<Int>(), MediaType.Movie) } returns listOf(MediaItem("Making of", "Making of", 2018, MediaType.Movie, "{tmdb-1}"))
+
+        contentRenamer.processFilesFromDirectory(File(base, "Documentaries").absolutePath, null, isTestRun = false, basePath = base.absolutePath)
+
+        assertThat(extra).exists()
+        assertThat(tutorial).exists()
+    }
+
+    @Test
     fun `should skip extras folders but not packs with extras`(@TempDir tempDir: Path) {
         val base = tempDir.toFile()
         val featurette = createFile(base, "Movies/G/Gubu Otoce (2019) Season 1 S01 + Extras (1080p)/Featurettes/Bookshop Tour.mkv")
