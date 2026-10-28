@@ -47,6 +47,9 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         val paddingFilePattern = renamePaddingFilePattern
         val nonMediaExtensions = renameNonMediaExtensions
 
+        // extras released on their own, e.g. "Some.Movie.Extras-Grym"
+        private val extrasReleaseFolderPattern = "(?i)[\\s._-]extras(?:-[a-z0-9]+)?$".toRegex()
+
         // Plex names extras behind a dash, "Uveki.Goba/Abaconep Tico-other.mkv"
         val plexExtraSuffixPattern = "(?i)-(?:behindthescenes|deleted|featurette|interview|scene|short|trailer|other)$".toRegex()
     }
@@ -112,6 +115,8 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
         }
     }
 
+    private fun isInExtrasReleaseFolder(file: File) = file.parentFile?.name?.let { extrasReleaseFolderPattern.containsMatchIn(it) } == true
+
     /**
      * [assignedTargets] are the targets of this run, a test run reports the files which would collide as well. True if
      * a file was moved out of [path] (or a folder below it); a folder which is empty afterwards is removed.
@@ -167,7 +172,7 @@ class ContentRenamer(val mediaProxyService: MediaProxyService) {
                     }
 
                     val skipReason = getSkipReason(file)
-                        ?: if (isMoviePath && (isInExtrasFolder(file) || plexExtraSuffixPattern.containsMatchIn(file.nameWithoutExtension))) "extras" else if (mediaIndicator == MediaType.Movie && !isMovieFile(file)) "no movie file" else null
+                        ?: if (isMoviePath && (isInExtrasFolder(file) || isInExtrasReleaseFolder(file) || plexExtraSuffixPattern.containsMatchIn(file.nameWithoutExtension))) "extras" else if (mediaIndicator == MediaType.Movie && !isMovieFile(file)) "no movie file" else null
                     if (skipReason != null) {
                         val logLine = "F:'$fullName'→'$extractedName'→'null' (Y: $year, S: $season, E: $episode)  skipped, $skipReason"
                         logWriter?.write(logLine + "\n")

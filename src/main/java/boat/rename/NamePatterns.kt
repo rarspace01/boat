@@ -252,7 +252,7 @@ internal val discStructureRootNames = setOf("bdmv", "video_ts", "audio_ts", "cer
 
 internal val discStructureFolderNames = discStructureRootNames + setOf("stream", "playlist", "clipinf", "backup", "bdjo", "meta", "jar")
 
-internal val coursePattern = "(?i)udemy|cbt[\\s._-]?nuggets?|freecoursesonline|masterclass|devcourseweb|lynda|pluralsight|coursera|skillshare|linkedin[\\s._-]learning".toRegex()
+internal val coursePattern = "(?i)udemy|cbt[\\s._-]?nuggets?|freecoursesonline|masterclass|devcourseweb|lynda|pluralsight|coursera|skillshare|linkedin[\\s._-]learning|(?<![a-z])tutorials?(?![a-z])".toRegex()
 
 // ---- word lists of isJunk
 
