@@ -69,7 +69,7 @@ internal class CrossSiteRequestFilterTest {
     @Test
     fun shouldAllowOpeningEntryPagesFromLinksOfOtherSitesAndApps() {
         // e.g. a link to the search page sent via WhatsApp
-        listOf("/", "/search", "/boat/search", "/boat/searchOld", "/boat/searchList", "/boat/info", "/boat/debug").forEach { path ->
+        listOf("/", "/search", "/boat/search", "/boat/direct", "/boat/searchList", "/boat/info", "/boat/debug").forEach { path ->
             val (response, chain) = call("GET", "cross-site", path, "navigate", "document")
             assertThat(response.status).describedAs(path).isEqualTo(200)
             assertThat(chain.request).describedAs(path).isNotNull
@@ -78,7 +78,7 @@ internal class CrossSiteRequestFilterTest {
 
     @Test
     fun shouldRejectCrossSiteNavigationsToEndpointsChangingState() {
-        listOf("/boat/download", "/boat/query", "/boat/queryOld", "/boat/clearMediaCache", "/boat/shutdown").forEach { path ->
+        listOf("/boat/download", "/boat/query", "/boat/clearMediaCache", "/boat/shutdown").forEach { path ->
             assertThat(call("GET", "cross-site", path, "navigate", "document").first.status).describedAs(path).isEqualTo(403)
         }
     }

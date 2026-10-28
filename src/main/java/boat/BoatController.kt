@@ -115,7 +115,6 @@ class BoatController @Autowired constructor(
     private val switchToProgress = "<a href=\"./info\">Show Progress</a> "
     private val switchToSearchList = "<a href=\"./searchList\">Search a List</a> "
     private val switchToSearch = "<a href=\"./search\">Search a single Title</a> "
-    private val switchToSearchOld = "<a href=\"./searchOld\">Old Search</a> "
 
     private val htmlHeader = """<!DOCTYPE html>
 <html>
@@ -162,18 +161,12 @@ class BoatController @Autowired constructor(
 """
     }
 
-    @GetMapping("/boat/searchOld")
-    fun searchOld(): String {
+    /** Not linked from the other pages. */
+    @GetMapping("/boat/direct")
+    fun direct(): String {
         return htmlHeader + """
 <h2>Here to serve you</h2>
-
-<form action="./queryOld" target="_blank" method="GET">
-  Title:<br>
-  <input type="text" name="qq" value="">
-$BREAK_LINK_HTML  <input type="reset" value="Reset">
-  <input type="submit" value="Search">
-</form>
-$BREAK_LINK_HTML$BREAK_LINK_HTML<form action="./download" target="_blank" method="POST">
+<form action="./download" target="_blank" method="POST">
   Direct download URL (multiple seperate by comma):<br>
   <input type="text" name="dd" value="">
 $BREAK_LINK_HTML  <input type="reset" value="Reset">
@@ -196,34 +189,6 @@ $BREAK_LINK_HTML  <input type="reset" value="Reset">
 </form>
 <br/>
 $switchToSearch${switchToProgress}""" + htmlFooter
-    }
-
-    @RequestMapping("/boat/queryOld")
-    fun searchTorrentsOld(
-        @RequestParam(value = "q", required = false) searchString: String?,
-        @RequestParam(value = "qq", required = false) localSearchString: String?,
-    ): String {
-        var searchString = searchString
-        val startTime = System.currentTimeMillis()
-        if (localSearchString != null && Strings.isNotEmpty(localSearchString)) {
-            val existingFiles = cloudService.findExistingFiles(localSearchString)
-            searchString = if (existingFiles.isNotEmpty()) {
-                return htmlHeader + ("We already found some files:<br/>" + existingFiles.joinToString("<br/>") { HtmlUtils.htmlEscape(it) }
-                        + "<br/>Still want to search? <a href=\"?q=" + urlEncode(localSearchString) + "\">Yes</a>") + htmlFooter
-            } else {
-                localSearchString
-            }
-        }
-        return if (Strings.isNotEmpty(localSearchString) || Strings.isNotEmpty(searchString)) {
-            val torrentList = torrentSearchEngineService.searchTorrents(searchString!!)
-            logger.info(
-                "Took: [{}]ms for [{}] found [{}]", System.currentTimeMillis() - startTime, searchString,
-                torrentList.size
-            )
-            htmlHeader + torrentList.joinToString(separator = "") + htmlFooter
-        } else {
-            htmlHeader + "Error: nothing to search" + htmlFooter
-        }
     }
 
     /** Adds the entries of a list (one title per line, or the url of such a list) to the queue. */
@@ -279,7 +244,7 @@ $BREAK_LINK_HTML  <input type="reset" value="Reset">
   <input type="submit" value="Search">
 </form>
 <br/>
-$switchToSearchOld$switchToSearchList$switchToProgress""" + htmlFooter
+$switchToSearchList$switchToProgress""" + htmlFooter
     }
 
     /**
@@ -309,7 +274,7 @@ $switchToSearchOld$switchToSearchList$switchToProgress""" + htmlFooter
                 "Took: [{}]ms for [{}]{} found [{}]", System.currentTimeMillis() - startTime, searchString,
                 mediaId ?: "", torrentList.size
             )
-            htmlHeader + torrentList.joinToString(separator = "") { it.toHtml(mediaId, mediaType) } + htmlFooter
+            htmlHeader + torrentSearchForm(searchString, mediaId, mediaType) + torrentList.joinToString(separator = "") { it.toHtml(mediaId, mediaType) } + htmlFooter
         } else if (!selectedTitle.isNullOrBlank()) {
             val cleanedTitle = removeSpecialCharacters(selectedTitle)
             val torrentSearchString = cleanedTitle + (selectedYear?.let { " $it" } ?: "") + (season?.let { " S%02d".format(it) } ?: "")
@@ -339,6 +304,14 @@ $switchToSearchOld$switchToSearchList$switchToProgress""" + htmlFooter
             htmlHeader + "Error: nothing to search" + htmlFooter
         }
     }
+
+    /** The torrent search string to change before searching again, the media item (if any) stays with the downloads. */
+    private fun torrentSearchForm(searchString: String, mediaId: String?, mediaType: boat.info.MediaType?): String =
+        "<form action=\"./query\" method=\"GET\">\n" +
+                "  <input type=\"text\" name=\"q\" value=\"${HtmlUtils.htmlEscape(searchString)}\">\n" +
+                (mediaId?.let { "  <input type=\"hidden\" name=\"mid\" value=\"${HtmlUtils.htmlEscape(it)}\">\n" } ?: "") +
+                (mediaType?.let { "  <input type=\"hidden\" name=\"mt\" value=\"${it.name}\">\n" } ?: "") +
+                "  <input type=\"submit\" value=\"Search torrents\">\n</form>\n"
 
     private fun urlEncode(value: String): String = URLEncoder.encode(value, StandardCharsets.UTF_8)
 

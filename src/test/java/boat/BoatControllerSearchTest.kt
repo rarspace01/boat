@@ -108,6 +108,20 @@ internal class BoatControllerSearchTest {
     }
 
     @Test
+    fun shouldOfferTheSearchStringToChangeWithTheResults() {
+        every { torrentSearchEngineService.searchTorrents("Dobi \"S03\"") } returns emptyList()
+
+        val html = controller.searchTorrents(null, null, null, "Dobi \"S03\"", "{tvdb-334824}", "Series", null)
+
+        assertThat(html).contains("<form action=\"./query\" method=\"GET\">", "name=\"q\" value=\"Dobi &quot;S03&quot;\"", "name=\"mid\" value=\"{tvdb-334824}\"", "name=\"mt\" value=\"Series\"")
+    }
+
+    @Test
+    fun shouldServeTheDirectDownloadFormOnItsOwnPage() {
+        assertThat(controller.direct()).contains("action=\"./download\"", "name=\"dd\"")
+    }
+
+    @Test
     fun shouldBuildTheDatabasePageOfATitle() {
         assertThat(BoatController.mediaDatabaseUrl(MediaItem("A", type = MediaType.Movie, id = "{TMDB-12}"))).isEqualTo("https://www.themoviedb.org/movie/12")
         assertThat(BoatController.mediaDatabaseUrl(MediaItem("A", type = MediaType.Series, id = "{tmdb-12}"))).isEqualTo("https://www.themoviedb.org/tv/12")
