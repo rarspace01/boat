@@ -47,6 +47,6 @@ class CrossSiteRequestFilter : OncePerRequestFilter() {
         private const val USER_STARTED = "none"
         private val SAFE_METHODS = setOf("GET", "HEAD")
         // read only pages, everything changing state (e.g. /boat/download, /boat/clearMediaCache) stays same origin only
-        private val ENTRY_PAGES = setOf("/", "/search", "/boat/search", "/boat/searchOld", "/boat/searchList", "/boat/info", "/boat/debug")
+        private val ENTRY_PAGES = setOf("/", "/search", "/boat/search", "/boat/direct", "/boat/searchList", "/boat/info", "/boat/debug")
     }
 }
