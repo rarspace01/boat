@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """Lists the videos of a library worth converting to AV1: old codecs (MPEG-2, Xvid/DivX/MPEG-4 part 2) which are big.
 
-Only reads the files (ffprobe), nothing is changed. The savings are a rough guess by codec, the real size depends on the
+Only reads the files (ffprobe), nothing is changed except the list of candidates written next to this script
+(av1-candidates.txt), which convert-to-av1.py reads when it gets no files. A new run replaces the list. The savings are a rough guess by codec, the real size depends on the
 encoder settings and the picture.
 
   scripts/find-av1-candidates.py ~/pfdb/PFDB/Movies
-  scripts/find-av1-candidates.py ~/pfdb/PFDB --min-size 500 --csv candidates.csv --list candidates.txt
+  scripts/find-av1-candidates.py ~/pfdb/PFDB --min-size 500 --csv candidates.csv
+  scripts/convert-to-av1.py --replace
 """
 import argparse
 import csv
@@ -15,6 +17,7 @@ import sys
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
+DEFAULT_LIST = Path(__file__).resolve().parent / "av1-candidates.txt"
 VIDEO_EXTENSIONS = {".mkv", ".mp4", ".avi", ".mpg", ".mpeg", ".m2ts", ".ts", ".vob", ".divx", ".m4v", ".wmv"}
 # what AV1 needs of the old size at a similar quality, a rough rule of thumb
 AV1_SIZE_FACTOR = {"mpeg2video": 0.30, "mpeg4": 0.50, "msmpeg4v3": 0.50, "msmpeg4v2": 0.50}
@@ -54,7 +57,7 @@ def main():
     parser.add_argument("--threads", type=int, default=4, help="parallel ffprobe calls (default 4, a network mount may like fewer)")
     parser.add_argument("--timeout", type=int, default=60, help="seconds for one file (default 60)")
     parser.add_argument("--csv", type=Path, help="also write the candidates as CSV")
-    parser.add_argument("--list", type=Path, help="also write the plain list of paths, e.g. for a conversion script")
+    parser.add_argument("--list", type=Path, default=DEFAULT_LIST, help="where the plain list of paths goes (default: av1-candidates.txt next to this script)")
     args = parser.parse_args()
 
     files = [p for folder in args.folder for p in folder.rglob("*")
@@ -97,8 +100,9 @@ def main():
             writer = csv.DictWriter(f, fieldnames=list(candidates[0]))
             writer.writeheader()
             writer.writerows(candidates)
-    if args.list:
-        args.list.write_text("".join(c["path"] + "\n" for c in candidates))
+    # also when empty, an old list must not be converted after a newer run found nothing
+    args.list.write_text("".join(c["path"] + "\n" for c in candidates))
+    print(f"list: {args.list}", file=sys.stderr)
 
 
 if __name__ == "__main__":

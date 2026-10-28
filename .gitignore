@@ -6,3 +6,6 @@ out/
 /bin/
 /.settings/
 mediaProxyCache*
+
+# lists written by scripts/find-av1-candidates.py
+scripts/av1-candidates.txt

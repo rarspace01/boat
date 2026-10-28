@@ -10,9 +10,11 @@ deleted after the result was checked (about the same length, smaller) and the re
 The audio is not scaled down, but the Opus bitrate depends on the channels and never goes above the bitrate of the audio
 stream it comes from (Opus needs less than AC3/DTS/MP3 for the same quality, so these defaults are generous).
 
+Without files it converts the list of find-av1-candidates.py (av1-candidates.txt next to the scripts).
+
 Try the settings on a short piece first, it never touches the original:
   scripts/convert-to-av1.py --sample 120 movie.avi
-  scripts/convert-to-av1.py --crf 28 --preset 4 --from-list candidates.txt --replace
+  scripts/convert-to-av1.py --crf 28 --preset 4 --replace
 """
 import argparse
 import json
@@ -27,6 +29,7 @@ from pathlib import Path
 OPUS_BITRATE = {1: 48_000, 2: 96_000, 3: 128_000, 4: 144_000, 5: 160_000, 6: 160_000, 7: 208_000, 8: 224_000}
 # libopus refuses layouts like 5.1(side), the plain layouts work
 OPUS_LAYOUTS = {6: "5.1", 8: "7.1"}
+DEFAULT_LIST = Path(__file__).resolve().parent / "av1-candidates.txt"
 INTERLACED = {"tt", "bb", "tb", "bt"}
 # SVT-AV1 preset by picture height, the bigger the picture the faster the preset to keep the time per movie reasonable
 PRESET_BY_HEIGHT = [(576, 5), (1080, 6)]
@@ -150,18 +153,23 @@ def copy_to(source: Path, target: Path):
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("files", type=Path, nargs="*")
-    parser.add_argument("--from-list", type=Path, help="file with one path per line (--list of find-av1-candidates.py)")
+    parser.add_argument("--from-list", type=Path, help="file with one path per line (default without files: av1-candidates.txt next to the scripts)")
     parser.add_argument("--crf", type=int, default=30, help="quality, lower is better and bigger (default 30)")
     parser.add_argument("--preset", type=int, help="0 slowest/best .. 13 fastest (default by height: 5 up to 576p, 6 up to 1080p, 7 above)")
     parser.add_argument("--replace", action="store_true", help="delete the original after the checks, name the result <name>.mkv")
     parser.add_argument("--sample", type=int, metavar="SECONDS", help="only convert that much from the middle, to try the settings")
     parser.add_argument("--sample-start", type=int, default=600, help="where the sample starts, seconds (default 600)")
     parser.add_argument("--work-dir", type=Path, default=Path.home() / "tmp", help="local folder for the encoding, created if missing, needs room for one result (default: ~/tmp)")
+    parser.add_argument("--nice", type=int, default=19, help="CPU priority of the conversion, 0 normal .. 19 lowest (default 19)")
     parser.add_argument("--dry-run", action="store_true", help="only print the ffmpeg commands")
     args = parser.parse_args()
 
+    os.nice(args.nice)  # ffmpeg and ffprobe inherit it
     args.work_dir.mkdir(parents=True, exist_ok=True)
     files = list(args.files)
+    if args.from_list is None and not files and DEFAULT_LIST.is_file():
+        args.from_list = DEFAULT_LIST
+        print(f"converting the list {DEFAULT_LIST}", file=sys.stderr)
     if args.from_list:
         files += [Path(line) for line in args.from_list.read_text().splitlines() if line.strip()]
     if not files:
