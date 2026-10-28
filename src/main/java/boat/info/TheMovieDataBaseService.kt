@@ -18,7 +18,7 @@ import java.util.function.Consumer
 @Service
 class TheMovieDataBaseService @Autowired constructor(private val httpHelper: HttpHelper) {
     private val apiRootUrl = "https://api.themoviedb.org/3"
-    private val apiKey = PropertiesHelper.getProperty("TFDB_APIKEY")
+    private val apiKey = PropertiesHelper.getProperty("TMDB_APIKEY") ?: PropertiesHelper.getProperty("TFDB_APIKEY")
     private val baseUrl = String.format("%s/search/multi?api_key=%s", apiRootUrl, apiKey)
 
     fun search(name: String?): List<MediaItem>? {
