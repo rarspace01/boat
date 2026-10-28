@@ -27,7 +27,7 @@ class StartupConfigurationCheck {
         val errors = REQUIRED.filter { isMissing(it) }
             .map { "'$it' is not set, set it in ${PropertiesHelper.PROPERTIY_FILE} or as environment variable" }
         val warnings = mutableListOf<String>()
-        API_KEYS.filter { isMissing(it) }.forEach { warnings += "'$it' is not set, the features using it won't work" }
+        API_KEYS.filterValues { names -> names.all { isMissing(it) } }.keys.forEach { warnings += "'$it' is not set, the features using it won't work" }
         if (HOSTER_API_KEYS.all { isMissing(it) }) {
             warnings += "none of ${HOSTER_API_KEYS.joinToString()} is set, there is no multifilehoster to download with"
         }
@@ -38,6 +38,7 @@ class StartupConfigurationCheck {
         private val logger by LoggerDelegate()
         private val REQUIRED = listOf("MONGO_URI", CloudService.RCLONE_DIR)
         private val HOSTER_API_KEYS = listOf("PREMIUMIZE_APIKEY", "ALLDEBRID_APIKEY")
-        private val API_KEYS = listOf("TFDB_APIKEY", "TVDB_APIKEY")
+        /** The setting and the names accepted for it, TFDB_APIKEY is the old name of TMDB_APIKEY. */
+        private val API_KEYS = mapOf("TMDB_APIKEY" to listOf("TMDB_APIKEY", "TFDB_APIKEY"), "TVDB_APIKEY" to listOf("TVDB_APIKEY"))
     }
 }

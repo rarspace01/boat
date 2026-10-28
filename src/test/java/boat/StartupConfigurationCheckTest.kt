@@ -30,13 +30,22 @@ internal class StartupConfigurationCheckTest {
         val result = check.validate(settings("MONGO_URI" to "mongodb://localhost", "RCLONEDIR" to "remote:"))
 
         assertThat(result.errors).isEmpty()
-        assertThat(result.warnings.joinToString()).contains("TFDB_APIKEY", "TVDB_APIKEY", "multifilehoster")
+        assertThat(result.warnings.joinToString()).contains("TMDB_APIKEY", "TVDB_APIKEY", "multifilehoster")
+    }
+
+    @Test
+    fun shouldAcceptTheOldTmdbKeyName() {
+        val result = check.validate(
+            settings("MONGO_URI" to "mongodb://localhost", "RCLONEDIR" to "remote:", "ALLDEBRID_APIKEY" to "x", "TFDB_APIKEY" to "x", "TVDB_APIKEY" to "x")
+        )
+
+        assertThat(result.warnings).isEmpty()
     }
 
     @Test
     fun shouldAcceptOneHosterKey() {
         val result = check.validate(
-            settings("MONGO_URI" to "mongodb://localhost", "RCLONEDIR" to "remote:", "ALLDEBRID_APIKEY" to "x", "TFDB_APIKEY" to "x", "TVDB_APIKEY" to "x")
+            settings("MONGO_URI" to "mongodb://localhost", "RCLONEDIR" to "remote:", "ALLDEBRID_APIKEY" to "x", "TMDB_APIKEY" to "x", "TVDB_APIKEY" to "x")
         )
 
         assertThat(result.errors).isEmpty()

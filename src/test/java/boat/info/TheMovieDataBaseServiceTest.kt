@@ -8,17 +8,17 @@ import org.junit.jupiter.api.Test
 
 @Tag("live")
 internal class TheMovieDataBaseServiceTest {
-    private var tfdbs: TheMovieDataBaseService? = null
+    private var tmdbs: TheMovieDataBaseService? = null
     @BeforeEach
     fun beforeMethod() {
-        tfdbs = TheMovieDataBaseService(HttpHelper())
+        tmdbs = TheMovieDataBaseService(HttpHelper())
     }
 
     @Test
     fun search() {
         // Given
         // When
-        val mediaItems = tfdbs!!.search("Planet")
+        val mediaItems = tmdbs!!.search("Planet")
         // Then
         assertThat(mediaItems).isNotNull
         assertThat(mediaItems!!.size).isGreaterThan(0)
@@ -28,7 +28,7 @@ internal class TheMovieDataBaseServiceTest {
     fun searchEmpty() {
         // Given
         // When
-        val mediaItems = tfdbs!!.search("blueasablue")
+        val mediaItems = tmdbs!!.search("blueasablue")
         // Then
         assertThat(mediaItems).isNotNull
         assertThat(mediaItems).isEmpty()

@@ -31,7 +31,7 @@ jobs:
 
       - name: Run live tests
         env:
-          TFDB_APIKEY: ${{ secrets.TFDB_APIKEY }}
+          TMDB_APIKEY: ${{ secrets.TMDB_APIKEY }}
           TVDB_APIKEY: ${{ secrets.TVDB_APIKEY }}
           PREMIUMIZE_APIKEY: ${{ secrets.PREMIUMIZE_APIKEY }}
           ALLDEBRID_APIKEY: ${{ secrets.ALLDEBRID_APIKEY }}
