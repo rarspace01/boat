@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """Converts videos to AV1 (SVT-AV1) with Opus audio, e.g. the files listed by find-av1-candidates.py.
 
+The result is encoded in a local folder (--work-dir, default ~/tmp) and copied to its place afterwards, so the library can be on a mount
+(rclone, network share) which doesn't allow seeking in files it writes.
+
 By default the original stays and the result is written next to it as "<name>.av1.mkv". With --replace the original is
 deleted after the result was checked (about the same length, smaller) and the result is renamed to "<name>.mkv".
 
@@ -13,8 +16,11 @@ Try the settings on a short piece first, it never touches the original:
 """
 import argparse
 import json
+import os
+import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 # Opus bitrate (bit/s) by number of channels, a bit more than needed for transparent quality
@@ -78,45 +84,67 @@ def build_command(path: Path, output: Path, info: dict, args) -> list:
 
 
 def convert(path: Path, args) -> bool:
-    info = probe(path)
-    suffix = ".sample.mkv" if args.sample else ".av1.mkv"
-    output = path.with_name(path.stem + suffix)
-    temp = path.with_name(path.stem + ".av1.tmp.mkv")
+    try:
+        info = probe(path)
+    except subprocess.CalledProcessError as e:
+        print(f"FAILED: ffprobe can't read {path}: {e.stderr.strip().splitlines()[-1:] or ''}", file=sys.stderr)
+        return False
+    output = path.with_name(path.stem + (".sample.mkv" if args.sample else ".av1.mkv"))
     if output.exists() and not args.sample:
         print(f"skip, exists: {output}")
         return True
-    command = build_command(path, temp if not args.sample else output, info, args)
-    print(" ".join(f"'{c}'" if " " in c else c for c in command))
-    if args.dry_run:
+    # encoded on a local disk: the Matroska muxer seeks in the file at the end, a mount (rclone, network share) can't do that
+    descriptor, name = tempfile.mkstemp(prefix="av1-", suffix=".mkv", dir=args.work_dir)
+    os.close(descriptor)
+    work = Path(name)
+    try:
+        command = build_command(path, work, info, args)
+        print(" ".join(f"'{c}'" if " " in c else c for c in command))
+        if args.dry_run:
+            return True
+        if subprocess.run(command).returncode != 0:
+            print(f"FAILED: {path}", file=sys.stderr)
+            return False
+        if args.sample:
+            copy_to(work, output)
+            print(f"sample: {output} ({output.stat().st_size / 1024 ** 2:.0f} MB for {args.sample}s)")
+            return True
+        # the result has to be as long as the original and smaller, else something went wrong
+        old_duration = float(info["format"].get("duration") or 0)
+        new_duration = float(probe(work)["format"].get("duration") or 0)
+        if old_duration and abs(new_duration - old_duration) > max(2.0, old_duration * 0.01):
+            print(f"FAILED: length {new_duration:.0f}s instead of {old_duration:.0f}s: {path}", file=sys.stderr)
+            return False
+        if work.stat().st_size >= path.stat().st_size:
+            print(f"not smaller, kept the original: {path}")
+            return True
+        saved = (path.stat().st_size - work.stat().st_size) / 1024 ** 2
+        copy_to(work, output)
+        if args.replace:
+            # the result is at its place and complete, only now the original goes
+            target = path.with_suffix(".mkv")
+            path.unlink()
+            output.rename(target)
+            print(f"replaced, saved {saved:.0f} MB: {target}")
+        else:
+            print(f"saved {saved:.0f} MB: {output}")
         return True
-    if subprocess.run(command).returncode != 0:
-        print(f"FAILED: {path}", file=sys.stderr)
-        (temp if not args.sample else output).unlink(missing_ok=True)
+    except OSError as e:
+        print(f"FAILED: {path}: {e}", file=sys.stderr)
         return False
-    if args.sample:
-        print(f"sample: {output} ({output.stat().st_size / 1024 ** 2:.0f} MB for {args.sample}s)")
-        return True
-    # the result has to be as long as the original and smaller, else something went wrong
-    old_duration = float(info["format"].get("duration") or 0)
-    new_duration = float(probe(temp)["format"].get("duration") or 0)
-    if old_duration and abs(new_duration - old_duration) > max(2.0, old_duration * 0.01):
-        print(f"FAILED: length {new_duration:.0f}s instead of {old_duration:.0f}s: {path}", file=sys.stderr)
-        temp.unlink()
-        return False
-    if temp.stat().st_size >= path.stat().st_size:
-        print(f"not smaller, kept the original: {path}")
-        temp.unlink()
-        return True
-    saved = (path.stat().st_size - temp.stat().st_size) / 1024 ** 2
-    if args.replace:
-        target = path.with_suffix(".mkv")
-        path.unlink()
-        temp.rename(target)
-        print(f"replaced, saved {saved:.0f} MB: {target}")
-    else:
-        temp.rename(output)
-        print(f"saved {saved:.0f} MB: {output}")
-    return True
+    finally:
+        work.unlink(missing_ok=True)
+
+
+def copy_to(source: Path, target: Path):
+    """Copies the file (not its times and permissions, a mount may refuse those) and checks it arrived completely."""
+    try:
+        shutil.copyfile(source, target)
+        if target.stat().st_size != source.stat().st_size:
+            raise OSError(f"copy to {target} is incomplete")
+    except OSError:
+        target.unlink(missing_ok=True)
+        raise
 
 
 def main():
@@ -128,9 +156,11 @@ def main():
     parser.add_argument("--replace", action="store_true", help="delete the original after the checks, name the result <name>.mkv")
     parser.add_argument("--sample", type=int, metavar="SECONDS", help="only convert that much from the middle, to try the settings")
     parser.add_argument("--sample-start", type=int, default=600, help="where the sample starts, seconds (default 600)")
+    parser.add_argument("--work-dir", type=Path, default=Path.home() / "tmp", help="local folder for the encoding, created if missing, needs room for one result (default: ~/tmp)")
     parser.add_argument("--dry-run", action="store_true", help="only print the ffmpeg commands")
     args = parser.parse_args()
 
+    args.work_dir.mkdir(parents=True, exist_ok=True)
     files = list(args.files)
     if args.from_list:
         files += [Path(line) for line in args.from_list.read_text().splitlines() if line.strip()]
