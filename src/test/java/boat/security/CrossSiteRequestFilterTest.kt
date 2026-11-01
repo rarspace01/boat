@@ -13,12 +13,17 @@ internal class CrossSiteRequestFilterTest {
         secFetchSite: String?,
         path: String = "/boat/download",
         secFetchMode: String? = null,
-        secFetchDest: String? = null
+        secFetchDest: String? = null,
+        origin: String? = null
     ): Pair<MockHttpServletResponse, MockFilterChain> {
         val request = MockHttpServletRequest(method, path)
         secFetchSite?.let { request.addHeader("Sec-Fetch-Site", it) }
         secFetchMode?.let { request.addHeader("Sec-Fetch-Mode", it) }
         secFetchDest?.let { request.addHeader("Sec-Fetch-Dest", it) }
+        request.serverName = "boat.example"
+        request.serverPort = 443
+        request.addHeader("Host", "boat.example")
+        origin?.let { request.addHeader("Origin", it) }
         val response = MockHttpServletResponse()
         val chain = MockFilterChain()
         CrossSiteRequestFilter().doFilter(request, response, chain)
@@ -100,5 +105,33 @@ internal class CrossSiteRequestFilterTest {
         // fetched by a script of another site
         assertThat(call("GET", "cross-site", "/boat/info", "cors", "empty").first.status).isEqualTo(403)
         assertThat(call("GET", "cross-site", "/boat/info").first.status).isEqualTo(403)
+    }
+
+    @Test
+    fun shouldAllowNewTabDownloadFormsOfOwnPageFromIosHomeScreen() {
+        // the forms of /boat/direct and /boat/searchList open a new tab, which is Safari and sends them as cross site
+        listOf("/boat/download", "/boat/queueList").forEach { path ->
+            listOf("https://boat.example", "https://boat.example:443", "https://BOAT.example").forEach { origin ->
+                val (response, chain) = call("POST", "cross-site", path, "navigate", "document", origin)
+                assertThat(response.status).describedAs("$path $origin").isEqualTo(200)
+                assertThat(chain.request).describedAs("$path $origin").isNotNull
+            }
+        }
+    }
+
+    @Test
+    fun shouldRejectCrossSitePostsOfOtherOriginsOrToOtherEndpoints() {
+        listOf(null, "null", "", "https://evil.example", "https://boat.example.evil.example", "https://boat.example:8443", "not a url")
+            .forEach { origin ->
+                val (response, chain) = call("POST", "cross-site", "/boat/download", "navigate", "document", origin)
+                assertThat(response.status).describedAs(origin).isEqualTo(403)
+                assertThat(chain.request).describedAs(origin).isNull()
+            }
+        // only the two download forms open a new tab, deleting and the like stay same origin only
+        listOf("/boat/transferDelete", "/boat/transferRestart", "/boat/clearMediaCache", "/boat/shutdown").forEach { path ->
+            assertThat(call("POST", "cross-site", path, "navigate", "document", "https://boat.example").first.status).describedAs(path).isEqualTo(403)
+        }
+        // a GET to them isn't a form of boat's pages
+        assertThat(call("GET", "cross-site", "/boat/download", "navigate", "document", "https://boat.example").first.status).isEqualTo(403)
     }
 }

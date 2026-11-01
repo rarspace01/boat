@@ -48,13 +48,6 @@ internal class BoatControllerTest {
     )
 
     @Test
-    fun shouldPostDirectAndListDownloadsInTheSameWindow() {
-        // a new window of a page saved to the iOS home screen is Safari, which sends the POST as cross site
-        assertThat(boatController.direct()).contains("<form action=\"./download\" method=\"POST\">").doesNotContain("_blank")
-        assertThat(boatController.searchList()).contains("<form action=\"./queueList\" method=\"POST\">").doesNotContain("_blank")
-    }
-
-    @Test
     fun shouldParseTrailingYearOfSearchListEntry() {
         assertThat(BoatController.splitSearchListEntry("Daca 1984")).isEqualTo("Daca" to 1984)
         assertThat(BoatController.splitSearchListEntry("Daca (2021)\r")).isEqualTo("Daca" to 2021)
