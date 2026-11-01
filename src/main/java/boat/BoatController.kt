@@ -161,12 +161,15 @@ class BoatController @Autowired constructor(
 """
     }
 
-    /** Not linked from the other pages. */
+    /**
+     * Not linked from the other pages. The form opens the result in the same window: in a page saved to the iOS home
+     * screen a new window is Safari, which sends the POST as cross site (see CrossSiteRequestFilter).
+     */
     @GetMapping("/boat/direct")
     fun direct(): String {
         return htmlHeader + """
 <h2>Here to serve you</h2>
-<form action="./download" target="_blank" method="POST">
+<form action="./download" method="POST">
   Direct download URL (multiple seperate by comma):<br>
   <input type="text" name="dd" value="">
 $BREAK_LINK_HTML  <input type="reset" value="Reset">
@@ -176,11 +179,12 @@ $BREAK_LINK_HTML  <input type="reset" value="Reset">
 $switchToSearch$switchToSearchList$switchToProgress""" + htmlFooter
     }
 
+    /** The form opens the result in the same window, see [direct]. */
     @GetMapping("/boat/searchList")
     fun searchList(): String {
         return htmlHeader + """
 <h2>Here to serve you</h2>
-<form action="./queueList" target="_blank" method="POST">
+<form action="./queueList" method="POST">
 Download multiple movies (one per line):<br>
 <textarea id="qqq" name="qqq" rows="25" cols="25">
 </textarea>
