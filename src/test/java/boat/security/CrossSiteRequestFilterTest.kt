@@ -13,12 +13,17 @@ internal class CrossSiteRequestFilterTest {
         secFetchSite: String?,
         path: String = "/boat/download",
         secFetchMode: String? = null,
-        secFetchDest: String? = null
+        secFetchDest: String? = null,
+        headers: Map<String, String> = emptyMap()
     ): Pair<MockHttpServletResponse, MockFilterChain> {
         val request = MockHttpServletRequest(method, path)
         secFetchSite?.let { request.addHeader("Sec-Fetch-Site", it) }
         secFetchMode?.let { request.addHeader("Sec-Fetch-Mode", it) }
         secFetchDest?.let { request.addHeader("Sec-Fetch-Dest", it) }
+        request.serverName = "boat.example"
+        request.serverPort = 443
+        request.addHeader("Host", "boat.example")
+        headers.forEach { (name, value) -> request.addHeader(name, value) }
         val response = MockHttpServletResponse()
         val chain = MockFilterChain()
         CrossSiteRequestFilter().doFilter(request, response, chain)
@@ -92,5 +97,34 @@ internal class CrossSiteRequestFilterTest {
         // fetched by a script of another site
         assertThat(call("GET", "cross-site", "/boat/info", "cors", "empty").first.status).isEqualTo(403)
         assertThat(call("GET", "cross-site", "/boat/info").first.status).isEqualTo(403)
+    }
+
+    @Test
+    fun shouldAllowRequestsOfOwnPageWhichIosLabelsCrossSite() {
+        // a page saved to the home screen opens forms with target _blank in Safari, which sends them as cross-site
+        val search = call("GET", "cross-site", "/boat/query", "navigate", "document", mapOf("Referer" to "https://boat.example/boat/search"))
+        assertThat(search.first.status).isEqualTo(200)
+        assertThat(search.second.request).isNotNull
+        val download = call("POST", "cross-site", "/boat/download", "navigate", "document", mapOf("Origin" to "https://boat.example"))
+        assertThat(download.first.status).isEqualTo(200)
+        assertThat(call("POST", "none", "/boat/queueList", headers = mapOf("Origin" to "https://boat.example:443")).first.status).isEqualTo(200)
+    }
+
+    @Test
+    fun shouldRejectCrossSiteRequestsOfOtherOrigins() {
+        listOf(
+            mapOf("Origin" to "https://evil.example"),
+            mapOf("Origin" to "https://boat.example.evil.example"),
+            mapOf("Origin" to "https://boat.example:8443"),
+            mapOf("Origin" to "null"),
+            mapOf("Origin" to "null", "Referer" to "https://evil.example/boat/search"),
+            mapOf("Referer" to "https://evil.example/?https://boat.example/"),
+            mapOf("Referer" to "not a url"),
+            mapOf("Origin" to "https://evil.example", "Referer" to "https://boat.example/boat/search")
+        ).forEach { headers ->
+            val (response, chain) = call("POST", "cross-site", "/boat/download", headers = headers)
+            assertThat(response.status).describedAs(headers.toString()).isEqualTo(403)
+            assertThat(chain.request).describedAs(headers.toString()).isNull()
+        }
     }
 }
