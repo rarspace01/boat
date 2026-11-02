@@ -53,8 +53,8 @@ class MediaProxyService(
 
         /**
          * Version of how results are combined before they are cached. Entries of an older version are looked up again
-         * when asked for: up to version 0 a TVDB series was dropped if TMDB had one with the same title and year, even
-         * if they count the seasons differently.
+         * when asked for: up to version 0 TMDB was preferred for a series both know with the same title and year, now
+         * TVDB is (it counts the seasons like the releases do).
          */
         const val CACHE_VERSION = 1
 
@@ -289,8 +289,7 @@ class MediaProxyService(
         return fetch(cacheKey.removePrefix(SEARCH_KEY_PREFIX))
     }
 
-    // the same item if it has the same remote id, items without one if they have the same title, year and type
-    private fun distinctKey(item: MediaItem): String = item.id?.takeIf { it.isNotBlank() } ?: (item.title + item.year + item.type)
+    private fun distinctKey(item: MediaItem): String = item.title + item.year + item.type
 
     // cache keys hold the media type as its name or "null"
     private fun isMediaType(type: String) = type == "null" || parseMediaType(type) != null
@@ -305,12 +304,14 @@ class MediaProxyService(
     }
 
     /**
-     * A title found by TMDB and TVDB stays twice, the databases might split a series differently into seasons (TMDB
-     * splits one into two series with their own seasons, TVDB has one with all of them). TMDB comes first, so it is
-     * still preferred by the ones taking the best match.
+     * The results of both, a title is kept once (same title, year and type). For a series both know TVDB is preferred,
+     * its seasons are like the releases name them (TMDB splits some series into two with their own seasons, TVDB has
+     * one with all of them). The TVDB series takes the place of the TMDB one, so the order of the rest doesn't change.
      */
     private fun combine(tmdbResults: List<MediaItem>?, tvdbResults: List<MediaItem>?): FetchResult {
-        val items = (tmdbResults ?: emptyList()).plus(tvdbResults ?: emptyList()).distinctBy(::distinctKey)
+        val tvdbSeries = (tvdbResults ?: emptyList()).filter { it.type == MediaType.Series }.associateBy(::distinctKey)
+        val items = (tmdbResults ?: emptyList()).map { item -> tvdbSeries[distinctKey(item)].takeIf { item.type == MediaType.Series } ?: item }
+            .plus(tvdbResults ?: emptyList()).distinctBy(::distinctKey)
         return FetchResult(items, complete = tmdbResults != null && tvdbResults != null)
     }
 

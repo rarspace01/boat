@@ -502,33 +502,33 @@ class MediaProxyServiceCachingTest {
     }
 
     @Test
-    fun `a series found by TMDB and TVDB with the same title and year should be offered from both`() {
+    fun `a series found by TMDB and TVDB with the same title and year should be the one of TVDB`() {
         // TMDB splits the series into two with their own seasons, TVDB has one with all seasons
         val tmdbSeries = MediaItem("Gurabi Bekoff", "Gurabi Bekoff", 2010, MediaType.Series, "{tmdb-34549}")
         val tmdbLaterSeries = MediaItem("Gurabi Bekoff", "Gurabi Bekoff", 2017, MediaType.Series, "{tmdb-87012}")
+        val tmdbMovie = MediaItem("Gurabi Bekoff", "Gurabi Bekoff", 2010, MediaType.Movie, "{tmdb-5}")
         val tvdbSeries = MediaItem("Gurabi Bekoff", "Gurabi Bekoff", 2010, MediaType.Series, "{tvdb-184871}")
-        every { tmdbService.search("Gurabi Bekoff") } returns listOf(tmdbSeries, tmdbLaterSeries)
-        every { tvdbService.search("Gurabi Bekoff") } returns listOf(tvdbSeries)
+        val tvdbOtherSeries = MediaItem("Gurabi Bekoff", "Gurabi Bekoff", 2020, MediaType.Series, "{tvdb-9}")
+        every { tmdbService.search("Gurabi Bekoff") } returns listOf(tmdbMovie, tmdbSeries, tmdbLaterSeries)
+        every { tvdbService.search("Gurabi Bekoff") } returns listOf(tvdbOtherSeries, tvdbSeries)
 
-        val results = mediaProxyService.searchWithTrailingYear("Gurabi Bekoff")
-
-        assertThat(results).containsExactly(tmdbSeries, tmdbLaterSeries, tvdbSeries)
-        // TMDB stays the best match
-        assertThat(mediaProxyService.findBestMatch("Gurabi Bekoff", null)).isEqualTo(tmdbSeries)
+        // in the place of the TMDB one, the others keep their order
+        assertThat(mediaProxyService.searchWithTrailingYear("Gurabi Bekoff")).containsExactly(tmdbMovie, tvdbSeries, tmdbLaterSeries, tvdbOtherSeries)
+        assertThat(mediaProxyService.search("Gurabi Bekoff", MediaType.Series).first()).isEqualTo(tvdbSeries)
     }
 
     @Test
-    fun `the same item found twice should be offered once`() {
+    fun `a movie found with the same title and year as a TVDB series should stay`() {
+        val movie = MediaItem("Dobi", "Dobi", 2017, MediaType.Movie, "{tmdb-1}")
         val series = MediaItem("Dobi", "Dobi", 2017, MediaType.Series, "{tvdb-334824}")
-        val withoutId = MediaItem("Dobi", "Dobi", 2017, MediaType.Series)
-        every { tmdbService.search("Dobi") } returns listOf(withoutId, withoutId.copy())
-        every { tvdbService.search("Dobi") } returns listOf(series, series.copy())
+        every { tmdbService.search("Dobi") } returns listOf(movie)
+        every { tvdbService.search("Dobi") } returns listOf(series)
 
-        assertThat(mediaProxyService.search("Dobi")).containsExactly(withoutId, series)
+        assertThat(mediaProxyService.search("Dobi")).containsExactly(movie, series)
     }
 
     @Test
-    fun `entries saved before the TVDB series were kept should be looked up again`(@TempDir tempDir: Path) {
+    fun `entries saved before TVDB was preferred for series should be looked up again`(@TempDir tempDir: Path) {
         val cacheFile = File(tempDir.toFile(), "beforeVersion")
         val tmdbSeries = MediaItem("Dobi", "Dobi", 2017, MediaType.Series, "{tmdb-1}")
         val tvdbSeries = MediaItem("Dobi", "Dobi", 2017, MediaType.Series, "{tvdb-334824}")
@@ -537,12 +537,12 @@ class MediaProxyServiceCachingTest {
         every { tvdbService.search("Dobi") } returns listOf(tvdbSeries)
         val service = service(cacheFile.path)
 
-        assertThat(service.search("Dobi")).containsExactly(tmdbSeries, tvdbSeries)
+        assertThat(service.search("Dobi")).containsExactly(tvdbSeries)
         service.saveCache()
         clearMocks(tmdbService, tvdbService)
 
         // saved with the current version, it is not looked up again
-        assertThat(service(cacheFile.path).search("Dobi")).containsExactly(tmdbSeries, tvdbSeries)
+        assertThat(service(cacheFile.path).search("Dobi")).containsExactly(tvdbSeries)
         verify(exactly = 0) { tmdbService.search(any<String>()) }
     }
 
