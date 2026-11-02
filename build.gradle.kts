@@ -13,7 +13,6 @@ plugins {
     id("io.spring.dependency-management") version "1.1.7"
     id("com.github.kt3k.coveralls") version "2.12.2"
     id("com.palantir.git-version") version "5.1.0"
-    kotlin("plugin.lombok") version "2.4.21"
 }
 
 repositories {
@@ -26,7 +25,6 @@ repositories {
 }
 
 val springBootVersion = "4.1.2"
-val lombokVersion = "1.18.48"
 val mockitoVersion = "5.24.0"
 val kotlinVersion = "2.4.21"
 
@@ -53,12 +51,6 @@ dependencies {
     implementation("commons-io:commons-io:2.22.0")
     implementation("commons-codec:commons-codec:1.23.0")
     implementation("commons-validator:commons-validator:1.11.0")
-
-    implementation("org.projectlombok:lombok:$lombokVersion")
-    annotationProcessor("org.projectlombok:lombok:$lombokVersion")
-
-    testImplementation("org.projectlombok:lombok:$lombokVersion")
-    testAnnotationProcessor("org.projectlombok:lombok:$lombokVersion")
 
     runtimeOnly("org.springframework.boot:spring-boot-properties-migrator")
 
