@@ -125,6 +125,12 @@ tasks.classes {
     dependsOn("createProperties")
 }
 
+// Java takes the encoding of file names from the locale, with none (POSIX, e.g. in containers or CI) names like
+// "Lúro" or "²" can't be written. Only the test JVMs get it, the app runs with the locale of its environment.
+tasks.withType<Test>().configureEach {
+    environment("LC_ALL", "C.UTF-8")
+}
+
 tasks.test {
     // tests tagged "live" need the internet (search engines, TMDB, TVDB, trackers) and run with ./gradlew liveTest
     useJUnitPlatform {
