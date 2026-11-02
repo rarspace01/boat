@@ -35,6 +35,10 @@ object LibraryPaths {
 
     val invalidFileCharsPattern = Regex("[\\\\/:*?\"<>|]")
 
+    /** The library on the mount in the home folder. */
+    val defaultBasePath: String
+        get() = System.getProperty("user.home") + "/pfdb/PFDB"
+
     fun getTargetFile(
         file: File,
         mediaResult: MediaItem,
@@ -43,7 +47,7 @@ object LibraryPaths {
         episode: Int?,
         basePath: String? = null
     ): String {
-        val base = basePath ?: (System.getProperty("user.home") + "/pfdb/PFDB")
+        val base = basePath ?: defaultBasePath
         val idPart = if (!mediaResult.id.isNullOrBlank()) " ${mediaResult.id}" else ""
         if (mediaResult.type == MediaType.Movie) {
             return getMovieTargetFile(file, mediaResult, base, idPart)

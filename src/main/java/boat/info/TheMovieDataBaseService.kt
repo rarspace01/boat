@@ -74,6 +74,19 @@ class TheMovieDataBaseService @Autowired constructor(private val httpHelper: Htt
         return parseDetailsPage(page, mediaType)
     }
 
+    /** The TVDB id of a series, null if TMDB doesn't know it or doesn't answer. */
+    fun tvdbIdOfSeries(id: String): String? =
+        parseTvdbId(httpHelper.getPage("$apiRootUrl/tv/${urlEncode(id)}/external_ids?api_key=$apiKey"))
+
+    fun parseTvdbId(pageContent: String?): String? {
+        if (pageContent.isNullOrBlank()) return null
+        return try {
+            JsonParser.parseString(pageContent).asJsonObject["tvdb_id"]?.takeIf { !it.isJsonNull }?.asInt?.takeIf { it > 0 }?.toString()
+        } catch (_: Exception) {
+            null
+        }
+    }
+
     /** The runtime of a movie in minutes, null if TMDB doesn't know it. */
     fun movieRuntime(id: String): Int? =
         parseRuntime(httpHelper.getPage("$apiRootUrl/movie/${urlEncode(id)}?api_key=$apiKey"))
