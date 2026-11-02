@@ -18,13 +18,13 @@ updates:
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "daily"
     cooldown:
       default-days: 5
   - package-ecosystem: "github-actions" # See documentation for possible values
     directory: "/" # Location of package manifests
     schedule:
-      interval: "weekly"
+      interval: "daily"
     open-pull-requests-limit: 20
     # the actions are pinned to commit hashes, dependabot updates the hash and the version comment
     cooldown:
