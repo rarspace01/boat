@@ -23,6 +23,14 @@ internal class TheTVDBServiceSeasonsTest {
     }
 
     @Test
+    fun shouldCountMoreThanTenSeasonsInAnyOrder() {
+        val official = (17 downTo 0).joinToString(",") { """{"number":$it,"type":{"id":1,"name":"Aired Order","type":"official","alternateName":null}}""" }
+        val page = series("""[$official,{"number":20,"type":{"id":2,"name":"DVD Order","type":"dvd","alternateName":null}}]""")
+
+        assertThat(service.parseSeriesPage(page)?.seasonCount).isEqualTo(17)
+    }
+
+    @Test
     fun shouldNotMakeUpASeasonCount() {
         assertThat(service.parseSeriesPage(series("[]"))?.seasonCount).isNull()
         assertThat(service.parseSeriesPage("""{"data":{"id":1,"name":"No seasons field","year":"2000"}}""")?.seasonCount).isNull()

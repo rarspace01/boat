@@ -61,6 +61,24 @@ internal class BoatControllerSearchTest {
     }
 
     @Test
+    fun shouldOfferAllSeasonsOfASeriesWithMoreThanTenSeasons() {
+        val html = search(listOf(dark), mapOf(dark to 17))
+
+        (1..17).forEach { season -> assertThat(html).contains("<a href=\"?t=Dobi&mid=%7Btvdb-334824%7D&mt=Series&s=$season\">S$season</a>") }
+        assertThat(html).doesNotContain("s=18")
+    }
+
+    @Test
+    fun shouldSearchTheTorrentsOfASeasonHigherThanTen() {
+        every { cloudService.findExistingFiles(any()) } returns emptyList()
+        every { torrentSearchEngineService.searchTorrents("Dobi S11") } returns emptyList()
+
+        controller.searchTorrents(null, "Dobi", null, null, "{tvdb-334824}", "Series", 11)
+
+        verify(exactly = 1) { torrentSearchEngineService.searchTorrents("Dobi S11") }
+    }
+
+    @Test
     fun shouldNotOfferSeasonsIfTheNumberIsNotKnown() {
         val html = search(listOf(dark), mapOf(dark to null))
 
