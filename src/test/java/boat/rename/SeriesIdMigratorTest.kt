@@ -96,13 +96,37 @@ internal class SeriesIdMigratorTest {
     @Test
     fun shouldLeaveShowsWhoseSeasonsDiffer() {
         // TMDB splits the series into two with their own seasons, TVDB has one with all of them
-        file("G/Gurabi Bekoff {tmdb-34549}/Season 7/Gurabi Bekoff.S07E01.mkv")
+        file("G/Gurabi Bekoff {tmdb-34549}/Season 8/Gurabi Bekoff.S08E01.mkv")
         val lookup = FakeLookup(mapOf("34549" to "184871"), mapOf("tmdb-34549" to 7, "tvdb-184871" to 17), mapOf("tvdb-184871" to "Gurabi Bekoff"))
 
         val result = SeriesIdMigrator(lookup).migrate(series, isTestRun = false)
 
-        assertThat(files()).containsExactly("G/Gurabi Bekoff {tmdb-34549}/Season 7/Gurabi Bekoff.S07E01.mkv")
+        assertThat(files()).containsExactly("G/Gurabi Bekoff {tmdb-34549}/Season 8/Gurabi Bekoff.S08E01.mkv")
         assertThat(result.unsure).singleElement().asString().contains("the seasons differ, {tmdb-34549} has 7, {tvdb-184871} has 17")
+    }
+
+    @Test
+    fun shouldMoveShowsWhoseSeasonsDifferIfAllSeasonsOnDiskExistInBoth() {
+        // only a season which is not here is missing at TMDB
+        file("F/Fondu {tmdb-5}/Season 1/Fondu.S01E01.mkv")
+        file("F/Fondu {tmdb-5}/Season 3/Fondu.S03E01.mkv")
+        val lookup = FakeLookup(mapOf("5" to "55"), mapOf("tmdb-5" to 3, "tvdb-55" to 4), mapOf("tvdb-55" to "Fondu"))
+
+        val result = SeriesIdMigrator(lookup).migrate(series, isTestRun = false)
+
+        assertThat(files()).containsExactly("F/Fondu {tvdb-55}/Season 1/Fondu.S01E01.mkv", "F/Fondu {tvdb-55}/Season 3/Fondu.S03E01.mkv")
+        assertThat(result.unsure).isEmpty()
+    }
+
+    @Test
+    fun shouldLeaveShowsWhoseSeasonsDifferWithoutSeasonFolders() {
+        file("R/Ranmo {tmdb-6}/Other/Extra.mkv")
+        val lookup = FakeLookup(mapOf("6" to "66"), mapOf("tmdb-6" to 1, "tvdb-66" to 7), mapOf("tvdb-66" to "Ranmo"))
+
+        val result = SeriesIdMigrator(lookup).migrate(series, isTestRun = false)
+
+        assertThat(files()).containsExactly("R/Ranmo {tmdb-6}/Other/Extra.mkv")
+        assertThat(result.unsure).hasSize(1)
     }
 
     @Test

@@ -31,7 +31,9 @@ class OnlineSeriesIdLookup(private val tmdb: TheMovieDataBaseService, private va
  *
  * TMDB tells the TVDB id of a series. A show is only moved if TMDB and TVDB count the same number of seasons, else the
  * episodes would be in the wrong seasons (TMDB splits some series into two with their own seasons, TVDB has one with
- * all of them). Those and the shows without TVDB id are listed as `UNSURE` to fix by hand.
+ * all of them). If the counts differ the show is still moved when it has season folders and all of them exist in both
+ * (e.g. seasons 1 to 3 on disk, TMDB has 3 and TVDB 4, only a new season is missing). Those which stay and the shows
+ * without TVDB id are listed as `UNSURE` to fix by hand.
  */
 class SeriesIdMigrator(private val lookup: SeriesIdLookup) {
 
@@ -69,7 +71,7 @@ class SeriesIdMigrator(private val lookup: SeriesIdLookup) {
                 continue
             }
             val tmdbSeasons = lookup.tmdbSeries(tmdbId)?.seasonCount
-            if (tmdbSeasons == null || tmdbSeasons != tvdbSeries.seasonCount) {
+            if (tmdbSeasons == null || tmdbSeasons != tvdbSeries.seasonCount && !seasonsOnDiskExistInBoth(folder, tmdbSeasons, tvdbSeries.seasonCount)) {
                 unsure(folder, "the seasons differ, {tmdb-$tmdbId} has $tmdbSeasons, {tvdb-$tvdbId} has ${tvdbSeries.seasonCount}")
                 continue
             }
@@ -84,6 +86,14 @@ class SeriesIdMigrator(private val lookup: SeriesIdLookup) {
         log.append("${moves.size} shows ${if (isTestRun) "to move" else "moved"}, ${unsure.size} unsure, ${collisions.size} files left in place\n")
         logFile?.writeText(log.toString())
         return Result(moves, unsure, collisions)
+    }
+
+    /** True if the show has season folders and the highest one is not above the season count of either database. */
+    private fun seasonsOnDiskExistInBoth(show: File, tmdbSeasons: Int, tvdbSeasons: Int?): Boolean {
+        val highestSeason = show.listFiles().orEmpty().filter { it.isDirectory }
+            .mapNotNull { seasonFolderPattern.matchEntire(it.name)?.groupValues?.get(1)?.toInt() }
+            .filter { it > 0 }.maxOrNull() ?: return false
+        return tvdbSeasons != null && highestSeason <= minOf(tmdbSeasons, tvdbSeasons)
     }
 
     /** The show folders with a TMDB id and the id, directly in [seriesFolder] or in its letter folders. */
@@ -129,6 +139,7 @@ class SeriesIdMigrator(private val lookup: SeriesIdLookup) {
     }
 
     companion object {
+        private val seasonFolderPattern = "^Season (\\d+)$".toRegex(RegexOption.IGNORE_CASE)
         private val tmdbShowPattern = "^.+ \\{tmdb-(\\d+)}$".toRegex(RegexOption.IGNORE_CASE)
     }
 }
