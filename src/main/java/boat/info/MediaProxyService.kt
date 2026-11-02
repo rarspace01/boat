@@ -280,6 +280,8 @@ class MediaProxyService(
         return fetch(cacheKey.removePrefix(SEARCH_KEY_PREFIX))
     }
 
+    private fun distinctKey(item: MediaItem): String = item.title + item.year + item.type
+
     // cache keys hold the media type as its name or "null"
     private fun isMediaType(type: String) = type == "null" || parseMediaType(type) != null
 
@@ -292,8 +294,15 @@ class MediaProxyService(
         return rankResults(name, results)
     }
 
+    /**
+     * The results of both, a title is kept once (same title, year and type). For a series both know TVDB is preferred,
+     * its seasons are like the releases name them (TMDB splits some series into two with their own seasons, TVDB has
+     * one with all of them). The TVDB series takes the place of the TMDB one, so the order of the rest doesn't change.
+     */
     private fun combine(tmdbResults: List<MediaItem>?, tvdbResults: List<MediaItem>?): FetchResult {
-        val items = (tmdbResults ?: emptyList()).plus(tvdbResults ?: emptyList()).distinctBy { it.title + it.year + it.type }
+        val tvdbSeries = (tvdbResults ?: emptyList()).filter { it.type == MediaType.Series }.associateBy(::distinctKey)
+        val items = (tmdbResults ?: emptyList()).map { item -> tvdbSeries[distinctKey(item)].takeIf { item.type == MediaType.Series } ?: item }
+            .plus(tvdbResults ?: emptyList()).distinctBy(::distinctKey)
         return FetchResult(items, complete = tmdbResults != null && tvdbResults != null)
     }
 
@@ -311,7 +320,7 @@ class MediaProxyService(
         val name = match.groupValues[1]
         val year = match.groupValues[2].toInt()
         val yearResults = search(name, year, MediaType.Movie) + search(name, year, MediaType.Series)
-        return (yearResults + search(query)).distinctBy { it.title + it.year + it.type }
+        return (yearResults + search(query)).distinctBy(::distinctKey)
     }
 
     /**

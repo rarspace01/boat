@@ -499,6 +499,32 @@ class MediaProxyServiceCachingTest {
     }
 
     @Test
+    fun `a series found by TMDB and TVDB with the same title and year should be the one of TVDB`() {
+        // TMDB splits the series into two with their own seasons, TVDB has one with all seasons
+        val tmdbSeries = MediaItem("Gurabi Bekoff", "Gurabi Bekoff", 2010, MediaType.Series, "{tmdb-34549}")
+        val tmdbLaterSeries = MediaItem("Gurabi Bekoff", "Gurabi Bekoff", 2017, MediaType.Series, "{tmdb-87012}")
+        val tmdbMovie = MediaItem("Gurabi Bekoff", "Gurabi Bekoff", 2010, MediaType.Movie, "{tmdb-5}")
+        val tvdbSeries = MediaItem("Gurabi Bekoff", "Gurabi Bekoff", 2010, MediaType.Series, "{tvdb-184871}")
+        val tvdbOtherSeries = MediaItem("Gurabi Bekoff", "Gurabi Bekoff", 2020, MediaType.Series, "{tvdb-9}")
+        every { tmdbService.search("Gurabi Bekoff") } returns listOf(tmdbMovie, tmdbSeries, tmdbLaterSeries)
+        every { tvdbService.search("Gurabi Bekoff") } returns listOf(tvdbOtherSeries, tvdbSeries)
+
+        // in the place of the TMDB one, the others keep their order
+        assertThat(mediaProxyService.searchWithTrailingYear("Gurabi Bekoff")).containsExactly(tmdbMovie, tvdbSeries, tmdbLaterSeries, tvdbOtherSeries)
+        assertThat(mediaProxyService.search("Gurabi Bekoff", MediaType.Series).first()).isEqualTo(tvdbSeries)
+    }
+
+    @Test
+    fun `a movie found with the same title and year as a TVDB series should stay`() {
+        val movie = MediaItem("Dobi", "Dobi", 2017, MediaType.Movie, "{tmdb-1}")
+        val series = MediaItem("Dobi", "Dobi", 2017, MediaType.Series, "{tvdb-334824}")
+        every { tmdbService.search("Dobi") } returns listOf(movie)
+        every { tvdbService.search("Dobi") } returns listOf(series)
+
+        assertThat(mediaProxyService.search("Dobi")).containsExactly(movie, series)
+    }
+
+    @Test
     fun `cache should not grow beyond the maximum and drop the oldest entries`() {
         var now = 1_000_000_000_000L
         val service = service("unusedCacheFile") { now }

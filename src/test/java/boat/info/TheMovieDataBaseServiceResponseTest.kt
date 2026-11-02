@@ -22,4 +22,13 @@ internal class TheMovieDataBaseServiceResponseTest {
     fun shouldReturnAnEmptyListForAnAnswerWithoutResults() {
         assertThat(service.parseResponsePage("""{"page":1,"results":[],"total_results":0}""")).isEmpty()
     }
+
+    @Test
+    fun shouldReadTheTvdbIdOfASeries() {
+        assertThat(service.parseTvdbId("""{"id":34549,"imdb_id":"tt1","tvdb_id":184871,"tvrage_id":null}""")).isEqualTo("184871")
+        assertThat(service.parseTvdbId("""{"id":34549,"tvdb_id":null}""")).isNull()
+        assertThat(service.parseTvdbId("""{"status_code":34,"success":false}""")).isNull()
+        assertThat(service.parseTvdbId("<html>502 Bad Gateway</html>")).isNull()
+        assertThat(service.parseTvdbId(null)).isNull()
+    }
 }
