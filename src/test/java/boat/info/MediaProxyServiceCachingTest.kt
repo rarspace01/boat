@@ -492,10 +492,58 @@ class MediaProxyServiceCachingTest {
         every { tmdbService.search("Nothing") } returns listOf(MediaItem("Nothing", "Nothing", 1999, MediaType.Movie))
         every { tvdbService.search("Nothing") } returns emptyList()
 
+        // entries of older files are looked up again, while that fails they are still used
+        every { tmdbService.search("Daca") } returns null
+        every { tvdbService.search("Daca") } returns emptyList()
+
         assertThat(service.search("Daca")).hasSize(1)
         // empty entries of older files can't be trusted, they are looked up again
         assertThat(service.search("Nothing")).hasSize(1)
-        verify(exactly = 0) { tmdbService.search("Daca") }
+    }
+
+    @Test
+    fun `a series found by TMDB and TVDB with the same title and year should be offered from both`() {
+        // TMDB splits the series into two with their own seasons, TVDB has one with all seasons
+        val tmdbSeries = MediaItem("Gurabi Bekoff", "Gurabi Bekoff", 2010, MediaType.Series, "{tmdb-34549}")
+        val tmdbLaterSeries = MediaItem("Gurabi Bekoff", "Gurabi Bekoff", 2017, MediaType.Series, "{tmdb-87012}")
+        val tvdbSeries = MediaItem("Gurabi Bekoff", "Gurabi Bekoff", 2010, MediaType.Series, "{tvdb-184871}")
+        every { tmdbService.search("Gurabi Bekoff") } returns listOf(tmdbSeries, tmdbLaterSeries)
+        every { tvdbService.search("Gurabi Bekoff") } returns listOf(tvdbSeries)
+
+        val results = mediaProxyService.searchWithTrailingYear("Gurabi Bekoff")
+
+        assertThat(results).containsExactly(tmdbSeries, tmdbLaterSeries, tvdbSeries)
+        // TMDB stays the best match
+        assertThat(mediaProxyService.findBestMatch("Gurabi Bekoff", null)).isEqualTo(tmdbSeries)
+    }
+
+    @Test
+    fun `the same item found twice should be offered once`() {
+        val series = MediaItem("Dobi", "Dobi", 2017, MediaType.Series, "{tvdb-334824}")
+        val withoutId = MediaItem("Dobi", "Dobi", 2017, MediaType.Series)
+        every { tmdbService.search("Dobi") } returns listOf(withoutId, withoutId.copy())
+        every { tvdbService.search("Dobi") } returns listOf(series, series.copy())
+
+        assertThat(mediaProxyService.search("Dobi")).containsExactly(withoutId, series)
+    }
+
+    @Test
+    fun `entries saved before the TVDB series were kept should be looked up again`(@TempDir tempDir: Path) {
+        val cacheFile = File(tempDir.toFile(), "beforeVersion")
+        val tmdbSeries = MediaItem("Dobi", "Dobi", 2017, MediaType.Series, "{tmdb-1}")
+        val tvdbSeries = MediaItem("Dobi", "Dobi", 2017, MediaType.Series, "{tvdb-334824}")
+        cacheFile.writeText("""{"search:Dobi": {"cachedAt": ${System.currentTimeMillis()}, "items": [{"title": "Dobi", "originalTitle": "Dobi", "year": 2017, "type": "Series", "id": "{tmdb-1}"}]}}""")
+        every { tmdbService.search("Dobi") } returns listOf(tmdbSeries)
+        every { tvdbService.search("Dobi") } returns listOf(tvdbSeries)
+        val service = service(cacheFile.path)
+
+        assertThat(service.search("Dobi")).containsExactly(tmdbSeries, tvdbSeries)
+        service.saveCache()
+        clearMocks(tmdbService, tvdbService)
+
+        // saved with the current version, it is not looked up again
+        assertThat(service(cacheFile.path).search("Dobi")).containsExactly(tmdbSeries, tvdbSeries)
+        verify(exactly = 0) { tmdbService.search(any<String>()) }
     }
 
     @Test

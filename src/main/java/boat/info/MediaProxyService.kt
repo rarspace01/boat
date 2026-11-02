@@ -52,6 +52,13 @@ class MediaProxyService(
         const val REFRESH_ENTRIES_PER_SECOND = 10
 
         /**
+         * Version of how results are combined before they are cached. Entries of an older version are looked up again
+         * when asked for: up to version 0 a TVDB series was dropped if TMDB had one with the same title and year, even
+         * if they count the seasons differently.
+         */
+        const val CACHE_VERSION = 1
+
+        /**
          * Lowercase title without accents and punctuation, words separated by a single space.
          */
         fun normalizeTitle(input: String): String {
@@ -83,8 +90,8 @@ class MediaProxyService(
     @Volatile
     private var dirty = false
 
-    /** The results of a search and when they were looked up (epoch millis). */
-    data class CacheEntry(val cachedAt: Long, val items: List<MediaItem>)
+    /** The results of a search, when they were looked up (epoch millis) and how they were combined ([CACHE_VERSION]). */
+    data class CacheEntry(val cachedAt: Long, val items: List<MediaItem>, val version: Int = CACHE_VERSION)
 
     /**
      * What the services found. [complete] is false if one of them failed (no answer, not "found nothing"), such
@@ -105,6 +112,7 @@ class MediaProxyService(
     }
 
     private fun isExpired(entry: CacheEntry): Boolean {
+        if (entry.version < CACHE_VERSION) return true
         val ttl = ttlMillis(entry)
         return ttl > 0 && clock() - entry.cachedAt >= ttl
     }
@@ -146,11 +154,12 @@ class MediaProxyService(
             // failing apis), so they are treated as expired and looked up again when they are asked for.
             value.isJsonArray -> {
                 val items: List<MediaItem> = gson.fromJson(value, itemType)
-                CacheEntry(if (items.isEmpty()) 0 else fileLastModified, items)
+                CacheEntry(if (items.isEmpty()) 0 else fileLastModified, items, version = 0)
             }
             value.isJsonObject -> CacheEntry(
                 value.asJsonObject["cachedAt"]?.asLong ?: fileLastModified,
-                gson.fromJson(value.asJsonObject["items"], itemType) ?: emptyList()
+                gson.fromJson(value.asJsonObject["items"], itemType) ?: emptyList(),
+                value.asJsonObject["version"]?.asInt ?: 0
             )
             else -> null
         }
@@ -280,6 +289,9 @@ class MediaProxyService(
         return fetch(cacheKey.removePrefix(SEARCH_KEY_PREFIX))
     }
 
+    // the same item if it has the same remote id, items without one if they have the same title, year and type
+    private fun distinctKey(item: MediaItem): String = item.id?.takeIf { it.isNotBlank() } ?: (item.title + item.year + item.type)
+
     // cache keys hold the media type as its name or "null"
     private fun isMediaType(type: String) = type == "null" || parseMediaType(type) != null
 
@@ -292,8 +304,13 @@ class MediaProxyService(
         return rankResults(name, results)
     }
 
+    /**
+     * A title found by TMDB and TVDB stays twice, the databases might split a series differently into seasons (TMDB
+     * splits one into two series with their own seasons, TVDB has one with all of them). TMDB comes first, so it is
+     * still preferred by the ones taking the best match.
+     */
     private fun combine(tmdbResults: List<MediaItem>?, tvdbResults: List<MediaItem>?): FetchResult {
-        val items = (tmdbResults ?: emptyList()).plus(tvdbResults ?: emptyList()).distinctBy { it.title + it.year + it.type }
+        val items = (tmdbResults ?: emptyList()).plus(tvdbResults ?: emptyList()).distinctBy(::distinctKey)
         return FetchResult(items, complete = tmdbResults != null && tvdbResults != null)
     }
 
@@ -311,7 +328,7 @@ class MediaProxyService(
         val name = match.groupValues[1]
         val year = match.groupValues[2].toInt()
         val yearResults = search(name, year, MediaType.Movie) + search(name, year, MediaType.Series)
-        return (yearResults + search(query)).distinctBy { it.title + it.year + it.type }
+        return (yearResults + search(query)).distinctBy(::distinctKey)
     }
 
     /**
