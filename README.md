@@ -152,6 +152,13 @@ Start with a test run: the manual tests in `DuplicateCleanerIntegrationTest` (re
 median, 95th percentile and maximum per file). Look at the log, then run `deleteDuplicateMovies` or
 `deleteDuplicateSeries`.
 
+## Versions
+
+Every push to `main` is tagged and released by CI (`mathieudutour/github-tag-action`), the version is the latest tag.
+The bump follows [Conventional Commits](https://www.conventionalcommits.org): a patch by default, `feat: …` a minor
+and `feat!: …` or a `BREAKING CHANGE: …` line in the message a major one (`#major` isn't read). With a squash merge the
+title of the pull request is the subject of the commit.
+
 tested with:
 
 ```
