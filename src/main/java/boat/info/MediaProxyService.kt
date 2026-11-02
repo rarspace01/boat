@@ -52,13 +52,6 @@ class MediaProxyService(
         const val REFRESH_ENTRIES_PER_SECOND = 10
 
         /**
-         * Version of how results are combined before they are cached. Entries of an older version are looked up again
-         * when asked for: up to version 0 TMDB was preferred for a series both know with the same title and year, now
-         * TVDB is (it counts the seasons like the releases do).
-         */
-        const val CACHE_VERSION = 1
-
-        /**
          * Lowercase title without accents and punctuation, words separated by a single space.
          */
         fun normalizeTitle(input: String): String {
@@ -90,8 +83,8 @@ class MediaProxyService(
     @Volatile
     private var dirty = false
 
-    /** The results of a search, when they were looked up (epoch millis) and how they were combined ([CACHE_VERSION]). */
-    data class CacheEntry(val cachedAt: Long, val items: List<MediaItem>, val version: Int = CACHE_VERSION)
+    /** The results of a search and when they were looked up (epoch millis). */
+    data class CacheEntry(val cachedAt: Long, val items: List<MediaItem>)
 
     /**
      * What the services found. [complete] is false if one of them failed (no answer, not "found nothing"), such
@@ -112,7 +105,6 @@ class MediaProxyService(
     }
 
     private fun isExpired(entry: CacheEntry): Boolean {
-        if (entry.version < CACHE_VERSION) return true
         val ttl = ttlMillis(entry)
         return ttl > 0 && clock() - entry.cachedAt >= ttl
     }
@@ -154,12 +146,11 @@ class MediaProxyService(
             // failing apis), so they are treated as expired and looked up again when they are asked for.
             value.isJsonArray -> {
                 val items: List<MediaItem> = gson.fromJson(value, itemType)
-                CacheEntry(if (items.isEmpty()) 0 else fileLastModified, items, version = 0)
+                CacheEntry(if (items.isEmpty()) 0 else fileLastModified, items)
             }
             value.isJsonObject -> CacheEntry(
                 value.asJsonObject["cachedAt"]?.asLong ?: fileLastModified,
-                gson.fromJson(value.asJsonObject["items"], itemType) ?: emptyList(),
-                value.asJsonObject["version"]?.asInt ?: 0
+                gson.fromJson(value.asJsonObject["items"], itemType) ?: emptyList()
             )
             else -> null
         }

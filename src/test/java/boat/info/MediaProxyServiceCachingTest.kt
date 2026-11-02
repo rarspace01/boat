@@ -492,13 +492,10 @@ class MediaProxyServiceCachingTest {
         every { tmdbService.search("Nothing") } returns listOf(MediaItem("Nothing", "Nothing", 1999, MediaType.Movie))
         every { tvdbService.search("Nothing") } returns emptyList()
 
-        // entries of older files are looked up again, while that fails they are still used
-        every { tmdbService.search("Daca") } returns null
-        every { tvdbService.search("Daca") } returns emptyList()
-
         assertThat(service.search("Daca")).hasSize(1)
         // empty entries of older files can't be trusted, they are looked up again
         assertThat(service.search("Nothing")).hasSize(1)
+        verify(exactly = 0) { tmdbService.search("Daca") }
     }
 
     @Test
@@ -525,25 +522,6 @@ class MediaProxyServiceCachingTest {
         every { tvdbService.search("Dobi") } returns listOf(series)
 
         assertThat(mediaProxyService.search("Dobi")).containsExactly(movie, series)
-    }
-
-    @Test
-    fun `entries saved before TVDB was preferred for series should be looked up again`(@TempDir tempDir: Path) {
-        val cacheFile = File(tempDir.toFile(), "beforeVersion")
-        val tmdbSeries = MediaItem("Dobi", "Dobi", 2017, MediaType.Series, "{tmdb-1}")
-        val tvdbSeries = MediaItem("Dobi", "Dobi", 2017, MediaType.Series, "{tvdb-334824}")
-        cacheFile.writeText("""{"search:Dobi": {"cachedAt": ${System.currentTimeMillis()}, "items": [{"title": "Dobi", "originalTitle": "Dobi", "year": 2017, "type": "Series", "id": "{tmdb-1}"}]}}""")
-        every { tmdbService.search("Dobi") } returns listOf(tmdbSeries)
-        every { tvdbService.search("Dobi") } returns listOf(tvdbSeries)
-        val service = service(cacheFile.path)
-
-        assertThat(service.search("Dobi")).containsExactly(tvdbSeries)
-        service.saveCache()
-        clearMocks(tmdbService, tvdbService)
-
-        // saved with the current version, it is not looked up again
-        assertThat(service(cacheFile.path).search("Dobi")).containsExactly(tvdbSeries)
-        verify(exactly = 0) { tmdbService.search(any<String>()) }
     }
 
     @Test
