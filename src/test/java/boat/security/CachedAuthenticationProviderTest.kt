@@ -136,4 +136,29 @@ internal class CachedAuthenticationProviderTest {
 
         assertThat(login("secret").isAuthenticated).isTrue
     }
+
+    @Test
+    fun shouldGrantTheRolesOfTheUserAlsoFromTheCache() {
+        every { userRepository.findByUsername("denis") } returns
+            User(username = "denis", password = "hash1", roles = listOf("USER", "ADMIN"))
+        every { passwordEncoder.matches("secret", "hash1") } returns true
+
+        val fromDatabase = login("secret")
+        val fromCache = login("secret")
+
+        assertThat(fromDatabase.authorities.map { it.authority }).containsExactly("ROLE_USER", "ROLE_ADMIN")
+        assertThat(fromCache.authorities.map { it.authority }).containsExactly("ROLE_USER", "ROLE_ADMIN")
+    }
+
+    @Test
+    fun shouldCheckThePasswordAgainAfterTheCacheWasCleared() {
+        every { userRepository.findByUsername("denis") } returns User(username = "denis", password = "hash1")
+        every { passwordEncoder.matches("secret", "hash1") } returns true
+        login("secret")
+
+        provider.clearAuthenticationCache()
+        login("secret")
+
+        verify(exactly = 2) { passwordEncoder.matches(any(), any()) }
+    }
 }

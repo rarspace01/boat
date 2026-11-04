@@ -38,6 +38,7 @@ class SecurityConfiguration(private val cachedAuthenticationProvider: CachedAuth
                 authorize
                     .requestMatchers(HttpMethod.OPTIONS).permitAll()
                     .requestMatchers("/boat/shutdown", "/").permitAll()
+                    .requestMatchers("/boat/admin", "/boat/admin/**").hasRole("ADMIN")
                     .anyRequest().authenticated()
             }
             .httpBasic(Customizer.withDefaults())

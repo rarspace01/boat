@@ -91,7 +91,7 @@ internal class CrossSiteRequestFilterTest {
 
     @Test
     fun shouldRejectCrossSiteNavigationsToEndpointsChangingState() {
-        listOf("/boat/download", "/boat/queueList", "/boat/transferDelete", "/boat/transferRestart", "/boat/clearMediaCache", "/boat/shutdown").forEach { path ->
+        listOf("/boat/download", "/boat/queueList", "/boat/transferDelete", "/boat/transferRestart", "/boat/admin/clearMediaCache", "/boat/shutdown").forEach { path ->
             assertThat(call("GET", "cross-site", path, "navigate", "document").first.status).describedAs(path).isEqualTo(403)
         }
     }
@@ -128,7 +128,7 @@ internal class CrossSiteRequestFilterTest {
                 assertThat(chain.request).describedAs(origin).isNull()
             }
         // only the two download forms open a new tab, deleting and the like stay same origin only
-        listOf("/boat/transferDelete", "/boat/transferRestart", "/boat/clearMediaCache", "/boat/shutdown").forEach { path ->
+        listOf("/boat/transferDelete", "/boat/transferRestart", "/boat/admin/clearMediaCache", "/boat/shutdown").forEach { path ->
             assertThat(call("POST", "cross-site", path, "navigate", "document", "https://boat.example").first.status).describedAs(path).isEqualTo(403)
         }
         // a GET to them isn't a form of boat's pages

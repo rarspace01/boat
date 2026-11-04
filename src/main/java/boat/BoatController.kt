@@ -26,6 +26,7 @@ import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
+import org.springframework.security.core.Authentication
 import org.springframework.web.HttpMediaTypeNotAcceptableException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.GetMapping
@@ -63,9 +64,6 @@ class BoatController @Autowired constructor(
 
         private val logger by LoggerDelegate()
         const val BREAK_LINK_HTML = "  <br>\n"
-        // a button, the cache is only cleared by a POST
-        internal const val CLEAR_MEDIA_CACHE_FORM =
-            """ <form method="post" action="./clearMediaCache" class="transfer-control"><button type="submit">clear media cache</button></form>"""
         private val trailingYearPattern = "^(.+?)[\\s.(\\[]+((?:19|20)[0-9]{2})[)\\]]?$".toRegex()
 
         /**
@@ -356,7 +354,7 @@ $switchToSearchList$switchToProgress""" + htmlFooter
     }
 
     @GetMapping("/boat/info")
-    fun info(@RequestParam(value = "message", required = false) message: String?): String {
+    fun info(@RequestParam(value = "message", required = false) message: String?, authentication: Authentication? = null): String {
         multifileHosterService.refreshTorrents()
         val remoteTorrents: List<Torrent> = multifileHosterService.activeTorrents
         val runtimeBean = ManagementFactory.getRuntimeMXBean()
@@ -368,7 +366,7 @@ $switchToSearchList$switchToProgress""" + htmlFooter
                 + "<br/>MODE: " + configurationService.getServiceMode()
                 + "<br/>target folder: " + (if (cloudService.isTargetFolderReady) "✅" else "❌")
                 + "<br/>search Cache: " + (if (cloudFileService.isCacheFilled) "✅" else "❌")
-                + CLEAR_MEDIA_CACHE_FORM
+                + (if (AdminController.isAdmin(authentication)) " <a href=\"./admin\">Admin</a>" else "")
                 + "<br/>ActiveSearchEngines: " + torrentSearchEngineService.getActiveSearchEngines()
                 + "<br/>InActiveSearchEngines: " + torrentSearchEngineService.inActiveSearchEngines
                 + "<br/>Active MultifileHoster: " + multifileHosterService.getActiveMultifileHosters()
@@ -418,12 +416,5 @@ $switchToSearchList$switchToProgress""" + htmlFooter
             exitProcess(0)
         }
         return "shutting down/restarting"
-    }
-
-    @PostMapping("/boat/clearMediaCache")
-    fun clearMediaCache(): String {
-        logger.info("clear media cache request received")
-        val removedEntries = mediaProxyService.clearCache()
-        return "cleared media cache, removed $removedEntries entries"
     }
 }

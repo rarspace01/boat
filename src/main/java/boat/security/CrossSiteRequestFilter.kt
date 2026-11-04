@@ -72,7 +72,7 @@ class CrossSiteRequestFilter : OncePerRequestFilter() {
         // typed urls, bookmarks and links handed over by native apps
         private const val USER_STARTED = "none"
         private val SAFE_METHODS = setOf("GET", "HEAD")
-        // read only pages (the search results included), everything changing state (e.g. /boat/download, /boat/clearMediaCache) stays same origin only
+        // read only pages (the search results included), everything changing state (e.g. /boat/download, /boat/admin/clearMediaCache) stays same origin only
         private val ENTRY_PAGES = setOf("/", "/search", "/boat/search", "/boat/query", "/boat/direct", "/boat/searchList", "/boat/info", "/boat/debug")
         // forms of boat's pages with target _blank, Safari on iOS sends them as cross site from a page on the home screen
         private val NEW_TAB_FORM_TARGETS = setOf("/boat/download", "/boat/queueList")

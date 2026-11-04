@@ -30,10 +30,10 @@ class CachedAuthenticationProvider(
     // the time of a recorded login, replaceable in tests
     internal var clock: Clock = Clock.systemUTC()
 
-    // Cache: Key = keyed hash of "username:password", Value = Boolean (isValid)
+    // Cache: Key = keyed hash of "username:password", Value = the roles of the user
     // The plaintext credentials are never kept. Expires entries 10 minutes after write, so a removed user or a changed
     // password is still accepted for up to 10 minutes, in exchange for no database lookup and no BCrypt check per request.
-    private val authCache: Cache<String, Boolean> = Caffeine.newBuilder()
+    private val authCache: Cache<String, List<String>> = Caffeine.newBuilder()
         .maximumSize(500)
         .expireAfterWrite(10, TimeUnit.MINUTES)
         .build()
@@ -65,11 +65,10 @@ class CachedAuthenticationProvider(
         val username = authentication.name
         val password = authentication.credentials.toString()
         val cacheKey = cacheKey(username, password)
-        val authorities = listOf(SimpleGrantedAuthority("ROLE_USER"))
 
         // 1. Instant Cache Hit
-        if (authCache.getIfPresent(cacheKey) == true) {
-            return UsernamePasswordAuthenticationToken(username, password, authorities)
+        authCache.getIfPresent(cacheKey)?.let { roles ->
+            return UsernamePasswordAuthenticationToken(username, password, authorities(roles))
         }
 
         val address = (authentication.details as? WebAuthenticationDetails)?.remoteAddress ?: "unknown"
@@ -86,9 +85,9 @@ class CachedAuthenticationProvider(
             val passwordMatches = passwordEncoder.matches(password, user.password)
             bcryptCheckMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started)
             if (passwordMatches) {
-                authCache.put(cacheKey, true)
+                authCache.put(cacheKey, user.roles)
                 recordLogin(username)
-                return UsernamePasswordAuthenticationToken(username, password, authorities)
+                return UsernamePasswordAuthenticationToken(username, password, authorities(user.roles))
             }
         }
 
@@ -112,6 +111,11 @@ class CachedAuthenticationProvider(
             logger.warn("Couldn't record the login of [{}]: {}", username, e.message)
         }
     }
+
+    private fun authorities(roles: List<String>) = roles.map { SimpleGrantedAuthority("ROLE_$it") }
+
+    /** Forgets the accepted logins, e.g. after a password reset, so the old password stops working right away. */
+    fun clearAuthenticationCache() = authCache.invalidateAll()
 
     private fun waitLikeABcryptCheck() {
         try {
