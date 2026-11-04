@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.util.HtmlUtils
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
+import java.time.Duration
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
@@ -56,6 +57,13 @@ class AdminController @Autowired constructor(
                     "media items: ${stats.items}<br/>" +
                     "oldest entry: ${stats.oldestCachedAt?.let { LAST_LOGIN_FORMAT.format(Instant.ofEpochMilli(it)) } ?: "none"}<br/>"
 
+        internal fun userStatisticsHtml(users: List<User>, now: Instant): String {
+            fun loggedInWithin(days: Long) = users.count { user -> user.lastLogin?.let { it >= now.minus(Duration.ofDays(days)) } == true }
+            return "admins: ${users.count { ADMIN_ROLE in it.roles }}<br/>" +
+                    "logged in within 24 hours: ${loggedInWithin(1)}, 7 days: ${loggedInWithin(7)}, 30 days: ${loggedInWithin(30)}<br/>" +
+                    "no login known: ${users.count { it.lastLogin == null }}<br/>"
+        }
+
         private fun urlEncode(value: String) = URLEncoder.encode(value, StandardCharsets.UTF_8)
     }
 
@@ -90,7 +98,7 @@ class AdminController @Autowired constructor(
                 """<button type="submit">reset</button></form>""" +
                 "<h3>Media cache</h3>" + cacheStatisticsHtml(mediaProxyService.cacheStatistics()) +
                 """<form method="post" action="./admin/clearMediaCache"><button type="submit">clear media cache</button></form>""" +
-                "<h3>Users [${users.size}]</h3>" +
+                "<h3>Users [${users.size}]</h3>" + userStatisticsHtml(users, Instant.now()) +
                 users.joinToString("<br/>") {
                     val name = HtmlUtils.htmlEscape(it.username)
                     name + " (" + HtmlUtils.htmlEscape(it.roles.joinToString()) + "), last login: " + lastLoginText(it.lastLogin) +

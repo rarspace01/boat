@@ -181,6 +181,22 @@ internal class AdminControllerTest {
     }
 
     @Test
+    fun shouldCountTheUsersByRoleAndLastLogin() {
+        val now = java.time.Instant.parse("2026-02-01T12:00:00Z")
+        val users = listOf(
+            User(username = "a", password = "p", roles = listOf("USER", "ADMIN"), lastLogin = now.minusSeconds(3600)),
+            User(username = "b", password = "p", lastLogin = now.minusSeconds(3 * 24 * 3600)),
+            User(username = "c", password = "p", lastLogin = now.minusSeconds(20 * 24 * 3600)),
+            User(username = "d", password = "p", lastLogin = now.minusSeconds(90 * 24 * 3600)),
+            User(username = "e", password = "p"),
+        )
+
+        val html = AdminController.userStatisticsHtml(users, now)
+
+        assertThat(html).contains("admins: 1", "within 24 hours: 1, 7 days: 2, 30 days: 3", "no login known: 1")
+    }
+
+    @Test
     fun shouldRecognizeAdmins() {
         fun auth(role: String) = UsernamePasswordAuthenticationToken("u", "p", listOf(SimpleGrantedAuthority(role)))
 
