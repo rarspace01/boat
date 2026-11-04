@@ -87,6 +87,53 @@ internal class AdminControllerTest {
         verify(exactly = 0) { userRepository.save(any()) }
     }
 
+    private fun auth(name: String) = UsernamePasswordAuthenticationToken(name, "p", listOf(SimpleGrantedAuthority("ROLE_ADMIN")))
+
+    @Test
+    fun shouldDeleteAUserAndForgetTheCachedLogins() {
+        val anna = User(username = "anna", password = "x")
+        every { userRepository.findByUsername("anna") } returns anna
+
+        val response = controller.deleteUser("anna", auth("root"))
+
+        assertThat(location(response)).contains("deleted+user")
+        verify { userRepository.delete(anna) }
+        verify { provider.clearAuthenticationCache() }
+    }
+
+    @Test
+    fun shouldNotLetAnAdminDeleteThemselves() {
+        assertThat(location(controller.deleteUser("root", auth("root")))).contains("delete+yourself")
+        verify(exactly = 0) { userRepository.delete(any()) }
+    }
+
+    @Test
+    fun shouldNotDeleteTheLastAdmin() {
+        val admin = User(username = "boss", password = "x", roles = listOf("USER", "ADMIN"))
+        every { userRepository.findByUsername("boss") } returns admin
+        every { userRepository.findAll() } returns listOf(admin, User(username = "anna", password = "x"))
+
+        assertThat(location(controller.deleteUser("boss", auth("root")))).contains("last+admin")
+        verify(exactly = 0) { userRepository.delete(any()) }
+    }
+
+    @Test
+    fun shouldDeleteAnAdminIfThereIsAnother() {
+        val admin = User(username = "boss", password = "x", roles = listOf("ADMIN"))
+        every { userRepository.findByUsername("boss") } returns admin
+        every { userRepository.findAll() } returns listOf(admin, User(username = "root", password = "x", roles = listOf("ADMIN")))
+
+        assertThat(location(controller.deleteUser("boss", auth("root")))).contains("deleted+user")
+        verify { userRepository.delete(admin) }
+    }
+
+    @Test
+    fun shouldNotDeleteAnUnknownUser() {
+        every { userRepository.findByUsername("nobody") } returns null
+
+        assertThat(location(controller.deleteUser("nobody", auth("root")))).contains("not+found")
+    }
+
     @Test
     fun shouldClearTheMediaCache() {
         every { mediaProxyService.clearCache() } returns 3

@@ -78,7 +78,12 @@ class AdminController @Autowired constructor(
                 "<h3>Media cache</h3>" +
                 """<form method="post" action="./admin/clearMediaCache"><button type="submit">clear media cache</button></form>""" +
                 "<h3>Users [${users.size}]</h3>" +
-                users.joinToString("<br/>") { HtmlUtils.htmlEscape(it.username) + " (" + HtmlUtils.htmlEscape(it.roles.joinToString()) + ")" } +
+                users.joinToString("<br/>") {
+                    val name = HtmlUtils.htmlEscape(it.username)
+                    name + " (" + HtmlUtils.htmlEscape(it.roles.joinToString()) + ")" +
+                            """ <form method="post" action="./admin/deleteUser" style="display:inline">""" +
+                            """<input type="hidden" name="username" value="$name"><button type="submit" title="delete">🗑</button></form>"""
+                } +
                 "</body>\n</html>\n"
     }
 
@@ -110,6 +115,21 @@ class AdminController @Autowired constructor(
         cachedAuthenticationProvider.clearAuthenticationCache()
         logger.info("reset the password of user [{}]", name)
         return redirect("reset the password of [$name]")
+    }
+
+    @PostMapping("/deleteUser")
+    fun deleteUser(@RequestParam("username") username: String, authentication: Authentication?): ResponseEntity<Void> {
+        val name = username.trim()
+        if (name == authentication?.name) return redirect("you can't delete yourself")
+        val user = userRepository.findByUsername(name) ?: return redirect("user [$name] not found")
+        if (ADMIN_ROLE in user.roles && userRepository.findAll().count { ADMIN_ROLE in it.roles } <= 1) {
+            return redirect("the last admin can't be deleted")
+        }
+        userRepository.delete(user)
+        // logins accepted before are valid for 10 minutes otherwise
+        cachedAuthenticationProvider.clearAuthenticationCache()
+        logger.info("deleted user [{}]", name)
+        return redirect("deleted user [$name]")
     }
 
     @PostMapping("/clearMediaCache")
