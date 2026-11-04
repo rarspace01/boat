@@ -12,12 +12,22 @@ import org.springframework.security.authentication.BadCredentialsException
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.security.web.authentication.WebAuthenticationDetails
+import java.time.Clock
+import java.time.Instant
+import java.time.ZoneOffset
 
 internal class CachedAuthenticationProviderTest {
 
     private val userRepository: UserRepository = mockk()
     private val passwordEncoder: PasswordEncoder = mockk()
-    private val provider = CachedAuthenticationProvider(userRepository, passwordEncoder)
+    private val loginTime = Instant.parse("2026-01-02T03:04:05Z")
+    private val provider = CachedAuthenticationProvider(userRepository, passwordEncoder).apply {
+        clock = Clock.fixed(loginTime, ZoneOffset.UTC)
+    }
+
+    init {
+        every { userRepository.updateLastLoginByUsername(any(), any()) } returns 1L
+    }
 
     private fun login(password: String, username: String = "denis", address: String = "203.0.113.7") =
         provider.authenticate(UsernamePasswordAuthenticationToken(username, password).apply {
@@ -93,6 +103,37 @@ internal class CachedAuthenticationProviderTest {
         }
 
         // e.g. the user behind the same reverse proxy as someone guessing
+        assertThat(login("secret").isAuthenticated).isTrue
+    }
+
+    @Test
+    fun shouldRecordTheLastLoginOnceForRepeatedLogins() {
+        every { userRepository.findByUsername("denis") } returns User(username = "denis", password = "hash1")
+        every { passwordEncoder.matches("secret", "hash1") } returns true
+
+        login("secret")
+        login("secret")
+
+        // the cache hit doesn't write to the database
+        verify(exactly = 1) { userRepository.updateLastLoginByUsername("denis", loginTime) }
+    }
+
+    @Test
+    fun shouldNotRecordAFailedLogin() {
+        every { userRepository.findByUsername("denis") } returns User(username = "denis", password = "hash1")
+        every { passwordEncoder.matches("wrong", "hash1") } returns false
+
+        assertThatThrownBy { login("wrong") }.isInstanceOf(BadCredentialsException::class.java)
+
+        verify(exactly = 0) { userRepository.updateLastLoginByUsername(any(), any()) }
+    }
+
+    @Test
+    fun shouldLoginEvenIfTheLastLoginCantBeRecorded() {
+        every { userRepository.findByUsername("denis") } returns User(username = "denis", password = "hash1")
+        every { passwordEncoder.matches("secret", "hash1") } returns true
+        every { userRepository.updateLastLoginByUsername(any(), any()) } throws RuntimeException("database down")
+
         assertThat(login("secret").isAuthenticated).isTrue
     }
 }
