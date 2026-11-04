@@ -13,6 +13,8 @@ import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.security.web.authentication.WebAuthenticationDetails
 import org.springframework.stereotype.Component
 import java.security.SecureRandom
+import java.time.Clock
+import java.time.Instant
 import java.util.Base64
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
@@ -24,6 +26,9 @@ class CachedAuthenticationProvider(
     private val userRepository: UserRepository,
     private val passwordEncoder: PasswordEncoder
 ) : AuthenticationProvider {
+
+    // the time of a recorded login, replaceable in tests
+    internal var clock: Clock = Clock.systemUTC()
 
     // Cache: Key = keyed hash of "username:password", Value = Boolean (isValid)
     // The plaintext credentials are never kept. Expires entries 10 minutes after write, so a removed user or a changed
@@ -82,6 +87,7 @@ class CachedAuthenticationProvider(
             bcryptCheckMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started)
             if (passwordMatches) {
                 authCache.put(cacheKey, true)
+                recordLogin(username)
                 return UsernamePasswordAuthenticationToken(username, password, authorities)
             }
         }
@@ -92,6 +98,19 @@ class CachedAuthenticationProvider(
                 failedLogins, address, FAILED_LOGIN_WINDOW_MINUTES)
         }
         throw BadCredentialsException("Invalid credentials")
+    }
+
+    /**
+     * Only logins checked against the database count, not cache hits: no database write per request. While a user
+     * keeps using boat the last login is at most the cache expiry (10 minutes) old.
+     */
+    private fun recordLogin(username: String) {
+        try {
+            userRepository.updateLastLoginByUsername(username, Instant.now(clock))
+        } catch (e: Exception) {
+            // a failed bookkeeping write must not fail a valid login
+            logger.warn("Couldn't record the login of [{}]: {}", username, e.message)
+        }
     }
 
     private fun waitLikeABcryptCheck() {
