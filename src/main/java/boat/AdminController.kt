@@ -19,6 +19,9 @@ import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.util.HtmlUtils
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
+import java.time.Instant
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 
 /**
  * Administration of boat, only for users with the role ADMIN (see [SecurityConfiguration]): add users, reset passwords
@@ -42,6 +45,11 @@ class AdminController @Autowired constructor(
 
         fun isAdmin(authentication: Authentication?): Boolean =
             authentication?.authorities?.any { it.authority == "ROLE_$ADMIN_ROLE" } == true
+
+        private val LAST_LOGIN_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm 'UTC'").withZone(ZoneOffset.UTC)
+
+        /** Null until the user logged in the first time after the last login was introduced. */
+        internal fun lastLoginText(lastLogin: Instant?): String = lastLogin?.let { LAST_LOGIN_FORMAT.format(it) } ?: "unknown"
 
         private fun urlEncode(value: String) = URLEncoder.encode(value, StandardCharsets.UTF_8)
     }
@@ -80,7 +88,7 @@ class AdminController @Autowired constructor(
                 "<h3>Users [${users.size}]</h3>" +
                 users.joinToString("<br/>") {
                     val name = HtmlUtils.htmlEscape(it.username)
-                    name + " (" + HtmlUtils.htmlEscape(it.roles.joinToString()) + ")" +
+                    name + " (" + HtmlUtils.htmlEscape(it.roles.joinToString()) + "), last login: " + lastLoginText(it.lastLogin) +
                             """ <form method="post" action="./admin/deleteUser" style="display:inline">""" +
                             """<input type="hidden" name="username" value="$name"><button type="submit" title="delete">🗑</button></form>"""
                 } +

@@ -151,6 +151,18 @@ internal class AdminControllerTest {
     }
 
     @Test
+    fun shouldShowTheLastLoginOfTheUsers() {
+        every { userRepository.findAll() } returns listOf(
+            User(username = "anna", password = "p", lastLogin = java.time.Instant.parse("2026-01-02T03:04:05Z")),
+            User(username = "bob", password = "p"),
+        )
+
+        val html = controller.admin(null)
+
+        assertThat(html).contains("last login: 2026-01-02 03:04 UTC", "last login: unknown")
+    }
+
+    @Test
     fun shouldRecognizeAdmins() {
         fun auth(role: String) = UsernamePasswordAuthenticationToken("u", "p", listOf(SimpleGrantedAuthority(role)))
 
