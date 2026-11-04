@@ -51,6 +51,11 @@ class AdminController @Autowired constructor(
         /** Null until the user logged in the first time after the last login was introduced. */
         internal fun lastLoginText(lastLogin: Instant?): String = lastLogin?.let { LAST_LOGIN_FORMAT.format(it) } ?: "unknown"
 
+        internal fun cacheStatisticsHtml(stats: MediaProxyService.CacheStatistics): String =
+            "entries: ${stats.entries} of ${stats.maxEntries} (${stats.expiredEntries} expired)<br/>" +
+                    "media items: ${stats.items}<br/>" +
+                    "oldest entry: ${stats.oldestCachedAt?.let { LAST_LOGIN_FORMAT.format(Instant.ofEpochMilli(it)) } ?: "none"}<br/>"
+
         private fun urlEncode(value: String) = URLEncoder.encode(value, StandardCharsets.UTF_8)
     }
 
@@ -83,7 +88,7 @@ class AdminController @Autowired constructor(
                 """<input type="text" name="username" placeholder="username" required maxlength="64"> """ +
                 """<input type="password" name="password" placeholder="new password" required minlength="$MIN_PASSWORD_LENGTH" autocomplete="new-password"> """ +
                 """<button type="submit">reset</button></form>""" +
-                "<h3>Media cache</h3>" +
+                "<h3>Media cache</h3>" + cacheStatisticsHtml(mediaProxyService.cacheStatistics()) +
                 """<form method="post" action="./admin/clearMediaCache"><button type="submit">clear media cache</button></form>""" +
                 "<h3>Users [${users.size}]</h3>" +
                 users.joinToString("<br/>") {

@@ -324,6 +324,22 @@ class MediaProxyServiceCachingTest {
     }
 
     @Test
+    fun `cacheStatistics should count entries, items and the oldest known cache time`() {
+        val movie = MediaItem("A", "A", 2000, MediaType.Movie)
+        mediaProxyService.cache["search:A"] = MediaProxyService.CacheEntry(5_000L, listOf(movie, movie))
+        mediaProxyService.cache["search:B"] = MediaProxyService.CacheEntry(9_000L, listOf(movie))
+        // legacy empty entry, its cache time is unknown
+        mediaProxyService.cache["search:C"] = MediaProxyService.CacheEntry(0L, emptyList())
+
+        val stats = mediaProxyService.cacheStatistics()
+
+        assertThat(stats.entries).isEqualTo(3)
+        assertThat(stats.items).isEqualTo(3)
+        assertThat(stats.oldestCachedAt).isEqualTo(5_000L)
+        assertThat(stats.maxEntries).isEqualTo(mediaProxyService.maxCacheEntries)
+    }
+
+    @Test
     fun `refreshCache should refresh entries in parallel within the given limits`() {
         val names = (1..6).map { "Movie $it" }
         names.forEach { mediaProxyService.cache["search:$it"] = MediaProxyService.CacheEntry(System.currentTimeMillis(), listOf(MediaItem(it, it, 2000, MediaType.Movie))) }

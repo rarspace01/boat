@@ -171,6 +171,20 @@ class MediaProxyService(
         }
     }
 
+    /** [oldestCachedAt] is null without entries which were cached at a known time (legacy empty ones have 0). */
+    data class CacheStatistics(val entries: Int, val maxEntries: Int, val expiredEntries: Int, val items: Int, val oldestCachedAt: Long?)
+
+    fun cacheStatistics(): CacheStatistics {
+        val entries = cache.values.toList()
+        return CacheStatistics(
+            entries = entries.size,
+            maxEntries = maxCacheEntries,
+            expiredEntries = entries.count { isExpired(it) },
+            items = entries.sumOf { it.items.size },
+            oldestCachedAt = entries.map { it.cachedAt }.filter { it > 0 }.minOrNull()
+        )
+    }
+
     /**
      * Removes all cached media items, in memory and on disk. Returns the number of removed cache entries.
      */

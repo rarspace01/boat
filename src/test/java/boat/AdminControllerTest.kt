@@ -25,6 +25,7 @@ internal class AdminControllerTest {
     private val controller = AdminController(userRepository, passwordEncoder, provider, mediaProxyService)
 
     init {
+        every { mediaProxyService.cacheStatistics() } returns MediaProxyService.CacheStatistics(0, 100, 0, 0, null)
         every { passwordEncoder.encode(any()) } answers { "{bcrypt}hash-of-" + firstArg<String>() }
     }
 
@@ -160,6 +161,23 @@ internal class AdminControllerTest {
         val html = controller.admin(null)
 
         assertThat(html).contains("last login: 2026-01-02 03:04 UTC", "last login: unknown")
+    }
+
+    @Test
+    fun shouldShowTheMediaCacheStatistics() {
+        every { userRepository.findAll() } returns emptyList()
+        every { mediaProxyService.cacheStatistics() } returns
+            MediaProxyService.CacheStatistics(5, 100, 2, 17, java.time.Instant.parse("2026-01-02T03:04:05Z").toEpochMilli())
+
+        val html = controller.admin(null)
+
+        assertThat(html).contains("entries: 5 of 100 (2 expired)", "media items: 17", "oldest entry: 2026-01-02 03:04 UTC")
+    }
+
+    @Test
+    fun shouldShowAnEmptyMediaCache() {
+        assertThat(AdminController.cacheStatisticsHtml(MediaProxyService.CacheStatistics(0, 100, 0, 0, null)))
+            .contains("entries: 0 of 100", "oldest entry: none")
     }
 
     @Test
