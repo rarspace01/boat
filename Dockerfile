@@ -3,7 +3,7 @@
 FROM mwader/static-ffmpeg:9.0.2-1 AS ffmpeg
 # rclone from its official image (a static binary for amd64 and arm64) instead of piping install.sh from the internet,
 # so the version is pinned and dependabot updates it
-FROM rclone/rclone:1.75.2 AS rclone
+FROM rclone/rclone:1.76.0 AS rclone
 
 FROM eclipse-temurin:25-jre
 COPY --from=ffmpeg /ffprobe /usr/local/bin/
