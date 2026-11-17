@@ -66,4 +66,14 @@ internal class TorrentHtmlEscapeTest {
         assertThat(html).doesNotContain("<script>", "<img", "<s>", "--><img")
         assertThat(html.substringAfter("-->").substringBefore("<!--")).contains("&lt;script&gt;")
     }
+
+    @Test
+    fun shouldShowRemoteMediaIdVisiblyOnTransfer() {
+        val withId = Transfer(name = "Some Title", remoteMediaId = "tmdb-27205").toString()
+        val escaped = Transfer(name = "x", remoteMediaId = "<script>").toString()
+
+        assertThat(withId.replace(Regex("<!--.*?-->"), "")).contains("(tmdb-27205)")
+        assertThat(escaped).doesNotContain("<script>")
+        assertThat(Transfer(name = "x").toString().replace(Regex("<!--.*?-->"), "")).doesNotContain("<small>")
+    }
 }

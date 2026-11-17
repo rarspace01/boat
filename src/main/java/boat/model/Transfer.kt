@@ -31,12 +31,15 @@ data class Transfer(
 ) {
     override fun toString(): String {
         return String.format(
-            "\n<br/>[<!-- ID:[%s]RID:[%s]MID:[%s]MT:[%s] -->%s,\uD83C\uDFE0%s,%s,%s,%s<!-- MSG: %s -->%s<!-- ,%s -->]", esc(id), esc(remoteId), esc(remoteMediaId), mediaType, esc(name),
+            "\n<br/>[<!-- ID:[%s]RID:[%s]MID:[%s]MT:[%s] -->%s%s,\uD83C\uDFE0%s,%s,%s,%s<!-- MSG: %s -->%s<!-- ,%s -->]", esc(id), esc(remoteId), esc(remoteMediaId), mediaType, esc(name), visibleMediaId(),
             esc(source.take(1)), transferStatus.string, type, percentageString, esc(feedbackMessage),
             printDuration(),
             updated
         )
     }
+
+    /** The remote media id (e.g. `tmdb-27205`) shown next to the name, so it can be checked on the info page. */
+    private fun visibleMediaId(): String = remoteMediaId?.takeIf { it.isNotBlank() }?.let { " <small>(${esc(it)})</small>" } ?: ""
 
     // the transfer is written into html (info page), names come from search engines and hosters
     private fun esc(value: String?): String? = value?.let { HtmlUtils.htmlEscape(it) }
