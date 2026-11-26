@@ -1,6 +1,6 @@
 # only ffprobe is used (duplicates), a static build is one file instead of the ~240 packages the ffmpeg package needs.
 # It is a full build (dav1d for AV1, VVC, EVC, AVS2/3, ...) for amd64 and arm64.
-FROM mwader/static-ffmpeg:9.0.2-1 AS ffmpeg
+FROM mwader/static-ffmpeg:9.1 AS ffmpeg
 # rclone from its official image (a static binary for amd64 and arm64) instead of piping install.sh from the internet,
 # so the version is pinned and dependabot updates it
 FROM rclone/rclone:1.76.0 AS rclone
